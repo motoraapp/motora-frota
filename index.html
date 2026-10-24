@@ -37,6 +37,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- PDF.js para renderizar PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- Gera o QR code do Pix a partir do copia e cola -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <!-- Supabase (banco de dados online) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
     <style>
@@ -50,6 +52,43 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
         @keyframes blinkRed { 0%, 100% { background-color: #dc2626; } 50% { background-color: #7f1d1d; } }
         .blink-red { animation: blinkRed 1.1s ease-in-out infinite; }
+
+        /* chave liga/desliga */
+        .sw { position: relative; width: 46px; height: 26px; flex-shrink: 0; display: inline-block; }
+        .sw input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .sw > span { position: absolute; inset: 0; border-radius: 999px; background: #94a3b8; transition: .2s; cursor: pointer; }
+        .sw > span::after { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+        .sw input:checked + span { background: #16a34a; }
+        .sw input:checked + span::after { transform: translateX(20px); }
+
+        /* ===== TEMAS (botão "Temas" no topo) =====
+           t1 = o visual escuro de sempre (sem troca de cores). Os outros trocam as cores principais. */
+        html[data-theme]:not([data-theme="t1"]) body.min-h-screen.flex { background: var(--bg) !important; color: var(--text) !important; }
+        html[data-theme]:not([data-theme="t1"]) header { background: var(--bar) !important; border-color: var(--line) !important; }
+        html[data-theme]:not([data-theme="t1"]) main .bg-white, html[data-theme]:not([data-theme="t1"]) main .dark\:bg-gray-800,
+        html[data-theme]:not([data-theme="t1"]) .fixed > .bg-white, html[data-theme]:not([data-theme="t1"]) .fixed > form.bg-white,
+        html[data-theme]:not([data-theme="t1"]) .fixed .dark\:bg-gray-800 { background: var(--card) !important; }
+        html[data-theme]:not([data-theme="t1"]) .border-gray-200, html[data-theme]:not([data-theme="t1"]) .dark\:border-gray-700,
+        html[data-theme]:not([data-theme="t1"]) .border-gray-100, html[data-theme]:not([data-theme="t1"]) .border-gray-300,
+        html[data-theme]:not([data-theme="t1"]) .dark\:border-gray-600 { border-color: var(--line) !important; }
+        html[data-theme]:not([data-theme="t1"]) input:not([type=checkbox]):not([type=file]), html[data-theme]:not([data-theme="t1"]) select,
+        html[data-theme]:not([data-theme="t1"]) textarea { background: var(--input) !important; color: var(--text) !important; border-color: var(--line) !important; }
+        html[data-theme]:not([data-theme="t1"]) .bg-gray-50, html[data-theme]:not([data-theme="t1"]) .dark\:bg-gray-700\/40,
+        html[data-theme]:not([data-theme="t1"]) .dark\:bg-gray-700\/50, html[data-theme]:not([data-theme="t1"]) .dark\:bg-gray-900 { background: var(--soft2) !important; }
+        html[data-theme]:not([data-theme="t1"]) .bg-gray-100, html[data-theme]:not([data-theme="t1"]) .dark\:bg-gray-700 { background: var(--btn2) !important; }
+        html[data-theme]:not([data-theme="t1"]) .bg-blue-600, html[data-theme]:not([data-theme="t1"]) .hover\:bg-blue-700:hover { background: var(--accent) !important; color: var(--on-accent) !important; }
+        html[data-theme]:not([data-theme="t1"]) .bg-emerald-600, html[data-theme]:not([data-theme="t1"]) .hover\:bg-emerald-700:hover { background: var(--pay) !important; color: var(--on-pay) !important; }
+        html[data-theme]:not([data-theme="t1"]) .text-blue-600, html[data-theme]:not([data-theme="t1"]) .dark\:text-blue-400,
+        html[data-theme]:not([data-theme="t1"]) .text-blue-500 { color: var(--accent-text) !important; }
+        html[data-theme]:not([data-theme="t1"]) .border-blue-600 { border-color: var(--accent) !important; }
+        html[data-theme]:not([data-theme="t1"]) .text-gray-500, html[data-theme]:not([data-theme="t1"]) .dark\:text-gray-400,
+        html[data-theme]:not([data-theme="t1"]) .text-gray-400 { color: var(--muted) !important; }
+        html[data-theme]:not([data-theme="t1"]) .rounded-2xl { border-radius: var(--radius) !important; }
+        html[data-theme="t2"] { --bg:#f8fafc; --bar:#ffffff; --card:#ffffff; --line:#e2e8f0; --text:#0f172a; --muted:#64748b; --accent:#1e3a8a; --accent-text:#1e3a8a; --on-accent:#fff; --pay:#1e3a8a; --on-pay:#fff; --btn2:#f1f5f9; --soft2:#f8fafc; --input:#ffffff; --radius:14px; }
+        html[data-theme="t3"] { --bg:#0b0b0c; --bar:#111113; --card:#18181b; --line:#27272a; --text:#fafafa; --muted:#a1a1aa; --accent:#facc15; --accent-text:#facc15; --on-accent:#111111; --pay:#facc15; --on-pay:#111111; --btn2:#27272a; --soft2:#121214; --input:#18181b; --radius:12px; }
+        html[data-theme="t4"] { --bg:#052e2b; --bar:#042522; --card:#0b3b37; --line:#115e56; --text:#ecfdf5; --muted:#99d5c7; --accent:#10b981; --accent-text:#34d399; --on-accent:#022c22; --pay:#10b981; --on-pay:#022c22; --btn2:#115e56; --soft2:#08332f; --input:#0b3b37; --radius:18px; }
+        html[data-theme="t5"] { --bg:#f5f3ff; --bar:#ffffff; --card:#ffffff; --line:#e9e5ff; --text:#1e1b4b; --muted:#6b6894; --accent:#6d28d9; --accent-text:#6d28d9; --on-accent:#fff; --pay:#7c3aed; --on-pay:#fff; --btn2:#f1eefe; --soft2:#faf8ff; --input:#ffffff; --radius:20px; }
+        html[data-theme="t6"] { --bg:#111111; --bar:#161616; --card:#1c1c1c; --line:#2c2c2c; --text:#f5f5f5; --muted:#a3a3a3; --accent:#dc2626; --accent-text:#f87171; --on-accent:#fff; --pay:#dc2626; --on-pay:#fff; --btn2:#2c2c2c; --soft2:#151515; --input:#1c1c1c; --radius:10px; }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
@@ -83,10 +122,9 @@
                     <i class="fa-solid fa-bell"></i><span class="hidden sm:inline">Ativar avisos</span>
                 </button>
 
-                <!-- Dark Mode Toggle -->
-                <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors" title="Alternar Tema">
-                    <i class="fa-solid fa-moon dark:hidden"></i>
-                    <i class="fa-solid fa-sun hidden dark:inline text-amber-400"></i>
+                <!-- Temas -->
+                <button onclick="openThemes()" class="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors text-sm font-semibold flex items-center gap-2" title="Escolher tema">
+                    <i class="fa-solid fa-palette"></i><span class="hidden sm:inline">Temas</span>
                 </button>
 
                 <!-- Logout Button -->
@@ -117,7 +155,7 @@
                         <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">E-mail / Usuário</label>
                         <div class="relative">
                             <i class="fa-solid fa-envelope absolute left-3 top-3 text-gray-400"></i>
-                            <input type="text" id="loginUser" required placeholder="E-mail ou usuário" autocomplete="username" autocapitalize="none" class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            <input type="text" id="loginUser" required placeholder="E-mail ou usuário" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" oninput="const p=this.selectionStart,v=this.value.toLowerCase().replace(/\s+/g,'');if(v!==this.value){this.value=v;try{this.setSelectionRange(p,p)}catch(e){}}" class="lowercase w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
                         </div>
                     </div>
 
@@ -151,6 +189,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div class="flex items-center gap-4">
+                        <div id="drvPhoto" class="hidden w-16 h-20 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-2xl font-bold text-gray-500"></div>
                         <div class="p-3 bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400 rounded-xl">
                             <i class="fa-solid fa-car text-2xl"></i>
                         </div>
@@ -237,7 +276,7 @@
 
                     <!-- Seção Pix -->
                     <div class="grid md:grid-cols-2 gap-6">
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center text-center">
+                        <div id="drvPixBox" class="p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center text-center">
                             <h4 class="font-semibold text-sm mb-3 text-gray-700 dark:text-gray-300 flex items-center gap-2">
                                 <i class="fa-brands fa-pix text-emerald-500"></i> Opção Pix
                             </h4>
@@ -252,11 +291,14 @@
                                         <i class="fa-solid fa-copy"></i> Copiar
                                     </button>
                                 </div>
+                                <a id="drvBbLink" href="#" target="_blank" rel="noopener" class="hidden w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold items-center justify-center gap-2">
+                                    <i class="fa-solid fa-building-columns"></i> Abrir no Banco do Brasil
+                                </a>
                             </div>
                         </div>
 
                         <!-- Seção Upload de Comprovante -->
-                        <div class="p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+                        <div id="drvReceiptBox" class="p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
                             <div>
                                 <h4 class="font-semibold text-sm mb-2 text-gray-700 dark:text-gray-300">Enviar Comprovante de Pagamento</h4>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Depois de pagar, envie aqui a foto ou PDF do comprovante <b>até segunda-feira às 23:59</b>. Assim seu status continua "Em dia".</p>
@@ -324,9 +366,10 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Arquivo CRLV-e (PDF/Img)</label>
-                            <input type="file" id="vehCrlvFile" accept="image/*,application/pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
+                            <input type="file" id="vehCrlvFile" accept="image/*,application/pdf" onchange="aiReadCrlv(this)" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
                         </div>
-                        <div class="md:col-span-3 flex justify-end">
+                        <div class="md:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <p id="vehAiStatus" class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Dica: escolha primeiro o CRLV-e e a IA preenche modelo e placa.</p>
                             <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm">
                                 Salvar Veículo
                             </button>
@@ -363,17 +406,27 @@
                         <i class="fa-solid fa-user-plus text-blue-500"></i> Cadastrar Novo Motorista
                     </h3>
                     <form onsubmit="handleAddDriver(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-3 flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-gray-700/40 border border-indigo-100 dark:border-gray-700">
+                            <button type="button" id="drvPhotoSlot" onclick="pickNewDriverPhoto()" title="Foto do motorista" class="w-16 h-20 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex flex-col items-center justify-center text-gray-400 text-[10px]">
+                                <i class="fa-solid fa-user text-xl mb-1"></i>Foto da CNH
+                            </button>
+                            <p id="drvAiStatus" class="text-xs text-indigo-900 dark:text-indigo-200"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Envie primeiro a <b>CNH</b> e o <b>comprovante de endereço</b>: a IA preenche o nome, o CPF, o usuário (nome + sobrenome) e a senha (6 primeiros números do CPF). A foto da CNH aparece aqui.</p>
+                        </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nome Completo</label>
-                            <input type="text" id="drvName" required placeholder="Nome do motorista" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <input type="text" id="drvName" required placeholder="Nome do motorista" oninput="syncNewDriverAccess()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Login (usuário ou e-mail)</label>
-                            <input type="text" id="drvEmail" required autocapitalize="none" placeholder="Ex: joao" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CPF</label>
+                            <input type="text" id="drvCpf" inputmode="numeric" placeholder="000.000.000-00" oninput="syncNewDriverAccess()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Senha de Acesso</label>
-                            <input type="password" id="drvPassword" required minlength="6" autocomplete="new-password" placeholder="Mínimo 6 caracteres" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Login (nome + sobrenome)</label>
+                            <input type="text" id="drvEmail" required autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Ex: thiagogomes" oninput="this.dataset.touched='1'" class="lowercase w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Senha (6 primeiros números do CPF)</label>
+                            <input type="text" id="drvPassword" required minlength="6" autocomplete="off" inputmode="numeric" placeholder="Mínimo 6 caracteres" oninput="this.dataset.touched='1'" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Vincular Veículo</label>
@@ -383,11 +436,11 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CNH (PDF/Img)</label>
-                            <input type="file" id="drvCnhFile" accept="image/*,application/pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
+                            <input type="file" id="drvCnhFile" accept="image/*,application/pdf" onchange="newDriverDocChosen()" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Comprovante de Endereço</label>
-                            <input type="file" id="drvAddressFile" accept="image/*,application/pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
+                            <input type="file" id="drvAddressFile" accept="image/*,application/pdf" onchange="newDriverDocChosen()" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Contrato (PDF/Img)</label>
@@ -524,6 +577,42 @@
                 </div>
                 <p id="cfgDriveResult" class="text-xs"></p>
             </div>
+            <div class="space-y-1 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="font-semibold text-sm"><i class="fa-solid fa-sliders text-blue-500 mr-1"></i> Funções do motorista</h4>
+                    <button type="button" onclick="setAllFeatures()" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold">Ligar tudo</button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Ligue ou desligue o que os motoristas veem no app. Vale para todos.</p>
+                <div id="cfgFeatures"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TEMAS -->
+    <div id="modalThemes" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target===this)this.classList.add('hidden')">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-3">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold"><i class="fa-solid fa-palette mr-1"></i> Escolha o tema</h3>
+                <button onclick="document.getElementById('modalThemes').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="themeList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">O tema fica salvo só neste aparelho. Cada pessoa escolhe o seu.</p>
+        </div>
+    </div>
+
+    <!-- MODAL DADOS DE ACESSO DO MOTORISTA NOVO -->
+    <div id="modalCreds" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4 text-center">
+            <div class="text-4xl text-emerald-600"><i class="fa-solid fa-circle-check"></i></div>
+            <h3 class="text-lg font-bold" id="credName"></h3>
+            <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Usuário</p>
+                <p class="text-xl font-extrabold font-mono" id="credUser"></p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">Senha</p>
+                <p class="text-xl font-extrabold font-mono" id="credPass"></p>
+            </div>
+            <p class="text-sm" id="credMail"></p>
+            <button onclick="document.getElementById('modalCreds').classList.add('hidden')" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm">OK</button>
         </div>
     </div>
 
@@ -535,6 +624,13 @@
                 <button type="button" onclick="closeDriverFile()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-4 overflow-y-auto custom-scrollbar space-y-4">
+                <div class="flex items-center gap-3">
+                    <button type="button" id="dfPhoto" onclick="changeDriverPhoto()" title="Trocar foto" class="w-16 h-20 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-2xl font-bold text-gray-500"></button>
+                    <div class="min-w-0">
+                        <p class="font-bold truncate" id="dfTitleName"></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Toque na foto para trocar. Ao enviar uma CNH nova, a foto é atualizada sozinha.</p>
+                    </div>
+                </div>
                 <button type="button" id="btnAiRead" onclick="aiFillDriver(fileDriverId, false)" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Ler CNH e comprovante com IA e preencher</button>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div class="sm:col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nome completo</label><input id="dfName" required class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -575,6 +671,10 @@
                 <button onclick="closeFinance()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-4 overflow-y-auto custom-scrollbar space-y-5">
+                <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-700">
+                    <button type="button" id="finTabRent" onclick="switchFinTab('rent')" class="py-2 rounded-lg text-sm font-semibold"><i class="fa-solid fa-key mr-1"></i> Aluguéis</button>
+                    <button type="button" id="finTabApps" onclick="switchFinTab('apps')" class="py-2 rounded-lg text-sm font-semibold"><i class="fa-solid fa-mobile-screen mr-1"></i> Ganhos aplicativo</button>
+                </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Período</label>
                     <select id="finPeriod" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
@@ -585,6 +685,7 @@
                         <option value="all">Tudo</option>
                     </select>
                 </div>
+                <div id="finRentBox" class="space-y-5">
                 <div id="finCards" class="grid grid-cols-2 gap-3"></div>
                 <div>
                     <h4 class="font-semibold text-sm mb-2"><i class="fa-solid fa-car mr-1 text-blue-500"></i> Por veículo</h4>
@@ -595,6 +696,21 @@
                     <div id="finDrivers"></div>
                 </div>
                 <p class="text-xs text-gray-400">Recebido = Pix com comprovante enviado no período. Em aberto = Pix enviados que ainda não foram pagos. O valor de cada motorista conta para o veículo que está com ele hoje.</p>
+                </div>
+                <div id="finAppsBox" class="hidden space-y-4">
+                    <div id="appTotals"></div>
+                    <form onsubmit="saveAppEarning(event)" class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
+                        <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Aplicativo</label>
+                            <select id="appName" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option>Uber</option><option>99</option><option>inDrive</option><option>Outro</option></select></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor (R$)</label><input id="appAmount" inputmode="decimal" required placeholder="Ex: 320,50" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data</label><input type="date" id="appDate" required class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Veículo (opcional)</label><select id="appVehicle" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select></div>
+                        <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Observação (opcional)</label><input id="appDesc" placeholder="Ex: semana de 20 a 26/10" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="col-span-2"><button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-plus mr-1"></i> Lançar ganho</button></div>
+                    </form>
+                    <div id="appList"></div>
+                    <p class="text-xs text-gray-400">Só você vê esta parte. Os ganhos de aplicativo não se misturam com os aluguéis.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -648,7 +764,14 @@
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Pix Copia e Cola</label>
-                <textarea id="newPixCode" rows="3" placeholder="Cole aqui o Pix copia e cola" class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                <textarea id="newPixCode" rows="3" placeholder="Cole aqui o Pix copia e cola" oninput="previewNewPixQr()" class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                <div id="newPixQrPrev" class="hidden mt-2 mx-auto w-40 bg-white rounded-xl p-2"></div>
+                <p id="newPixCodeInfo" class="text-xs mt-1"></p>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Link de pagamento do Banco do Brasil (opcional)</label>
+                <input type="url" id="newPixLink" inputmode="url" autocapitalize="none" placeholder="https://pagamentospix.apps.bb.com.br/..." class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O motorista vê um botão "Abrir no Banco do Brasil".</p>
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor desta semana (R$)</label>
@@ -753,8 +876,7 @@
         window.onload = async function () {
             if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(() => {}); }
 
-            if (lsGet('theme') === 'light') document.documentElement.classList.remove('dark');
-            else document.documentElement.classList.add('dark');
+            applyTheme(currentTheme());
 
             const savedUser = lsGet('motora_saved_login');
             if (savedUser) document.getElementById('loginUser').value = savedUser;
@@ -770,10 +892,44 @@
             }
         };
 
-        function toggleDarkMode() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            lsSet('theme', isDark ? 'dark' : 'light');
+        // ===== TEMAS =====
+        const THEMES = [
+            { id: 't1', name: 'Azul Noturno', desc: 'O visual escuro de sempre', dark: true, c: ['#111827', '#2563eb', '#1f2937'] },
+            { id: 't2', name: 'Claro Profissional', desc: 'Branco com azul-marinho', dark: false, c: ['#f8fafc', '#1e3a8a', '#e2e8f0'] },
+            { id: 't3', name: 'Grafite & Amarelo', desc: 'Preto com amarelo, cara de estrada', dark: true, c: ['#0b0b0c', '#facc15', '#27272a'] },
+            { id: 't4', name: 'Verde Esmeralda', desc: 'Verde escuro, lembra dinheiro', dark: true, c: ['#052e2b', '#10b981', '#115e56'] },
+            { id: 't5', name: 'Lilás Moderno', desc: 'Claro, suave e arredondado', dark: false, c: ['#f5f3ff', '#6d28d9', '#ede9fe'] },
+            { id: 't6', name: 'Vermelho Esportivo', desc: 'Preto com vermelho, marcante', dark: true, c: ['#111111', '#dc2626', '#2c2c2c'] },
+        ];
+        function currentTheme() {
+            const t = lsGet('motora_theme');
+            if (THEMES.some(x => x.id === t)) return t;
+            return lsGet('theme') === 'light' ? 't2' : 't1'; // quem usava o modo claro antigo vai para o Claro Profissional
         }
+        function applyTheme(id) {
+            const t = THEMES.find(x => x.id === id) || THEMES[0];
+            document.documentElement.dataset.theme = t.id;
+            document.documentElement.classList.toggle('dark', t.dark);
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = t.id === 't1' ? '#1f2937' : (getComputedStyle(document.documentElement).getPropertyValue('--bar').trim() || t.c[0]);
+        }
+        function openThemes() {
+            const now = currentTheme();
+            document.getElementById('themeList').innerHTML = THEMES.map(t => `
+                <button onclick="pickTheme('${t.id}')" class="text-left flex items-center gap-3 p-3 rounded-xl border ${t.id === now ? 'border-blue-600 ring-2 ring-blue-500' : 'border-gray-200 dark:border-gray-700'}">
+                    <span class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">${t.c.map(c => `<span style="width:16px;height:38px;background:${c};display:block"></span>`).join('')}</span>
+                    <span class="min-w-0"><span class="block font-bold text-sm">${t.name}</span><span class="block text-xs text-gray-500 dark:text-gray-400">${t.desc}</span></span>
+                    ${t.id === now ? '<i class="fa-solid fa-circle-check text-blue-600 ml-auto"></i>' : ''}
+                </button>`).join('');
+            document.getElementById('modalThemes').classList.remove('hidden');
+        }
+        function pickTheme(id) {
+            lsSet('motora_theme', id);
+            applyTheme(id);
+            document.getElementById('modalThemes').classList.add('hidden');
+            showToast('Tema aplicado: ' + THEMES.find(t => t.id === id).name);
+        }
+        function toggleDarkMode() { openThemes(); }
 
         function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
@@ -892,8 +1048,9 @@
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
                 state.vehicles = veh.data; state.receipts = rec.data; state.drivers = []; state.inspection = insp.data;
+                state.features = await loadDriverFeatures();
             }
-            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory]);
+            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.features]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
             state.sig = sig;
@@ -942,7 +1099,7 @@
                 renderMasterPanel();
             } else {
                 document.getElementById('headerRoleSubtitle').innerText = `Motorista: ${state.profile.name}`;
-                document.getElementById('statusToggleContainer').classList.remove('hidden');
+                document.getElementById('statusToggleContainer').classList.toggle('hidden', !feat('online'));
                 showSection('secDriverPanel');
                 renderDriverPanel();
                 updateStatusToggleUI();
@@ -1046,10 +1203,17 @@
                 }).catch(() => {
                     qrContainer.innerHTML = `<p class="text-xs text-red-500">Não foi possível carregar o QR Code.</p>`;
                 });
+            } else if (driver.pix_code && pixValid(driver.pix_code)) {
+                renderPixQr(qrContainer, driver.pix_code); // QR desenhado a partir do copia e cola
             } else {
                 qrContainer.innerHTML = `<div class="text-center p-2"><i class="fa-solid fa-qrcode text-3xl mb-1 text-gray-300"></i><p class="text-xs">QR Code não cadastrado</p></div>`;
             }
             document.getElementById('txtPixCode').value = driver.pix_code || "Chave Pix indisponível";
+            const bb = document.getElementById('drvBbLink');
+            const showBb = feat('linkbb') && /^https:\/\//i.test(driver.pix_link || '');
+            bb.classList.toggle('hidden', !showBb); bb.classList.toggle('flex', showBb);
+            if (showBb) bb.href = driver.pix_link;
+            applyDriverFeatures();
 
             const receiptsContainer = document.getElementById('drvReceiptsList');
             if (state.receipts.length > 0) {
@@ -1175,7 +1339,7 @@
                     return `
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td class="p-3 font-semibold">
-                                <div>${esc(d.name)}</div>
+                                <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
                                 <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
                                 <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
                                 ${driverToDelete === d.id ? `
@@ -1218,6 +1382,7 @@
                 }).join('');
             }
             if (!document.getElementById('modalFinance').classList.contains('hidden')) renderFinance();
+            fillAvatars(drvTbody).catch(() => {});
         }
 
         // AÇÕES MASTER
@@ -1240,6 +1405,8 @@
                     }
                 }
                 form.reset();
+                clearTmp('crlv');
+                document.getElementById('vehAiStatus').innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Dica: escolha primeiro o CRLV-e e a IA preenche modelo e placa.';
                 await reload();
                 showToast("Veículo cadastrado com sucesso!");
             } catch (err) {
@@ -1299,7 +1466,10 @@
                 });
                 if (error) throw error;
 
-                const updates = {};
+                // dados lidos pela IA (CPF, RG, CNH, endereço...) entram junto com os documentos
+                const updates = { ...newDriverExtra };
+                const cpf = document.getElementById('drvCpf').value.trim();
+                if (cpf) updates.cpf = cpf;
                 for (const [col, [inputId, base]] of Object.entries(files)) {
                     const f = document.getElementById(inputId).files[0];
                     if (f) {
@@ -1311,12 +1481,15 @@
                     const up = await sb.from('profiles').update(updates).eq('id', newId);
                     if (up.error) throw up.error;
                 }
+                if (newDriverPhoto) await savePhoto(newId, newDriverPhoto).catch(() => {});
+                const mailed = await sendWelcomeEmail(newId, password);
+                const aiUsed = Object.keys(newDriverExtra).length > 0;
                 form.reset();
+                resetNewDriverForm();
                 await reload();
-                showToast(`Motorista cadastrado! Login: ${showLogin(toEmail(login))}`);
-                if ((updates.cnh_path || updates.address_path) && appConfig.gemini) {
-                    showToast("Lendo os documentos com IA... a ficha será preenchida sozinha.");
-                    aiFillDriver(newId, true).catch(() => {});
+                showCredentials(name, showLogin(toEmail(login)), password, mailed);
+                if ((updates.cnh_path || updates.address_path) && appConfig.gemini && !aiUsed) {
+                    aiFillDriver(newId, true).catch(() => {}); // a IA ainda não tinha lido: lê agora e completa a ficha
                 }
             } catch (err) {
                 showToast(friendlyError(err), 'error');
@@ -1505,6 +1678,7 @@
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
             document.getElementById('modalSettings').classList.remove('hidden');
+            drawFeatureToggles();
             await loadConfigStatus(); paintConfig();
         }
         function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); }
@@ -1541,6 +1715,8 @@
             if (!d) return;
             fileDriverId = id;
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
+            document.getElementById('dfTitleName').innerText = d.name || '';
+            fillAvatar(document.getElementById('dfPhoto'), id, d.name);
             const sel = document.getElementById('dfVehicle');
             sel.innerHTML = `<option value="">Nenhum Veículo</option>` + state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
             sel.value = d.vehicle_id || '';
@@ -1575,6 +1751,9 @@
                     const f = document.getElementById(inputId).files[0];
                     if (f) { const p = await uploadFile(f, `${id}/${base}-${Date.now()}`); if (p) { updates[col] = p; newDocs = newDocs || col !== 'contract_path'; } }
                 }
+                // CNH nova: a IA acha o rosto e a foto do motorista é atualizada
+                const newCnh = document.getElementById('dfCnhFile').files[0];
+                if (newCnh && updates.cnh_path && appConfig.gemini) photoFromCnh(id, updates.cnh_path, newCnh).catch(() => {});
                 const { error } = await sb.from('profiles').update(updates).eq('id', id);
                 if (error) throw error;
                 closeDriverFile();
@@ -1640,14 +1819,25 @@
         function dayBR(v) { return v ? (String(v).length === 10 ? String(v) : new Date(v).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })) : null; }
         function inRange(day, r) { return day && (!r[0] || day >= r[0]) && (!r[1] || day < r[1]); }
 
+        let finTab = 'rent';
         function openFinance() {
             document.getElementById('finPeriod').value = 'month';
-            renderFinance();
+            switchFinTab('rent');
             document.getElementById('modalFinance').classList.remove('hidden');
+        }
+        function switchFinTab(tab) {
+            finTab = tab;
+            const on = 'py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white', off = 'py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300';
+            document.getElementById('finTabRent').className = tab === 'rent' ? on : off;
+            document.getElementById('finTabApps').className = tab === 'apps' ? on : off;
+            document.getElementById('finRentBox').classList.toggle('hidden', tab !== 'rent');
+            document.getElementById('finAppsBox').classList.toggle('hidden', tab !== 'apps');
+            renderFinance();
         }
         function closeFinance() { document.getElementById('modalFinance').classList.add('hidden'); }
 
         function renderFinance() {
+            if (finTab === 'apps') { renderAppEarnings(); return; }
             const r = finRange(document.getElementById('finPeriod').value);
             const paid = state.pixHistory.filter(h => h.paid_at && inRange(dayBR(h.paid_at), r));
             const open = state.pixHistory.filter(h => !h.paid_at);
@@ -1924,6 +2114,8 @@
             document.getElementById('newPixDriverName').innerText = `Motorista: ${d.name}`;
             document.getElementById('newPixCode').value = '';
             document.getElementById('newPixQrFile').value = '';
+            document.getElementById('newPixLink').value = d.pix_link || '';
+            previewNewPixQr();
             document.getElementById('newPixAmount').value = d.pix_amount != null ? String(d.pix_amount).replace('.', ',') : '';
             document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Nova data de pagamento: <b>${nextDueLocal()} até 23:59</b>. O motorista recebe uma notificação no celular.`;
             document.getElementById('modalNewPix').classList.remove('hidden');
@@ -1942,7 +2134,10 @@
             const d = state.drivers.find(x => x.id === id);
             setBusy(form, true);
             try {
-                const updates = { pix_code: code || null, pix_sent_at: new Date().toISOString(), pix_amount: amount };
+                if (code && !pixValid(code) && !confirm('Este código Pix parece incompleto ou com erro. Enviar mesmo assim?')) return;
+                const link = document.getElementById('newPixLink').value.trim();
+                if (link && !/^https:\/\//i.test(link)) { showToast("O link precisa começar com https://", "error"); return; }
+                const updates = { pix_code: code || null, pix_sent_at: new Date().toISOString(), pix_amount: amount, pix_link: link || null };
                 if (qr) {
                     const path = await uploadFile(qr, `${id}/pix-qr-${Date.now()}`);
                     if (!path) return;
@@ -2045,7 +2240,7 @@
         async function checkDriverNotifications(showModal) {
             const banner = document.getElementById('notifBanner');
             const modal = document.getElementById('modalNotif');
-            if (!state.profile || state.profile.role !== 'driver') { banner.className = 'hidden'; modal.classList.add('hidden'); return; }
+            if (!state.profile || state.profile.role !== 'driver' || !feat('notif')) { banner.className = 'hidden'; modal.classList.add('hidden'); return; }
             document.getElementById('btnNotif').classList.add('hidden');
             if (pushSupported() && Notification.permission === 'granted' && !notifSubOk && !(isIOS() && !isStandalone())) {
                 try { await subscribePush(false); notifSubOk = true; } catch (e) { notifSubOk = false; }
@@ -2138,6 +2333,371 @@
 
         function closeDocViewer() {
             document.getElementById('modalDocViewer').classList.add('hidden');
+        }
+
+        /* =====================================================================
+           FUNÇÕES NOVAS (outubro/2026)
+           ===================================================================== */
+
+        // ===== FUNÇÕES DO MOTORISTA (o master liga e desliga em Configurações) =====
+        const DRIVER_FEATURES = [
+            { k: 'foto', name: 'Foto da CNH no perfil', desc: 'Mostra a foto do motorista na tela dele.' },
+            { k: 'crlv', name: 'Aba CRLV-e', desc: 'Ver e baixar o CRLV-e do carro.' },
+            { k: 'contrato', name: 'Aba Contrato', desc: 'Ver e baixar o contrato.' },
+            { k: 'pagamento', name: 'Aba Pagamento (Pix)', desc: 'QR code, copia e cola e data de pagamento.' },
+            { k: 'linkbb', name: 'Botão "Abrir no Banco do Brasil"', desc: 'Abre o link de pagamento do BB.' },
+            { k: 'comprovante', name: 'Enviar comprovante', desc: 'O motorista manda o comprovante pelo app.' },
+            { k: 'vistoria', name: 'Aba Vistoria', desc: 'Fotos da vistoria do carro.' },
+            { k: 'online', name: 'Botão Online/Offline', desc: 'O botão verde/vermelho no topo da tela.' },
+            { k: 'notif', name: 'Aviso obrigatório de notificações', desc: 'Pede para o motorista ativar os avisos no celular.' },
+        ];
+        const allFeaturesOn = () => Object.fromEntries(DRIVER_FEATURES.map(f => [f.k, true]));
+        function feat(k) { return !state.features || state.features[k] !== false; }
+        async function loadDriverFeatures() {
+            try {
+                const { data, error } = await sb.from('app_settings').select('value').eq('key', 'driver_features').maybeSingle();
+                if (error || !data || !data.value) return allFeaturesOn();
+                return { ...allFeaturesOn(), ...data.value };
+            } catch (e) { return allFeaturesOn(); } // em caso de erro mostra tudo (nunca esconde por engano)
+        }
+        async function saveDriverFeatures(cfg) {
+            const { error } = await sb.from('app_settings').upsert({ key: 'driver_features', value: cfg, updated_at: new Date().toISOString() });
+            if (error) throw error;
+        }
+        async function drawFeatureToggles() {
+            const box = document.getElementById('cfgFeatures');
+            box.innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
+            const cfg = await loadDriverFeatures();
+            box.innerHTML = DRIVER_FEATURES.map(f => `
+                <label class="flex items-center justify-between gap-3 py-2 border-t border-gray-200 dark:border-gray-700 cursor-pointer">
+                    <span class="min-w-0"><span class="block text-sm font-semibold">${f.name}</span><span class="block text-xs text-gray-500 dark:text-gray-400">${f.desc}</span></span>
+                    <span class="sw"><input type="checkbox" data-feat="${f.k}" ${cfg[f.k] !== false ? 'checked' : ''}><span></span></span>
+                </label>`).join('');
+            box.querySelectorAll('[data-feat]').forEach(inp => inp.onchange = async () => {
+                const next = {}; box.querySelectorAll('[data-feat]').forEach(x => next[x.dataset.feat] = x.checked);
+                try { await saveDriverFeatures(next); showToast(`${DRIVER_FEATURES.find(f => f.k === inp.dataset.feat).name}: ${inp.checked ? 'ligado' : 'desligado'}`); }
+                catch (e) { inp.checked = !inp.checked; showToast(friendlyError(e), 'error'); }
+            });
+        }
+        async function setAllFeatures() {
+            try { await saveDriverFeatures(allFeaturesOn()); await drawFeatureToggles(); showToast('Todas as funções ligadas'); }
+            catch (e) { showToast(friendlyError(e), 'error'); }
+        }
+        // esconde na tela do motorista o que estiver desligado
+        function applyDriverFeatures() {
+            const tabs = [['crlv', 'Crlv'], ['contract', 'Contract'], ['payment', 'Payment'], ['inspection', 'Inspection']];
+            const on = { crlv: feat('crlv'), contract: feat('contrato'), payment: feat('pagamento'), inspection: feat('vistoria') };
+            tabs.forEach(([t, cap]) => { document.getElementById('tabBtn' + cap).style.display = on[t] ? '' : 'none'; if (!on[t]) document.getElementById('tabDrv' + cap).classList.add('hidden'); });
+            const visible = tabs.find(([t, cap]) => on[t] && !document.getElementById('tabDrv' + cap).classList.contains('hidden'));
+            if (!visible) { const first = tabs.find(([t]) => on[t]); if (first) switchDriverTab(first[0]); }
+            tabs.forEach(([t, cap]) => { if (!on[t]) document.getElementById('tabBtn' + cap).style.display = 'none'; });
+            document.getElementById('drvReceiptBox').style.display = feat('comprovante') ? '' : 'none';
+            if (!feat('pagamento')) { const b = document.getElementById('drvPixBanner'); b.className = 'hidden'; b.innerHTML = ''; }
+            const ph = document.getElementById('drvPhoto');
+            ph.classList.toggle('hidden', !feat('foto'));
+            if (feat('foto') && state.profile) fillAvatar(ph, state.profile.id, state.profile.name);
+        }
+
+        // ===== PIX: conferência do código e QR code desenhado no aparelho =====
+        function crc16(str) {
+            let crc = 0xffff;
+            for (let i = 0; i < str.length; i++) {
+                crc ^= str.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+            }
+            return crc.toString(16).toUpperCase().padStart(4, '0');
+        }
+        function pixValid(code) {
+            const c = String(code || '').trim();
+            if (!/^000201/.test(c) || !/br\.gov\.bcb\.pix/i.test(c)) return false;
+            const i = c.lastIndexOf('6304');
+            return i > 0 && i + 8 === c.length && crc16(c.slice(0, i + 4)) === c.slice(i + 4).toUpperCase();
+        }
+        function renderPixQr(el, code) {
+            if (!el) return;
+            if (!window.qrcode) { el.innerHTML = '<p class="text-xs text-gray-400">QR indisponível</p>'; return; }
+            try {
+                const q = qrcode(0, 'M'); q.addData(String(code).trim()); q.make();
+                el.innerHTML = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+                const svg = el.querySelector('svg');
+                if (svg) { svg.style.width = '100%'; svg.style.height = 'auto'; svg.style.display = 'block'; svg.style.background = '#fff'; }
+            } catch (e) { el.innerHTML = '<p class="text-xs text-red-500">Não foi possível desenhar o QR code.</p>'; }
+        }
+        function previewNewPixQr() {
+            const code = document.getElementById('newPixCode').value.trim();
+            const box = document.getElementById('newPixQrPrev'), info = document.getElementById('newPixCodeInfo');
+            const ok = pixValid(code);
+            box.classList.toggle('hidden', !ok);
+            if (ok) renderPixQr(box, code);
+            info.className = 'text-xs mt-1 ' + (ok ? 'text-emerald-600' : 'text-amber-600');
+            info.innerHTML = !code ? '' : ok ? '<i class="fa-solid fa-check"></i> Código válido. O motorista vai ver este QR code (não precisa enviar imagem).' : 'Este código parece incompleto. Confira se colou tudo.';
+        }
+
+        // ===== FOTO DO MOTORISTA (recortada da CNH) =====
+        const photoPath = id => `${id}/foto.jpg`;
+        async function fileToCanvas(file) {
+            const c = document.createElement('canvas');
+            if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '')) {
+                const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+                const page = await pdf.getPage(1);
+                const vp = page.getViewport({ scale: 2.5 });
+                c.width = vp.width; c.height = vp.height;
+                await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+                return c;
+            }
+            const url = URL.createObjectURL(file);
+            try {
+                const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+                c.width = img.naturalWidth; c.height = img.naturalHeight;
+                c.getContext('2d').drawImage(img, 0, 0);
+                return c;
+            } finally { URL.revokeObjectURL(url); }
+        }
+        // box = [ymin, xmin, ymax, xmax] de 0 a 1000 (posição do rosto devolvida pela IA)
+        async function cropPhoto(file, box) {
+            if (!Array.isArray(box) || box.length !== 4) return null;
+            const src = await fileToCanvas(file);
+            let [y1, x1, y2, x2] = box.map(n => Math.min(1000, Math.max(0, Number(n) || 0)));
+            if (y2 - y1 < 20 || x2 - x1 < 20) return null;
+            const px = (x2 - x1) * 0.06, py = (y2 - y1) * 0.06;
+            x1 = Math.max(0, x1 - px); y1 = Math.max(0, y1 - py); x2 = Math.min(1000, x2 + px); y2 = Math.min(1000, y2 + py);
+            const sx = x1 / 1000 * src.width, sy = y1 / 1000 * src.height, sw = (x2 - x1) / 1000 * src.width, sh = (y2 - y1) / 1000 * src.height;
+            const k = Math.min(1, 480 / Math.max(sw, sh));
+            const out = document.createElement('canvas');
+            out.width = Math.round(sw * k); out.height = Math.round(sh * k);
+            out.getContext('2d').drawImage(src, sx, sy, sw, sh, 0, 0, out.width, out.height);
+            return await new Promise(res => out.toBlob(res, 'image/jpeg', 0.88));
+        }
+        async function savePhoto(id, blob) {
+            const { error } = await sb.storage.from(BUCKET).upload(photoPath(id), blob, { upsert: true, contentType: 'image/jpeg' });
+            if (error) throw error;
+            delete URL_CACHE[photoPath(id)];
+        }
+        function photoBoxFrom(fields, docIndex) {
+            const f = fields && fields.foto_cnh;
+            if (!f || !Array.isArray(f.caixa)) return null;
+            if (f.documento && Number(f.documento) !== docIndex) return null;
+            return f.caixa;
+        }
+        async function fillAvatar(el, id, name) {
+            if (!el) return;
+            el.innerHTML = `<span>${esc((name || '?')[0].toUpperCase())}</span>`;
+            try {
+                const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(photoPath(id), 3600);
+                if (error || !data) return;
+                const img = new Image();
+                img.onload = () => { el.innerHTML = ''; img.className = 'w-full h-full object-cover'; el.appendChild(img); };
+                img.src = data.signedUrl;
+            } catch (e) {}
+        }
+        async function fillAvatars(root) {
+            const els = [...root.querySelectorAll('[data-avatar]')];
+            if (!els.length) return;
+            const { data } = await sb.storage.from(BUCKET).createSignedUrls(els.map(e => photoPath(e.dataset.avatar)), 3600);
+            (data || []).forEach((r, i) => {
+                if (!r || r.error || !r.signedUrl) return;
+                const el = els[i], img = new Image();
+                img.onload = () => { el.innerHTML = ''; img.className = 'w-full h-full object-cover'; el.appendChild(img); };
+                img.src = r.signedUrl;
+            });
+        }
+        async function photoFromCnh(id, storedPath, localFile) {
+            const raw = await aiReadFiles([storedPath], 'driver');
+            const box = photoBoxFrom(raw, 1);
+            const blob = box ? await cropPhoto(localFile, box) : null;
+            if (blob) { await savePhoto(id, blob); showToast('Foto do motorista atualizada pela CNH.'); fillAvatars(document.getElementById('tblDriversList')); }
+        }
+        function pickImage() {
+            return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => res(i.files[0] || null); i.click(); });
+        }
+        async function changeDriverPhoto() {
+            const id = fileDriverId, f = await pickImage();
+            if (!f || !id) return;
+            try {
+                const c = await fileToCanvas(f);
+                const k = Math.min(1, 600 / Math.max(c.width, c.height));
+                const o = document.createElement('canvas'); o.width = Math.round(c.width * k); o.height = Math.round(c.height * k);
+                o.getContext('2d').drawImage(c, 0, 0, o.width, o.height);
+                await savePhoto(id, await new Promise(r => o.toBlob(r, 'image/jpeg', 0.88)));
+                const d = state.drivers.find(x => x.id === id);
+                fillAvatar(document.getElementById('dfPhoto'), id, d && d.name);
+                fillAvatars(document.getElementById('tblDriversList'));
+                showToast('Foto atualizada!');
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+        }
+
+        // ===== LEITURA AUTOMÁTICA DE DOCUMENTOS (IA) =====
+        const TMP = {}; // arquivos enviados só para a IA ler (apagados depois)
+        async function uploadTmp(file, label) {
+            if (TMP[label]) clearTmp(label);
+            const base = `tmp/${(crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2))}/${label}`;
+            const p = await uploadFile(file, base);
+            if (p) TMP[label] = p;
+            return p;
+        }
+        function clearTmp(...labels) {
+            const ps = labels.map(l => TMP[l]).filter(Boolean);
+            labels.forEach(l => delete TMP[l]);
+            if (ps.length) sb.storage.from(BUCKET).remove(ps).catch(() => {});
+        }
+        async function aiReadFiles(paths, kind) {
+            const { data, error } = await sb.functions.invoke('motora-sync', { body: { type: 'ai_read_files', kind, paths } });
+            if (error) throw new Error('Leitura automática indisponível agora.');
+            if (!data || !data.ok) throw new Error((data && data.error) || 'A IA não conseguiu ler o documento.');
+            return data.fields || {};
+        }
+        const okDateISO = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || ''));
+        const NAME_PARTICLES = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'di', 'du', 'del', 'van', 'von']);
+        const noAccents = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+        // "Thiago Gomes Borges" -> "thiagogomes" (primeiro nome + primeiro sobrenome); se já existir, thiagogomes2...
+        function makeUsername(name) {
+            const w = noAccents(name).toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(x => x && !NAME_PARTICLES.has(x));
+            if (!w.length) return '';
+            const base = w[0] + (w[1] || '');
+            const taken = new Set(state.drivers.map(d => showLogin(d.username)));
+            let u = base, n = 2;
+            while (taken.has(u)) u = base + n++;
+            return u;
+        }
+        const titleCase = s => String(s || '').toLowerCase().replace(/(^|\s)(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\s(De|Da|Do|Das|Dos|E)\s/g, m => m.toLowerCase());
+        function syncNewDriverAccess() {
+            const u = document.getElementById('drvEmail'), p = document.getElementById('drvPassword');
+            if (!u.dataset.touched) u.value = makeUsername(document.getElementById('drvName').value);
+            if (!p.dataset.touched) p.value = String(document.getElementById('drvCpf').value || '').replace(/\D/g, '').slice(0, 6);
+        }
+        let newDriverExtra = {}, newDriverPhoto = null, newDriverFiles = {};
+        function setNewDriverPhoto(blob) {
+            newDriverPhoto = blob;
+            const slot = document.getElementById('drvPhotoSlot');
+            slot.innerHTML = `<img src="${URL.createObjectURL(blob)}" class="w-full h-full object-cover">`;
+        }
+        async function pickNewDriverPhoto() {
+            const f = await pickImage(); if (!f) return;
+            try { const c = await fileToCanvas(f); setNewDriverPhoto(await new Promise(r => c.toBlob(r, 'image/jpeg', 0.88))); } catch (e) { showToast('Não foi possível abrir a foto.', 'error'); }
+        }
+        function resetNewDriverForm() {
+            clearTmp('cnh', 'endereco');
+            newDriverExtra = {}; newDriverPhoto = null; newDriverFiles = {};
+            ['drvEmail', 'drvPassword'].forEach(i => delete document.getElementById(i).dataset.touched);
+            document.getElementById('drvPhotoSlot').innerHTML = '<i class="fa-solid fa-user text-xl mb-1"></i>Foto da CNH';
+            document.getElementById('drvAiStatus').innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Envie primeiro a <b>CNH</b> e o <b>comprovante de endereço</b>: a IA preenche o nome, o CPF, o usuário (nome + sobrenome) e a senha (6 primeiros números do CPF). A foto da CNH aparece aqui.';
+        }
+        async function newDriverDocChosen() {
+            const st = document.getElementById('drvAiStatus');
+            const cnh = document.getElementById('drvCnhFile').files[0], addr = document.getElementById('drvAddressFile').files[0];
+            if (!cnh && !addr) return;
+            if (!appConfig.gemini) { st.innerHTML = '<i class="fa-solid fa-circle-info mr-1"></i> Para preencher sozinho, cadastre a chave do Gemini em <b>Configurações</b>. Por enquanto, digite os dados.'; return; }
+            st.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Lendo os documentos com IA...';
+            try {
+                const order = [];
+                if (cnh) { if (newDriverFiles.cnh !== cnh) { await uploadTmp(cnh, 'cnh'); newDriverFiles.cnh = cnh; } order.push('cnh'); }
+                if (addr) { if (newDriverFiles.endereco !== addr) { await uploadTmp(addr, 'endereco'); newDriverFiles.endereco = addr; } order.push('endereco'); }
+                const raw = await aiReadFiles(order.map(l => TMP[l]).filter(Boolean), 'driver');
+                if (cnh) {
+                    const box = photoBoxFrom(raw, order.indexOf('cnh') + 1);
+                    const blob = box ? await cropPhoto(cnh, box).catch(() => null) : null;
+                    if (blob) setNewDriverPhoto(blob);
+                }
+                const nameEl = document.getElementById('drvName'), cpfEl = document.getElementById('drvCpf');
+                if (raw.nome) nameEl.value = titleCase(raw.nome);
+                if (raw.cpf) cpfEl.value = raw.cpf;
+                const map = { rg: raw.rg, birth_date: raw.data_nascimento, cnh_number: raw.cnh_numero, cnh_category: raw.cnh_categoria, cnh_expiry: raw.cnh_validade, address: raw.endereco, phone: raw.telefone };
+                newDriverExtra = {};
+                for (const [k, v] of Object.entries(map)) {
+                    if (v == null || v === '') continue;
+                    if ((k === 'birth_date' || k === 'cnh_expiry') && !okDateISO(v)) continue;
+                    newDriverExtra[k] = String(v);
+                }
+                syncNewDriverAccess();
+                const n = (raw.nome ? 1 : 0) + (raw.cpf ? 1 : 0) + Object.keys(newDriverExtra).length;
+                st.innerHTML = n ? `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Pronto! A IA leu ${n} dado(s)${newDriverPhoto ? ' e a foto' : ''}. Confira nome, CPF, usuário e senha e toque em <b>Salvar Motorista</b>.` : 'A IA não encontrou dados nos documentos. Digite à mão.';
+            } catch (e) {
+                st.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> ' + esc(friendlyError(e)) + ' Digite os dados à mão.';
+            }
+        }
+        async function aiReadCrlv(input) {
+            const f = input.files[0], st = document.getElementById('vehAiStatus');
+            if (!f) return;
+            if (!appConfig.gemini) { st.innerHTML = '<i class="fa-solid fa-circle-info mr-1"></i> Para preencher sozinho, cadastre a chave do Gemini em Configurações.'; return; }
+            st.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Lendo o CRLV-e com IA...';
+            try {
+                const p = await uploadTmp(f, 'crlv');
+                const r = await aiReadFiles([p], 'vehicle');
+                const model = r.marca_modelo || r.modelo;
+                if (model) document.getElementById('vehModel').value = model;
+                if (r.placa) document.getElementById('vehPlate').value = String(r.placa).toUpperCase().replace(/[^A-Z0-9]/g, '');
+                st.innerHTML = (model || r.placa) ? '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Pronto! Confira modelo e placa e toque em Salvar Veículo.' : 'A IA não encontrou modelo e placa. Digite à mão.';
+            } catch (e) { st.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> ' + esc(friendlyError(e)); }
+        }
+
+        // ===== E-MAIL E TELA COM USUÁRIO E SENHA DO MOTORISTA NOVO =====
+        async function sendWelcomeEmail(id, password) {
+            try {
+                const { data, error } = await sb.functions.invoke('motora-sync', { body: { type: 'driver_welcome', driver_id: id, password } });
+                return !error && data && data.ok;
+            } catch (e) { return false; }
+        }
+        function showCredentials(name, login, pass, mailed) {
+            document.getElementById('credName').innerText = name;
+            document.getElementById('credUser').innerText = login;
+            document.getElementById('credPass').innerText = pass;
+            const m = document.getElementById('credMail');
+            m.className = 'text-sm ' + (mailed ? 'text-emerald-600' : 'text-amber-600');
+            m.innerHTML = mailed ? '<i class="fa-solid fa-envelope mr-1"></i> Enviamos estes dados para o seu e-mail.' : '<i class="fa-solid fa-triangle-exclamation mr-1"></i> O e-mail ainda não está configurado. Anote os dados acima.';
+            document.getElementById('modalCreds').classList.remove('hidden');
+        }
+
+        // ===== GANHOS APLICATIVO (Uber/99/inDrive) – só o master =====
+        async function renderAppEarnings() {
+            const r = finRange(document.getElementById('finPeriod').value);
+            const sel = document.getElementById('appVehicle'), keep = sel.value;
+            sel.innerHTML = '<option value="">Nenhum</option>' + state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
+            sel.value = keep;
+            if (!document.getElementById('appDate').value) document.getElementById('appDate').value = todayISO();
+            const list = document.getElementById('appList'), tot = document.getElementById('appTotals');
+            list.innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
+            let q = sb.from('app_earnings').select('*').order('earning_date', { ascending: false });
+            if (r[0]) q = q.gte('earning_date', r[0]);
+            if (r[1]) q = q.lt('earning_date', r[1]);
+            const { data, error } = await q;
+            if (error) { list.innerHTML = `<p class="text-xs text-red-500">${esc(friendlyError(error))}</p>`; tot.innerHTML = ''; return; }
+            const total = data.reduce((a, x) => a + Number(x.amount || 0), 0);
+            const by = {}; data.forEach(x => by[x.app] = (by[x.app] || 0) + Number(x.amount || 0));
+            tot.innerHTML = `<div class="p-3 rounded-xl border bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200">
+                    <p class="text-xs font-semibold opacity-80"><i class="fa-solid fa-mobile-screen mr-1"></i>Ganhos no período</p>
+                    <p class="text-lg font-bold mt-1">${fmtMoney(total)}</p>
+                    ${Object.keys(by).length ? `<p class="text-xs mt-1">${Object.entries(by).map(([k, v]) => `${esc(k)}: ${fmtMoney(v)}`).join(' · ')}</p>` : ''}</div>`;
+            list.innerHTML = data.length ? `<div class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">${data.map(x => {
+                const v = state.vehicles.find(y => y.id === x.vehicle_id);
+                return `<div class="py-2 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="font-semibold">${esc(x.app)} · ${fmtMoney(x.amount)}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate">${fmtDate(x.earning_date)}${v ? ' · ' + esc(v.plate) : ''}${x.description ? ' · ' + esc(x.description) : ''}</div></div>
+                    <button onclick="deleteAppEarning('${x.id}')" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`;
+            }).join('')}</div>` : '<p class="text-xs italic text-gray-400">Nenhum ganho lançado neste período.</p>';
+        }
+        async function saveAppEarning(e) {
+            e.preventDefault();
+            const form = e.target, amount = parseMoney(document.getElementById('appAmount').value);
+            if (!amount) { showToast('Digite um valor válido.', 'error'); return; }
+            setBusy(form, true);
+            try {
+                const { error } = await sb.from('app_earnings').insert({
+                    app: document.getElementById('appName').value, amount,
+                    earning_date: document.getElementById('appDate').value || todayISO(),
+                    vehicle_id: document.getElementById('appVehicle').value || null,
+                    description: document.getElementById('appDesc').value.trim() || null,
+                });
+                if (error) throw error;
+                document.getElementById('appAmount').value = ''; document.getElementById('appDesc').value = '';
+                showToast('Ganho lançado!');
+                renderAppEarnings();
+            } catch (err) { showToast(friendlyError(err), 'error'); }
+            finally { setBusy(form, false); }
+        }
+        async function deleteAppEarning(id) {
+            if (!confirm('Excluir este lançamento?')) return;
+            const { error } = await sb.from('app_earnings').delete().eq('id', id);
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            showToast('Lançamento excluído.'); renderAppEarnings();
         }
     </script>
 </body>
