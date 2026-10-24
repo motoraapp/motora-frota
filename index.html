@@ -446,7 +446,7 @@
 
             <div class="space-y-4 mb-6">
                 <label class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
-                    <input type="checkbox" id="chkModalKeepConnected" class="w-4 h-4 text-blue-600 rounded">
+                    <input type="checkbox" id="chkModalKeepConnected" checked class="w-4 h-4 text-blue-600 rounded">
                     <div>
                         <span class="text-sm font-semibold block">Permanecer conectado à conta</span>
                         <span class="text-xs text-gray-500 dark:text-gray-400">Não solicitar senha nas próximas visitas.</span>
@@ -1223,6 +1223,11 @@
                 if (v && v.crlv_path) await sb.storage.from(BUCKET).remove([v.crlv_path]);
                 const photos = state.inspection.filter(p => p.vehicle_id === id).map(p => p.file_path);
                 if (photos.length) await sb.storage.from(BUCKET).remove(photos);
+                // Apaga também as despesas do veículo e as fotos das notas delas
+                const expFiles = state.expenses.filter(x => x.vehicle_id === id && x.file_path).map(x => x.file_path);
+                if (expFiles.length) await sb.storage.from(BUCKET).remove(expFiles);
+                const ex = await sb.from('vehicle_expenses').delete().eq('vehicle_id', id);
+                if (ex.error) throw ex.error;
                 const { error } = await sb.from('vehicles').delete().eq('id', id);
                 if (error) throw error;
                 await reload();
