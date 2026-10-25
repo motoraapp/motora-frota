@@ -800,7 +800,7 @@
     </div>
 
     <!-- NOTIFICAÇÕES TOAST -->
-    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-3 rounded-xl shadow-xl text-sm flex items-center gap-2">
+    <div id="toast" class="fixed top-5 right-5 z-[70] transform -translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-3 rounded-xl shadow-xl text-sm flex items-center gap-2">
         <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
         <span id="toastMsg">Mensagem de Notificação</span>
     </div>
@@ -935,9 +935,9 @@
             const toast = document.getElementById('toast');
             document.getElementById('toastMsg').innerText = msg;
             document.getElementById('toastIcon').className = type === 'error' ? "fa-solid fa-circle-xmark text-red-400" : "fa-solid fa-circle-check text-emerald-400";
-            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.remove('-translate-y-20', 'opacity-0');
             clearTimeout(showToast._t);
-            showToast._t = setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 3500);
+            showToast._t = setTimeout(() => toast.classList.add('-translate-y-20', 'opacity-0'), 3500);
         }
 
         // LÓGICA DE LOGIN
