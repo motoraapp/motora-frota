@@ -1177,7 +1177,9 @@
 
             const dueEl = document.getElementById('drvDueText');
             const banner = document.getElementById('drvPixBanner');
-            const paidThisPix = driver.pix_sent_at && state.receipts.some(r => new Date(r.created_at) >= new Date(driver.pix_sent_at));
+            const weekRecs = driver.pix_sent_at ? state.receipts.filter(r => new Date(r.created_at) >= new Date(driver.pix_sent_at)) : [];
+            const lastWeekRec = weekRecs[weekRecs.length - 1];
+            const paidThisPix = !!lastWeekRec && !lastWeekRec.rejected_at;
             if (driver.pix_due_at) {
                 dueEl.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Data de pagamento: ${fmtDue(driver.pix_due_at)} até 23:59`;
             } else {
@@ -1185,11 +1187,19 @@
             }
             if (driver.pix_due_at && !paidThisPix) {
                 banner.className = "bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-                banner.innerHTML = `<div class="text-sm"><b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b><br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b> e depois envie o comprovante aqui no app.</div>
+                banner.innerHTML = `<div class="text-sm">${lastWeekRec && lastWeekRec.rejected_at ? `<b class="text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')}<br>` : ''}<b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b><br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b> e depois envie o comprovante aqui no app.</div>
                     <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Ver pagamento</button>`;
-            } else if (driver.pix_due_at && paidThisPix) {
+            } else if (driver.pix_due_at && paidThisPix && lastWeekRec.confirmed_at) {
                 banner.className = "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded-2xl p-4 text-sm";
-                banner.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Comprovante desta semana recebido. Obrigado!`;
+                banner.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Pagamento desta semana <b>confirmado</b>. Obrigado!`;
+            } else if (driver.pix_due_at && paidThisPix && lastWeekRec.ai_status === 'alerta') {
+                const probs = (lastWeekRec.ai_result && lastWeekRec.ai_result.problemas) || [];
+                banner.className = "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-900 dark:text-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-triangle-exclamation mr-1"></i> Problema no seu comprovante</b><br>${probs.map(esc).join('<br>') || 'Os dados não conferem.'}<br>Confira e envie o comprovante correto.</div>
+                    <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar de novo</button>`;
+            } else if (driver.pix_due_at && paidThisPix) {
+                banner.className = "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-200 rounded-2xl p-4 text-sm";
+                banner.innerHTML = `<i class="fa-solid fa-hourglass-half mr-1"></i> Comprovante recebido. <b>Aguardando confirmação</b> do pagamento.`;
             } else {
                 banner.className = "hidden";
                 banner.innerHTML = '';
@@ -1219,7 +1229,7 @@
             if (state.receipts.length > 0) {
                 receiptsContainer.innerHTML = state.receipts.slice().reverse().map(r => `
                     <div class="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-600">
-                        <span class="truncate max-w-[150px]">${esc(r.file_name)} <span class="text-gray-400">· ${new Date(r.created_at).toLocaleDateString('pt-BR')}</span></span>
+                        <span class="min-w-0"><span class="truncate block max-w-[150px]">${esc(r.file_name)} <span class="text-gray-400">· ${new Date(r.created_at).toLocaleDateString('pt-BR')}</span></span>${receiptBadge(r, false)}</span>
                         <button onclick="viewDocIdx(${docRef(r.file_path, esc(r.file_name))})" class="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Ver</button>
                     </div>
                 `).join('');
@@ -1254,6 +1264,71 @@
             else fallback();
         }
 
+        // CONFERÊNCIA DO COMPROVANTE (IA + confirmação do master)
+        function receiptBadge(r, master) {
+            const b = (cls, icon, txt) => `<span class="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${cls}"><i class="fa-solid ${icon}"></i> ${txt}</span>`;
+            if (r.confirmed_at) return b('bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', 'fa-circle-check', 'Pix confirmado');
+            if (r.rejected_at) return b('bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', 'fa-circle-xmark', 'Recusado');
+            if (r.ai_status === 'alerta') return b('bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', 'fa-triangle-exclamation', master ? 'IA: dados não batem' : 'Problema no comprovante');
+            if (r.ai_status === 'ok') return b('bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', 'fa-robot', master ? 'IA: confere' : 'Aguardando confirmação');
+            if (r.ai_status === 'erro') return b('bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'fa-robot', master ? 'IA não leu: confira' : 'Aguardando confirmação');
+            return b('bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'fa-spinner fa-spin', master ? 'IA conferindo...' : 'Aguardando confirmação');
+        }
+
+        function receiptMasterBox(r) {
+            const a = r.ai_result || {};
+            const probs = a.problemas || [];
+            const info = [];
+            if (a.recebedor_nome) info.push('Para: ' + esc(a.recebedor_nome));
+            if (a.valor != null) info.push('Valor: ' + fmtMoney(a.valor));
+            if (a.situacao) info.push('Situação: ' + esc(a.situacao));
+            if (a.data_hora) info.push('Data: ' + esc(String(a.data_hora).replace('T', ' ')));
+            let html = `<div class="mt-1 max-w-[230px]">${receiptBadge(r, true)}`;
+            if (info.length) html += `<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">${info.join('<br>')}</div>`;
+            if (probs.length) html += `<ul class="text-[11px] text-red-600 dark:text-red-300 mt-1 list-disc pl-4 leading-snug">${probs.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`;
+            if (a.error) html += `<div class="text-[11px] text-gray-500 mt-1">${esc(a.error)}</div>`;
+            if (!r.confirmed_at) {
+                html += `<div class="flex flex-wrap gap-1 mt-2">
+                    <button onclick="confirmReceipt('${r.id}', this)" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i> Confirmar Pix</button>
+                    ${r.rejected_at ? '' : `<button onclick="rejectReceipt('${r.id}', this)" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-xmark mr-1"></i> Recusar</button>`}
+                    <button onclick="recheckReceipt('${r.id}', this)" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Pedir para a IA ler de novo"><i class="fa-solid fa-rotate"></i></button>
+                </div>`;
+            }
+            return html + `</div>`;
+        }
+
+        async function receiptAction(btn, fn) {
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
+            try { await fn(); await reload(); }
+            catch (e) { showToast(friendlyError(e), 'error'); }
+            finally { if (btn && document.body.contains(btn)) { btn.disabled = false; btn.innerHTML = old; } }
+        }
+        function confirmReceipt(id, btn) {
+            return receiptAction(btn, async () => {
+                const { error } = await sb.rpc('master_confirm_receipt', { p_receipt: id });
+                if (error) throw error;
+                showToast('Pix confirmado! O motorista foi avisado.');
+            });
+        }
+        function rejectReceipt(id, btn) {
+            const reason = prompt('Motivo da recusa (o motorista vai ver):', 'Os dados do comprovante não conferem.');
+            if (reason === null) return;
+            return receiptAction(btn, async () => {
+                const { error } = await sb.rpc('master_reject_receipt', { p_receipt: id, p_reason: reason });
+                if (error) throw error;
+                showToast('Comprovante recusado. O motorista foi avisado.');
+            });
+        }
+        function recheckReceipt(id, btn) {
+            return receiptAction(btn, async () => {
+                const { data, error } = await sb.functions.invoke('motora-sync', { body: { type: 'verify_receipt', receipt_id: id } });
+                if (error) throw error;
+                if (data && data.ok === false) throw new Error(data.error || 'A IA não conseguiu ler.');
+                showToast(data && data.status === 'ok' ? 'IA conferiu: os dados batem.' : 'IA conferiu: veja os avisos.');
+            });
+        }
+
         async function uploadReceipt(btn) {
             const fileInput = document.getElementById('fileReceipt');
             const file = fileInput.files[0];
@@ -1266,7 +1341,8 @@
                 if (error) throw error;
                 fileInput.value = '';
                 await reload();
-                showToast("Comprovante enviado com sucesso!");
+                showToast("Comprovante enviado! A IA vai conferir e o pagamento será confirmado em seguida.");
+                setTimeout(() => reload().catch(() => {}), 20000); // resultado da IA
             } catch (e) {
                 showToast(friendlyError(e), 'error');
             } finally {
@@ -1370,6 +1446,7 @@
                                     <button onclick="viewDocIdx(${docRef(last.file_path, `Comprovante - ${esc(d.name)} (${new Date(last.created_at).toLocaleDateString('pt-BR')})`)})" class="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-1 rounded font-semibold">
                                         Ver último (${recs.length})
                                     </button>
+                                    ${receiptMasterBox(last)}
                                 ` : `<span class="text-xs text-gray-400">Nenhum</span>`}
                             </td>
                             <td class="p-3 text-right">
