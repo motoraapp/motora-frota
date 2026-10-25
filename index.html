@@ -245,8 +245,13 @@
                 <!-- Aba Contrato -->
                 <div id="tabDrvContract" class="hidden space-y-4">
                     <h3 class="font-bold text-lg flex items-center gap-2">
-                        <i class="fa-solid fa-file-signature text-blue-500"></i> Contrato de Locação / Prestação
+                        <i class="fa-solid fa-file-signature text-blue-500"></i> Contrato
                     </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button type="button" id="btnDocContrato" onclick="showContractDoc('contrato')" class="py-3 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-contract"></i> Contrato de locação</button>
+                        <button type="button" id="btnDocVistoria" onclick="showContractDoc('vistoria')" class="py-3 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-clipboard-check"></i> Termo de vistoria</button>
+                        <button type="button" id="btnDocTermos" onclick="openTermsViewer()" class="py-3 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-scale-balanced"></i> Termos do app</button>
+                    </div>
                     <div id="contractViewer" class="min-h-[350px] border border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 flex flex-col items-center justify-center">
                         <!-- Renderizado dinamicamente -->
                     </div>
@@ -348,6 +353,9 @@
                 <i class="fa-solid fa-sack-dollar"></i> Controle financeiro
             </button>
 
+            <!-- Aviso: falta criar a tabela dos termos no banco -->
+            <div id="termsSetupBanner" class="hidden"></div>
+
             <!-- SUB-ABA: GESTÃO DE VEÍCULOS -->
             <div id="subMasterVehicles" class="space-y-6">
                 <!-- Form de Adicionar Veículo -->
@@ -445,6 +453,10 @@
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Contrato (PDF/Img)</label>
                             <input type="file" id="drvContractFile" accept="image/*,application/pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Termo de vistoria (PDF/Img)</label>
+                            <input type="file" id="drvInspTermFile" accept="image/*,application/pdf" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">QR Code Pix (Imagem)</label>
@@ -646,11 +658,16 @@
                 </div>
                 <div>
                     <h4 class="font-semibold text-sm mb-2">Atualizar documentos</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CNH</label><input type="file" id="dfCnhFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Comp. endereço</label><input type="file" id="dfAddrFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Contrato</label><input type="file" id="dfContractFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Contrato de locação</label><input type="file" id="dfContractFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Termo de vistoria</label><input type="file" id="dfInspTermFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
                     </div>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-sm mb-2">Termos do app</h4>
+                    <div id="dfTerms" class="text-xs"></div>
                 </div>
                 <div>
                     <h4 class="font-semibold text-sm mb-2">Histórico de pagamentos</h4>
@@ -799,6 +816,21 @@
         </div>
     </div>
 
+    <!-- MODAL TERMOS DO APP (aceite obrigatório do motorista / leitura / comprovante para o master) -->
+    <div id="modalTerms" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[65] flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start gap-3">
+                <div>
+                    <h3 class="font-bold text-lg" id="termsTitle"><i class="fa-solid fa-scale-balanced text-blue-500 mr-1"></i> Termos do app MOTORA</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400" id="termsSubtitle"></p>
+                </div>
+                <button type="button" id="termsClose" onclick="closeTerms()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="termsBody" class="p-4 overflow-y-auto custom-scrollbar space-y-4 text-[15px] leading-relaxed"></div>
+            <div id="termsFooter" class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3"></div>
+        </div>
+    </div>
+
     <!-- NOTIFICAÇÕES TOAST -->
     <div id="toast" class="fixed top-5 right-5 z-[70] transform -translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-4 py-3 rounded-xl shadow-xl text-sm flex items-center gap-2">
         <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
@@ -851,6 +883,7 @@
             if (/Invalid login credentials/i.test(m)) return 'Usuário ou senha inválidos!';
             if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Sem conexão com a internet. Tente de novo.';
             if (/JWT|session/i.test(m)) return 'Sua sessão expirou. Entre novamente.';
+            if (/inspection_term_path|terms_acceptances/i.test(m)) return 'Falta ativar esta função no banco de dados (veja o aviso amarelo no painel).';
             return m || 'Ocorreu um erro. Tente de novo.';
         }
 
@@ -984,7 +1017,8 @@
             document.getElementById('btnNotif').classList.add('hidden');
             document.getElementById('notifBanner').className = 'hidden';
             document.getElementById('modalNotif').classList.add('hidden');
-            notifPrompted = false; notifTried = false; notifSubOk = false;
+            document.getElementById('modalTerms').classList.add('hidden');
+            notifPrompted = false; notifTried = false; notifSubOk = false; contractDocShown = null;
             document.getElementById('headerRoleSubtitle').innerText = "Sistema de Gestão";
             document.getElementById('lastUpdated').innerText = '';
             showSection('secLogin');
@@ -1050,7 +1084,8 @@
                 state.vehicles = veh.data; state.receipts = rec.data; state.drivers = []; state.inspection = insp.data;
                 state.features = await loadDriverFeatures();
             }
-            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.features]);
+            await loadTermsAcceptances(profile);
+            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
             state.sig = sig;
@@ -1103,6 +1138,7 @@
                 showSection('secDriverPanel');
                 renderDriverPanel();
                 updateStatusToggleUI();
+                if (needsTermsAcceptance()) { openTermsGate(); return; } // primeiro aceita os termos, depois o resto
                 checkDriverNotifications(!notifPrompted);
                 notifPrompted = true;
                 if (new URLSearchParams(location.search).get('aba') === 'pagamento') {
@@ -1167,7 +1203,7 @@
                 statusText.innerText = "Em atraso";
             }
 
-            renderFilePreview('contractViewer', driver.contract_path, "Nenhum contrato cadastrado pela administração.", 'Contrato');
+            showContractDoc(contractDocShown || 'contrato');
 
             // Vistoria
             const inspEl = document.getElementById('inspViewer');
@@ -1439,7 +1475,9 @@
                                 ${d.cnh_path ? `<button onclick="viewDocIdx(${docRef(d.cnh_path, `CNH - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="CNH"><i class="fa-solid fa-id-card"></i> CNH</button>` : ''}
                                 ${d.address_path ? `<button onclick="viewDocIdx(${docRef(d.address_path, `Endereço - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="Endereço"><i class="fa-solid fa-house"></i> End</button>` : ''}
                                 ${d.contract_path ? `<button onclick="viewDocIdx(${docRef(d.contract_path, `Contrato - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="Contrato"><i class="fa-solid fa-file-contract"></i> Contrato</button>` : ''}
-                                ${!d.cnh_path && !d.address_path && !d.contract_path ? '<span class="text-xs text-gray-400">Nenhum</span>' : ''}
+                                ${d.inspection_term_path ? `<button onclick="viewDocIdx(${docRef(d.inspection_term_path, `Termo de vistoria - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="Termo de vistoria"><i class="fa-solid fa-clipboard-check"></i> Vistoria</button>` : ''}
+                                ${!d.cnh_path && !d.address_path && !d.contract_path && !d.inspection_term_path ? '<span class="text-xs text-gray-400">Nenhum</span>' : ''}
+                                <div class="mt-2">${termsBadgeMaster(d)}</div>
                             </td>
                             <td class="p-3">
                                 ${last ? `
@@ -1459,6 +1497,7 @@
                 }).join('');
             }
             if (!document.getElementById('modalFinance').classList.contains('hidden')) renderFinance();
+            renderTermsSetupBanner();
             fillAvatars(drvTbody).catch(() => {});
         }
 
@@ -1533,6 +1572,7 @@
                 cnh_path: ['drvCnhFile', 'cnh'],
                 address_path: ['drvAddressFile', 'endereco'],
                 contract_path: ['drvContractFile', 'contrato'],
+                inspection_term_path: ['drvInspTermFile', 'termo-vistoria'],
                 pix_qr_path: ['drvPixQrFile', 'pix-qr']
             };
 
@@ -1797,7 +1837,8 @@
             const sel = document.getElementById('dfVehicle');
             sel.innerHTML = `<option value="">Nenhum Veículo</option>` + state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
             sel.value = d.vehicle_id || '';
-            ['dfCnhFile', 'dfAddrFile', 'dfContractFile'].forEach(i => document.getElementById(i).value = '');
+            ['dfCnhFile', 'dfAddrFile', 'dfContractFile', 'dfInspTermFile'].forEach(i => document.getElementById(i).value = '');
+            document.getElementById('dfTerms').innerHTML = termsMasterDetail(d);
             document.getElementById('btnAiRead').disabled = !(d.cnh_path || d.address_path);
             document.getElementById('btnAiRead').classList.toggle('opacity-50', !(d.cnh_path || d.address_path));
             const hist = state.pixHistory.filter(h => h.driver_id === id);
@@ -1822,11 +1863,11 @@
             updates.vehicle_id = document.getElementById('dfVehicle').value || null;
             setBusy(form, true);
             try {
-                const files = { cnh_path: ['dfCnhFile', 'cnh'], address_path: ['dfAddrFile', 'endereco'], contract_path: ['dfContractFile', 'contrato'] };
+                const files = { cnh_path: ['dfCnhFile', 'cnh'], address_path: ['dfAddrFile', 'endereco'], contract_path: ['dfContractFile', 'contrato'], inspection_term_path: ['dfInspTermFile', 'termo-vistoria'] };
                 let newDocs = false;
                 for (const [col, [inputId, base]] of Object.entries(files)) {
                     const f = document.getElementById(inputId).files[0];
-                    if (f) { const p = await uploadFile(f, `${id}/${base}-${Date.now()}`); if (p) { updates[col] = p; newDocs = newDocs || col !== 'contract_path'; } }
+                    if (f) { const p = await uploadFile(f, `${id}/${base}-${Date.now()}`); if (p) { updates[col] = p; newDocs = newDocs || (col === 'cnh_path' || col === 'address_path'); } }
                 }
                 // CNH nova: a IA acha o rosto e a foto do motorista é atualizada
                 const newCnh = document.getElementById('dfCnhFile').files[0];
@@ -2775,6 +2816,317 @@
             const { error } = await sb.from('app_earnings').delete().eq('id', id);
             if (error) { showToast(friendlyError(error), 'error'); return; }
             showToast('Lançamento excluído.'); renderAppEarnings();
+        }
+
+        /* =====================================================================
+           TERMOS DO APP (aceite obrigatório do motorista) e ABA CONTRATO
+           ===================================================================== */
+
+        // Ao mudar o texto abaixo, troque a versão: todos os motoristas aceitam de novo.
+        const TERMS_VERSION = '2026-10-25';
+        const TERMS_CONTACT = 'pelo WhatsApp ou pelo e-mail do locador que estão no contrato de locação';
+
+        // O que o motorista marca, um por um, antes de usar o app
+        const TERMS_ITEMS = [
+            { k: 'uso', t: 'Li e aceito os <b>Termos de Uso</b> do MOTORA.' },
+            { k: 'privacidade', t: 'Li a <b>Política de Privacidade</b> e entendi quais dados meus o app guarda, para quê e com quem.' },
+            { k: 'verdade', t: 'Os documentos e comprovantes que eu enviar são <b>verdadeiros e meus</b>. Sei que comprovante falso é crime e encerra o contrato.' },
+            { k: 'pagamento', t: 'Entendi a cobrança: <b>Pix toda semana, pago e com comprovante enviado até segunda-feira às 23h59</b>. Sem comprovante, fico "Em atraso".' },
+            { k: 'bloqueio', t: 'Entendi que o carro tem <b>rastreador com bloqueio</b>: sem pagamento 24 horas depois do aviso, o carro pode ser bloqueado, sempre parado, como diz a Cláusula 7 do contrato.' },
+            { k: 'login', t: 'Meu login é <b>pessoal</b>. Não passo minha senha a ninguém e respondo pelo que for feito com ela.' },
+        ];
+
+        const TERMS_HTML = `
+<div class="p-3 rounded-xl bg-blue-50 dark:bg-gray-700/50 text-blue-900 dark:text-blue-200 text-sm">
+  Versão de ${TERMS_VERSION.split('-').reverse().join('/')}. Estes termos valem junto com o seu <b>contrato de locação</b>. Se algo aqui for diferente do contrato assinado, vale o contrato.
+</div>
+
+<h4 class="font-bold text-base">Parte 1 — Termos de Uso</h4>
+
+<p><b>1. O que é o MOTORA.</b> É o app do locador (o dono do carro que você aluga). Nele você vê o CRLV-e, o contrato e a vistoria do carro, recebe o Pix da semana, envia o comprovante e recebe avisos. O MOTORA não é um app de corridas.</p>
+
+<p><b>2. Seu login.</b> O usuário e a senha são só seus. Não passe a ninguém. Se alguém descobrir sua senha, avise o locador na hora para ela ser trocada. Você responde pelo que for feito com o seu login.</p>
+
+<p><b>3. Pagamento da semana.</b> Toda semana o locador manda pelo app o Pix com o valor e a data de pagamento. Pague até <b>segunda-feira às 23h59</b> e envie o comprovante aqui no app no mesmo prazo. Só conta como pago o Pix que cair na conta do locador. Quem não envia o comprovante no prazo fica com o status "Em atraso" sozinho, e volta para "Em dia" quando envia. Multa e juros de atraso são os do contrato (Cláusula 5).</p>
+
+<p><b>4. Conferência do comprovante.</b> Uma inteligência artificial lê o comprovante e confere valor, data e quem recebeu. Quem confirma ou recusa o pagamento é sempre o locador. Se o seu comprovante for recusado, você pode pedir que uma pessoa revise (Lei Geral de Proteção de Dados, art. 20).</p>
+
+<p><b>5. Avisos no celular.</b> O aviso do novo Pix e da data de pagamento chega por notificação. Mantenha as notificações do MOTORA ligadas. Os avisos do contrato também valem pelo WhatsApp e pelo e-mail (Cláusula 19).</p>
+
+<div class="p-3 rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100">
+<p><b>6. RASTREADOR E BLOQUEIO DO CARRO.</b> O carro tem rastreador com bloqueio. Se o aluguel não for pago no prazo, o locador avisa você pelo WhatsApp. <b>Sem pagamento 24 horas depois do aviso, o carro pode ser bloqueado.</b> O bloqueio é feito só com o carro parado: o rastreador impede a próxima partida e nunca desliga o motor com o carro andando. Depois do pagamento comprovado, o carro é desbloqueado em até 2 horas. Os prazos exatos são os da Cláusula 7 do seu contrato.</p>
+</div>
+
+<p><b>7. Documentos verdadeiros.</b> Envie só documentos e comprovantes verdadeiros e seus. Comprovante falso ou alterado é crime, permite ao locador encerrar o contrato na hora (Cláusula 17.3) e pode ser levado à polícia.</p>
+
+<p><b>8. Uso correto do app.</b> Não tente ver dados de outros motoristas, mudar o app ou atrapalhar o funcionamento dele.</p>
+
+<p><b>9. App fora do ar.</b> O app pode ficar fora do ar às vezes. Isso não cancela o pagamento: nesse caso, pague e mande o comprovante pelo WhatsApp do locador, no mesmo prazo.</p>
+
+<p><b>10. Mudanças nestes termos.</b> Se os termos mudarem, o app mostra a nova versão e você precisa aceitar de novo para continuar usando. Se não concordar, pode encerrar o contrato com o aviso da Cláusula 17.1.</p>
+
+<p><b>11. Foro.</b> Vale o mesmo foro escolhido no contrato de locação.</p>
+
+<h4 class="font-bold text-base pt-2">Parte 2 — Política de Privacidade</h4>
+
+<p><b>Quem cuida dos seus dados.</b> O locador, Thiago Gomes Borges, é o responsável pelos seus dados (o "controlador", na Lei Geral de Proteção de Dados — LGPD, Lei 13.709/2018). Fale com ele ${TERMS_CONTACT}. Esse é o canal para qualquer pedido sobre seus dados.</p>
+
+<p><b>O que o app guarda.</b></p>
+<ul class="list-disc pl-5 space-y-1">
+  <li><b>Cadastro:</b> nome, CPF, RG, data de nascimento, telefone, endereço e login.</li>
+  <li><b>Documentos:</b> CNH (com sua foto), comprovante de endereço, contrato de locação e termo de vistoria.</li>
+  <li><b>Pagamentos:</b> Pix enviados, valores, datas, comprovantes e histórico.</li>
+  <li><b>Uso do app:</b> data, hora, versão e endereço de internet (IP) deste aceite, e o registro do seu celular para receber notificações.</li>
+</ul>
+<p>O app <b>não</b> pega a localização do seu celular. A localização do carro vem do rastreador e segue a Cláusula 15 do contrato.</p>
+
+<p><b>Para quê usamos seus dados.</b></p>
+<ul class="list-disc pl-5 space-y-1">
+  <li>Cumprir o contrato de locação: cadastro, documentos do carro, cobrança e avisos (LGPD, art. 7º, V).</li>
+  <li>Cobrar e confirmar pagamentos (art. 7º, V e X).</li>
+  <li>Indicar você como condutor nas multas de trânsito, como a lei exige (art. 7º, II).</li>
+  <li>Defender os direitos do locador em processos (art. 7º, VI).</li>
+  <li>Evitar fraude com comprovantes falsos (art. 7º, IX).</li>
+</ul>
+<p>Seus dados nunca são vendidos nem usados para propaganda.</p>
+
+<p><b>Com quem seus dados são compartilhados.</b> Com os serviços que fazem o app funcionar: Supabase (banco de dados e arquivos), Netlify (onde o app fica hospedado), Google (a inteligência artificial Gemini, que lê documentos e comprovantes, e o Google Drive, onde fica uma cópia de segurança) e o serviço de notificações do seu celular. E, quando for preciso, como diz o contrato: proteção veicular, órgão de trânsito, polícia e Justiça. Alguns desses serviços guardam dados em computadores fora do Brasil; isso é necessário para o app funcionar e cumprir o contrato (LGPD, art. 33, IX).</p>
+
+<p><b>Por quanto tempo.</b> Enquanto durar o contrato e por até 5 anos depois do fim dele, que é o prazo para cobranças na Justiça (Cláusula 15.3). Os arquivos que a inteligência artificial lê no cadastro são apagados logo depois da leitura.</p>
+
+<p><b>Segurança.</b> Cada motorista entra com o próprio login e só vê os próprios dados. Os arquivos ficam guardados com acesso restrito.</p>
+
+<p><b>Seus direitos (LGPD, arts. 18 e 20).</b> Você pode pedir a qualquer momento para: saber se temos seus dados e ver uma cópia; corrigir dados errados; apagar ou anonimizar dados desnecessários; levar seus dados para outro serviço; saber com quem eles foram compartilhados; e pedir que uma pessoa revise uma decisão feita só pelo sistema. Peça pelo canal acima. Se não for atendido, você pode reclamar na Agência Nacional de Proteção de Dados (ANPD), pelo site gov.br/anpd.</p>
+
+<p><b>Encarregado de dados.</b> Por ser agente de pequeno porte, o locador não precisa nomear um encarregado (Resolução CD/ANPD nº 2/2022, art. 11). O canal de atendimento é o contato acima.</p>
+`;
+
+        state.terms = [];
+        state.termsReady = true;
+        let termsMode = null; // 'gate' (obrigatório) | 'view' (só ler) | 'record' (master vendo o aceite)
+        var contractDocShown = null;
+
+        async function loadTermsAcceptances(profile) {
+            try {
+                let q = sb.from('terms_acceptances').select('*').order('accepted_at', { ascending: false });
+                if (profile.role !== 'master') q = q.eq('driver_id', profile.id);
+                const { data, error } = await q;
+                if (error) throw error;
+                state.terms = data || []; state.termsReady = true;
+            } catch (e) {
+                // tabela ainda não criada no banco: não trava o motorista; o master vê o aviso para criar
+                state.terms = []; state.termsReady = false;
+            }
+        }
+        function termsOf(driverId) { return state.terms.filter(t => t.driver_id === driverId); }
+        function currentAcceptance(driverId) { return termsOf(driverId).find(t => t.terms_version === TERMS_VERSION) || null; }
+        function needsTermsAcceptance() {
+            return !!(state.profile && state.profile.role === 'driver' && state.termsReady && !currentAcceptance(state.profile.id));
+        }
+        function fmtDateTime(iso) {
+            return iso ? new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+        }
+        function termsPlainText() {
+            const div = document.createElement('div'); div.innerHTML = TERMS_HTML;
+            return (div.innerText || div.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+        }
+        async function termsHash() {
+            try {
+                const bytes = new TextEncoder().encode(TERMS_VERSION + '\n' + TERMS_HTML + '\n' + TERMS_ITEMS.map(i => i.t).join('\n'));
+                const buf = await crypto.subtle.digest('SHA-256', bytes);
+                return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (e) { return 'sem-hash'; }
+        }
+
+        function openTermsGate() {
+            if (termsMode === 'gate' && !document.getElementById('modalTerms').classList.contains('hidden')) return; // já aberta: não apaga o que ele marcou
+            termsMode = 'gate';
+            document.getElementById('modalNotif').classList.add('hidden');
+            document.getElementById('termsTitle').innerHTML = '<i class="fa-solid fa-scale-balanced text-blue-500 mr-1"></i> Antes de começar';
+            document.getElementById('termsSubtitle').innerText = 'Leia até o fim e marque cada item para usar o MOTORA.';
+            document.getElementById('termsClose').classList.add('hidden');
+            document.getElementById('termsBody').innerHTML = TERMS_HTML;
+            const items = TERMS_ITEMS.map(i => `
+                <label class="flex items-start gap-3 p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer">
+                    <input type="checkbox" data-term="${i.k}" onchange="termsGateCheck()" class="mt-0.5 w-5 h-5 shrink-0 rounded">
+                    <span class="text-sm">${i.t}</span>
+                </label>`).join('');
+            document.getElementById('termsFooter').innerHTML = `
+                <div class="space-y-2 max-h-[32vh] overflow-y-auto custom-scrollbar">${items}</div>
+                <button type="button" id="btnAcceptTerms" onclick="acceptTerms(this)" disabled class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm opacity-50">Marque todos os itens para continuar</button>
+                <div class="flex justify-between gap-2 text-xs">
+                    <button type="button" onclick="downloadTermsCopy()" class="text-blue-600 dark:text-blue-400 underline"><i class="fa-solid fa-download mr-1"></i> Baixar uma cópia</button>
+                    <button type="button" onclick="logout()" class="text-gray-500 dark:text-gray-400 underline">Não aceito / Sair</button>
+                </div>`;
+            document.getElementById('termsBody').scrollTop = 0;
+            document.getElementById('modalTerms').classList.remove('hidden');
+        }
+        function termsGateCheck() {
+            const boxes = [...document.querySelectorAll('#termsFooter [data-term]')];
+            const all = boxes.length && boxes.every(b => b.checked);
+            const btn = document.getElementById('btnAcceptTerms');
+            btn.disabled = !all;
+            btn.classList.toggle('opacity-50', !all);
+            btn.innerHTML = all ? '<i class="fa-solid fa-check mr-1"></i> Li e aceito' : `Marque todos os itens para continuar (${boxes.filter(b => b.checked).length} de ${boxes.length})`;
+        }
+        async function acceptTerms(btn) {
+            const checked = [...document.querySelectorAll('#termsFooter [data-term]')].filter(b => b.checked).map(b => b.dataset.term);
+            if (checked.length !== TERMS_ITEMS.length) return;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Registrando...';
+            try {
+                const { error } = await sb.from('terms_acceptances').insert({
+                    driver_id: state.profile.id, terms_version: TERMS_VERSION, terms_hash: await termsHash(),
+                    accepted_items: checked, user_agent: navigator.userAgent.slice(0, 400)
+                });
+                if (error) throw error;
+                await loadTermsAcceptances(state.profile);
+                document.getElementById('modalTerms').classList.add('hidden');
+                termsMode = null;
+                showToast('Termos aceitos! Uma cópia fica na aba Contrato.');
+                renderApp();
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+                btn.disabled = false; termsGateCheck();
+            }
+        }
+        function acceptanceHtml(a, who) {
+            if (!a) return `<p class="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 text-sm"><i class="fa-solid fa-clock mr-1"></i> ${who ? esc(who) + ' ainda não aceitou' : 'Ainda não aceitos'} nesta versão.</p>`;
+            const items = (a.accepted_items || []).map(k => (TERMS_ITEMS.find(i => i.k === k) || { t: esc(k) }).t);
+            return `<div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-200 text-sm space-y-1">
+                <p class="font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Aceito em ${fmtDateTime(a.accepted_at)} (horário de Brasília)</p>
+                <p>${esc(a.driver_name || who || '')}${a.driver_cpf ? ' · CPF ' + esc(a.driver_cpf) : ''}${a.driver_login ? ' · login ' + esc(showLogin(a.driver_login)) : ''}</p>
+                <p>Versão ${esc(a.terms_version)}${a.ip ? ' · IP ' + esc(a.ip) : ''}</p>
+                ${items.length ? `<ul class="list-disc pl-5 text-xs pt-1">${items.map(t => `<li>${t}</li>`).join('')}</ul>` : ''}
+                <p class="text-[11px] opacity-75 break-all">Código do texto: ${esc(a.terms_hash || '')}</p>
+            </div>`;
+        }
+        function openTermsViewer(driverId) {
+            const master = state.profile && state.profile.role === 'master';
+            const id = driverId || (state.profile && state.profile.id);
+            const d = master ? state.drivers.find(x => x.id === id) : state.profile;
+            termsMode = master ? 'record' : 'view';
+            document.getElementById('termsTitle').innerHTML = '<i class="fa-solid fa-scale-balanced text-blue-500 mr-1"></i> Termos do app MOTORA';
+            document.getElementById('termsSubtitle').innerText = master && d ? `Aceite de ${d.name}` : 'Os termos que você aceitou';
+            document.getElementById('termsClose').classList.remove('hidden');
+            const a = currentAcceptance(id), older = termsOf(id).filter(t => t !== a);
+            document.getElementById('termsBody').innerHTML = acceptanceHtml(a, d && d.name)
+                + (older.length ? `<p class="text-xs text-gray-500">Versões anteriores aceitas: ${older.map(t => `${esc(t.terms_version)} em ${fmtDateTime(t.accepted_at)}`).join('; ')}</p>` : '')
+                + TERMS_HTML;
+            document.getElementById('termsFooter').innerHTML = `<div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="downloadTermsCopy('${id || ''}')" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar cópia</button>
+                <button type="button" onclick="closeTerms()" class="py-2.5 bg-gray-100 dark:bg-gray-700 font-semibold rounded-xl text-sm">Fechar</button></div>`;
+            document.getElementById('termsBody').scrollTop = 0;
+            document.getElementById('modalTerms').classList.remove('hidden');
+        }
+        function closeTerms() {
+            if (termsMode === 'gate') return; // o aceite é obrigatório
+            termsMode = null;
+            document.getElementById('modalTerms').classList.add('hidden');
+        }
+        // Cópia em arquivo (o motorista guarda; o master usa como comprovante do aceite)
+        function downloadTermsCopy(driverId) {
+            const a = driverId ? currentAcceptance(driverId) : null;
+            const rec = a ? `<div style="border:2px solid #059669;border-radius:10px;padding:12px;margin:12px 0">
+                <b>Registro do aceite</b><br>Aceito em ${fmtDateTime(a.accepted_at)} (horário de Brasília)<br>
+                ${esc(a.driver_name || '')}${a.driver_cpf ? ' · CPF ' + esc(a.driver_cpf) : ''}${a.driver_login ? ' · login ' + esc(showLogin(a.driver_login)) : ''}<br>
+                Versão ${esc(a.terms_version)}${a.ip ? ' · IP ' + esc(a.ip) : ''}<br>
+                Itens marcados:<ul>${(a.accepted_items || []).map(k => `<li>${(TERMS_ITEMS.find(i => i.k === k) || { t: esc(k) }).t}</li>`).join('')}</ul>
+                <small>Código do texto (SHA-256): ${esc(a.terms_hash || '')}<br>Aparelho: ${esc(a.user_agent || '')}</small></div>` : '';
+            const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Termos MOTORA ${TERMS_VERSION}</title>
+                <style>body{font-family:Arial,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;line-height:1.55;color:#111}h1{font-size:22px}h4{font-size:17px;margin-top:22px}div{margin:10px 0}</style></head>
+                <body><h1>Termos do app MOTORA</h1>${rec}${TERMS_HTML}<h4>Itens que o motorista marca</h4><ul>${TERMS_ITEMS.map(i => `<li>${i.t}</li>`).join('')}</ul></body></html>`;
+            const blob = new Blob([html], { type: 'text/html' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            const who = a && a.driver_name ? ' - ' + a.driver_name.replace(/[^\wÀ-ú ]/g, '') : '';
+            link.download = `Termos MOTORA ${TERMS_VERSION}${who}.html`;
+            document.body.appendChild(link); link.click(); link.remove();
+            setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+        }
+
+        // MASTER: situação do aceite na lista e na ficha
+        function termsBadgeMaster(d) {
+            if (!state.termsReady) return '';
+            const a = currentAcceptance(d.id);
+            return a
+                ? `<button onclick="openTermsViewer('${d.id}')" class="text-[11px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><i class="fa-solid fa-scale-balanced mr-1"></i>Termos aceitos ${fmtDate(a.accepted_at)}</button>`
+                : `<button onclick="openTermsViewer('${d.id}')" class="text-[11px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"><i class="fa-solid fa-clock mr-1"></i>Termos pendentes</button>`;
+        }
+        function termsMasterDetail(d) {
+            if (!state.termsReady) return '<p class="italic text-gray-400">Falta ativar os termos no banco de dados (aviso amarelo no painel).</p>';
+            return acceptanceHtml(currentAcceptance(d.id), d.name) + `<button type="button" onclick="openTermsViewer('${d.id}')" class="mt-2 text-xs font-semibold bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-eye mr-1"></i> Ver termos e baixar comprovante</button>`;
+        }
+
+        // MASTER: aviso para criar a tabela dos aceites (uma vez só)
+        const TERMS_SQL = `-- MOTORA: termos aceitos pelo motorista + termo de vistoria (25/10/2026)
+alter table public.profiles add column if not exists inspection_term_path text;
+create table if not exists public.terms_acceptances (
+  id uuid primary key default gen_random_uuid(),
+  driver_id uuid not null default auth.uid(),
+  terms_version text not null,
+  terms_hash text not null,
+  accepted_items jsonb not null default '[]'::jsonb,
+  driver_name text, driver_login text, driver_cpf text,
+  user_agent text, ip text,
+  accepted_at timestamptz not null default now()
+);
+create index if not exists terms_acceptances_driver_idx on public.terms_acceptances (driver_id, terms_version);
+alter table public.terms_acceptances enable row level security;
+create or replace function public.terms_acceptance_stamp() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare h json; p record;
+begin
+  if auth.uid() is null then raise exception 'login necessario'; end if;
+  new.driver_id := auth.uid();
+  new.accepted_at := now();
+  begin h := nullif(current_setting('request.headers', true), '')::json; exception when others then h := null; end;
+  new.ip := coalesce(nullif(trim(split_part(coalesce(h->>'x-forwarded-for', ''), ',', 1)), ''), h->>'cf-connecting-ip', h->>'x-real-ip');
+  select name, username, cpf into p from public.profiles where id = auth.uid();
+  new.driver_name := p.name; new.driver_login := p.username; new.driver_cpf := p.cpf;
+  return new;
+end $$;
+drop trigger if exists terms_acceptance_stamp on public.terms_acceptances;
+create trigger terms_acceptance_stamp before insert on public.terms_acceptances
+  for each row execute function public.terms_acceptance_stamp();
+drop policy if exists motorista_registra_aceite on public.terms_acceptances;
+create policy motorista_registra_aceite on public.terms_acceptances for insert to authenticated with check (driver_id = auth.uid());
+drop policy if exists aceites_motorista_e_master on public.terms_acceptances;
+create policy aceites_motorista_e_master on public.terms_acceptances for select to authenticated using (driver_id = auth.uid() or exists (select 1 from public.profiles m where m.id = auth.uid() and m.role = 'master'));
+notify pgrst, 'reload schema';`;
+        function renderTermsSetupBanner() {
+            const el = document.getElementById('termsSetupBanner');
+            if (!el) return;
+            if (state.termsReady) { el.className = 'hidden'; el.innerHTML = ''; return; }
+            el.className = 'bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 rounded-2xl p-4 space-y-2 text-sm';
+            el.innerHTML = `<p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Falta 1 passo para ligar os Termos do app e o Termo de vistoria</p>
+                ${stepsList(['Toque em <b>Copiar comando</b>.', 'Toque em <b>Abrir o Supabase</b> e entre na sua conta.', 'Cole o comando no espaço em branco e toque no botão verde <b>Executar</b> (Run).', 'Volte aqui e atualize a página.'])}
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button type="button" onclick="copyTermsSql()" class="py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-xs"><i class="fa-solid fa-copy mr-1"></i> Copiar comando</button>
+                    <a href="https://supabase.com/dashboard/project/epswrtcwszhbapaxdpzz/sql/new" target="_blank" rel="noopener" class="py-2.5 bg-gray-800 text-white font-semibold rounded-xl text-xs text-center"><i class="fa-solid fa-database mr-1"></i> Abrir o Supabase</a>
+                </div>
+                <p class="text-xs opacity-80">Enquanto isso, os motoristas usam o app normalmente, sem a tela de termos.</p>`;
+        }
+        function copyTermsSql() {
+            const ok = () => showToast('Comando copiado! Agora abra o Supabase e cole.');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(TERMS_SQL).then(ok, () => showToast('Não consegui copiar. Tente pelo computador.', 'error'));
+            else showToast('Não consegui copiar. Tente pelo computador.', 'error');
+        }
+
+        // MOTORISTA: aba Contrato com os botões "Contrato de locação" e "Termo de vistoria"
+        function showContractDoc(kind) {
+            contractDocShown = kind;
+            const d = state.profile;
+            if (!d) return;
+            const on = 'py-3 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-blue-600 text-white';
+            const off = 'py-3 px-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-700';
+            document.getElementById('btnDocContrato').className = kind === 'contrato' ? on : off;
+            document.getElementById('btnDocVistoria').className = kind === 'vistoria' ? on : off;
+            if (kind === 'vistoria') {
+                const fotos = state.inspection.length && feat('vistoria') ? ' As fotos da vistoria estão na aba <b>Vistoria</b>.' : '';
+                renderFilePreview('contractViewer', d.inspection_term_path, `Nenhum termo de vistoria cadastrado pela administração.${fotos}`, 'Termo de vistoria');
+            } else {
+                renderFilePreview('contractViewer', d.contract_path, 'Nenhum contrato de locação cadastrado pela administração.', 'Contrato de locação');
+            }
         }
     </script>
 </body>
