@@ -185,6 +185,7 @@
 
         <!-- PAINEL DO MOTORISTA -->
         <section id="secDriverPanel" class="hidden space-y-6">
+            <div id="viewAsBanner" class="hidden"></div>
             <!-- Card do Veículo Vinculado -->
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1015,6 +1016,7 @@
         }
 
         async function logout() {
+            viewAsId = null;
             await sb.auth.signOut();
             state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [] };
             document.getElementById('statusToggleContainer').classList.add('hidden');
@@ -1054,10 +1056,16 @@
         // CARREGAR DADOS DO SUPABASE
         async function loadAndRender(opts) {
             const silent = opts && opts.silent;
-            const { data: profile, error } = await sb.from('profiles').select('*').eq('id', state.user.id).maybeSingle();
+            let { data: profile, error } = await sb.from('profiles').select('*').eq('id', state.user.id).maybeSingle();
             if (error) throw error;
             if (!profile) throw new Error('Este login não tem cadastro no sistema. Fale com o administrador.');
             state.profile = profile;
+            state.viewingAs = null;
+            if (viewAsId && profile.role === 'master') { // master vendo o app como um motorista
+                const va = await sb.from('profiles').select('*').eq('id', viewAsId).maybeSingle();
+                if (va.error) throw va.error;
+                if (va.data) { state.viewingAs = profile; profile = va.data; state.profile = profile; } else viewAsId = null;
+            }
 
             let extra = [];
             if (profile.role === 'master') {
@@ -1129,6 +1137,7 @@
         // RENDERIZAÇÃO GERAL
         function renderApp() {
             if (!state.profile) return;
+            renderViewAsBanner();
             setTimeout(refreshNotifButton, 0);
             document.getElementById('btnLogout').classList.remove('hidden');
             if (state.profile.role === 'master') {
@@ -1143,6 +1152,7 @@
                 showSection('secDriverPanel');
                 renderDriverPanel();
                 updateStatusToggleUI();
+                if (state.viewingAs) return; // master vendo como motorista: sem termos e sem pedir notificações
                 if (needsTermsAcceptance()) { openTermsGate(); return; } // primeiro aceita os termos, depois o resto
                 checkDriverNotifications(!notifPrompted);
                 notifPrompted = true;
@@ -1153,6 +1163,30 @@
             }
         }
 
+
+        // ===== MASTER VENDO O APP COMO MOTORISTA (sem senha, só visualização) =====
+        let viewAsId = null;
+        async function viewAsDriver(id) {
+            viewAsId = id;
+            try { await loadAndRender(); window.scrollTo(0, 0); }
+            catch (e) { viewAsId = null; showToast(friendlyError(e), 'error'); await reload(); }
+        }
+        async function exitViewAs() { viewAsId = null; await reload(); window.scrollTo(0, 0); }
+        function viewOnly() {
+            if (!state.viewingAs) return false;
+            showToast('Modo visualização: aqui você só vê o app do motorista.', 'error');
+            return true;
+        }
+        function renderViewAsBanner() {
+            const el = document.getElementById('viewAsBanner');
+            if (!el) return;
+            if (!state.viewingAs) { el.className = 'hidden'; el.innerHTML = ''; return; }
+            setTimeout(() => { const h = document.getElementById('headerRoleSubtitle'); if (h) h.innerText = 'Master vendo como: ' + (state.profile.name || ''); }, 0);
+            el.className = 'sticky top-2 z-30 bg-indigo-600 text-white rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg';
+            el.innerHTML = '<div class="text-sm"><i class="fa-solid fa-eye mr-1"></i> Você está vendo o app como <b>' + esc(state.profile.name || 'motorista') + '</b>. Só visualização: nada é alterado na conta dele.</div>'
+                + '<button onclick="exitViewAs()" class="px-4 py-2 bg-white text-indigo-700 hover:bg-indigo-50 rounded-xl text-sm font-bold whitespace-nowrap"><i class="fa-solid fa-arrow-left mr-1"></i> Voltar ao master</button>';
+        }
+
         function showSection(id) {
             ['secLogin', 'secDriverPanel', 'secMasterPanel'].forEach(s => document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
@@ -1160,6 +1194,7 @@
 
         // PAINEL DO MOTORISTA - STATUS ONLINE (guardado neste aparelho)
         function toggleDriverStatus() {
+            if (viewOnly()) return;
             if (!state.user) return;
             const prefs = devicePrefs();
             prefs.online = !isOnline();
@@ -1372,6 +1407,7 @@
         }
 
         async function uploadReceipt(btn) {
+            if (viewOnly()) return;
             const fileInput = document.getElementById('fileReceipt');
             const file = fileInput.files[0];
             if (!file || !state.profile) { showToast("Selecione um arquivo de comprovante!", "error"); return; }
@@ -1460,6 +1496,7 @@
                                 <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
                                 <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
                                 <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
+                                <button onclick="viewAsDriver('${d.id}')" class="mt-2 text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg whitespace-nowrap" title="Ver o app como este motorista, sem precisar da senha dele"><i class="fa-solid fa-eye mr-1"></i> Ver como motorista</button>
                                 ${driverToDelete === d.id ? `
                                     <div class="mt-2 flex flex-wrap items-center gap-2 font-normal">
                                         <span class="text-xs text-red-500">Excluir ${esc(d.name)}? Isso apaga os documentos dele.</span>
@@ -3162,6 +3199,7 @@ notify pgrst, 'reload schema';`;
                 <button type="button" id="btnSendCnh" onclick="document.getElementById('cnhNewFile').click()" class="mt-3 w-full py-3 bg-white text-red-700 hover:bg-red-50 font-bold rounded-xl text-sm"><i class="fa-solid fa-upload mr-1"></i> ${waiting ? 'Enviar outra CNH' : 'Enviar CNH nova'}</button>`;
         }
         async function sendNewCnh(input) {
+            if (viewOnly()) return;
             const f = input.files[0];
             input.value = '';
             const d = state.profile;
