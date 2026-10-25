@@ -208,6 +208,10 @@
             <!-- Aviso vermelho: notificações desligadas -->
             <div id="notifBanner" class="hidden"></div>
 
+            <!-- Aviso vermelho: CNH vencida (com botão para enviar a nova) -->
+            <div id="cnhBanner" class="hidden"></div>
+            <input type="file" id="cnhNewFile" accept="image/*,application/pdf" class="hidden" onchange="sendNewCnh(this)">
+
             <!-- Aviso de Pix / pagamento pendente -->
             <div id="drvPixBanner" class="hidden"></div>
 
@@ -665,6 +669,7 @@
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Termo de vistoria</label><input type="file" id="dfInspTermFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
                     </div>
                 </div>
+                <div id="dfCnhPending"></div>
                 <div>
                     <h4 class="font-semibold text-sm mb-2">Termos do app</h4>
                     <div id="dfTerms" class="text-xs"></div>
@@ -1204,6 +1209,7 @@
             }
 
             showContractDoc(contractDocShown || 'contrato');
+            renderCnhBanner();
 
             // Vistoria
             const inspEl = document.getElementById('inspViewer');
@@ -1478,6 +1484,7 @@
                                 ${d.inspection_term_path ? `<button onclick="viewDocIdx(${docRef(d.inspection_term_path, `Termo de vistoria - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="Termo de vistoria"><i class="fa-solid fa-clipboard-check"></i> Vistoria</button>` : ''}
                                 ${!d.cnh_path && !d.address_path && !d.contract_path && !d.inspection_term_path ? '<span class="text-xs text-gray-400">Nenhum</span>' : ''}
                                 <div class="mt-2">${termsBadgeMaster(d)}</div>
+                                <div class="mt-1">${cnhBadgeMaster(d)}</div>
                             </td>
                             <td class="p-3">
                                 ${last ? `
@@ -1498,6 +1505,7 @@
             }
             if (!document.getElementById('modalFinance').classList.contains('hidden')) renderFinance();
             renderTermsSetupBanner();
+            autoReadNewCnhs();
             fillAvatars(drvTbody).catch(() => {});
         }
 
@@ -1839,6 +1847,7 @@
             sel.value = d.vehicle_id || '';
             ['dfCnhFile', 'dfAddrFile', 'dfContractFile', 'dfInspTermFile'].forEach(i => document.getElementById(i).value = '');
             document.getElementById('dfTerms').innerHTML = termsMasterDetail(d);
+            document.getElementById('dfCnhPending').innerHTML = cnhPendingHtml(d);
             document.getElementById('btnAiRead').disabled = !(d.cnh_path || d.address_path);
             document.getElementById('btnAiRead').classList.toggle('opacity-50', !(d.cnh_path || d.address_path));
             const hist = state.pixHistory.filter(h => h.driver_id === id);
@@ -1869,6 +1878,7 @@
                     const f = document.getElementById(inputId).files[0];
                     if (f) { const p = await uploadFile(f, `${id}/${base}-${Date.now()}`); if (p) { updates[col] = p; newDocs = newDocs || (col === 'cnh_path' || col === 'address_path'); } }
                 }
+                if (updates.cnh_path) { updates.cnh_pending_path = null; updates.cnh_sent_at = null; } // CNH trocada pelo master encerra a conferência
                 // CNH nova: a IA acha o rosto e a foto do motorista é atualizada
                 const newCnh = document.getElementById('dfCnhFile').files[0];
                 if (newCnh && updates.cnh_path && appConfig.gemini) photoFromCnh(id, updates.cnh_path, newCnh).catch(() => {});
@@ -3110,6 +3120,151 @@ notify pgrst, 'reload schema';`;
             const ok = () => showToast('Comando copiado! Agora abra o Supabase e cole.');
             if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(TERMS_SQL).then(ok, () => showToast('Não consegui copiar. Tente pelo computador.', 'error'));
             else showToast('Não consegui copiar. Tente pelo computador.', 'error');
+        }
+
+        /* ===== CNH VENCIDA: alerta vermelho, envio da CNH nova e conferência pela IA =====
+           A IA lê a CNH nova e confere se é a MESMA PESSOA (CPF, nome e nascimento iguais ao cadastro)
+           e se está dentro da validade. Só então o cadastro é atualizado (e o banco confere o CPF de novo).
+           Se a IA não puder ler agora, a CNH fica "em conferência" e o painel master confere depois. */
+        function cnhExpired(d) { return !!(d && d.cnh_expiry && String(d.cnh_expiry).slice(0, 10) < todayISO()); }
+        function cnhWaiting(d) { return !!(d && d.cnh_pending_path); }
+        const onlyDigits = s => String(s || '').replace(/\D/g, '');
+        const normName = s => noAccents(s).toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean).join(' ');
+        // devolve { ok, problems, data } comparando o que a IA leu com o cadastro
+        function verifyCnh(f, d) {
+            const problems = [];
+            const cpfNew = onlyDigits(f.cpf), cpfOld = onlyDigits(d.cpf);
+            if (!cpfNew) problems.push('Não foi possível ler o CPF na CNH enviada.');
+            else if (!cpfOld) problems.push('O cadastro não tem CPF para comparar.');
+            else if (cpfNew !== cpfOld) problems.push('O CPF da CNH é diferente do CPF do cadastro.');
+            if (f.nome && d.name && normName(f.nome) !== normName(d.name)) problems.push('O nome da CNH é diferente do nome do cadastro.');
+            if (okDateISO(f.data_nascimento) && okDateISO(d.birth_date) && f.data_nascimento !== String(d.birth_date).slice(0, 10)) problems.push('A data de nascimento é diferente do cadastro.');
+            if (!okDateISO(f.cnh_validade)) problems.push('Não foi possível ler a validade da CNH.');
+            else if (f.cnh_validade <= todayISO()) problems.push(`Esta CNH também está vencida (${fmtDate(f.cnh_validade)}).`);
+            return { ok: problems.length === 0, problems, data: { expiry: f.cnh_validade, number: f.cnh_numero || null, category: f.cnh_categoria || null } };
+        }
+        function renderCnhBanner() {
+            const el = document.getElementById('cnhBanner'), d = state.profile;
+            if (!el) return;
+            if (!d || d.role !== 'driver' || !cnhExpired(d)) { el.className = 'hidden'; el.innerHTML = ''; return; } // CNH em dia: sem alerta e sem botão
+            el.className = 'blink-red text-white rounded-2xl p-4 shadow-lg';
+            const waiting = cnhWaiting(d);
+            el.innerHTML = `<div class="flex items-start gap-3">
+                    <i class="fa-solid fa-id-card text-2xl mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="font-bold text-base">SUA CNH ESTÁ VENCIDA!</p>
+                        <p class="text-sm opacity-95">Ela venceu em <b>${fmtDate(d.cnh_expiry)}</b>. ${waiting
+                            ? 'Sua CNH nova foi recebida e está <b>em conferência</b> pela administração.'
+                            : 'Renove no Detran e envie aqui a CNH nova (foto ou PDF da CNH digital). A IA confere se é sua e atualiza o cadastro na hora.'}</p>
+                        <p id="cnhMsg" class="text-sm font-semibold mt-1"></p>
+                    </div>
+                </div>
+                <button type="button" id="btnSendCnh" onclick="document.getElementById('cnhNewFile').click()" class="mt-3 w-full py-3 bg-white text-red-700 hover:bg-red-50 font-bold rounded-xl text-sm"><i class="fa-solid fa-upload mr-1"></i> ${waiting ? 'Enviar outra CNH' : 'Enviar CNH nova'}</button>`;
+        }
+        async function sendNewCnh(input) {
+            const f = input.files[0];
+            input.value = '';
+            const d = state.profile;
+            if (!f || !d) return;
+            const btn = document.getElementById('btnSendCnh'), msg = () => document.getElementById('cnhMsg');
+            const busy = t => { if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${t}`; } };
+            busy('Enviando...');
+            let path = null;
+            try {
+                path = await uploadFile(f, `${d.id}/cnh-${Date.now()}`);
+                if (!path) { renderCnhBanner(); return; }
+                busy('A IA está conferindo a CNH...');
+                // a conferência é feita no servidor: a IA lê a CNH, compara CPF, nome e nascimento com o cadastro e só então atualiza
+                let r = null;
+                try { const res = await sb.functions.invoke('motora-sync', { body: { type: 'driver_cnh_check', path } }); r = res.data || null; } catch (e) { r = null; }
+                if (r && r.ok) {
+                    const box = r.foto_cnh && Array.isArray(r.foto_cnh.caixa) ? r.foto_cnh.caixa : null; // foto do perfil a partir da CNH nova
+                    if (box) cropPhoto(f, box).then(b => b && savePhoto(d.id, b)).catch(() => {});
+                    await reload();
+                    showToast(`CNH conferida pela IA e atualizada! Válida até ${fmtDate(r.expiry)}.`);
+                } else if (r && Array.isArray(r.problems) && r.problems.length) {
+                    renderCnhBanner();
+                    const m = msg(); if (m) m.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> CNH não aceita: ' + r.problems.map(esc).join(' ') + ' Seu cadastro não foi alterado.';
+                    showToast('CNH não aceita. Veja o motivo no aviso vermelho.', 'error');
+                } else {
+                    // IA indisponível agora: fica em conferência; o painel master confere depois
+                    const { error } = await sb.rpc('driver_submit_cnh', { p_path: path });
+                    if (error) throw error;
+                    await reload();
+                    showToast('CNH nova enviada! Ela será conferida e seu cadastro atualizado em seguida.');
+                }
+            } catch (e) {
+                renderCnhBanner();
+                const m = msg(); if (m) m.innerText = friendlyError(e);
+                showToast(friendlyError(e), 'error');
+            }
+        }
+
+        // MASTER: aviso na lista e conferência automática das CNHs que ficaram em conferência
+        const CNH_PROBLEMS = {};
+        function cnhBadgeMaster(d) {
+            if (cnhWaiting(d)) {
+                const p = CNH_PROBLEMS[d.cnh_pending_path];
+                return `<button onclick="openDriverFile('${d.id}')" class="text-[11px] font-semibold px-2 py-1 rounded-full ${p ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'}"><i class="fa-solid fa-id-card mr-1"></i>${p ? 'CNH nova não confere: ver' : 'CNH nova em conferência'}</button>`;
+            }
+            if (cnhExpired(d)) return `<span class="text-[11px] font-semibold px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"><i class="fa-solid fa-triangle-exclamation mr-1"></i>CNH vencida em ${fmtDate(d.cnh_expiry)}</span>`;
+            return '';
+        }
+        async function applyPendingCnh(d, v) {
+            const updates = { cnh_path: d.cnh_pending_path, cnh_expiry: v.data.expiry, cnh_pending_path: null, cnh_sent_at: null, cnh_checked_at: new Date().toISOString() };
+            if (v.data.number) updates.cnh_number = v.data.number;
+            if (v.data.category) updates.cnh_category = v.data.category;
+            const { error } = await sb.from('profiles').update(updates).eq('id', d.id);
+            if (error) throw error;
+        }
+        const CNH_AI_DONE = new Set();
+        async function autoReadNewCnhs() {
+            const list = state.drivers.filter(d => cnhWaiting(d) && !CNH_AI_DONE.has(d.cnh_pending_path));
+            if (!list.length) return;
+            if (!appConfig.gemini) { try { await loadConfigStatus(); } catch (e) {} }
+            if (!appConfig.gemini) return;
+            let changed = false;
+            for (const d of list) {
+                CNH_AI_DONE.add(d.cnh_pending_path);
+                try {
+                    const v = verifyCnh(await aiReadFiles([d.cnh_pending_path], 'driver'), d);
+                    if (v.ok) { await applyPendingCnh(d, v); changed = true; showToast(`CNH nova de ${d.name} conferida pela IA e atualizada.`); }
+                    else CNH_PROBLEMS[d.cnh_pending_path] = v.problems;
+                } catch (e) { /* tenta de novo na próxima abertura */ CNH_AI_DONE.delete(d.cnh_pending_path); }
+            }
+            if (changed) await reload(); else renderMasterPanel();
+        }
+        // MASTER: na ficha, ver a CNH nova e aprovar ou recusar à mão
+        function cnhPendingHtml(d) {
+            if (!cnhWaiting(d)) return '';
+            const p = CNH_PROBLEMS[d.cnh_pending_path];
+            return `<div class="p-3 rounded-xl ${p ? 'bg-red-50 dark:bg-red-900/30 text-red-900 dark:text-red-200' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200'} text-sm space-y-2">
+                <p class="font-bold"><i class="fa-solid fa-id-card mr-1"></i> CNH nova enviada pelo motorista em ${fmtDate(d.cnh_sent_at)}</p>
+                ${p ? `<ul class="list-disc pl-5 text-xs">${p.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="text-xs">A IA ainda não conferiu esta CNH.</p>'}
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="viewDocIdx(${docRef(d.cnh_pending_path, 'CNH nova - ' + esc(d.name))})" class="text-xs font-semibold bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg"><i class="fa-solid fa-eye mr-1"></i> Ver CNH nova</button>
+                    <button type="button" onclick="recheckPendingCnh('${d.id}', this)" class="text-xs font-semibold bg-indigo-600 text-white px-3 py-1.5 rounded-lg"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Conferir com IA</button>
+                    <button type="button" onclick="rejectPendingCnh('${d.id}')" class="text-xs font-semibold bg-red-600 text-white px-3 py-1.5 rounded-lg"><i class="fa-solid fa-xmark mr-1"></i> Recusar</button>
+                </div>
+                <p class="text-[11px] opacity-80">Para aprovar sem a IA: confira a CNH, envie-a no campo "CNH" abaixo, ajuste a validade e salve a ficha.</p>
+            </div>`;
+        }
+        async function recheckPendingCnh(id, btn) {
+            const d = state.drivers.find(x => x.id === id); if (!d) return;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Conferindo...';
+            try {
+                const v = verifyCnh(await aiReadFiles([d.cnh_pending_path], 'driver'), d);
+                if (v.ok) { await applyPendingCnh(d, v); closeDriverFile(); await reload(); showToast('CNH conferida e atualizada!'); }
+                else { CNH_PROBLEMS[d.cnh_pending_path] = v.problems; document.getElementById('dfCnhPending').innerHTML = cnhPendingHtml(d); renderMasterPanel(); showToast('A CNH nova não confere com o cadastro.', 'error'); }
+            } catch (e) { showToast('IA: ' + friendlyError(e), 'error'); btn.disabled = false; btn.innerHTML = 'Conferir com IA'; }
+        }
+        async function rejectPendingCnh(id) {
+            const d = state.drivers.find(x => x.id === id); if (!d) return;
+            const { error } = await sb.from('profiles').update({ cnh_pending_path: null, cnh_sent_at: null }).eq('id', id);
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            sb.storage.from(BUCKET).remove([d.cnh_pending_path]).catch(() => {});
+            closeDriverFile(); await reload();
+            showToast('CNH nova recusada. O motorista continua vendo o aviso para enviar outra.');
         }
 
         // MOTORISTA: aba Contrato com os botões "Contrato de locação" e "Termo de vistoria"
