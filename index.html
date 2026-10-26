@@ -866,7 +866,15 @@
                 <p id="newPixCodeInfo" class="text-xs mt-1"></p>
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Chave Pix (opcional)</label>
+                <label class="flex items-center justify-between gap-3 cursor-pointer select-none">
+                    <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Pix com chave</span>
+                    <span class="relative inline-flex items-center">
+                        <input type="checkbox" id="newPixKeyOn" onchange="togglePixKeyFields()" class="sr-only peer">
+                        <span class="w-11 h-6 rounded-full bg-gray-300 dark:bg-gray-600 peer-checked:bg-emerald-600 transition-colors"></span>
+                        <span class="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"></span>
+                    </span>
+                </label>
+                <div id="newPixKeyFields" class="mt-2">
                 <div class="flex gap-2">
                     <select id="newPixKeyType" onchange="updatePixKeyPlaceholder()" class="p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         <option value="aleatoria">Aleatória</option>
@@ -878,6 +886,7 @@
                     <input type="text" id="newPixKey" autocapitalize="none" autocomplete="off" class="flex-1 min-w-0 p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O motorista vê a chave e o tipo, com um botão para copiar.</p>
+                </div>
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor desta semana (R$)</label>
@@ -1585,6 +1594,10 @@
             if (type === 'cnpj') return dig.length === 14;
             if (type === 'email') return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(k);
             return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k);
+        }
+        function togglePixKeyFields() {
+            const on = document.getElementById('newPixKeyOn').checked;
+            document.getElementById('newPixKeyFields').classList.toggle('hidden', !on);
         }
         function updatePixKeyPlaceholder() {
             const t = document.getElementById('newPixKeyType').value;
@@ -2564,6 +2577,9 @@
             document.getElementById('newPixKeyType').value = pk ? pk.type : (lastType || 'aleatoria');
             document.getElementById('newPixKey').value = pk ? pk.key : '';
             updatePixKeyPlaceholder();
+            let keyOnPref = null; try { keyOnPref = localStorage.getItem('motora_pix_key_on'); } catch (e) {}
+            document.getElementById('newPixKeyOn').checked = pk ? true : keyOnPref === '1';
+            togglePixKeyFields();
             previewNewPixQr();
             document.getElementById('newPixAmount').value = d.pix_amount != null ? String(d.pix_amount).replace('.', ',') : '';
             document.getElementById('newPixDescription').value = d.pix_description || '';
@@ -2795,8 +2811,11 @@
             setBusy(form, true);
             try {
                 if (code && !pixValid(code) && !confirm('Este código Pix parece incompleto ou com erro. Enviar mesmo assim?')) return;
+                const keyOn = document.getElementById('newPixKeyOn').checked;
+                try { localStorage.setItem('motora_pix_key_on', keyOn ? '1' : '0'); } catch (e) {}
                 const keyType = document.getElementById('newPixKeyType').value;
-                const key = normalizePixKey(keyType, document.getElementById('newPixKey').value);
+                const key = keyOn ? normalizePixKey(keyType, document.getElementById('newPixKey').value) : '';
+                if (keyOn && !key) { showToast("Digite a chave Pix ou desligue a opção \"Pix com chave\".", "error"); return; }
                 if (key && !pixKeyLooksOk(keyType, key) && !confirm(`A chave Pix não parece ser do tipo ${PIX_KEY_TYPES[keyType]}. Enviar mesmo assim?`)) return;
                 const link = key ? `chave:${keyType}|${key}` : null;
                 try { localStorage.setItem('motora_pix_key_type', keyType); } catch (e) {}
