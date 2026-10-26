@@ -1045,7 +1045,8 @@
         }
 
         async function logout() {
-            viewAsId = null;
+            if (masterBack() && state.viewingAs && !switchingAccount) { await exitViewAs(); return; } // sair da conta do motorista volta ao master
+            lsDel(MASTER_BACK_KEY);
             await sb.auth.signOut();
             state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [] };
             document.getElementById('statusToggleContainer').classList.add('hidden');
@@ -1089,12 +1090,9 @@
             if (error) throw error;
             if (!profile) throw new Error('Este login não tem cadastro no sistema. Fale com o administrador.');
             state.profile = profile;
-            state.viewingAs = null;
-            if (viewAsId && profile.role === 'master') { // master vendo o app como um motorista
-                const va = await sb.from('profiles').select('*').eq('id', viewAsId).maybeSingle();
-                if (va.error) throw va.error;
-                if (va.data) { state.viewingAs = profile; profile = va.data; state.profile = profile; } else viewAsId = null;
-            }
+            // master dentro da conta real de um motorista
+            state.viewingAs = (profile.role === 'driver' && masterBack()) ? { name: 'master' } : null;
+            if (profile.role === 'master' && masterBack() && !switchingAccount) lsDel(MASTER_BACK_KEY);
 
             let extra = [];
             if (profile.role === 'master') {
@@ -1138,7 +1136,7 @@
         const AUTO_REFRESH_MS = 30000;
         let refreshing = false;
         async function autoRefresh() {
-            if (!state.user || !state.profile || refreshing) return;
+            if (!state.user || !state.profile || refreshing || switchingAccount) return;
             if (document.visibilityState !== 'visible') return;
             if (document.querySelector('button[type=submit]:disabled')) return; // envio em andamento
             if (inspVehicleId) return; // tela de vistoria aberta
@@ -1193,26 +1191,60 @@
         }
 
 
-        // ===== MASTER VENDO O APP COMO MOTORISTA (sem senha, só visualização) =====
-        let viewAsId = null;
+        // ===== MASTER ENTRA NA CONTA REAL DO MOTORISTA (sem a senha dele) =====
+        // A sessão do master fica guardada neste aparelho para o botão "Voltar ao master".
+        const MASTER_BACK_KEY = 'motora_master_back';
+        function masterBack() { try { return JSON.parse(lsGet(MASTER_BACK_KEY)); } catch (e) { return null; } }
+        let switchingAccount = false;
         async function viewAsDriver(id) {
-            viewAsId = id;
-            try { await loadAndRender(); window.scrollTo(0, 0); }
-            catch (e) { viewAsId = null; showToast(friendlyError(e), 'error'); await reload(); }
+            if (switchingAccount) return;
+            const d = state.drivers.find(x => x.id === id);
+            if (!confirm(`Entrar na conta de ${d ? d.name : 'motorista'}? Tudo o que você fizer lá (enviar comprovante, etc.) vale como se fosse ele.`)) return;
+            switchingAccount = true;
+            try {
+                const { data: cur } = await sb.auth.getSession();
+                if (!cur || !cur.session) throw new Error('Sua sessão expirou. Entre novamente.');
+                const { data, error } = await sb.functions.invoke('motora-login-as', { body: { driver_id: id } });
+                if (error) throw error;
+                if (!data || !data.token_hash) throw new Error((data && data.error) || 'Não foi possível entrar na conta.');
+                lsSet(MASTER_BACK_KEY, JSON.stringify({ access_token: cur.session.access_token, refresh_token: cur.session.refresh_token }));
+                const v = await sb.auth.verifyOtp({ token_hash: data.token_hash, type: 'magiclink' });
+                if (v.error) { lsDel(MASTER_BACK_KEY); await sb.auth.setSession({ access_token: cur.session.access_token, refresh_token: cur.session.refresh_token }); throw v.error; }
+                state.user = v.data.user;
+                await loadAndRender();
+                window.scrollTo(0, 0);
+                showToast(`Você entrou na conta de ${d ? d.name : 'motorista'}.`);
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally { switchingAccount = false; }
         }
-        async function exitViewAs() { viewAsId = null; await reload(); window.scrollTo(0, 0); }
-        function viewOnly() {
-            if (!state.viewingAs) return false;
-            showToast('Modo visualização: aqui você só vê o app do motorista.', 'error');
-            return true;
+        async function exitViewAs() {
+            if (switchingAccount) return;
+            const back = masterBack();
+            if (!back) { await logout(); return; }
+            switchingAccount = true;
+            try {
+                await sb.auth.signOut({ scope: 'local' });
+                const { data, error } = await sb.auth.setSession(back);
+                lsDel(MASTER_BACK_KEY);
+                if (error || !data.session) throw error || new Error('Sua sessão de master expirou. Entre novamente.');
+                state.user = data.session.user;
+                await loadAndRender();
+                window.scrollTo(0, 0);
+                showToast('De volta ao painel master.');
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+                await logout();
+            } finally { switchingAccount = false; }
         }
+        function viewOnly() { return false; }
         function renderViewAsBanner() {
             const el = document.getElementById('viewAsBanner');
             if (!el) return;
             if (!state.viewingAs) { el.className = 'hidden'; el.innerHTML = ''; return; }
-            setTimeout(() => { const h = document.getElementById('headerRoleSubtitle'); if (h) h.innerText = 'Master vendo como: ' + (state.profile.name || ''); }, 0);
+            setTimeout(() => { const h = document.getElementById('headerRoleSubtitle'); if (h) h.innerText = 'Master na conta de: ' + (state.profile.name || ''); }, 0);
             el.className = 'sticky top-2 z-30 bg-indigo-600 text-white rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg';
-            el.innerHTML = '<div class="text-sm"><i class="fa-solid fa-eye mr-1"></i> Você está vendo o app como <b>' + esc(state.profile.name || 'motorista') + '</b>. Só visualização: nada é alterado na conta dele.</div>'
+            el.innerHTML = '<div class="text-sm"><i class="fa-solid fa-eye mr-1"></i> Você está <b>dentro da conta</b> de <b>' + esc(state.profile.name || 'motorista') + '</b>. O que você fizer aqui vale como se fosse ele.</div>'
                 + '<button onclick="exitViewAs()" class="px-4 py-2 bg-white text-indigo-700 hover:bg-indigo-50 rounded-xl text-sm font-bold whitespace-nowrap"><i class="fa-solid fa-arrow-left mr-1"></i> Voltar ao master</button>';
         }
 
@@ -1589,7 +1621,7 @@
                                 <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
                                 <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
                                 <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
-                                <button onclick="viewAsDriver('${d.id}')" class="mt-2 text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg whitespace-nowrap" title="Ver o app como este motorista, sem precisar da senha dele"><i class="fa-solid fa-eye mr-1"></i> Ver como motorista</button>
+                                <button onclick="viewAsDriver('${d.id}')" class="mt-2 text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg whitespace-nowrap" title="Entrar na conta deste motorista, sem precisar da senha dele"><i class="fa-solid fa-right-to-bracket mr-1"></i> Entrar na conta</button>
                                 ${driverToDelete === d.id ? `
                                     <div class="mt-2 flex flex-wrap items-center gap-2 font-normal">
                                         <span class="text-xs text-red-500">Excluir ${esc(d.name)}? Isso apaga os documentos dele.</span>

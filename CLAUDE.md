@@ -19,6 +19,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 
 ## Perfis de uso
 - **Usuário master (dono):** adiciona e exclui veículos e motoristas, anexa documentos, envia cobranças Pix, vê o financeiro.
+- O master pode **entrar na conta real** de um motorista (botão "Entrar na conta", sem a senha dele) pela função `motora-login-as` do Supabase; o botão "Voltar ao master" (ou Sair) devolve a sessão do master. Dentro da conta do motorista não aparecem termos nem pedido de notificações.
 - **Motorista:** faz login e vê CRLV-e, contrato, próximo pagamento (QR code, link e botão de copiar) e envia comprovante.
 
 ## Regras de negócio
