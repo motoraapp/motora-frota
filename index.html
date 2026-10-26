@@ -1594,6 +1594,7 @@
             if (!document.getElementById('modalFinance').classList.contains('hidden')) renderFinance();
             renderTermsSetupBanner();
             autoReadNewCnhs();
+            syncCnhPhotos().catch(() => {});
             fillAvatars(drvTbody).catch(() => {});
         }
 
@@ -2699,7 +2700,7 @@
             if (!el) return;
             el.innerHTML = `<span>${esc((name || '?')[0].toUpperCase())}</span>`;
             try {
-                const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(photoPath(id), 3600);
+                const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(await avatarPath(id), 3600);
                 if (error || !data) return;
                 const img = new Image();
                 img.onload = () => { el.innerHTML = ''; img.className = 'w-full h-full object-cover'; el.appendChild(img); };
@@ -2717,11 +2718,66 @@
                 img.src = r.signedUrl;
             });
         }
-        async function photoFromCnh(id, storedPath, localFile) {
-            const raw = await aiReadFiles([storedPath], 'driver');
+        const CNH_RAW = {};        // leitura da IA por arquivo de CNH (evita ler duas vezes)
+        const PHOTO_DONE = new Set(); // "id|cnh" já tratados nesta sessão
+        async function storedFile(path) {
+            const { data, error } = await sb.storage.from(BUCKET).download(path);
+            if (error || !data) throw error || new Error('arquivo não encontrado');
+            const name = path.split('/').pop();
+            const type = data.type && data.type !== 'application/octet-stream' ? data.type : (/\.pdf$/i.test(name) ? 'application/pdf' : 'image/jpeg');
+            return new File([data], name, { type });
+        }
+        async function photoFromCnh(id, storedPath, localFile, quiet) {
+            PHOTO_DONE.add(id + '|' + storedPath);
+            const raw = CNH_RAW[storedPath] || await aiReadFiles([storedPath], 'driver');
             const box = photoBoxFrom(raw, 1);
-            const blob = box ? await cropPhoto(localFile, box) : null;
-            if (blob) { await savePhoto(id, blob); showToast('Foto do motorista atualizada pela CNH.'); fillAvatars(document.getElementById('tblDriversList')); }
+            if (!box) return false;
+            const blob = await cropPhoto(localFile || await storedFile(storedPath), box);
+            if (!blob) return false;
+            await savePhoto(id, blob);
+            if (!quiet) showToast('Foto do motorista atualizada pela CNH.');
+            fillAvatars(document.getElementById('tblDriversList')).catch(() => {});
+            return true;
+        }
+        // ===== FOTO DO PERFIL ACOMPANHA A CNH =====
+        // CNH enviada depois do cadastro tem a data no nome (cnh-<data>). Se a foto do perfil for mais antiga
+        // que a CNH atual, ela é refeita. A foto recortada pelo próprio motorista (foto-cnh-<data>.jpg) vira a foto oficial.
+        const cnhStamp = p => { const m = /cnh-(\d{12,14})/.exec(p || ''); return m ? Number(m[1]) : 0; };
+        async function photoFiles(id) {
+            const { data } = await sb.storage.from(BUCKET).list(id, { limit: 100, search: 'foto' });
+            const list = data || [];
+            const main = list.find(f => f.name === 'foto.jpg');
+            const mainTime = main ? new Date(main.updated_at || main.created_at || 0).getTime() : 0;
+            const crops = list.map(f => { const m = /^foto-cnh-(\d+)\.jpg$/.exec(f.name); return m ? { name: f.name, t: Number(m[1]) } : null; }).filter(Boolean).sort((a, b) => b.t - a.t);
+            return { mainTime, crops };
+        }
+        async function avatarPath(id) {
+            try { const { mainTime, crops } = await photoFiles(id); if (crops.length && crops[0].t > mainTime) return `${id}/${crops[0].name}`; } catch (e) {}
+            return photoPath(id);
+        }
+        let photoSyncRunning = false;
+        async function syncCnhPhotos() {
+            if (photoSyncRunning || !state.drivers) return;
+            photoSyncRunning = true;
+            let changed = false;
+            try {
+                for (const d of state.drivers) {
+                    if (!d.cnh_path || cnhWaiting(d) || PHOTO_DONE.has(d.id + '|' + d.cnh_path)) continue;
+                    PHOTO_DONE.add(d.id + '|' + d.cnh_path);
+                    try {
+                        const { mainTime, crops } = await photoFiles(d.id);
+                        if (crops.length && crops[0].t > mainTime) {
+                            await savePhoto(d.id, await storedFile(`${d.id}/${crops[0].name}`));
+                            changed = true;
+                        } else if (cnhStamp(d.cnh_path) > mainTime) {
+                            if (!appConfig.gemini) { try { await loadConfigStatus(); } catch (e) {} }
+                            if (appConfig.gemini && await photoFromCnh(d.id, d.cnh_path, null, true)) changed = true;
+                        }
+                        if (crops.length) await sb.storage.from(BUCKET).remove(crops.map(c => `${d.id}/${c.name}`));
+                    } catch (e) { PHOTO_DONE.delete(d.id + '|' + d.cnh_path); }
+                }
+            } finally { photoSyncRunning = false; }
+            if (changed) { showToast('Foto do perfil atualizada pela CNH nova.'); fillAvatars(document.getElementById('tblDriversList')).catch(() => {}); }
         }
         function pickImage() {
             return new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => res(i.files[0] || null); i.click(); });
@@ -3268,7 +3324,13 @@ notify pgrst, 'reload schema';`;
                 try { const res = await sb.functions.invoke('motora-sync', { body: { type: 'driver_cnh_check', path } }); r = res.data || null; } catch (e) { r = null; }
                 if (r && r.ok) {
                     const box = r.foto_cnh && Array.isArray(r.foto_cnh.caixa) ? r.foto_cnh.caixa : null; // foto do perfil a partir da CNH nova
-                    if (box) cropPhoto(f, box).then(b => b && savePhoto(d.id, b)).catch(() => {});
+                    if (box) {
+                        busy('Atualizando sua foto...');
+                        try {
+                            const b = await cropPhoto(f, box);
+                            if (b) await sb.storage.from(BUCKET).upload(`${d.id}/foto-cnh-${Date.now()}.jpg`, b, { contentType: 'image/jpeg' });
+                        } catch (e) { /* a foto é refeita pelo painel master */ }
+                    }
                     await reload();
                     showToast(`CNH conferida pela IA e atualizada! Válida até ${fmtDate(r.expiry)}.`);
                 } else if (r && Array.isArray(r.problems) && r.problems.length) {
@@ -3316,7 +3378,8 @@ notify pgrst, 'reload schema';`;
             for (const d of list) {
                 CNH_AI_DONE.add(d.cnh_pending_path);
                 try {
-                    const v = verifyCnh(await aiReadFiles([d.cnh_pending_path], 'driver'), d);
+                    const raw = await aiReadFiles([d.cnh_pending_path], 'driver'); CNH_RAW[d.cnh_pending_path] = raw;
+                    const v = verifyCnh(raw, d);
                     if (v.ok) { await applyPendingCnh(d, v); changed = true; showToast(`CNH nova de ${d.name} conferida pela IA e atualizada.`); }
                     else CNH_PROBLEMS[d.cnh_pending_path] = v.problems;
                 } catch (e) { /* tenta de novo na próxima abertura */ CNH_AI_DONE.delete(d.cnh_pending_path); }
@@ -3342,7 +3405,8 @@ notify pgrst, 'reload schema';`;
             const d = state.drivers.find(x => x.id === id); if (!d) return;
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Conferindo...';
             try {
-                const v = verifyCnh(await aiReadFiles([d.cnh_pending_path], 'driver'), d);
+                const raw = await aiReadFiles([d.cnh_pending_path], 'driver'); CNH_RAW[d.cnh_pending_path] = raw;
+                const v = verifyCnh(raw, d);
                 if (v.ok) { await applyPendingCnh(d, v); closeDriverFile(); await reload(); showToast('CNH conferida e atualizada!'); }
                 else { CNH_PROBLEMS[d.cnh_pending_path] = v.problems; document.getElementById('dfCnhPending').innerHTML = cnhPendingHtml(d); renderMasterPanel(); showToast('A CNH nova não confere com o cadastro.', 'error'); }
             } catch (e) { showToast('IA: ' + friendlyError(e), 'error'); btn.disabled = false; btn.innerHTML = 'Conferir com IA'; }
