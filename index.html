@@ -206,6 +206,11 @@
                 </div>
             </div>
 
+            <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
+            <a id="btnInstallApk" href="motora.apk" download="MOTORA.apk" class="hidden items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-sm">
+                <i class="fa-brands fa-android text-xl"></i> Instalar app
+            </a>
+
             <!-- Aviso vermelho: notificações desligadas -->
             <div id="notifBanner" class="hidden"></div>
 
@@ -1217,7 +1222,33 @@
             }
         }
 
+        // ===== BOTÃO "INSTALAR APP" (APK) — só Android; iPhone/iPad e o próprio app não veem =====
+        (function () {
+            try {
+                if (new URLSearchParams(location.search).get('app') === 'android' || (document.referrer || '').indexOf('android-app://') === 0) localStorage.setItem('motoraApk', '1');
+            } catch (e) {}
+        })();
+        function updateInstallApkButton() {
+            const el = document.getElementById('btnInstallApk');
+            if (!el) return;
+            const ua = navigator.userAgent || '';
+            const isAndroid = /Android/i.test(ua) && !/iPhone|iPad|iPod/i.test(ua);
+            let noApp = false;
+            try { noApp = localStorage.getItem('motoraApk') === '1'; } catch (e) {}
+            const show = isAndroid && !noApp && !state.viewingAs;
+            el.classList.toggle('hidden', true);
+            el.classList.remove('flex');
+            if (!show) return;
+            // só mostra se o APK já estiver publicado no site
+            fetch('motora.apk', { method: 'HEAD', cache: 'no-store' }).then(r => {
+                const ok = r.ok && !/text\/html/i.test(r.headers.get('content-type') || '');
+                el.classList.toggle('hidden', !ok);
+                el.classList.toggle('flex', ok);
+            }).catch(() => {});
+        }
+
         function renderDriverPanel() {
+            updateInstallApkButton();
             DOC_REG = [];
             const driver = state.profile;
             const vehicle = state.vehicles.find(v => v.id === driver.vehicle_id);

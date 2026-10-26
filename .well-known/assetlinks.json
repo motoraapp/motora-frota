@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.netlify.motorafrota",
+    "sha256_cert_fingerprints": ["58:AD:73:83:FB:9A:C1:DB:2B:DA:57:BC:9D:79:7E:50:1C:66:A3:E6:5B:32:22:F5:89:D6:7D:61:3A:12:3E:17"]
+  }
+}]

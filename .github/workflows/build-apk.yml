@@ -1,0 +1,39 @@
+name: Gerar APK do MOTORA
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['motora.apk']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Chave de assinatura
+        run: echo "${{ secrets.MOTORA_KEYSTORE_B64 }}" | base64 -d > android/motora.keystore
+      - name: Compilar APK
+        working-directory: android
+        env:
+          MOTORA_KEY_PASSWORD: ${{ secrets.MOTORA_KEY_PASSWORD }}
+        run: gradle :app:assembleRelease --no-daemon -PversionCode=${{ github.run_number }}
+      - name: Publicar motora.apk no site
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk motora.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add motora.apk
+          git commit -m "APK do MOTORA atualizado" || echo "sem mudanças"
+          git push

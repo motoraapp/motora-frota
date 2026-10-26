@@ -1,0 +1,35 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'app.netlify.motorafrota'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'app.netlify.motorafrota'
+        minSdk 21
+        targetSdk 34
+        versionCode((project.findProperty('versionCode') ?: '1') as Integer)
+        versionName "1.${project.findProperty('versionCode') ?: '1'}"
+    }
+    signingConfigs {
+        release {
+            storeFile file('../motora.keystore')
+            storePassword System.getenv('MOTORA_KEY_PASSWORD')
+            keyAlias 'motora'
+            keyPassword System.getenv('MOTORA_KEY_PASSWORD')
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+}
