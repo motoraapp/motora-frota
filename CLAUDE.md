@@ -35,6 +35,8 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Ele gera a cobrança como link de pagamento do Banco do Brasil; ao colar o link, o app pega o Pix copia e cola e gera o QR code.
 - A cada novo Pix, o motorista recebe notificação com a nova data de pagamento e o aviso de enviar o comprovante pelo app.
 - Todo domingo o dono recebe lembrete para enviar as novas cobranças.
+- No "Novo Pix" o dono escreve a descrição dos valores cobrados; o motorista vê o valor e a descrição na aba Pagamento.
+- Quando o comprovante é aceito (IA conferiu ou o dono confirmou), a chave Pix e o QR somem sozinhos da tela do motorista.
 - Prazo do comprovante: segunda-feira 23:59. Quem não enviar vira "Em atraso"; se enviar depois, volta sozinho para "Em dia".
 
 ## Financeiro (master)

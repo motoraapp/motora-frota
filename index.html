@@ -292,12 +292,28 @@
                         </div>
                     </div>
 
+                    <!-- Valor e descrição da cobrança -->
+                    <div id="drvChargeInfo" class="hidden p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
+                        <p class="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-300">Valor a pagar</p>
+                        <p id="drvChargeAmount" class="text-3xl font-bold text-emerald-700 dark:text-emerald-300"></p>
+                        <div id="drvChargeDescWrap" class="hidden mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-800">
+                            <p class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">O que está sendo cobrado</p>
+                            <p id="drvChargeDesc" class="text-sm whitespace-pre-line"></p>
+                        </div>
+                    </div>
+
                     <!-- Seção Pix -->
                     <div class="grid md:grid-cols-2 gap-6">
                         <div id="drvPixBox" class="p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center text-center">
                             <h4 class="font-semibold text-sm mb-3 text-gray-700 dark:text-gray-300 flex items-center gap-2">
                                 <i class="fa-brands fa-pix text-emerald-500"></i> Opção Pix
                             </h4>
+                            <div id="drvPixDone" class="hidden w-full py-8 text-sm text-emerald-700 dark:text-emerald-300">
+                                <i class="fa-solid fa-circle-check text-4xl mb-2"></i>
+                                <p class="font-semibold">Comprovante aceito</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">A chave Pix desta semana foi retirada. A próxima aparece aqui quando for enviada.</p>
+                            </div>
+                            <div id="drvPixKey" class="w-full flex flex-col items-center">
                             <div id="pixQrContainer" class="w-48 h-48 bg-white p-2 rounded-lg shadow-sm mb-4 flex items-center justify-center text-gray-400">
                                 <!-- QR Code Renderizado aqui -->
                             </div>
@@ -312,6 +328,7 @@
                                 <a id="drvBbLink" href="#" target="_blank" rel="noopener" class="hidden w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold items-center justify-center gap-2">
                                     <i class="fa-solid fa-building-columns"></i> Abrir no Banco do Brasil
                                 </a>
+                            </div>
                             </div>
                         </div>
 
@@ -807,6 +824,10 @@
             <div>
                 <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor desta semana (R$)</label>
                 <input type="text" inputmode="decimal" id="newPixAmount" required placeholder="Ex: 650,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Descrição dos valores (o motorista vê)</label>
+                <textarea id="newPixDescription" rows="3" maxlength="600" placeholder="Ex: Aluguel da semana R$ 600,00&#10;Multa de trânsito R$ 50,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
             </div>
             <p class="text-xs p-3 rounded-xl bg-blue-50 dark:bg-gray-700/50 text-blue-800 dark:text-blue-300" id="newPixDueInfo"></p>
             <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition-colors">
@@ -1319,7 +1340,7 @@
             }
             if (driver.pix_due_at && !paidThisPix) {
                 banner.className = "bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-                banner.innerHTML = `<div class="text-sm">${lastWeekRec && lastWeekRec.rejected_at ? `<b class="text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')}<br>` : ''}<b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b><br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b> e depois envie o comprovante aqui no app.</div>
+                banner.innerHTML = `<div class="text-sm">${lastWeekRec && lastWeekRec.rejected_at ? `<b class="text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')}<br>` : ''}<b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b>${driver.pix_amount != null ? ` Valor: <b>${fmtMoney(driver.pix_amount)}</b>` : ''}<br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b> e depois envie o comprovante aqui no app.</div>
                     <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Ver pagamento</button>`;
             } else if (driver.pix_due_at && paidThisPix && lastWeekRec.confirmed_at) {
                 banner.className = "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded-2xl p-4 text-sm";
@@ -1337,8 +1358,25 @@
                 banner.innerHTML = '';
             }
 
+            // Valor e descrição da cobrança
+            const hasPix = !!(driver.pix_code || driver.pix_qr_path);
+            const charge = document.getElementById('drvChargeInfo');
+            const showCharge = hasPix && driver.pix_amount != null;
+            charge.classList.toggle('hidden', !showCharge);
+            document.getElementById('drvChargeAmount').innerText = showCharge ? fmtMoney(driver.pix_amount) : '';
+            const desc = (driver.pix_description || '').trim();
+            document.getElementById('drvChargeDescWrap').classList.toggle('hidden', !desc);
+            document.getElementById('drvChargeDesc').innerText = desc;
+
+            // Comprovante correto (IA conferiu ou o master confirmou): a chave Pix some sozinha
+            const receiptOk = paidThisPix && (lastWeekRec.confirmed_at || lastWeekRec.ai_status === 'ok');
+            document.getElementById('drvPixKey').classList.toggle('hidden', !!receiptOk);
+            document.getElementById('drvPixDone').classList.toggle('hidden', !receiptOk);
+
             const qrContainer = document.getElementById('pixQrContainer');
-            if (driver.pix_qr_path) {
+            if (receiptOk) {
+                qrContainer.innerHTML = '';
+            } else if (driver.pix_qr_path) {
                 qrContainer.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i>`;
                 fileUrl(driver.pix_qr_path).then(f => {
                     qrContainer.innerHTML = `<img src="${f.url}" class="w-full h-full object-contain rounded">`;
@@ -1350,7 +1388,7 @@
             } else {
                 qrContainer.innerHTML = `<div class="text-center p-2"><i class="fa-solid fa-qrcode text-3xl mb-1 text-gray-300"></i><p class="text-xs">QR Code não cadastrado</p></div>`;
             }
-            document.getElementById('txtPixCode').value = driver.pix_code || "Chave Pix indisponível";
+            document.getElementById('txtPixCode').value = receiptOk ? '' : (driver.pix_code || "Chave Pix indisponível");
             const bb = document.getElementById('drvBbLink');
             const showBb = feat('linkbb') && /^https:\/\//i.test(driver.pix_link || '');
             bb.classList.toggle('hidden', !showBb); bb.classList.toggle('flex', showBb);
@@ -1948,7 +1986,7 @@
                 <thead class="text-gray-500"><tr><th class="py-1 pr-2">Enviado</th><th class="pr-2">Vencimento</th><th class="pr-2">Valor</th><th class="pr-2">Pago em</th><th>Situação</th></tr></thead>
                 <tbody>${hist.map(h => {
                     const sit = h.paid_at ? (new Date(h.paid_at) <= new Date(h.due_at) ? '<span class="text-emerald-600">Em dia</span>' : '<span class="text-amber-600">Pago com atraso</span>') : (new Date() > new Date(h.due_at) ? '<span class="text-red-500">Em atraso</span>' : '<span class="text-gray-400">Aguardando</span>');
-                    return `<tr class="border-t border-gray-100 dark:border-gray-700"><td class="py-1 pr-2">${fmtDate(h.sent_at)}</td><td class="pr-2">${fmtDate(h.due_at)}</td><td class="pr-2">${h.amount != null ? fmtMoney(h.amount) : '-'}</td><td class="pr-2">${h.paid_at ? fmtDate(h.paid_at) : '-'}</td><td>${sit}</td></tr>`;
+                    return `<tr class="border-t border-gray-100 dark:border-gray-700"><td class="py-1 pr-2">${fmtDate(h.sent_at)}</td><td class="pr-2">${fmtDate(h.due_at)}</td><td class="pr-2">${h.amount != null ? fmtMoney(h.amount) : '-'}${h.description ? `<div class="text-[11px] text-gray-400 whitespace-pre-line">${esc(h.description)}</div>` : ''}</td><td class="pr-2">${h.paid_at ? fmtDate(h.paid_at) : '-'}</td><td>${sit}</td></tr>`;
                 }).join('')}</tbody></table></div>
                 <p class="mt-2 font-semibold">Total recebido: ${fmtMoney(hist.filter(h => h.paid_at).reduce((a, h) => a + Number(h.amount || 0), 0))}</p>` : '<p class="italic text-gray-400">Nenhum Pix enviado ainda.</p>';
             document.getElementById('modalDriverFile').classList.remove('hidden');
@@ -2338,6 +2376,7 @@
             document.getElementById('newPixLink').value = d.pix_link || '';
             previewNewPixQr();
             document.getElementById('newPixAmount').value = d.pix_amount != null ? String(d.pix_amount).replace('.', ',') : '';
+            document.getElementById('newPixDescription').value = d.pix_description || '';
             document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Nova data de pagamento: <b>${nextDueLocal()} até 23:59</b>. O motorista recebe uma notificação no celular.`;
             document.getElementById('modalNewPix').classList.remove('hidden');
         }
@@ -2358,7 +2397,8 @@
                 if (code && !pixValid(code) && !confirm('Este código Pix parece incompleto ou com erro. Enviar mesmo assim?')) return;
                 const link = document.getElementById('newPixLink').value.trim();
                 if (link && !/^https:\/\//i.test(link)) { showToast("O link precisa começar com https://", "error"); return; }
-                const updates = { pix_code: code || null, pix_sent_at: new Date().toISOString(), pix_amount: amount, pix_link: link || null };
+                const desc = document.getElementById('newPixDescription').value.trim();
+                const updates = { pix_code: code || null, pix_sent_at: new Date().toISOString(), pix_amount: amount, pix_link: link || null, pix_description: desc || null };
                 if (qr) {
                     const path = await uploadFile(qr, `${id}/pix-qr-${Date.now()}`);
                     if (!path) return;
