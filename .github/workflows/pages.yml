@@ -22,14 +22,14 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
-      - name: Montar o site (só os arquivos do app)
+      - name: Montar o site (cópia de todos os arquivos do app, igual ao Netlify)
         run: |
           mkdir -p _site
-          cp index.html manifest.json sw.js *.png _site/
-          [ -f motora.apk ] && cp motora.apk _site/ || true
-          [ -f apk-version.json ] && cp apk-version.json _site/ || true
-          cp -r .well-known _site/
+          # copia tudo do repositório, menos o que não faz parte do app
+          git ls-files | grep -vE '^(\.github/|android/|CLAUDE\.md$|\.gitignore$)' \
+            | xargs -d '\n' cp --parents -t _site/
           touch _site/.nojekyll
+          ls -la _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

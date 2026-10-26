@@ -1,0 +1,40 @@
+name: Conferir se GitHub Pages está igual ao Netlify
+
+# Confere de 6 em 6 horas se o Netlify mostra exatamente os mesmos arquivos
+# deste repositório (que é o que o GitHub Pages publica).
+# Se alguém mudar o Netlify por fora (sem passar por aqui), esta conferência
+# fica vermelha e o GitHub manda um e-mail avisando.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Comparar arquivos do Netlify com os do repositório
+        run: |
+          NETLIFY=https://motora-frota.netlify.app
+          diferente=0
+          for f in index.html sw.js manifest.json apk-version.json .well-known/assetlinks.json; do
+            [ -f "$f" ] || continue
+            if ! curl -fsSL "$NETLIFY/$f" -o /tmp/netlify_arquivo; then
+              echo "⚠️ Não consegui abrir $f no Netlify"; diferente=1; continue
+            fi
+            if cmp -s "$f" /tmp/netlify_arquivo; then
+              echo "✅ $f igual"
+            else
+              echo "❌ $f DIFERENTE no Netlify"; diferente=1
+            fi
+          done
+          if [ "$diferente" = 1 ]; then
+            echo "O Netlify não está igual ao repositório/GitHub Pages."
+            exit 1
+          fi
+          echo "Tudo igual: o GitHub Pages é um clone exato do Netlify."
