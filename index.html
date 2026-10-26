@@ -325,9 +325,15 @@
                                         <i class="fa-solid fa-copy"></i> Copiar
                                     </button>
                                 </div>
-                                <a id="drvBbLink" href="#" target="_blank" rel="noopener" class="hidden w-full py-2.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold items-center justify-center gap-2">
-                                    <i class="fa-solid fa-building-columns"></i> Abrir no Banco do Brasil
-                                </a>
+                                <div id="drvPixKeyBox" class="hidden w-full pt-2 text-left">
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400">Chave Pix (<span id="drvPixKeyType"></span>):</label>
+                                    <div class="flex gap-2 mt-1">
+                                        <input type="text" id="txtPixKey" readonly class="w-full text-xs p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 outline-none truncate">
+                                        <button onclick="copyPixKey()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
+                                            <i class="fa-solid fa-copy"></i> Copiar
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             </div>
                         </div>
@@ -858,9 +864,18 @@
                 <p id="newPixCodeInfo" class="text-xs mt-1"></p>
             </div>
             <div>
-                <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Link de pagamento do Banco do Brasil (opcional)</label>
-                <input type="url" id="newPixLink" inputmode="url" autocapitalize="none" placeholder="https://pagamentospix.apps.bb.com.br/..." class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O motorista vê um botão "Abrir no Banco do Brasil".</p>
+                <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Chave Pix (opcional)</label>
+                <div class="flex gap-2">
+                    <select id="newPixKeyType" onchange="updatePixKeyPlaceholder()" class="p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        <option value="aleatoria">Aleatória</option>
+                        <option value="celular">Celular</option>
+                        <option value="cpf">CPF</option>
+                        <option value="cnpj">CNPJ</option>
+                        <option value="email">E-mail</option>
+                    </select>
+                    <input type="text" id="newPixKey" autocapitalize="none" autocomplete="off" class="flex-1 min-w-0 p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O motorista vê a chave e o tipo, com um botão para copiar.</p>
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor desta semana (R$)</label>
@@ -1471,10 +1486,11 @@
                 qrContainer.innerHTML = `<div class="text-center p-2"><i class="fa-solid fa-qrcode text-3xl mb-1 text-gray-300"></i><p class="text-xs">QR Code não cadastrado</p></div>`;
             }
             document.getElementById('txtPixCode').value = receiptOk ? '' : (driver.pix_code || "Chave Pix indisponível");
-            const bb = document.getElementById('drvBbLink');
-            const showBb = feat('linkbb') && /^https:\/\//i.test(driver.pix_link || '');
-            bb.classList.toggle('hidden', !showBb); bb.classList.toggle('flex', showBb);
-            if (showBb) bb.href = driver.pix_link;
+            const pk = parsePixKey(driver.pix_link);
+            const showKey = feat('linkbb') && !!pk && !receiptOk;
+            document.getElementById('drvPixKeyBox').classList.toggle('hidden', !showKey);
+            document.getElementById('txtPixKey').value = showKey ? pk.key : '';
+            document.getElementById('drvPixKeyType').innerText = pk ? pk.label : '';
             applyDriverFeatures();
 
             const receiptsContainer = document.getElementById('drvReceiptsList');
@@ -1503,6 +1519,42 @@
                     content.classList.add('hidden');
                 }
             });
+        }
+
+        // ===== CHAVE PIX (guardada no campo pix_link como "chave:tipo|valor") =====
+        const PIX_KEY_TYPES = { aleatoria: 'Aleatória', celular: 'Celular', cpf: 'CPF', cnpj: 'CNPJ', email: 'E-mail' };
+        const PIX_KEY_HINT = { aleatoria: 'Ex: 123e4567-e89b-12d3-a456-426614174000', celular: 'Ex: (11) 98888-7777', cpf: 'Ex: 000.000.000-00', cnpj: 'Ex: 00.000.000/0001-00', email: 'Ex: nome@email.com' };
+        function parsePixKey(v) {
+            const m = /^chave:(\w+)\|([\s\S]+)$/.exec(String(v || ''));
+            return m ? { type: m[1], key: m[2], label: PIX_KEY_TYPES[m[1]] || 'Chave' } : null;
+        }
+        function normalizePixKey(type, raw) {
+            let k = String(raw || '').trim();
+            const dig = k.replace(/\D/g, '');
+            if (type === 'celular') { if (dig.length === 10 || dig.length === 11) k = '+55' + dig; else if (dig.length === 12 || dig.length === 13) k = '+' + dig; }
+            else if (type === 'cpf' || type === 'cnpj') k = dig;
+            else if (type === 'email' || type === 'aleatoria') k = k.toLowerCase();
+            return k;
+        }
+        function pixKeyLooksOk(type, k) {
+            const dig = k.replace(/\D/g, '');
+            if (type === 'celular') return /^\+55\d{10,11}$/.test(k);
+            if (type === 'cpf') return dig.length === 11;
+            if (type === 'cnpj') return dig.length === 14;
+            if (type === 'email') return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(k);
+            return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k);
+        }
+        function updatePixKeyPlaceholder() {
+            const t = document.getElementById('newPixKeyType').value;
+            const i = document.getElementById('newPixKey');
+            i.placeholder = PIX_KEY_HINT[t] || '';
+            i.inputMode = t === 'email' ? 'email' : (t === 'aleatoria' ? 'text' : 'numeric');
+        }
+        function copyPixKey() {
+            const input = document.getElementById('txtPixKey');
+            const ok = () => showToast("Chave Pix copiada!");
+            const fallback = () => { try { input.focus(); input.select(); document.execCommand('copy'); ok(); } catch (e) { showToast("Não foi possível copiar.", "error"); } };
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(input.value).then(ok, fallback); else fallback();
         }
 
         function copyPixCode() {
@@ -2465,7 +2517,11 @@
             document.getElementById('newPixDriverName').innerText = `Motorista: ${d.name}`;
             document.getElementById('newPixCode').value = '';
             document.getElementById('newPixQrFile').value = '';
-            document.getElementById('newPixLink').value = d.pix_link || '';
+            const pk = parsePixKey(d.pix_link);
+            let lastType = null; try { lastType = localStorage.getItem('motora_pix_key_type'); } catch (e) {}
+            document.getElementById('newPixKeyType').value = pk ? pk.type : (lastType || 'aleatoria');
+            document.getElementById('newPixKey').value = pk ? pk.key : '';
+            updatePixKeyPlaceholder();
             previewNewPixQr();
             document.getElementById('newPixAmount').value = d.pix_amount != null ? String(d.pix_amount).replace('.', ',') : '';
             document.getElementById('newPixDescription').value = d.pix_description || '';
@@ -2639,6 +2695,7 @@
                     <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">${d.pix_amount != null ? fmtMoney(d.pix_amount) : '-'}</p>
                     <p class="text-xs">Enviado em ${fmtDate(d.pix_sent_at)} · Vence ${fmtDue(d.pix_due_at)} até 23:59</p>
                     ${d.pix_description ? `<p class="text-sm whitespace-pre-line pt-1">${esc(d.pix_description)}</p>` : ''}
+                    ${parsePixKey(d.pix_link) ? `<p class="text-xs pt-1"><i class="fa-solid fa-key mr-1"></i>Chave Pix (${parsePixKey(d.pix_link).label}): <b class="break-all">${esc(parsePixKey(d.pix_link).key)}</b></p>` : ''}
                     <div class="pt-1">${paidEarlier ? '<span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700"><i class="fa-solid fa-circle-check"></i> Pago junto com o Pix anterior</span>' : (last ? receiptBadge(last, true) : '<span class="text-xs text-gray-500">Sem comprovante ainda</span>')}</div>
                     ${last && last.confirmed_at ? `<button onclick="openRecibo('${last.id}')" class="mt-2 w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-receipt mr-1"></i> Recibo para o WhatsApp</button>` : ''}
                 </div>
@@ -2696,8 +2753,11 @@
             setBusy(form, true);
             try {
                 if (code && !pixValid(code) && !confirm('Este código Pix parece incompleto ou com erro. Enviar mesmo assim?')) return;
-                const link = document.getElementById('newPixLink').value.trim();
-                if (link && !/^https:\/\//i.test(link)) { showToast("O link precisa começar com https://", "error"); return; }
+                const keyType = document.getElementById('newPixKeyType').value;
+                const key = normalizePixKey(keyType, document.getElementById('newPixKey').value);
+                if (key && !pixKeyLooksOk(keyType, key) && !confirm(`A chave Pix não parece ser do tipo ${PIX_KEY_TYPES[keyType]}. Enviar mesmo assim?`)) return;
+                const link = key ? `chave:${keyType}|${key}` : null;
+                try { localStorage.setItem('motora_pix_key_type', keyType); } catch (e) {}
                 const desc = document.getElementById('newPixDescription').value.trim();
                 if (editing) {
                     let qrPath = keepQr ? d.pix_qr_path : null;
@@ -2918,7 +2978,7 @@
             { k: 'crlv', name: 'Aba CRLV-e', desc: 'Ver e baixar o CRLV-e do carro.' },
             { k: 'contrato', name: 'Aba Contrato', desc: 'Ver e baixar o contrato.' },
             { k: 'pagamento', name: 'Aba Pagamento (Pix)', desc: 'QR code, copia e cola e data de pagamento.' },
-            { k: 'linkbb', name: 'Botão "Abrir no Banco do Brasil"', desc: 'Abre o link de pagamento do BB.' },
+            { k: 'linkbb', name: 'Chave Pix', desc: 'Mostra a chave Pix e o tipo, com botão de copiar.' },
             { k: 'comprovante', name: 'Enviar comprovante', desc: 'O motorista manda o comprovante pelo app.' },
             { k: 'vistoria', name: 'Aba Vistoria', desc: 'Fotos da vistoria do carro.' },
             { k: 'online', name: 'Botão Online/Offline', desc: 'O botão verde/vermelho no topo da tela.' },

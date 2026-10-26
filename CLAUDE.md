@@ -33,7 +33,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 
 ## Cobrança Pix (semanal)
 - O dono cobra por Pix e confere o pagamento olhando o banco.
-- Ele gera a cobrança como link de pagamento do Banco do Brasil; ao colar o link, o app pega o Pix copia e cola e gera o QR code.
+- No "Novo Pix" o campo do link do Banco do Brasil foi trocado por **Chave Pix** + tipo (Aleatória, Celular, CPF, CNPJ, E-mail). A chave fica guardada na coluna `pix_link` no formato `chave:tipo|valor` (o banco não ganhou coluna nova). O motorista vê a chave e o tipo com botão Copiar; some quando o comprovante é aceito.
 - A cada novo Pix, o motorista recebe notificação com a nova data de pagamento e o aviso de enviar o comprovante pelo app.
 - Todo domingo o dono recebe lembrete para enviar as novas cobranças.
 - No "Novo Pix" o dono escreve a descrição dos valores cobrados; o motorista vê o valor e a descrição na aba Pagamento.
