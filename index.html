@@ -379,6 +379,10 @@
                 </div>
             </div>
 
+            <button onclick="openPixArea()" class="w-full py-3 rounded-2xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex items-center justify-center gap-2">
+                <i class="fa-brands fa-pix"></i> Área do Pix
+            </button>
+
             <button id="btnFinance" onclick="openFinance()" class="w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2">
                 <i class="fa-solid fa-sack-dollar"></i> Controle financeiro
             </button>
@@ -712,6 +716,23 @@
     </div>
 
     <!-- MODAL CONTROLE FINANCEIRO (MASTER) -->
+    <!-- ÁREA DO PIX (MASTER): escolhe o motorista e envia, edita ou exclui o Pix -->
+    <div id="modalPixArea" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-brands fa-pix text-teal-500 mr-1"></i> Área do Pix</h3>
+                <button onclick="closePixArea()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Motorista</label>
+                    <select id="pixAreaDriver" onchange="renderPixArea()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
+                </div>
+                <div id="pixAreaBody"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="modalFinance" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
@@ -1174,6 +1195,7 @@
                 showSection('secMasterPanel');
                 loadConfigStatus().catch(() => {});
                 renderMasterPanel();
+                if (!document.getElementById('modalPixArea').classList.contains('hidden')) renderPixArea();
             } else {
                 document.getElementById('headerRoleSubtitle').innerText = `Motorista: ${state.profile.name}`;
                 document.getElementById('statusToggleContainer').classList.toggle('hidden', !feat('online'));
@@ -2420,6 +2442,46 @@
             document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Nova data de pagamento: <b>${nextDueLocal()} até 23:59</b>. O motorista recebe uma notificação no celular.`;
             document.getElementById('modalNewPix').classList.remove('hidden');
         }
+        // ÁREA DO PIX (MASTER)
+        function openPixArea() {
+            const sel = document.getElementById('pixAreaDriver');
+            const cur = sel.value;
+            sel.innerHTML = '<option value="">Escolha o motorista...</option>' + state.drivers.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)))
+                .map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
+            if (cur && state.drivers.some(d => d.id === cur)) sel.value = cur;
+            renderPixArea();
+            document.getElementById('modalPixArea').classList.remove('hidden');
+        }
+        function closePixArea() { document.getElementById('modalPixArea').classList.add('hidden'); }
+        function renderPixArea() {
+            const box = document.getElementById('pixAreaBody');
+            const d = state.drivers.find(x => x.id === document.getElementById('pixAreaDriver').value);
+            if (!d) { box.innerHTML = '<p class="text-sm text-gray-400 italic">Escolha um motorista para ver, enviar, editar ou excluir o Pix.</p>'; return; }
+            const veh = state.vehicles.find(v => v.id === d.vehicle_id);
+            const hasPix = !!(d.pix_code || d.pix_qr_path);
+            const recs = d.pix_sent_at ? state.receipts.filter(r => r.driver_id === d.id && new Date(r.created_at) >= new Date(d.pix_sent_at)) : [];
+            const last = recs[recs.length - 1];
+            const late = d.payment_status === 'Em atraso';
+            let html = `<div class="text-xs text-gray-500 dark:text-gray-400">${veh ? esc(veh.model) + ' · ' + esc(veh.plate) + ' · ' : ''}<span class="font-semibold ${late ? 'text-red-600' : 'text-emerald-600'}">${esc(d.payment_status || 'Em dia')}</span></div>`;
+            if (hasPix) {
+                html += `<div class="mt-3 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 space-y-1">
+                    <p class="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-300">Pix enviado</p>
+                    <p class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">${d.pix_amount != null ? fmtMoney(d.pix_amount) : '-'}</p>
+                    <p class="text-xs">Enviado em ${fmtDate(d.pix_sent_at)} · Vence ${fmtDue(d.pix_due_at)} até 23:59</p>
+                    ${d.pix_description ? `<p class="text-sm whitespace-pre-line pt-1">${esc(d.pix_description)}</p>` : ''}
+                    <div class="pt-1">${last ? receiptBadge(last, true) : '<span class="text-xs text-gray-500">Sem comprovante ainda</span>'}</div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-3">
+                    <button onclick="openEditPix('${d.id}')" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold"><i class="fa-solid fa-pen mr-1"></i> Editar</button>
+                    <button onclick="deletePix('${d.id}', this)" class="py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>
+                </div>`;
+            } else {
+                html += `<p class="mt-3 text-sm text-gray-400 italic">Nenhum Pix em aberto para este motorista.</p>`;
+            }
+            html += `<button onclick="openNewPix('${d.id}')" class="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold"><i class="fa-brands fa-pix mr-1"></i> Enviar novo Pix</button>`;
+            box.innerHTML = html;
+        }
+
         // EDITAR PIX JÁ ENVIADO (a data de pagamento continua a mesma)
         function openEditPix(id) {
             const d = state.drivers.find(x => x.id === id);
