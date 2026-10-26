@@ -716,6 +716,25 @@
     </div>
 
     <!-- MODAL CONTROLE FINANCEIRO (MASTER) -->
+    <!-- RECIBO DE PAGAMENTO (MASTER -> motorista pelo WhatsApp) -->
+    <div id="modalRecibo" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-solid fa-receipt text-emerald-500 mr-1"></i> Recibo de pagamento</h3>
+                <button onclick="closeRecibo()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar space-y-3">
+                <pre id="reciboText" class="whitespace-pre-wrap text-sm font-sans p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600"></pre>
+                <p id="reciboPhoneInfo" class="text-xs text-gray-500 dark:text-gray-400"></p>
+                <a id="reciboWhats" href="#" target="_blank" rel="noopener" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-brands fa-whatsapp text-lg"></i> Enviar pelo WhatsApp</a>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="shareReciboImage()" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-image mr-1"></i> Enviar como imagem</button>
+                    <button onclick="copyRecibo()" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-copy mr-1"></i> Copiar texto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ÁREA DO PIX (MASTER): escolhe o motorista e envia, edita ou exclui o Pix -->
     <div id="modalPixArea" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -1512,6 +1531,9 @@
             if (info.length) html += `<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">${info.join('<br>')}</div>`;
             if (probs.length) html += `<ul class="text-[11px] text-red-600 dark:text-red-300 mt-1 list-disc pl-4 leading-snug">${probs.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`;
             if (a.error) html += `<div class="text-[11px] text-gray-500 mt-1">${esc(a.error)}</div>`;
+            if (r.confirmed_at) {
+                html += `<button onclick="openRecibo('${r.id}')" class="mt-2 text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-receipt mr-1"></i> Recibo</button>`;
+            }
             if (!r.confirmed_at) {
                 html += `<div class="flex flex-wrap gap-1 mt-2">
                     <button onclick="confirmReceipt('${r.id}', this)" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i> Confirmar Pix</button>
@@ -1534,7 +1556,7 @@
                 const { error } = await sb.rpc('master_confirm_receipt', { p_receipt: id });
                 if (error) throw error;
                 showToast('Pix confirmado! O motorista foi avisado.');
-            });
+            }).then(() => { if (state.receipts.some(x => x.id === id && x.confirmed_at)) openRecibo(id); });
         }
         function rejectReceipt(id, btn) {
             const reason = prompt('Motivo da recusa (o motorista vai ver):', 'Os dados do comprovante não conferem.');
@@ -2442,6 +2464,122 @@
             document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Nova data de pagamento: <b>${nextDueLocal()} até 23:59</b>. O motorista recebe uma notificação no celular.`;
             document.getElementById('modalNewPix').classList.remove('hidden');
         }
+        // ===== RECIBO DE PAGAMENTO =====
+        let reciboLines = [];
+        function reciboData(id) {
+            const r = state.receipts.find(x => x.id === id);
+            if (!r) return null;
+            const d = state.drivers.find(x => x.id === r.driver_id) || {};
+            const v = state.vehicles.find(x => x.id === d.vehicle_id);
+            const h = state.pixHistory.find(x => x.receipt_id === r.id)
+                || state.pixHistory.filter(x => x.driver_id === r.driver_id && new Date(x.sent_at) <= new Date(r.created_at)).sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at))[0];
+            const a = r.ai_result || {};
+            const recVal = x => x.paid_amount != null ? Number(x.paid_amount) : ((x.ai_result || {}).valor != null ? Number(x.ai_result.valor) : null);
+            // todos os pagamentos confirmados feitos para este mesmo Pix
+            let pays = [r];
+            if (h) {
+                const next = state.pixHistory.filter(y => y.driver_id === r.driver_id && new Date(y.sent_at) > new Date(h.sent_at)).sort((p, q) => new Date(p.sent_at) - new Date(q.sent_at))[0];
+                pays = state.receipts.filter(y => y.driver_id === r.driver_id && y.confirmed_at && !y.rejected_at
+                    && new Date(y.created_at) >= new Date(h.sent_at) && (!next || new Date(y.created_at) < new Date(next.sent_at)));
+                if (!pays.some(y => y.id === r.id)) pays.push(r);
+                pays.sort((p, q) => new Date(p.created_at) - new Date(q.created_at));
+            }
+            const fallback = h && h.amount != null ? Number(h.amount) : d.pix_amount;
+            const list = pays.map(y => ({ y, val: recVal(y) }));
+            if (list.length === 1 && list[0].val == null) list[0].val = fallback;
+            const valor = list.reduce((t, z) => t + Number(z.val || 0), 0);
+            const pago = a.data_hora ? String(a.data_hora).replace('T', ' ').slice(0, 16) : null;
+            return { r, d, v, h, a, valor, pago, list };
+        }
+        function fmtDateTimeBR(iso) { return iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; }
+        function openRecibo(id) {
+            const x = reciboData(id);
+            if (!x) { showToast('Comprovante não encontrado.', 'error'); return; }
+            const { r, d, v, h, a, valor, pago, list } = x;
+            const payDate = y => { const t = (y.ai_result || {}).data_hora; if (!t) return fmtDateTimeBR(y.created_at); const s = String(t); const dt = new Date(s.length <= 16 ? s + ':00-03:00' : s); return isNaN(dt) ? s : fmtDateTimeBR(dt); };
+            const desc = (h && h.description) || (d.pix_sent_at && h && h.sent_at === d.pix_sent_at ? d.pix_description : '') || '';
+            const pagoBR = pago ? (() => { const dt = new Date(pago.length <= 16 ? pago.replace(' ', 'T') + ':00-03:00' : pago); return isNaN(dt) ? pago : fmtDateTimeBR(dt); })() : fmtDateTimeBR(r.created_at);
+            const L = [];
+            L.push('RECIBO DE PAGAMENTO - MOTORA');
+            L.push('Nº ' + String(r.id).slice(0, 8).toUpperCase());
+            L.push('');
+            L.push('Recebi de ' + (d.name || 'motorista') + ' o valor de ' + fmtMoney(valor) + '.');
+            L.push('');
+            if (desc) { L.push('Referente a:'); desc.split(/\n/).forEach(t => { if (t.trim()) L.push('• ' + t.trim()); }); L.push(''); }
+            if (v) L.push('Veículo: ' + v.model + ' - ' + v.plate);
+            if (h) {
+                L.push('Cobrança enviada em: ' + fmtDate(h.sent_at));
+                L.push('Vencimento: ' + fmtDate(h.due_at));
+                if (h.amount != null && Math.abs(Number(h.amount) - Number(valor)) > 0.005) L.push('Valor cobrado: ' + fmtMoney(h.amount));
+            }
+            L.push('Forma de pagamento: Pix');
+            if (list.length > 1) {
+                L.push('');
+                L.push('Pagamentos deste Pix:');
+                list.forEach((z, i) => L.push((i + 1) + ') ' + payDate(z.y) + ' - ' + (z.val != null ? fmtMoney(z.val) : 'valor não lido') + ((z.y.ai_result || {}).id_transacao ? ' (ID ' + z.y.ai_result.id_transacao + ')' : '')));
+                L.push('Total pago: ' + fmtMoney(valor));
+                L.push('');
+            } else {
+                L.push('Data do pagamento: ' + pagoBR);
+                if (a.id_transacao) L.push('ID da transação: ' + a.id_transacao);
+            }
+            if (h && h.amount != null) {
+                const falta = Number(h.amount) - valor;
+                if (falta > 0.005) L.push('Ainda em aberto deste Pix: ' + fmtMoney(falta));
+                else if (falta < -0.005) L.push('Pago a mais (crédito): ' + fmtMoney(-falta));
+            }
+            if (a.recebedor_nome) L.push('Recebedor: ' + a.recebedor_nome);
+            L.push('Confirmado em: ' + fmtDateTimeBR(r.confirmed_at));
+            L.push('');
+            L.push(state.profile && state.profile.name ? state.profile.name : 'Locador');
+            reciboLines = L;
+            const text = L.join('\n');
+            document.getElementById('reciboText').textContent = text;
+            let ph = String(d.phone || '').replace(/\D/g, '');
+            if (ph.length === 10 || ph.length === 11) ph = '55' + ph;
+            const wa = document.getElementById('reciboWhats');
+            wa.href = (ph.length >= 12 ? 'https://wa.me/' + ph : 'https://wa.me/') + '?text=' + encodeURIComponent(text);
+            document.getElementById('reciboPhoneInfo').innerHTML = ph.length >= 12
+                ? `<i class="fa-solid fa-phone mr-1"></i> Vai abrir a conversa com ${esc(d.name || '')} (${esc(d.phone)}).`
+                : '<i class="fa-solid fa-triangle-exclamation mr-1 text-amber-500"></i> Este motorista não tem telefone na ficha: o WhatsApp vai pedir para você escolher o contato.';
+            document.getElementById('modalRecibo').classList.remove('hidden');
+        }
+        function closeRecibo() { document.getElementById('modalRecibo').classList.add('hidden'); }
+        function copyRecibo() {
+            const t = reciboLines.join('\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(() => showToast('Recibo copiado!'), () => showToast('Não foi possível copiar.', 'error'));
+            else showToast('Não foi possível copiar.', 'error');
+        }
+        function reciboCanvas() {
+            const W = 720, pad = 40, lh = 34;
+            const c = document.createElement('canvas'), g = c.getContext('2d');
+            const wrap = (t, font) => { g.font = font; const out = []; let line = ''; String(t).split(' ').forEach(w => { const test = line ? line + ' ' + w : w; if (g.measureText(test).width > W - pad * 2 && line) { out.push(line); line = w; } else line = test; }); out.push(line); return out; };
+            const rows = [];
+            reciboLines.forEach((t, i) => {
+                const font = i === 0 ? 'bold 30px sans-serif' : (i === 1 ? '22px sans-serif' : (/^Recebi de/.test(t) ? 'bold 26px sans-serif' : '24px sans-serif'));
+                if (!t) rows.push({ t: '', font }); else wrap(t, font).forEach(x => rows.push({ t: x, font }));
+            });
+            c.width = W; c.height = pad * 2 + rows.length * lh + 20;
+            g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+            g.fillStyle = '#059669'; g.fillRect(0, 0, W, 10);
+            g.textBaseline = 'top';
+            rows.forEach((x, i) => { g.font = x.font; g.fillStyle = i < 2 ? '#065f46' : '#111827'; g.fillText(x.t, pad, pad + i * lh); });
+            return c;
+        }
+        async function shareReciboImage() {
+            try {
+                const c = reciboCanvas();
+                const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+                const file = new File([blob], 'recibo-motora.png', { type: 'image/png' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: 'Recibo de pagamento' });
+                } else {
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'recibo-motora.png'; a.click();
+                    showToast('Imagem do recibo baixada. Envie pelo WhatsApp.');
+                }
+            } catch (e) { if (e && e.name !== 'AbortError') showToast('Não foi possível gerar a imagem.', 'error'); }
+        }
+
         // ÁREA DO PIX (MASTER)
         function openPixArea() {
             const sel = document.getElementById('pixAreaDriver');
@@ -2470,6 +2608,7 @@
                     <p class="text-xs">Enviado em ${fmtDate(d.pix_sent_at)} · Vence ${fmtDue(d.pix_due_at)} até 23:59</p>
                     ${d.pix_description ? `<p class="text-sm whitespace-pre-line pt-1">${esc(d.pix_description)}</p>` : ''}
                     <div class="pt-1">${last ? receiptBadge(last, true) : '<span class="text-xs text-gray-500">Sem comprovante ainda</span>'}</div>
+                    ${last && last.confirmed_at ? `<button onclick="openRecibo('${last.id}')" class="mt-2 w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-receipt mr-1"></i> Recibo para o WhatsApp</button>` : ''}
                 </div>
                 <div class="grid grid-cols-2 gap-2 mt-3">
                     <button onclick="openEditPix('${d.id}')" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold"><i class="fa-solid fa-pen mr-1"></i> Editar</button>

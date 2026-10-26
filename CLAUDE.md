@@ -40,6 +40,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Quando o comprovante é aceito (IA conferiu ou o dono confirmou), a chave Pix e o QR somem sozinhos da tela do motorista.
 - O master pode **editar** (chave, QR, link, valor, descrição; a data de pagamento continua a mesma e o motorista é avisado) ou **excluir** o Pix enviado (funções `master_edit_pix` e `master_delete_pix` do Supabase).
 - **Área do Pix** (botão no painel master): escolhe o motorista numa lista e vê o Pix atual, com botões Enviar novo Pix, Editar e Excluir.
+- **Recibo:** ao confirmar o Pix abre um recibo (itens da descrição, todos os pagamentos daquele Pix e total) com botão para enviar pelo WhatsApp do motorista, como texto ou imagem. Também há botão "Recibo" nos comprovantes confirmados e na Área do Pix.
 - Prazo do comprovante: segunda-feira 23:59. Quem não enviar vira "Em atraso"; se enviar depois, volta sozinho para "Em dia".
 
 ## Financeiro (master)
