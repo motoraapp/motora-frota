@@ -3,7 +3,7 @@ name: Gerar APK do MOTORA
 on:
   push:
     branches: [main]
-    paths-ignore: ['motora.apk']
+    paths: ['android/**', '.github/workflows/build-apk.yml']
   workflow_dispatch:
 
 permissions:
@@ -35,8 +35,9 @@ jobs:
       - name: Publicar motora.apk no site
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk motora.apk
+          echo '{"version": ${{ github.run_number }}}' > apk-version.json
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add motora.apk
+          git add motora.apk apk-version.json
           git commit -m "APK do MOTORA atualizado" || echo "sem mudanças"
           git push

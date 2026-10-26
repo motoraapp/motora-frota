@@ -1,4 +1,4 @@
-const CACHE = 'motora-v10';
+const CACHE = 'motora-v11';
 const BASE = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -18,7 +18,7 @@ self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
   // Só guarda arquivos do próprio app; dados do Supabase vão sempre direto pela internet
   if (new URL(e.request.url).origin !== self.location.origin) return;
-  if (new URL(e.request.url).pathname.endsWith('.apk')) return; // download do APK vai direto
+  if (new URL(e.request.url).pathname.endsWith('.apk') || new URL(e.request.url).pathname.endsWith('apk-version.json')) return; // download do APK vai direto
   e.respondWith(
     fetch(e.request).then(function (r) {
       var copia = r.clone();

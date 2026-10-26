@@ -5,3 +5,5 @@
 /.well-known/assetlinks.json
   Content-Type: application/json
   Access-Control-Allow-Origin: *
+/apk-version.json
+  Cache-Control: no-cache

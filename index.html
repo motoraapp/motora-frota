@@ -211,6 +211,9 @@
                 <i class="fa-brands fa-android text-xl"></i> Instalar app
             </a>
 
+            <!-- Aviso: nova versão do app Android -->
+            <div id="apkUpdateBanner" class="hidden"></div>
+
             <!-- Aviso vermelho: notificações desligadas -->
             <div id="notifBanner" class="hidden"></div>
 
@@ -1225,9 +1228,25 @@
         // ===== BOTÃO "INSTALAR APP" (APK) — só Android; iPhone/iPad e o próprio app não veem =====
         (function () {
             try {
-                if (new URLSearchParams(location.search).get('app') === 'android' || (document.referrer || '').indexOf('android-app://') === 0) localStorage.setItem('motoraApk', '1');
+                const qs = new URLSearchParams(location.search);
+                if (qs.get('app') === 'android' || (document.referrer || '').indexOf('android-app://') === 0) localStorage.setItem('motoraApk', '1');
+                if (qs.get('app') === 'android') localStorage.setItem('motoraApkV', qs.get('v') || '0');
             } catch (e) {}
         })();
+        // aviso "Nova versão do app" (só dentro do app Android instalado)
+        function checkApkUpdate() {
+            const el = document.getElementById('apkUpdateBanner');
+            if (!el) return;
+            let inApp = false, cur = 0;
+            try { inApp = localStorage.getItem('motoraApk') === '1'; cur = parseInt(localStorage.getItem('motoraApkV') || '0', 10) || 0; } catch (e) {}
+            if (!inApp || state.viewingAs) { el.className = 'hidden'; return; }
+            fetch('apk-version.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+                if (!d || !(d.version > cur)) { el.className = 'hidden'; return; }
+                el.className = 'bg-emerald-50 dark:bg-gray-800 border border-emerald-300 dark:border-emerald-700 rounded-2xl p-4 flex items-center justify-between gap-3';
+                el.innerHTML = '<div class="text-sm text-emerald-800 dark:text-emerald-300"><i class="fa-solid fa-circle-arrow-up mr-1"></i> <b>Nova versão do app</b><br><span class="text-xs">Toque em atualizar e confirme a instalação.</span></div>'
+                    + '<a href="motora.apk" download="MOTORA.apk" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold whitespace-nowrap">Atualizar</a>';
+            }).catch(() => {});
+        }
         function updateInstallApkButton() {
             const el = document.getElementById('btnInstallApk');
             if (!el) return;
@@ -1249,6 +1268,7 @@
 
         function renderDriverPanel() {
             updateInstallApkButton();
+            checkApkUpdate();
             DOC_REG = [];
             const driver = state.profile;
             const vehicle = state.vehicles.find(v => v.id === driver.vehicle_id);

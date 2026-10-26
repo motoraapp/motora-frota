@@ -9,6 +9,7 @@ android {
         targetSdk 34
         versionCode((project.findProperty('versionCode') ?: '1') as Integer)
         versionName "1.${project.findProperty('versionCode') ?: '1'}"
+        resValue 'string', 'launch_url', "https://motora-frota.netlify.app/?app=android&v=${project.findProperty('versionCode') ?: '1'}"
     }
     signingConfigs {
         release {
