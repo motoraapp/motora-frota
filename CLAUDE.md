@@ -42,6 +42,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - **Área do Pix** (botão no painel master): escolhe o motorista numa lista e vê o Pix atual, com botões Enviar novo Pix, Editar e Excluir.
 - **Recibo:** ao confirmar o Pix abre um recibo (itens da descrição, todos os pagamentos daquele Pix e total) com botão para enviar pelo WhatsApp do motorista, como texto ou imagem. Também há botão "Recibo" nos comprovantes confirmados e na Área do Pix.
 - Um pagamento pode quitar mais de uma cobrança: o app distribui os pagamentos aceitos pelas cobranças da mais antiga para a mais nova (o que sobra quita a seguinte, mesmo enviada depois). O recibo lista todas as cobranças quitadas e mostra "QUITADO" quando não sobra nada; o motorista vê "Este Pix já está pago".
+- O motorista só vê as formas de pagamento que o dono preencheu (QR, copia e cola, chave). Todas somem no prazo (segunda 23:59): aparece "Prazo de pagamento encerrado", e ele ainda pode enviar comprovante.
 - Prazo do comprovante: segunda-feira 23:59. Quem não enviar vira "Em atraso"; se enviar depois, volta sozinho para "Em dia".
 
 ## Financeiro (master)

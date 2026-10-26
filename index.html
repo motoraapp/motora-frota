@@ -309,21 +309,23 @@
                                 <i class="fa-brands fa-pix text-emerald-500"></i> Opção Pix
                             </h4>
                             <div id="drvPixDone" class="hidden w-full py-8 text-sm text-emerald-700 dark:text-emerald-300">
-                                <i class="fa-solid fa-circle-check text-4xl mb-2"></i>
-                                <p class="font-semibold">Comprovante aceito</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">A chave Pix desta semana foi retirada. A próxima aparece aqui quando for enviada.</p>
+                                <i id="drvPixDoneIcon" class="fa-solid fa-circle-check text-4xl mb-2"></i>
+                                <p id="drvPixDoneTitle" class="font-semibold">Comprovante aceito</p>
+                                <p id="drvPixDoneText" class="text-xs text-gray-500 dark:text-gray-400 mt-1">A chave Pix desta semana foi retirada. A próxima aparece aqui quando for enviada.</p>
                             </div>
                             <div id="drvPixKey" class="w-full flex flex-col items-center">
                             <div id="pixQrContainer" class="w-48 h-48 bg-white p-2 rounded-lg shadow-sm mb-4 flex items-center justify-center text-gray-400">
                                 <!-- QR Code Renderizado aqui -->
                             </div>
                             <div class="w-full space-y-2">
-                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400">Código Pix Copia e Cola:</label>
+                                <div id="drvPixCodeRow">
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Código Pix Copia e Cola:</label>
                                 <div class="flex gap-2">
                                     <input type="text" id="txtPixCode" readonly class="w-full text-xs p-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 outline-none truncate">
                                     <button onclick="copyPixCode()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1">
                                         <i class="fa-solid fa-copy"></i> Copiar
                                     </button>
+                                </div>
                                 </div>
                                 <div id="drvPixKeyBox" class="hidden w-full pt-2 text-left">
                                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400">Chave Pix (<span id="drvPixKeyType"></span>):</label>
@@ -1432,7 +1434,12 @@
             } else {
                 dueEl.innerHTML = '';
             }
-            if (driver.pix_due_at && !paidThisPix) {
+            const dueGone = !!driver.pix_due_at && Date.now() > new Date(driver.pix_due_at).getTime();
+            if (driver.pix_due_at && !paidThisPix && dueGone) {
+                banner.className = "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-900 dark:text-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-clock mr-1"></i> Prazo de pagamento encerrado</b><br>O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59. Se já pagou, envie o comprovante; se não, fale com o locador.</div>
+                    <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar comprovante</button>`;
+            } else if (driver.pix_due_at && !paidThisPix) {
                 banner.className = "bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
                 banner.innerHTML = `<div class="text-sm">${lastWeekRec && lastWeekRec.rejected_at ? `<b class="text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')}<br>` : ''}<b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b>${driver.pix_amount != null ? ` Valor: <b>${fmtMoney(driver.pix_amount)}</b>` : ''}<br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b> e depois envie o comprovante aqui no app.</div>
                     <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Ver pagamento</button>`;
@@ -1467,11 +1474,46 @@
 
             // Comprovante correto (IA conferiu ou o master confirmou): a chave Pix some sozinha
             const receiptOk = paidEarlier || (paidThisPix && (lastWeekRec.confirmed_at || lastWeekRec.ai_status === 'ok'));
-            document.getElementById('drvPixKey').classList.toggle('hidden', !!receiptOk);
-            document.getElementById('drvPixDone').classList.toggle('hidden', !receiptOk);
+            // Só aparecem as formas de pagamento que o dono preencheu; todas somem no prazo (segunda 23:59)
+            const pkInfo = parsePixKey(driver.pix_link);
+            const hasQr = !!driver.pix_qr_path || (!!driver.pix_code && pixValid(driver.pix_code));
+            const hasCode = !!driver.pix_code;
+            const hasKey = feat('linkbb') && !!pkInfo;
+            const expired = !!driver.pix_due_at && Date.now() > new Date(driver.pix_due_at).getTime();
+            const noMethod = !hasQr && !hasCode && !hasKey;
+            const hidePay = !!receiptOk || expired || noMethod;
+            document.getElementById('drvPixKey').classList.toggle('hidden', hidePay);
+            document.getElementById('drvPixDone').classList.toggle('hidden', !hidePay);
+            const doneBox = document.getElementById('drvPixDone');
+            if (receiptOk) {
+                doneBox.className = 'w-full py-8 text-sm text-emerald-700 dark:text-emerald-300';
+                document.getElementById('drvPixDoneIcon').className = 'fa-solid fa-circle-check text-4xl mb-2';
+                document.getElementById('drvPixDoneTitle').innerText = paidEarlier ? 'Este Pix já está pago' : 'Comprovante aceito';
+                document.getElementById('drvPixDoneText').innerText = 'As formas de pagamento desta semana foram retiradas. As próximas aparecem aqui quando forem enviadas.';
+            } else if (expired) {
+                doneBox.className = 'w-full py-8 text-sm text-red-600 dark:text-red-300';
+                document.getElementById('drvPixDoneIcon').className = 'fa-solid fa-clock text-4xl mb-2';
+                document.getElementById('drvPixDoneTitle').innerText = 'Prazo de pagamento encerrado';
+                document.getElementById('drvPixDoneText').innerText = `O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59. Se você já pagou, envie o comprovante ao lado. Se não pagou, fale com o locador.`;
+            } else {
+                doneBox.className = 'w-full py-8 text-sm text-gray-500 dark:text-gray-400';
+                document.getElementById('drvPixDoneIcon').className = 'fa-brands fa-pix text-4xl mb-2';
+                document.getElementById('drvPixDoneTitle').innerText = 'Nenhum Pix no momento';
+                document.getElementById('drvPixDoneText').innerText = 'Quando o locador enviar a cobrança, ela aparece aqui.';
+            }
+            if (!hidePay) {
+                document.getElementById('pixQrContainer').classList.toggle('hidden', !hasQr);
+                document.getElementById('drvPixCodeRow').classList.toggle('hidden', !hasCode);
+            }
+            // redesenha a tela sozinha quando chegar o prazo
+            clearTimeout(window._pixDueTimer);
+            if (driver.pix_due_at && !expired) {
+                const ms = new Date(driver.pix_due_at).getTime() - Date.now() + 1000;
+                if (ms < 7 * 24 * 3600 * 1000) window._pixDueTimer = setTimeout(() => { if (state.profile && state.profile.role === 'driver') renderDriverPanel(); }, ms);
+            }
 
             const qrContainer = document.getElementById('pixQrContainer');
-            if (receiptOk) {
+            if (hidePay) {
                 qrContainer.innerHTML = '';
             } else if (driver.pix_qr_path) {
                 qrContainer.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-2xl"></i>`;
@@ -1485,9 +1527,9 @@
             } else {
                 qrContainer.innerHTML = `<div class="text-center p-2"><i class="fa-solid fa-qrcode text-3xl mb-1 text-gray-300"></i><p class="text-xs">QR Code não cadastrado</p></div>`;
             }
-            document.getElementById('txtPixCode').value = receiptOk ? '' : (driver.pix_code || "Chave Pix indisponível");
-            const pk = parsePixKey(driver.pix_link);
-            const showKey = feat('linkbb') && !!pk && !receiptOk;
+            document.getElementById('txtPixCode').value = hidePay ? '' : (driver.pix_code || '');
+            const pk = pkInfo;
+            const showKey = hasKey && !hidePay;
             document.getElementById('drvPixKeyBox').classList.toggle('hidden', !showKey);
             document.getElementById('txtPixKey').value = showKey ? pk.key : '';
             document.getElementById('drvPixKeyType').innerText = pk ? pk.label : '';
