@@ -22,7 +22,11 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Chave de assinatura
-        run: echo "${{ secrets.MOTORA_KEYSTORE_B64 }}" | base64 -d > android/motora.keystore
+        env:
+          KS: ${{ secrets.MOTORA_KEYSTORE_B64 }}
+        run: |
+          printf '%s' "$KS" | tr -d ' \r\n\t' | base64 -d > android/motora.keystore
+          echo "tamanho: $(wc -c < android/motora.keystore) bytes  impressao: $(sha256sum android/motora.keystore | cut -c1-16)"
       - name: Compilar APK
         working-directory: android
         env:
