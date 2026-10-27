@@ -1713,6 +1713,15 @@
                         const b = (opts && opts.body) || {};
                         if (name === 'motora-login-as') { const d = DEMO.db.profiles.find(p => p.id === b.driver_id && p.role === 'driver'); return d ? { data: { token_hash: 'demo:' + d.id, name: d.name }, error: null } : { data: { error: 'motorista não encontrado' }, error: null }; }
                         if (name === 'motora-push') {
+                            if (b.type === 'cobranca') {
+                                const d = DEMO.db.profiles.find(p => p.id === b.driver_id);
+                                if (!d) return { data: { error: 'motorista não encontrado' }, error: null };
+                                const pk = parsePixKey(d.pix_link), dt = (b.vencimentos || []).join(', ');
+                                const msg = `Olá, ${String(d.name || '').split(' ')[0]}, tudo bem?\n\nO pagamento do aluguel do carro está *em atraso*${dt ? ' (vencimento ' + dt + ')' : ''}.\nValor em aberto: ${fmtMoney(b.valor || 0)}\n${pk ? 'Chave Pix (' + pk.label + '): ' + pk.key + '\n' : ''}\nPeço que regularize o quanto antes e envie o comprovante pelo app MOTORA.\n\nQualquer dúvida, estou à disposição.`;
+                                const row = { id: demoId(), driver_id: d.id, title: 'Pagamento em atraso', body: '', message: msg, status: 'pendente', created_at: new Date().toISOString(), sent_at: null };
+                                (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push(row); demoSave();
+                                return { data: { id: row.id, message: msg }, error: null };
+                            }
                             const cfg = (DEMO.db.app_settings || []).find(x => x.key === 'ia_whatsapp');
                             const d = b.type === 'new_pix' && DEMO.db.profiles.find(p => p.id === b.driver_id);
                             if (d && !(cfg && cfg.value && cfg.value.ativo === false)) {
@@ -2802,6 +2811,7 @@
                                 </select>
                                 <div class="text-xs text-gray-400 mt-1 whitespace-nowrap">${d.pix_due_at ? 'Vence: ' + fmtDue(d.pix_due_at, true) : 'Sem Pix enviado'}</div>
                                 <button onclick="openNewPix('${d.id}')" class="mt-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-pix mr-1"></i> Novo Pix</button>
+                                ${d.payment_status === 'Em atraso' ? `<button onclick="cobrarAtraso('${d.id}', this)" class="mt-2 block text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> Cobrar atraso</button>` : ''}
                                 ${(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link)) ? `<div class="flex gap-1 mt-1">
                                     <button onclick="openEditPix('${d.id}')" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Editar o Pix enviado"><i class="fa-solid fa-pen mr-1"></i> Editar</button>
                                     <button onclick="deletePix('${d.id}', this)" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Excluir o Pix enviado"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>
@@ -4167,6 +4177,30 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         // Distribui os pagamentos (comprovantes aceitos) pelas cobranças, da mais antiga para a mais nova.
         // O que sobra de um pagamento quita a cobrança seguinte (mesmo que ela tenha sido enviada depois).
         function receiptValue(x) { return x.paid_amount != null ? Number(x.paid_amount) : ((x.ai_result || {}).valor != null ? Number(x.ai_result.valor) : null); }
+        // ===== COBRAR ATRASO: a IA escreve a mensagem de cobrança e abre na Área IA, pronta para enviar no WhatsApp =====
+        function atrasoDados(driverId) {
+            const now = Date.now();
+            const venc = allocatePix(driverId).charges.filter(c => c.remaining > 0.005 && new Date(c.h.due_at).getTime() < now);
+            const total = Math.round(venc.reduce((t, c) => t + c.remaining, 0) * 100) / 100;
+            const datas = venc.map(c => new Date(c.h.due_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }));
+            return { total, datas };
+        }
+        async function cobrarAtraso(driverId, btn) {
+            const d = state.drivers.find(x => x.id === driverId);
+            if (!d) return;
+            let { total, datas } = atrasoDados(driverId);
+            if (!total && d.pix_amount != null) { total = Number(d.pix_amount); if (d.pix_due_at) datas = [fmtDue(d.pix_due_at, true)]; }
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> A IA está escrevendo...'; }
+            try {
+                const { data, error } = await sb.functions.invoke('motora-push', { body: { type: 'cobranca', driver_id: driverId, valor: total, vencimentos: datas } });
+                if (error || !data || !data.id) throw (error || new Error((data && data.error) || 'Não foi possível criar a mensagem.'));
+                closeAreas();
+                await openIA(data.id); // abre a Área IA com a mensagem em destaque: é só tocar em Enviar
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+            finally { if (btn) { btn.disabled = false; btn.innerHTML = old; } }
+        }
+
         function allocatePix(driverId) {
             const charges = state.pixHistory.filter(h => h.driver_id === driverId && h.amount != null)
                 .sort((p, q) => new Date(p.sent_at) - new Date(q.sent_at)).map(h => ({ h, remaining: Number(h.amount), paidBy: [] }));
@@ -4553,6 +4587,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             } else {
                 html += `<p class="mt-3 text-sm text-gray-400 italic">Nenhum Pix em aberto para este motorista.</p>`;
             }
+            if (late) html += `<button onclick="cobrarAtraso('${d.id}', this)" class="w-full mt-2 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold"><i class="fa-brands fa-whatsapp mr-1"></i> Cobrar atraso pelo WhatsApp</button>`;
             html += `<button onclick="openNewPix('${d.id}')" class="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold"><i class="fa-brands fa-pix mr-1"></i> Enviar novo Pix</button>`;
             box.innerHTML = html;
         }

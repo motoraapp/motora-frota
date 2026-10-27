@@ -71,6 +71,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Todo aviso enviado ao motorista (Pix novo, problema no comprovante, CNH etc.) passa pela função `motora-push` (`new_pix` e `driver_alert`), que também cria uma mensagem de WhatsApp pronta na tabela `whatsapp_queue` (status `pendente`/`enviada`). A IA (Gemini) escreve o texto; se ela falhar ou mudar o valor ou a chave Pix, usa uma mensagem padrão.
 - O master recebe notificação "WhatsApp para X pronto"; ao tocar, abre `?abrir=ia&msg=<id>` com a mensagem em destaque. O botão Enviar abre o WhatsApp (wa.me) na conversa do motorista com o texto pronto; o dono só aperta enviar. O texto pode ser editado antes. Há "Já enviei", "Enviar de novo" e excluir.
 - Botão de liga e desliga da IA: `app_settings` chave `ia_whatsapp` = `{ativo: true|false}` (sem registro = ligada). Desligada, nenhuma mensagem nova é criada.
+- **Cobrar atraso:** botão vermelho no cartão do motorista "Em atraso" (aba Motoristas) e na Área do Pix. O app soma o que está vencido e em aberto (`atrasoDados`) e chama `motora-push` `cobranca`; a IA escreve a cobrança (firme e educada, com valor, vencimentos e chave Pix; se mudar o valor/chave usa texto padrão), grava na `whatsapp_queue` e abre a Área IA com a mensagem em destaque para o dono tocar em Enviar.
 - Nada é enviado sozinho pelo WhatsApp: não usar robô nem API da Meta sem o dono pedir.
 
 ## E-mail, telefones e regras da IA
