@@ -268,6 +268,9 @@
                 </div>
             </div>
 
+            <!-- Perfil do motorista: caução (pago e quanto falta) e previsão da próxima semana (quando em dia) -->
+            <div id="drvProfileExtras" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+
             <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
             <a id="btnInstallApk" href="motora.apk" download="MOTORA.apk" class="hidden items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-sm">
                 <i class="fa-brands fa-android text-xl"></i> Instalar app
@@ -355,7 +358,6 @@
                     </div>
 
                     <!-- Caução e multas do motorista -->
-                    <div id="drvCaucaoBox" class="hidden"></div>
                     <div id="drvMultasBox" class="hidden"></div>
                     <!-- Valor e descrição da cobrança -->
                     <div id="drvChargeInfo" class="hidden p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
@@ -2123,6 +2125,7 @@
 
         function renderDriverPanel() {
             try { renderDriverExtras(); } catch (e) { console.error(e); }
+            try { renderDriverProfileExtras(); } catch (e) { console.error(e); }
             updateInstallApkButton();
             checkApkUpdate();
             DOC_REG = [];
@@ -3692,9 +3695,9 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         // tela do motorista: caução e multas (só se o dono ligou)
         function renderDriverExtras() {
             const d = state.profile, cb = document.getElementById('drvCaucaoBox'), mb = document.getElementById('drvMultasBox');
-            if (!cb || !mb) return;
-            const st = cauStatus(d, state.pixHistory);
-            cb.classList.toggle('hidden', !st);
+            if (!mb) return;
+            const st = cb ? cauStatus(d, state.pixHistory) : null;
+            if (cb) cb.classList.toggle('hidden', !st);
             if (st) {
                 const c = st.c, ok = st.falta <= 0.005;
                 const pct = st.total ? Math.min(100, Math.round(st.pago / st.total * 100)) : 100;
@@ -3715,6 +3718,58 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     ${abertos.length ? `<p class="text-sm font-bold text-right">Em aberto: ${fmtMoney(tot)}</p>` : ''}
                 </div>`;
             }
+        }
+        // próxima segunda 23:59 (Brasília) depois de uma data
+        function mondayAfter(ms) {
+            const sp = d => new Date(new Date(d).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+            const base = sp(ms); const dow = base.getDay();
+            let add = (8 - (dow === 0 ? 7 : dow)) % 7; if (add === 0) add = 7;
+            const r = new Date(base); r.setDate(base.getDate() + add);
+            return r;
+        }
+        function renderDriverProfileExtras() {
+            const d = state.profile, box = document.getElementById('drvProfileExtras');
+            if (!box || !d || d.role !== 'driver') return;
+            const cards = [];
+            // CAUÇÃO: total, pago e quanto falta
+            const st = cauStatus(d, state.pixHistory);
+            if (st) {
+                const ok = st.falta <= 0.005, pct = st.total ? Math.min(100, Math.round(st.pago / st.total * 100)) : 100, c = st.c;
+                cards.push(`<div class="p-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 space-y-2">
+                    <p class="text-xs font-semibold uppercase text-amber-700 dark:text-amber-300"><i class="fa-solid fa-shield-halved mr-1"></i> Sua caução</p>
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div><p class="text-[10px] uppercase text-gray-500">Total</p><p class="font-bold">${fmtMoney(st.total)}</p></div>
+                        <div><p class="text-[10px] uppercase text-gray-500">Já pago</p><p class="font-bold text-emerald-700 dark:text-emerald-300">${fmtMoney(st.pago)}</p></div>
+                        <div><p class="text-[10px] uppercase text-gray-500">Falta</p><p class="font-bold ${ok ? 'text-emerald-700' : 'text-amber-700 dark:text-amber-300'}">${ok ? 'Quitada' : fmtMoney(st.falta)}</p></div>
+                    </div>
+                    <div class="h-2 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden"><div class="h-full bg-amber-500" style="width:${pct}%"></div></div>
+                    ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${c.parcelas}x de ${fmtMoney(c.valor_parcela)} · ${st.pagas || 0} parcela(s) paga(s)</p>` : ''}
+                </div>`);
+            }
+            // PRÓXIMA SEMANA: só quando está em dia
+            if (d.payment_status !== 'Em atraso') {
+                const venc = mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0));
+                const v = allVeh().find(x => x.id === d.vehicle_id);
+                const linhas = [];
+                if (v && v.rent_amount != null) linhas.push([`Aluguel ${v.model}`, Number(v.rent_amount)]);
+                const cn = cauNext(d);
+                if (cn) {
+                    // se a parcela atual ainda está no Pix desta semana, a próxima é a seguinte
+                    linhas.push([`Caução ${cn.k}/${cn.n}`, cn.valor]);
+                }
+                multasPendentes(d).forEach(i => linhas.push([i.desc, Number(i.valor)]));
+                const total = linhas.reduce((a, [, x]) => a + x, 0);
+                cards.push(`<div class="p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 space-y-2">
+                    <p class="text-xs font-semibold uppercase text-blue-700 dark:text-blue-300"><i class="fa-regular fa-calendar mr-1"></i> Próxima semana</p>
+                    <p class="text-sm">Pagamento até <b>${venc.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}, 23:59</b></p>
+                    ${linhas.length ? linhas.map(([k, x]) => `<div class="flex justify-between gap-3 text-sm"><span class="min-w-0 break-words">${esc(k)}</span><b class="whitespace-nowrap">${fmtMoney(x)}</b></div>`).join('')
+                        + `<div class="flex justify-between gap-3 text-sm font-bold border-t border-blue-200 dark:border-blue-800 pt-1.5"><span>Total previsto</span><span>${fmtMoney(total)}</span></div>`
+                        : '<p class="text-xs text-gray-500">O valor aparece quando o dono enviar o Pix.</p>'}
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400">Previsão. O valor final vem no Pix da semana.</p>
+                </div>`);
+            }
+            box.innerHTML = cards.join('');
+            box.classList.toggle('hidden', !cards.length);
         }
         // ===== VALORES DA COBRANÇA: aluguel do carro + acréscimo − desconto =====
         async function editVehicleRent(id) {
