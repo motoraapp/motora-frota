@@ -478,6 +478,7 @@
                                 <tr>
                                     <th class="p-3 rounded-l-xl">Modelo</th>
                                     <th class="p-3">Placa</th>
+                                    <th class="p-3">Aluguel/semana</th>
                                     <th class="p-3">CRLV-e</th>
                                     <th class="p-3 text-right rounded-r-xl">Ações</th>
                                 </tr>
@@ -502,6 +503,10 @@
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Placa</label>
                             <input type="text" id="vehPlate" required placeholder="Ex: ABC-1D23" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor do aluguel por semana (R$)</label>
+                            <input type="text" id="vehRent" inputmode="decimal" placeholder="Ex: 550,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Arquivo CRLV-e (PDF/Img)</label>
@@ -1074,7 +1079,7 @@
 
     <!-- MODAL NOVO PIX -->
     <div id="modalNewPix" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <form onsubmit="saveNewPix(event)" class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+        <form onsubmit="saveNewPix(event)" class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="text-lg font-bold"><i class="fa-brands fa-pix text-emerald-500 mr-1"></i> <span id="newPixTitle">Enviar novo Pix</span></h3>
@@ -1117,17 +1122,42 @@
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O motorista vê a chave e o tipo, com um botão para copiar.</p>
                 </div>
             </div>
-            <div>
-                <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor desta semana (R$)</label>
-                <input type="text" inputmode="decimal" id="newPixAmount" required placeholder="Ex: 650,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+            <!-- VALORES DA COBRANÇA: aluguel do carro (automático) + acréscimo − desconto -->
+            <div class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/10 p-3 space-y-3">
+                <p class="text-xs font-bold uppercase text-emerald-800 dark:text-emerald-300"><i class="fa-solid fa-calculator mr-1"></i> Valores da cobrança</p>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1" id="newPixRentLabel">Aluguel do carro (R$)</label>
+                    <input type="text" inputmode="decimal" id="newPixRent" placeholder="Ex: 550,00" oninput="calcNewPix()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <p id="newPixRentInfo" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-solid fa-plus text-emerald-600 mr-1"></i>Acréscimo (valor a mais)</label>
+                    <div class="grid grid-cols-5 gap-2">
+                        <input type="text" id="newPixAddDesc" maxlength="80" placeholder="Motivo (ex: Caução 1/10)" oninput="calcNewPix()" class="col-span-3 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        <input type="text" inputmode="decimal" id="newPixAddVal" placeholder="R$ 0,00" oninput="calcNewPix()" class="col-span-2 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    </div>
+                    <label class="flex items-center gap-2 mt-1.5 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="newPixAddRepeat" class="w-4 h-4"> Repetir nas próximas cobranças deste motorista (ex: caução em parcelas: 1/10, 2/10...)</label>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-solid fa-minus text-red-600 mr-1"></i>Desconto (despesa a abater)</label>
+                    <div class="grid grid-cols-5 gap-2">
+                        <input type="text" id="newPixDiscDesc" maxlength="80" placeholder="Motivo (ex: Pneu pago pelo motorista)" oninput="calcNewPix()" class="col-span-3 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        <input type="text" inputmode="decimal" id="newPixDiscVal" placeholder="R$ 0,00" oninput="calcNewPix()" class="col-span-2 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-emerald-200 dark:border-emerald-800">
+                    <span class="text-sm font-bold">Total desta semana</span>
+                    <span id="newPixTotal" class="text-xl font-bold text-emerald-700 dark:text-emerald-300">R$ 0,00</span>
+                </div>
+                <input type="hidden" id="newPixAmount">
             </div>
             <div>
                 <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Descrição dos valores (o motorista vê)</label>
-                <textarea id="newPixDescription" rows="3" maxlength="600" placeholder="Ex: Aluguel da semana R$ 600,00&#10;Multa de trânsito R$ 50,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                <textarea id="newPixDescription" rows="4" maxlength="600" oninput="this.dataset.touched='1'" placeholder="Monta sozinha com os valores acima; você pode mudar" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
             </div>
             <p class="text-xs p-3 rounded-xl bg-blue-50 dark:bg-gray-700/50 text-blue-800 dark:text-blue-300" id="newPixDueInfo"></p>
             <button type="submit" id="newPixSubmit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm transition-colors">
-                Enviar Pix e avisar motorista
+                Confirmar e enviar Pix
             </button>
         </form>
     </div>
@@ -2409,12 +2439,13 @@
             renderMasterResumo();
             const vehTbody = document.getElementById('tblVehiclesList');
             if (state.vehicles.length === 0) {
-                vehTbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400 italic">Nenhum veículo cadastrado.</td></tr>`;
+                vehTbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400 italic">Nenhum veículo cadastrado.</td></tr>`;
             } else {
                 vehTbody.innerHTML = state.vehicles.map(v => `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td class="p-3 font-semibold">${esc(v.model)}</td>
                         <td class="p-3">${esc(v.plate)}</td>
+                        <td class="p-3"><button onclick="editVehicleRent('${v.id}')" class="text-sm font-semibold ${v.rent_amount != null ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600'}"><i class="fa-solid fa-pen-to-square mr-1 text-xs"></i>${v.rent_amount != null ? fmtMoney(v.rent_amount) : 'Definir valor'}</button></td>
                         <td class="p-3">
                             ${v.crlv_path ? `<button onclick="viewDocIdx(${docRef(v.crlv_path, `CRLV-e - ${esc(v.plate)}`)})" class="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 rounded-lg font-semibold"><i class="fa-solid fa-eye mr-1"></i> Visualizar</button>` : `<span class="text-xs text-gray-400">Sem arquivo</span>`}
                         </td>
@@ -2522,7 +2553,8 @@
 
             setBusy(form, true);
             try {
-                const { data: veh, error } = await sb.from('vehicles').insert({ model, plate }).select().single();
+                const rentVal = parseMoney(document.getElementById('vehRent').value);
+                const { data: veh, error } = await sb.from('vehicles').insert(rentVal != null ? { model, plate, rent_amount: rentVal } : { model, plate }).select().single();
                 if (error) throw error;
                 if (crlvFile) {
                     const path = await uploadFile(crlvFile, `vehicles/${veh.id}/crlv`);
@@ -3458,7 +3490,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             document.getElementById('newPixDriverId').value = id;
             document.getElementById('newPixMode').value = 'new';
             document.getElementById('newPixTitle').innerText = 'Enviar novo Pix';
-            document.getElementById('newPixSubmit').innerText = 'Enviar Pix e avisar motorista';
+            document.getElementById('newPixSubmit').innerText = 'Confirmar e enviar Pix';
             document.getElementById('newPixDriverName').innerText = `Motorista: ${d.name}`;
             document.getElementById('newPixCode').value = '';
             document.getElementById('newPixQrFile').value = '';
@@ -3471,10 +3503,74 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             document.getElementById('newPixKeyOn').checked = pk ? true : keyOnPref === '1';
             togglePixKeyFields();
             previewNewPixQr();
-            document.getElementById('newPixAmount').value = d.pix_amount != null ? String(d.pix_amount).replace('.', ',') : '';
-            document.getElementById('newPixDescription').value = d.pix_description || '';
+            fillNewPixValues(d);
             document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Nova data de pagamento: <b>${nextDueLocal()} até 23:59</b>. O motorista recebe uma notificação no celular.`;
             document.getElementById('modalNewPix').classList.remove('hidden');
+        }
+        // ===== VALORES DA COBRANÇA: aluguel do carro + acréscimo − desconto =====
+        async function editVehicleRent(id) {
+            const v = state.vehicles.find(x => x.id === id); if (!v) return;
+            const cur = v.rent_amount != null ? String(v.rent_amount).replace('.', ',') : '';
+            const txt = prompt(`Valor do aluguel por semana do ${v.model} (${v.plate}).\nEle entra sozinho no Pix do motorista deste carro.`, cur);
+            if (txt === null) return;
+            const val = txt.trim() ? parseMoney(txt) : null;
+            if (txt.trim() && val == null) { showToast('Valor inválido. Ex: 550,00', 'error'); return; }
+            const { error } = await sb.from('vehicles').update({ rent_amount: val }).eq('id', id);
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            await reload(); showToast(val != null ? `Aluguel do ${v.model}: ${fmtMoney(val)} por semana.` : 'Valor do aluguel removido.');
+        }
+        // "Caução 1/10" vira "Caução 2/10" na cobrança seguinte (para quando passar de 10/10)
+        function nextParcel(desc) {
+            const m = String(desc || '').match(/(\d+)\s*\/\s*(\d+)/);
+            if (!m) return { desc, done: false };
+            const n = +m[1] + 1, t = +m[2];
+            return n > t ? { desc, done: true } : { desc: String(desc).replace(m[0], `${n}/${t}`), done: false };
+        }
+        function fillNewPixValues(d) {
+            const v = allVeh().find(x => x.id === d.vehicle_id);
+            const rentEl = document.getElementById('newPixRent');
+            document.getElementById('newPixRentLabel').textContent = v ? `Aluguel do ${v.model} (R$)` : 'Aluguel do carro (R$)';
+            rentEl.value = v && v.rent_amount != null ? String(v.rent_amount).replace('.', ',') : '';
+            document.getElementById('newPixRentInfo').innerHTML = !v ? '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i>Motorista sem carro vinculado: digite o valor.'
+                : (v.rent_amount != null ? '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>Valor do carro (aba Veículos).' : '<i class="fa-solid fa-circle-info mr-1"></i>Este carro ainda não tem valor de aluguel: o que você digitar aqui fica salvo nele.');
+            // acréscimo que se repete (ex: caução em parcelas)
+            const ex = d.pix_extra || {};
+            let addDesc = '', addVal = '', repeat = false;
+            if (ex.repetir && ex.valor) {
+                const np = ex.ultimo_enviado ? nextParcel(ex.descricao) : { desc: ex.descricao, done: false };
+                if (!np.done) { addDesc = np.desc || ''; addVal = String(ex.valor).replace('.', ','); repeat = true; }
+            }
+            document.getElementById('newPixAddDesc').value = addDesc;
+            document.getElementById('newPixAddVal').value = addVal;
+            document.getElementById('newPixAddRepeat').checked = repeat;
+            document.getElementById('newPixDiscDesc').value = '';
+            document.getElementById('newPixDiscVal').value = '';
+            const ds = document.getElementById('newPixDescription'); ds.value = ''; delete ds.dataset.touched;
+            calcNewPix();
+        }
+        function newPixParts() {
+            const d = state.drivers.find(x => x.id === document.getElementById('newPixDriverId').value) || {};
+            const v = allVeh().find(x => x.id === d.vehicle_id);
+            const rent = parseMoney(document.getElementById('newPixRent').value) || 0;
+            const add = parseMoney(document.getElementById('newPixAddVal').value) || 0;
+            const disc = parseMoney(document.getElementById('newPixDiscVal').value) || 0;
+            const addDesc = document.getElementById('newPixAddDesc').value.trim(), discDesc = document.getElementById('newPixDiscDesc').value.trim();
+            const total = Math.round((rent + add - disc) * 100) / 100;
+            const editing = document.getElementById('newPixMode').value === 'edit';
+            const lines = [];
+            if (rent) lines.push(`${editing ? 'Valor da cobrança' : 'Aluguel' + (v ? ' ' + v.model + ' (' + v.plate + ')' : ' da semana')}: ${fmtMoney(rent)}`);
+            if (add) lines.push(`+ ${addDesc || 'Acréscimo'}: ${fmtMoney(add)}`);
+            if (disc) lines.push(`− ${discDesc || 'Desconto'}: ${fmtMoney(disc)}`);
+            if (add || disc) lines.push(`Total: ${fmtMoney(total)}`);
+            return { d, v, rent, add, disc, addDesc, discDesc, total, lines };
+        }
+        function calcNewPix() {
+            const p = newPixParts();
+            document.getElementById('newPixTotal').textContent = fmtMoney(p.total);
+            document.getElementById('newPixTotal').classList.toggle('text-red-600', p.total <= 0);
+            document.getElementById('newPixAmount').value = p.total > 0 ? String(p.total).replace('.', ',') : '';
+            const ds = document.getElementById('newPixDescription');
+            if (!ds.dataset.touched) ds.value = p.lines.join('\n');
         }
         // ===== RECIBO DE PAGAMENTO =====
         let reciboLines = [], reciboDriverId = null;
@@ -3873,6 +3969,13 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             document.getElementById('newPixTitle').innerText = 'Editar Pix enviado';
             document.getElementById('newPixSubmit').innerText = 'Salvar alterações';
             document.getElementById('newPixCode').value = d.pix_code || '';
+            document.getElementById('newPixRent').value = d.pix_amount != null ? String(d.pix_amount).replace('.', ',') : '';
+            document.getElementById('newPixRentLabel').textContent = 'Valor da cobrança (R$)';
+            document.getElementById('newPixRentInfo').textContent = 'Ajuste o valor ou use acréscimo/desconto.';
+            ['newPixAddDesc', 'newPixAddVal', 'newPixDiscDesc', 'newPixDiscVal'].forEach(i => document.getElementById(i).value = '');
+            document.getElementById('newPixAddRepeat').checked = false;
+            const ds = document.getElementById('newPixDescription'); ds.value = d.pix_description || ''; ds.dataset.touched = '1';
+            calcNewPix();
             previewNewPixQr();
             document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> A data de pagamento continua a mesma: <b>${fmtDue(d.pix_due_at)} até 23:59</b>.${d.pix_qr_path ? ' Se não escolher outra imagem, o QR Code atual continua.' : ''} O motorista é avisado da alteração.`;
         }
@@ -3902,8 +4005,14 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const d = state.drivers.find(x => x.id === id);
             const keepQr = editing && !qr && d && d.pix_qr_path;
             if (!code && !qr && !keepQr) { showToast("Envie o QR Code ou cole o Pix copia e cola.", "error"); return; }
+            calcNewPix();
+            const parts = newPixParts();
             const amount = parseMoney(document.getElementById('newPixAmount').value);
-            if (amount == null) { showToast("Informe o valor desta semana (ex: 650,00).", "error"); return; }
+            if (amount == null || amount <= 0) { showToast("Informe o valor do aluguel (ex: 550,00). O total precisa ser maior que zero.", "error"); return; }
+            if (parts.add && !parts.addDesc) { showToast("Escreva o motivo do acréscimo (ex: Caução 1/10).", "error"); return; }
+            if (parts.disc && !parts.discDesc) { showToast("Escreva o motivo do desconto (ex: despesa paga pelo motorista).", "error"); return; }
+            const resumo = `${editing ? 'Salvar' : 'Enviar'} este Pix para ${d ? d.name : 'o motorista'}?\n\n${parts.lines.join('\n') || 'Total: ' + fmtMoney(amount)}${parts.add || parts.disc ? '' : '\nTotal: ' + fmtMoney(amount)}`;
+            if (!confirm(resumo)) return;
             setBusy(form, true);
             try {
                 if (code && !pixValid(code) && !confirm('Este código Pix parece incompleto ou com erro. Enviar mesmo assim?')) return;
@@ -3928,6 +4037,11 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     return;
                 }
                 const updates = { pix_code: code || null, pix_sent_at: new Date().toISOString(), pix_amount: amount, pix_link: link || null, pix_description: desc || null };
+                // acréscimo que se repete (ex: caução 1/10, 2/10...): fica guardado para a próxima cobrança
+                const repeat = document.getElementById('newPixAddRepeat').checked && parts.add > 0;
+                updates.pix_extra = repeat ? { repetir: true, descricao: parts.addDesc, valor: parts.add, ultimo_enviado: true } : null;
+                // carro sem valor de aluguel: guarda o valor digitado nele
+                if (parts.v && parts.v.rent_amount == null && parts.rent > 0) sb.from('vehicles').update({ rent_amount: parts.rent }).eq('id', parts.v.id).then(() => {}, () => {});
                 if (qr) {
                     const path = await uploadFile(qr, `${id}/pix-qr-${Date.now()}`);
                     if (!path) return;

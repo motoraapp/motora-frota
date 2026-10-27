@@ -42,6 +42,9 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 ## Cobrança Pix (semanal)
 - O dono cobra por Pix e confere o pagamento olhando o banco.
 - No "Novo Pix" o campo do link do Banco do Brasil foi trocado por **Chave Pix** + tipo (Aleatória, Celular, CPF, CNPJ, E-mail). A chave fica guardada na coluna `pix_link` no formato `chave:tipo|valor` (o banco não ganhou coluna nova). O motorista vê a chave e o tipo com botão Copiar; some quando o comprovante é aceito. Na janela do Pix há uma chave de liga e desliga "Pix com chave" (o app lembra a última escolha).
+- **Valor do aluguel do carro:** cada veículo tem `rent_amount` (aba Veículos, coluna "Aluguel/semana", toque para editar; também no cadastro do carro). No Novo Pix ele entra sozinho em "Valores da cobrança".
+- **Valores da cobrança (Novo Pix):** Aluguel do carro + **Acréscimo** (motivo + valor, ex.: Caução 1/10) − **Desconto** (motivo + valor, ex.: despesa paga pelo motorista) = Total. A descrição monta sozinha (pode ser editada). Botão "Confirmar e enviar Pix" mostra o resumo antes. "Repetir nas próximas cobranças" guarda o acréscimo em `profiles.pix_extra` e a parcela avança sozinha (1/10 → 2/10 … para depois de 10/10).
+- **Abatimento automático:** `reallocate_driver_payments` distribui os comprovantes aceitos pelas cobranças (da mais antiga para a mais nova; a sobra quita a seguinte, mesmo criada depois), marca as quitadas como pagas e volta o motorista para "Em dia" se não sobrar nada vencido. Roda quando um comprovante é aceito/recusado, quando uma cobrança nova é criada e na checagem de atraso.
 - A cada novo Pix, o motorista recebe notificação com a nova data de pagamento e o aviso de enviar o comprovante pelo app.
 - Todo domingo o dono recebe lembrete para enviar as novas cobranças.
 - No "Novo Pix" o dono escreve a descrição dos valores cobrados; o motorista vê o valor e a descrição na aba Pagamento.
