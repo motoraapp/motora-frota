@@ -279,6 +279,7 @@
             <!-- Perfil do motorista: caução (pago e quanto falta) e previsão da próxima semana (quando em dia) -->
             <div id="drvProfileExtras" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
             <button id="btnMeusRecibos" onclick="openMeusRecibos()" class="w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-receipt"></i> Meus recibos <span id="meusRecibosCount" class="px-2 py-0.5 rounded-full bg-white/25 text-xs"></span></button>
+            <button id="btnTrocarSenhaDrv" onclick="abrirSenha()" class="w-full py-3 rounded-2xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
 
             <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
             <a id="btnInstallApk" href="motora.apk" download="MOTORA.apk" class="hidden items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-sm">
@@ -727,6 +728,7 @@
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-gear mr-1"></i> Configurações</h3>
                 <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
+            <button type="button" onclick="abrirSenha()" class="w-full py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
             <div class="space-y-2">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-brush text-blue-500 mr-1"></i> Aparência do app</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Escolha o visual de cada um. O dos motoristas vale para todos os motoristas.</p>
@@ -955,6 +957,29 @@
     </div>
 
     <!-- MEUS RECIBOS (motorista): todos os recibos pagos, cada um em PDF -->
+    <!-- TROCAR MINHA SENHA (motorista e dono) -->
+    <div id="modalSenha" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div class="flex justify-between items-center mb-1">
+                <h3 class="text-lg font-bold"><i class="fa-solid fa-key text-blue-600 mr-1"></i> Trocar minha senha</h3>
+                <button type="button" onclick="fecharSenha()" class="w-10 h-10 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Crie uma senha só sua, com pelo menos 6 letras ou números. Não passe para ninguém.</p>
+            <form id="formSenha" onsubmit="salvarSenha(event)" class="space-y-3" novalidate>
+                <input type="text" id="senhaUser" autocomplete="username" class="hidden" tabindex="-1" aria-hidden="true">
+                <div><label for="senhaAtual" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Senha atual</label>
+                    <input type="password" id="senhaAtual" autocomplete="current-password" oninput="senhaErro('')" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-base"></div>
+                <div><label for="senhaNova" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Nova senha</label>
+                    <input type="password" id="senhaNova" autocomplete="new-password" oninput="senhaErro('')" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-base"></div>
+                <div><label for="senhaNova2" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Repita a nova senha</label>
+                    <input type="password" id="senhaNova2" autocomplete="new-password" oninput="senhaErro('')" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-base"></div>
+                <label class="flex items-center gap-2 py-1 cursor-pointer"><input type="checkbox" id="senhaMostrar" onchange="['senhaAtual','senhaNova','senhaNova2'].forEach(i=>document.getElementById(i).type=this.checked?'text':'password')" class="w-5 h-5 rounded"><span class="text-sm text-gray-600 dark:text-gray-300">Mostrar as senhas</span></label>
+                <div id="senhaErro" role="alert" class="hidden text-sm font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5"></div>
+                <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2"><i class="fa-solid fa-check"></i> Salvar nova senha</button>
+            </form>
+        </div>
+    </div>
+
     <div id="modalMeusRecibos" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
@@ -1927,6 +1952,38 @@
             toast.classList.remove('-translate-y-20', 'opacity-0');
             clearTimeout(showToast._t);
             showToast._t = setTimeout(() => toast.classList.add('-translate-y-20', 'opacity-0'), 3500);
+        }
+
+        // ===== TROCAR MINHA SENHA (o motorista troca a senha padrão por uma só dele) =====
+        function senhaErro(msg) { const el = document.getElementById('senhaErro'); el.textContent = msg ? '⚠ ' + msg : ''; el.classList.toggle('hidden', !msg); }
+        function abrirSenha() {
+            if (DEMO) { showToast('Na demonstração a senha não pode ser trocada.', 'error'); return; }
+            if (state.viewingAs) { showToast('Você está na conta do motorista: só ele pode trocar a senha dele.', 'error'); return; }
+            ['senhaAtual', 'senhaNova', 'senhaNova2'].forEach(i => { const el = document.getElementById(i); el.value = ''; el.type = 'password'; });
+            document.getElementById('senhaMostrar').checked = false;
+            document.getElementById('senhaUser').value = showLogin(state.user && state.user.email);
+            senhaErro('');
+            document.getElementById('modalSenha').classList.remove('hidden');
+        }
+        function fecharSenha() { document.getElementById('modalSenha').classList.add('hidden'); }
+        async function salvarSenha(e) {
+            e.preventDefault();
+            const atual = document.getElementById('senhaAtual').value, nova = document.getElementById('senhaNova').value, nova2 = document.getElementById('senhaNova2').value;
+            if (!atual) return senhaErro('Digite a sua senha atual.');
+            if (nova.length < 6) return senhaErro('A nova senha precisa ter pelo menos 6 letras ou números.');
+            if (nova !== nova2) return senhaErro('As duas novas senhas não são iguais.');
+            if (nova === atual) return senhaErro('A nova senha precisa ser diferente da atual.');
+            if (DEMO || state.viewingAs || !state.user) return;
+            const form = e.target; setBusy(form, true);
+            try {
+                const { error: e1 } = await sb.auth.signInWithPassword({ email: state.user.email, password: atual }); // confere a senha atual
+                if (e1) { senhaErro(/Invalid login/i.test(e1.message || '') ? 'A senha atual está errada.' : friendlyError(e1)); return; }
+                const { error: e2 } = await sb.auth.updateUser({ password: nova });
+                if (e2) { senhaErro(/different|same/i.test(e2.message || '') ? 'A nova senha precisa ser diferente da atual.' : /weak|short|least/i.test(e2.message || '') ? 'Senha fraca. Use pelo menos 6 letras ou números.' : friendlyError(e2)); return; }
+                fecharSenha();
+                showToast('Senha trocada! Use a nova senha no próximo login.');
+            } catch (err) { senhaErro(friendlyError(err)); }
+            finally { setBusy(form, false); }
         }
 
         // LÓGICA DE LOGIN

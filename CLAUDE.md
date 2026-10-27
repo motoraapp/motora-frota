@@ -32,7 +32,9 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 
 ## Regras de negócio
 - Login: usuário = primeiro nome + sobrenome juntos, em minúsculas (ex.: Thiago Gomes Borges → `thiagogomes`); senha = 6 primeiros dígitos do CPF. Campo de usuário com teclado em minúsculas. Caixinha para salvar a senha.
-- Login errado mostra uma mensagem de erro; não mostrar mensagem quando o login está certo.
+- Login errado mostra uma mensagem de erro (na própria tela, `#loginErro`); não mostrar mensagem quando o login está certo. Tela de login refeita: ícone, campos com letra 16px (iPhone não dá zoom), olho para ver a senha.
+- **Trocar minha senha:** motorista (botão abaixo de "Meus recibos") e dono (Configurações) trocam a senha padrão por uma só deles (`modalSenha`: confere a senha atual e usa `auth.updateUser`). Bloqueado na demonstração e quando o dono está dentro da conta do motorista.
+- iPhone (app na tela de início): `tecladoIPhone()` força o foco no toque para o teclado abrir.
 - Cadastro de motorista: ao enviar CNH, comprovante de endereço e CRLV, o app preenche o cadastro sozinho. A cada motorista novo, o dono recebe e-mail com usuário e senha.
 - Sempre que uma CNH nova for enviada, a foto do perfil do motorista também é atualizada.
 - CNH vencida: aviso na tela principal do dono e do motorista e botão para enviar a CNH nova; quando o motorista atualizar, o dono é avisado e o botão some.
@@ -51,6 +53,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - **Semana do pagamento:** o Pix que vence na segunda vale daquela segunda até o domingo seguinte (`semanaDoPix`); aparece no recibo ("Válido de segunda … a domingo …").
 - **Meus recibos (motorista):** botão abaixo do perfil com todos os recibos pagos (comprovantes aceitos), do mais novo ao mais antigo, com data, valor e semana; cada um abre em PDF (Salvar PDF = imprimir; Enviar = compartilhar). O texto vem de `reciboTexto()`, o mesmo do recibo do dono.
 - **Multas e outras despesas (por motorista):** na ficha, com botão de liga/desliga (`pix_extra.multas = {ativo, itens:[{id, desc, valor, data, cobrada, paga}]}`; salva na hora). Só aparece (para o dono e para o motorista) se estiver ligado. Pendentes entram **marcadas** no Novo Pix (dá para desmarcar); ao enviar ficam "cobrada" com a data; contam como pagas quando o Pix daquele dia é pago, ou o dono marca "paga" na ficha.
+- **Segurança no banco (27/10/2026):** motorista só cria comprovante com `driver_id`, `file_name` e `file_path` da própria pasta (não consegue marcar como confirmado); comprovante com o mesmo `id_transacao` não conta duas vezes no abatimento; funções internas (`reallocate_driver_payments`, `cnh_daily_alerts`, gatilhos) não podem ser chamadas de fora; motorista lê só `vehicles/<carro>/crlv*` e `vehicles/<carro>/vistoria/` (não as despesas).
 - **Abatimento automático:** `reallocate_driver_payments` distribui os comprovantes aceitos pelas cobranças (da mais antiga para a mais nova; a sobra quita a seguinte, mesmo criada depois), marca as quitadas como pagas e volta o motorista para "Em dia" se não sobrar nada vencido. Roda quando um comprovante é aceito/recusado, quando uma cobrança nova é criada e na checagem de atraso.
 - A cada novo Pix, o motorista recebe notificação com a nova data de pagamento e o aviso de enviar o comprovante pelo app.
 - Todo domingo o dono recebe lembrete para enviar as novas cobranças.
