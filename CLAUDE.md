@@ -49,6 +49,13 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - O motorista só vê as formas de pagamento que o dono preencheu (QR, copia e cola, chave). Todas somem no prazo (segunda 23:59): aparece "Prazo de pagamento encerrado", e ele ainda pode enviar comprovante.
 - Prazo do comprovante: segunda-feira 23:59. Quem não enviar vira "Em atraso"; se enviar depois, volta sozinho para "Em dia".
 
+## Área IA (master) — WhatsApp sem robô
+- Botão "Área IA" no painel master (e "IA" na barra de baixo do design novo), com número de mensagens para enviar.
+- Todo aviso enviado ao motorista (Pix novo, problema no comprovante, CNH etc.) passa pela função `motora-push` (`new_pix` e `driver_alert`), que também cria uma mensagem de WhatsApp pronta na tabela `whatsapp_queue` (status `pendente`/`enviada`). A IA (Gemini) escreve o texto; se ela falhar ou mudar o valor ou a chave Pix, usa uma mensagem padrão.
+- O master recebe notificação "WhatsApp para X pronto"; ao tocar, abre `?abrir=ia&msg=<id>` com a mensagem em destaque. O botão Enviar abre o WhatsApp (wa.me) na conversa do motorista com o texto pronto; o dono só aperta enviar. O texto pode ser editado antes. Há "Já enviei", "Enviar de novo" e excluir.
+- Botão de liga e desliga da IA: `app_settings` chave `ia_whatsapp` = `{ativo: true|false}` (sem registro = ligada). Desligada, nenhuma mensagem nova é criada.
+- Nada é enviado sozinho pelo WhatsApp: não usar robô nem API da Meta sem o dono pedir.
+
 ## Financeiro (master)
 - Separar "Aluguéis" e "Ganhos aplicativo" (corridas Uber/99/inDrive). Despesas em aba separada.
 - Aba "Aluguéis": Recebido = soma dos pagamentos por Pix no período (valor dos comprovantes aceitos, com a mesma distribuição entre cobranças do recibo); Em aberto = o que falta das cobranças. Período inclui Hoje, Esta semana e "Escolher datas". Área **Filtros**: Aluguéis (motorista, veículo); Ganhos aplicativo (aplicativo, tipo de despesa, veículo).

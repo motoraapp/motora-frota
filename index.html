@@ -433,6 +433,10 @@
                 <i class="fa-brands fa-pix"></i> Área do Pix
             </button>
 
+            <button onclick="openIA()" class="masterAtalho w-full py-3 rounded-2xl font-bold text-sm bg-green-600 hover:bg-green-700 text-white shadow-sm flex items-center justify-center gap-2">
+                <i class="fa-solid fa-robot"></i> Área IA <span class="iaBadge hidden ml-1 px-2 py-0.5 rounded-full bg-white text-green-700 text-xs"></span>
+            </button>
+
             <button id="btnFinance" onclick="openFinance()" class="masterAtalho w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2">
                 <i class="fa-solid fa-sack-dollar"></i> Controle financeiro
             </button>
@@ -587,10 +591,11 @@
     </main>
 
     <!-- Barra de baixo do dono (só no design novo) -->
-    <nav id="masterNav" class="bottomNav" style="grid-template-columns:repeat(5,1fr)">
+    <nav id="masterNav" class="bottomNav" style="grid-template-columns:repeat(6,1fr)">
         <button type="button" id="mnVeh" onclick="switchMasterTab('vehicles');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-car"></i>Veículos</button>
         <button type="button" id="mnDrv" onclick="switchMasterTab('drivers');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-users"></i>Motoristas</button>
         <button type="button" onclick="openPixArea()"><i class="fa-brands fa-pix"></i>Pix</button>
+        <button type="button" onclick="openIA()" style="position:relative"><i class="fa-solid fa-robot"></i>IA<span class="iaBadge hidden" style="position:absolute;top:2px;right:18%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:18px"></span></button>
         <button type="button" onclick="openFinance()"><i class="fa-solid fa-sack-dollar"></i>Financeiro</button>
         <button type="button" onclick="openSettings()"><i class="fa-solid fa-gear"></i>Ajustes</button>
     </nav>
@@ -818,6 +823,30 @@
                     <select id="pixAreaDriver" onchange="renderPixArea()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
                 </div>
                 <div id="pixAreaBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ÁREA IA (MASTER): mensagens de WhatsApp prontas para cada aviso enviado ao motorista -->
+    <div id="modalIA" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-solid fa-robot text-green-600 mr-1"></i> Área IA</h3>
+                <button onclick="closeIA()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar space-y-4">
+                <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer">
+                    <span class="min-w-0">
+                        <span id="iaSwitchLabel" class="block text-sm font-bold">IA ligada</span>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Todo aviso enviado ao motorista vira uma mensagem de WhatsApp pronta para você enviar.</span>
+                    </span>
+                    <span class="sw"><input type="checkbox" id="iaSwitch" onchange="toggleIA(this.checked)"><span></span></span>
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="iaTabPend" onclick="iaShow('pendente')" class="py-2 rounded-xl text-sm font-semibold">Para enviar</button>
+                    <button id="iaTabSent" onclick="iaShow('enviada')" class="py-2 rounded-xl text-sm font-semibold">Enviadas</button>
+                </div>
+                <div id="iaList" class="space-y-3"></div>
             </div>
         </div>
     </div>
@@ -1370,7 +1399,17 @@
                     invoke: async (name, opts) => {
                         const b = (opts && opts.body) || {};
                         if (name === 'motora-login-as') { const d = DEMO.db.profiles.find(p => p.id === b.driver_id && p.role === 'driver'); return d ? { data: { token_hash: 'demo:' + d.id, name: d.name }, error: null } : { data: { error: 'motorista não encontrado' }, error: null }; }
-                        if (name === 'motora-push') return { data: { sent: 0 }, error: null };
+                        if (name === 'motora-push') {
+                            const cfg = (DEMO.db.app_settings || []).find(x => x.key === 'ia_whatsapp');
+                            const d = b.type === 'new_pix' && DEMO.db.profiles.find(p => p.id === b.driver_id);
+                            if (d && !(cfg && cfg.value && cfg.value.ativo === false)) {
+                                const pk = parsePixKey(d.pix_link);
+                                const msg = `Olá, ${String(d.name || '').split(' ')[0]}! 👋\n\nSeu novo Pix já está no app.\n${d.pix_amount != null ? 'Valor: ' + fmtMoney(d.pix_amount) + '\n' : ''}${pk ? 'Chave Pix (' + pk.label + '): ' + pk.key + '\n' : ''}Pagamento até ${fmtDue(d.pix_due_at)}, 23:59. Depois de pagar, envie o comprovante pelo app.\n\nQualquer dúvida, estou à disposição.`;
+                                (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: d.id, title: 'Novo Pix disponível', body: '', message: msg, status: 'pendente', created_at: new Date().toISOString(), sent_at: null });
+                                demoSave(); setTimeout(() => loadIA().catch(() => {}), 0);
+                            }
+                            return { data: { sent: 0 }, error: null };
+                        }
                         return { data: { ok: false, error: 'A leitura por IA fica desligada na demonstração.' }, error: null };
                     },
                 },
@@ -1729,7 +1768,7 @@
         window.addEventListener('focus', autoRefresh);
         window.addEventListener('online', autoRefresh);
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.addEventListener('message', ev => { if (ev.data && ev.data.type === 'refresh') autoRefresh(); });
+            navigator.serviceWorker.addEventListener('message', ev => { if (ev.data && ev.data.type === 'refresh') { autoRefresh(); if (state.profile && state.profile.role === 'master') loadIA().then(() => { if (!document.getElementById('modalIA').classList.contains('hidden')) renderIA(); }).catch(() => {}); } });
         }
         function markUpdated() {
             const el = document.getElementById('lastUpdated');
@@ -1753,6 +1792,13 @@
                 showSection('secMasterPanel');
                 loadConfigStatus().catch(() => {});
                 renderMasterPanel();
+                loadIA().catch(() => {});
+                // veio da notificação da Área IA: abre a mensagem pronta para enviar no WhatsApp
+                if (new URLSearchParams(location.search).get('abrir') === 'ia') {
+                    const msgId = new URLSearchParams(location.search).get('msg');
+                    history.replaceState(null, '', location.pathname);
+                    setTimeout(() => openIA(msgId), 300);
+                }
                 // veio da notificação do lembrete: abre direto o lançamento de ganhos do aplicativo
                 if (new URLSearchParams(location.search).get('abrir') === 'ganhos') {
                     history.replaceState(null, '', location.pathname);
@@ -3325,6 +3371,116 @@
                     showToast('Imagem do recibo baixada. Envie pelo WhatsApp.');
                 }
             } catch (e) { if (e && e.name !== 'AbortError') showToast('Não foi possível gerar a imagem.', 'error'); }
+        }
+
+        // ÁREA IA (MASTER): mensagens de WhatsApp prontas, sem robô (o dono só aperta Enviar)
+        let iaRows = [], iaTab = 'pendente', iaFocus = null, iaReady = true;
+        async function loadIA() {
+            const { data, error } = await sb.from('whatsapp_queue').select('*').order('created_at', { ascending: false }).limit(150);
+            iaReady = !error;
+            iaRows = error ? [] : (data || []);
+            updateIABadge();
+        }
+        function updateIABadge() {
+            const n = iaRows.filter(r => r.status === 'pendente').length;
+            document.querySelectorAll('.iaBadge').forEach(b => { b.textContent = n > 99 ? '99+' : n; b.classList.toggle('hidden', !n); });
+        }
+        async function loadIASetting() {
+            try {
+                const { data } = await sb.from('app_settings').select('value').eq('key', 'ia_whatsapp').maybeSingle();
+                return !(data && data.value && data.value.ativo === false); // sem registro = ligada
+            } catch (e) { return true; }
+        }
+        function paintIASwitch(on) {
+            document.getElementById('iaSwitch').checked = on;
+            const l = document.getElementById('iaSwitchLabel');
+            l.textContent = on ? 'IA ligada' : 'IA desligada';
+            l.className = 'block text-sm font-bold ' + (on ? 'text-green-600' : 'text-gray-500');
+        }
+        async function toggleIA(on) {
+            paintIASwitch(on);
+            const { error } = await sb.from('app_settings').upsert({ key: 'ia_whatsapp', value: { ativo: on }, updated_at: new Date().toISOString() });
+            if (error) { paintIASwitch(!on); showToast('Não foi possível mudar a IA. Tente de novo.', 'error'); return; }
+            showToast(on ? 'IA ligada: as próximas mensagens vão aparecer aqui.' : 'IA desligada: nenhuma mensagem nova será preparada.');
+        }
+        async function openIA(focusId) {
+            iaFocus = focusId || null;
+            if (focusId) iaTab = 'pendente';
+            document.getElementById('modalIA').classList.remove('hidden');
+            document.getElementById('iaList').innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
+            paintIASwitch(await loadIASetting());
+            await loadIA().catch(() => {});
+            renderIA();
+        }
+        function closeIA() { document.getElementById('modalIA').classList.add('hidden'); iaFocus = null; }
+        function iaShow(tab) { iaTab = tab; iaFocus = null; renderIA(); }
+        function iaPhone(d) {
+            let ph = String((d && d.phone) || '').replace(/\D/g, '');
+            if (ph.length === 10 || ph.length === 11) ph = '55' + ph;
+            return ph.length >= 12 ? ph : '';
+        }
+        function renderIA() {
+            const on = 'bg-green-600 text-white', off = 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+            document.getElementById('iaTabPend').className = 'py-2 rounded-xl text-sm font-semibold ' + (iaTab === 'pendente' ? on : off);
+            document.getElementById('iaTabSent').className = 'py-2 rounded-xl text-sm font-semibold ' + (iaTab === 'enviada' ? on : off);
+            const box = document.getElementById('iaList');
+            if (!iaReady) { box.innerHTML = '<p class="text-sm text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> A Área IA ainda não foi ativada no servidor.</p>'; return; }
+            let list = iaRows.filter(r => r.status === iaTab);
+            if (iaFocus) list.sort((a, b) => (b.id === iaFocus) - (a.id === iaFocus)); // a mensagem da notificação fica em primeiro
+            if (!list.length) {
+                box.innerHTML = `<p class="text-sm text-gray-400 italic text-center py-6">${iaTab === 'pendente' ? 'Nenhuma mensagem para enviar. Quando um motorista receber um aviso, a mensagem pronta aparece aqui.' : 'Nenhuma mensagem enviada ainda.'}</p>`;
+                return;
+            }
+            box.innerHTML = list.map(r => {
+                const d = state.drivers.find(x => x.id === r.driver_id);
+                const ph = iaPhone(d);
+                const focus = r.id === iaFocus;
+                return `<div class="p-3 rounded-xl border ${focus ? 'border-green-500 ring-2 ring-green-500/40' : 'border-gray-200 dark:border-gray-700'} space-y-2">
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold truncate"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i>${esc(d ? d.name : 'Motorista excluído')}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${esc(r.title || 'Aviso')} · ${fmtDateTimeBR(r.created_at)}</p>
+                        </div>
+                        <button onclick="iaDelete('${r.id}')" class="text-gray-400 hover:text-red-600 text-sm" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                    <textarea id="iaMsg_${r.id}" rows="6" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">${esc(r.message)}</textarea>
+                    ${ph ? '' : '<p class="text-xs text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem telefone na ficha: o WhatsApp vai pedir para escolher o contato.</p>'}
+                    ${r.status === 'pendente'
+                        ? `<div class="grid grid-cols-3 gap-2">
+                            <button onclick="iaSend('${r.id}')" class="col-span-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar</button>
+                            <button onclick="iaMark('${r.id}')" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold" title="Já enviei por fora">Já enviei</button>
+                           </div>`
+                        : `<div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-semibold text-green-600"><i class="fa-solid fa-check-double mr-1"></i>Enviada ${r.sent_at ? fmtDateTimeBR(r.sent_at) : ''}</span>
+                            <button onclick="iaSend('${r.id}', true)" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold"><i class="fa-brands fa-whatsapp mr-1"></i>Enviar de novo</button>
+                           </div>`}
+                </div>`;
+            }).join('');
+        }
+        function iaSend(id, again) {
+            const r = iaRows.find(x => x.id === id);
+            if (!r) return;
+            const ta = document.getElementById('iaMsg_' + id);
+            const text = ta ? ta.value : r.message;
+            const ph = iaPhone(state.drivers.find(x => x.id === r.driver_id));
+            window.open((ph ? 'https://wa.me/' + ph : 'https://wa.me/') + '?text=' + encodeURIComponent(text), '_blank');
+            if (!again) iaMark(id, text);
+        }
+        async function iaMark(id, text) {
+            const upd = { status: 'enviada', sent_at: new Date().toISOString() };
+            if (text) upd.message = text;
+            const { error } = await sb.from('whatsapp_queue').update(upd).eq('id', id);
+            if (error) { showToast('Não foi possível marcar como enviada.', 'error'); return; }
+            const r = iaRows.find(x => x.id === id); if (r) Object.assign(r, upd);
+            if (iaFocus === id) iaFocus = null;
+            updateIABadge(); renderIA();
+        }
+        async function iaDelete(id) {
+            if (!confirm('Excluir esta mensagem?')) return;
+            const { error } = await sb.from('whatsapp_queue').delete().eq('id', id);
+            if (error) { showToast('Não foi possível excluir.', 'error'); return; }
+            iaRows = iaRows.filter(x => x.id !== id);
+            updateIABadge(); renderIA();
         }
 
         // ÁREA DO PIX (MASTER)
