@@ -1290,6 +1290,16 @@
                 showSection('secMasterPanel');
                 loadConfigStatus().catch(() => {});
                 renderMasterPanel();
+                // veio da notificação do lembrete: abre direto o lançamento de ganhos do aplicativo
+                if (new URLSearchParams(location.search).get('abrir') === 'ganhos') {
+                    history.replaceState(null, '', location.pathname);
+                    setTimeout(() => {
+                        openFinance(); switchFinTab('apps');
+                        document.getElementById('appDate').value = workDayISO(); // no aviso de 00:00 o dia ainda é o anterior
+                        const el = document.getElementById('appShot');
+                        if (el) el.closest('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 300);
+                }
                 if (!document.getElementById('modalPixArea').classList.contains('hidden')) renderPixArea();
             } else {
                 document.getElementById('headerRoleSubtitle').innerText = `Motorista: ${state.profile.name}`;

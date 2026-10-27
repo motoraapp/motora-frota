@@ -1,4 +1,4 @@
-const CACHE = 'motora-v27';
+const CACHE = 'motora-v28';
 const BASE = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -48,10 +48,12 @@ self.addEventListener('push', function (e) {
 
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
-  var url = new URL((e.notification.data && e.notification.data.url) || '/', self.location.origin).href;
+  // o caminho é relativo à pasta do app (no GitHub Pages o app fica em /motora-frota/)
+  var raw = String((e.notification.data && e.notification.data.url) || '/');
+  var url = new URL(raw.replace(/^\/+/, ''), self.registration.scope).href;
   e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
     for (var i = 0; i < list.length; i++) {
-      if (list[i].url.indexOf(self.location.origin) === 0 && 'focus' in list[i]) { list[i].navigate(url); return list[i].focus(); }
+      if (list[i].url.indexOf(self.registration.scope) === 0 && 'focus' in list[i]) { list[i].navigate(url); return list[i].focus(); }
     }
     return clients.openWindow(url);
   }));
