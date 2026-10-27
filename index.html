@@ -354,6 +354,9 @@
                         </div>
                     </div>
 
+                    <!-- Caução e multas do motorista -->
+                    <div id="drvCaucaoBox" class="hidden"></div>
+                    <div id="drvMultasBox" class="hidden"></div>
                     <!-- Valor e descrição da cobrança -->
                     <div id="drvChargeInfo" class="hidden p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
                         <p class="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-300">Valor a pagar</p>
@@ -827,12 +830,30 @@
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor total (R$)</label><input id="dfCauTotal" type="text" inputmode="decimal" placeholder="Ex: 1.000,00" oninput="dfCauCalc(true)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Pagamento</label><select id="dfCauForma" onchange="dfCauCalc(true)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Sem caução</option><option value="paga">Já paga (completa)</option><option value="parcelada">Parcelada</option></select></div>
                     </div>
+                    <div id="dfCauEntBox" class="hidden"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Entrada já paga (R$)</label><input id="dfCauEnt" type="text" inputmode="decimal" placeholder="Ex: 200,00 (deixe vazio se não teve)" oninput="dfCauCalc(true)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div id="dfCauParc" class="hidden grid grid-cols-3 gap-3">
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Vezes</label><input id="dfCauN" type="text" inputmode="numeric" placeholder="Ex: 10" oninput="dfCauCalc(true)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">De (R$)</label><input id="dfCauVal" type="text" inputmode="decimal" placeholder="Ex: 100,00" oninput="this.dataset.touched='1';dfCauCalc(false)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Já cobradas</label><input id="dfCauCob" type="text" inputmode="numeric" placeholder="0" oninput="dfCauCalc(false)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     </div>
                     <p id="dfCauInfo" class="text-xs text-gray-600 dark:text-gray-300"></p>
+                </div>
+                <!-- MULTAS E OUTRAS DESPESAS a pagar pelo motorista (profiles.pix_extra.multas) -->
+                <div class="rounded-xl border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/10 p-3 space-y-3">
+                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                        <span class="font-semibold text-sm"><i class="fa-solid fa-file-invoice-dollar text-red-600 mr-1"></i> Multas e outras despesas</span>
+                        <span class="sw"><input type="checkbox" id="dfMultOn" onchange="toggleMultas(this.checked)"><span></span></span>
+                    </label>
+                    <div id="dfMultArea" class="hidden space-y-3">
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Valores que o motorista deve pagar (multa, franquia, conserto...). Os pendentes entram sozinhos no próximo Pix, com opção de desmarcar. O motorista vê esta lista no app dele.</p>
+                        <div id="dfMultList" class="space-y-2"></div>
+                        <div class="grid grid-cols-6 gap-2">
+                            <input id="dfMultDesc" maxlength="100" placeholder="Ex: Multa de velocidade" class="col-span-6 sm:col-span-3 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <input id="dfMultVal" type="text" inputmode="decimal" placeholder="R$ 0,00" class="col-span-3 sm:col-span-1 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <input id="dfMultDate" type="date" class="col-span-3 sm:col-span-2 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        </div>
+                        <button type="button" onclick="addMulta()" class="w-full py-2.5 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
+                    </div>
                 </div>
                 <div>
                     <h4 class="font-semibold text-sm mb-2">Termos do app</h4>
@@ -1144,6 +1165,7 @@
                     <input type="text" inputmode="decimal" id="newPixRent" placeholder="Ex: 550,00" oninput="calcNewPix()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                     <p id="newPixRentInfo" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p>
                 </div>
+                <div id="newPixMultBox" class="hidden p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 space-y-1.5"></div>
                 <div id="newPixCauBox" class="hidden p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="newPixCauOn" onchange="calcNewPix()" class="w-5 h-5"><span class="text-sm font-semibold"><i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i><span id="newPixCauTxt"></span></span></label>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Desmarque se não for cobrar a caução nesta semana.</p>
@@ -2100,6 +2122,7 @@
         }
 
         function renderDriverPanel() {
+            try { renderDriverExtras(); } catch (e) { console.error(e); }
             updateInstallApkButton();
             checkApkUpdate();
             DOC_REG = [];
@@ -2503,6 +2526,7 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td class="p-3 font-semibold">
                                 <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
+                                ${cauResumoHtml(d)}${multasResumoHtml(d)}
                                 <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
                                 <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
                                 ${waLink(d.phone || d.phone2) ? `<a href="${waLink(d.phone || d.phone2)}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> Adicionar WhatsApp</button>`}
@@ -2888,7 +2912,7 @@
             if (!d) return;
             fileDriverId = id;
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
-            dfCauFill(d);
+            dfCauFill(d); dfMultFill(d);
             document.getElementById('dfTitleName').innerText = d.name || '';
             fillAvatar(document.getElementById('dfPhoto'), id, d.name);
             const sel = document.getElementById('dfVehicle');
@@ -2924,6 +2948,7 @@
                 const cau = dfCauRead();
                 if (cau && cau.forma === 'parcelada' && (!(cau.parcelas > 0) || !(cau.valor_parcela > 0))) { showToast('Caução parcelada: informe as vezes e o valor de cada parcela.', 'error'); return; }
                 const next = { ...cur }; if (cau) next.caucao = cau; else delete next.caucao;
+                if (fileMultas) next.multas = { ...fileMultas };
                 updates.pix_extra = Object.keys(next).length ? next : null;
             }
             setBusy(form, true);
@@ -3548,21 +3573,24 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             document.getElementById('dfCauN').value = c.parcelas || '';
             const v = document.getElementById('dfCauVal'); v.value = c.valor_parcela != null ? String(c.valor_parcela).replace('.', ',') : ''; if (c.valor_parcela != null) v.dataset.touched = '1'; else delete v.dataset.touched;
             document.getElementById('dfCauCob').value = c.cobradas != null ? c.cobradas : '';
+            document.getElementById('dfCauEnt').value = c.entrada ? String(c.entrada).replace('.', ',') : '';
             dfCauCalc(false);
         }
         function dfCauCalc(auto) {
             const forma = document.getElementById('dfCauForma').value;
             document.getElementById('dfCauParc').classList.toggle('hidden', forma !== 'parcelada');
+            document.getElementById('dfCauEntBox').classList.toggle('hidden', forma !== 'parcelada');
             const total = parseMoney(document.getElementById('dfCauTotal').value), n = parseInt(document.getElementById('dfCauN').value, 10);
             const valEl = document.getElementById('dfCauVal');
-            if (auto && forma === 'parcelada' && total > 0 && n > 0 && !valEl.dataset.touched) valEl.value = (Math.round(total / n * 100) / 100).toFixed(2).replace('.', ',');
+            const ent = parseMoney(document.getElementById('dfCauEnt').value) || 0;
+            if (auto && forma === 'parcelada' && total > 0 && n > 0 && !valEl.dataset.touched) valEl.value = (Math.round(Math.max(0, total - ent) / n * 100) / 100).toFixed(2).replace('.', ',');
             const val = parseMoney(valEl.value), cob = parseInt(document.getElementById('dfCauCob').value, 10) || 0;
             const info = document.getElementById('dfCauInfo');
             if (!forma) info.textContent = 'Sem caução para este motorista.';
             else if (forma === 'paga') info.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>Caução${total ? ' de ' + fmtMoney(total) : ''} já paga. Não entra no Pix.`;
             else if (n > 0 && val > 0) {
                 const falta = Math.max(0, n - cob);
-                info.innerHTML = falta ? `<i class="fa-solid fa-circle-info mr-1"></i>${n}x de ${fmtMoney(val)}. Já cobradas ${cob}. Faltam ${falta} (${fmtMoney(falta * val)}). A próxima (${cob + 1}/${n}) entra sozinha no Novo Pix.` : '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>Todas as parcelas já foram cobradas.';
+                info.innerHTML = falta ? `<i class="fa-solid fa-circle-info mr-1"></i>${ent ? 'Entrada ' + fmtMoney(ent) + ' + ' : ''}${n}x de ${fmtMoney(val)}. Já cobradas ${cob}. Faltam ${falta} (${fmtMoney(falta * val)}). A próxima (${cob + 1}/${n}) entra sozinha no Novo Pix.` : '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>Todas as parcelas já foram cobradas.';
             } else info.textContent = 'Informe em quantas vezes e o valor de cada parcela.';
         }
         function dfCauRead() {
@@ -3574,8 +3602,119 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 out.parcelas = parseInt(document.getElementById('dfCauN').value, 10) || 0;
                 out.valor_parcela = parseMoney(document.getElementById('dfCauVal').value) || 0;
                 out.cobradas = Math.max(0, parseInt(document.getElementById('dfCauCob').value, 10) || 0);
+                out.entrada = parseMoney(document.getElementById('dfCauEnt').value) || 0;
             }
             return out;
+        }
+        // ===== CAUÇÃO: quanto já foi pago =====
+        // pago = entrada + parcelas cobradas e já pagas (parcela cobrada num Pix ainda em aberto não conta)
+        function cauStatus(d, hist) {
+            const c = cauOf(d); if (!c) return null;
+            if (c.forma === 'paga') return { c, total: Number(c.total || 0), pago: Number(c.total || 0), falta: 0 };
+            const h = (hist || state.pixHistory || []).filter(x => x.driver_id === d.id);
+            const emAberto = h.filter(x => !x.paid_at && /cau[çc][ãa]o\s*\d+\s*\/\s*\d+/i.test(x.description || '')).length;
+            const pagas = Math.max(0, (c.cobradas || 0) - emAberto);
+            const total = Number(c.total || ((c.entrada || 0) + (c.parcelas || 0) * (c.valor_parcela || 0)));
+            const pago = Math.min(total || Infinity, Number(c.entrada || 0) + pagas * Number(c.valor_parcela || 0));
+            return { c, total, pago, falta: Math.max(0, total - pago), pagas };
+        }
+        function cauResumoHtml(d) {
+            const st = cauStatus(d); if (!st) return '';
+            const ok = st.falta <= 0.005;
+            return `<div class="mt-1 text-xs font-normal ${ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}"><i class="fa-solid fa-shield-halved mr-1"></i>Caução: ${fmtMoney(st.pago)} pagos de ${fmtMoney(st.total)}${ok ? ' (quitada)' : ''}</div>`;
+        }
+        // ===== MULTAS E OUTRAS DESPESAS =====
+        function multasOf(d) { const m = d && d.pix_extra && d.pix_extra.multas; return m && m.ativo ? m : null; }
+        // multa cobrada num Pix que já foi pago conta como paga
+        function multaPagaAuto(d, i, hist) {
+            if (i.paga) return true;
+            if (!i.cobrada) return false;
+            return (hist || state.pixHistory || []).some(h => h.driver_id === d.id && h.paid_at && dayBR(h.sent_at) === i.cobrada && String(h.description || '').includes(i.desc));
+        }
+        function multasPendentes(d) { const m = multasOf(d); return m ? (m.itens || []).filter(i => !i.cobrada && !i.paga) : []; }
+        function multasResumoHtml(d) {
+            const m = multasOf(d); if (!m) return '';
+            const pend = (m.itens || []).filter(i => !multaPagaAuto(d, i)), tot = pend.reduce((a, i) => a + Number(i.valor || 0), 0);
+            return pend.length ? `<div class="text-xs font-normal text-red-600 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i>Multas/despesas em aberto: ${fmtMoney(tot)}</div>` : '';
+        }
+        let fileMultas = null; // cópia da lista da ficha aberta
+        async function savePixExtra(id, mut) {
+            const d = state.drivers.find(x => x.id === id); if (!d) return false;
+            const next = { ...(d.pix_extra || {}) }; mut(next);
+            const val = Object.keys(next).length ? next : null;
+            const { error } = await sb.from('profiles').update({ pix_extra: val }).eq('id', id);
+            if (error) { showToast(friendlyError(error), 'error'); return false; }
+            d.pix_extra = val; return true;
+        }
+        function dfMultFill(d) {
+            const m = (d.pix_extra && d.pix_extra.multas) || { ativo: false, itens: [] };
+            fileMultas = { ativo: !!m.ativo, itens: (m.itens || []).slice() };
+            document.getElementById('dfMultOn').checked = fileMultas.ativo;
+            document.getElementById('dfMultArea').classList.toggle('hidden', !fileMultas.ativo);
+            document.getElementById('dfMultDate').value = todayISO();
+            dfMultRender();
+        }
+        function fdPaga(i) { const d = state.drivers.find(x => x.id === fileDriverId); return d ? multaPagaAuto(d, i) : !!i.paga; }
+        function dfMultRender() {
+            const box = document.getElementById('dfMultList'), it = (fileMultas && fileMultas.itens) || [];
+            box.innerHTML = it.length ? it.map(i => `<div class="flex items-start gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
+                <div class="flex-1 min-w-0"><p class="text-sm font-semibold break-words">${esc(i.desc)} · ${fmtMoney(i.valor)}</p>
+                <p class="text-xs ${fdPaga(i) ? 'text-emerald-600' : (i.cobrada ? 'text-amber-600' : 'text-gray-500')}">${fmtDate(i.data)} · ${fdPaga(i) ? 'Paga' : (i.cobrada ? 'Cobrada no Pix de ' + fmtDate(i.cobrada) : 'Pendente (entra no próximo Pix)')}</p></div>
+                ${fdPaga(i) ? '' : `<button type="button" onclick="multaPaga('${i.id}')" class="text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700" title="Marcar como paga"><i class="fa-solid fa-check"></i></button>`}
+                <button type="button" onclick="delMulta('${i.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('')
+                : '<p class="text-xs italic text-gray-400">Nenhuma multa ou despesa lançada.</p>';
+        }
+        async function toggleMultas(on) {
+            if (!fileMultas) return;
+            fileMultas.ativo = on;
+            document.getElementById('dfMultArea').classList.toggle('hidden', !on);
+            if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) showToast(on ? 'Multas e despesas ligadas para este motorista.' : 'Multas e despesas desligadas (não aparecem para ele).');
+            renderMasterPanel();
+        }
+        async function addMulta() {
+            const desc = document.getElementById('dfMultDesc').value.trim(), valor = parseMoney(document.getElementById('dfMultVal').value);
+            if (!desc || !(valor > 0)) { showToast('Escreva o que é e o valor (ex: Multa de velocidade, 195,23).', 'error'); return; }
+            const item = { id: 'm' + Date.now().toString(36), desc, valor, data: document.getElementById('dfMultDate').value || todayISO(), cobrada: null, paga: false };
+            fileMultas.itens.push(item);
+            if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { document.getElementById('dfMultDesc').value = ''; document.getElementById('dfMultVal').value = ''; dfMultRender(); renderMasterPanel(); showToast('Lançado. Entra no próximo Pix deste motorista.'); }
+            else fileMultas.itens.pop();
+        }
+        async function delMulta(mid) {
+            const it = fileMultas.itens.find(i => i.id === mid); if (!it || !confirm(`Excluir "${it.desc}" (${fmtMoney(it.valor)})?`)) return;
+            fileMultas.itens = fileMultas.itens.filter(i => i.id !== mid);
+            if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { dfMultRender(); renderMasterPanel(); }
+        }
+        async function multaPaga(mid) {
+            const it = fileMultas.itens.find(i => i.id === mid); if (!it) return;
+            it.paga = true;
+            if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { dfMultRender(); renderMasterPanel(); showToast('Marcada como paga.'); }
+        }
+        // tela do motorista: caução e multas (só se o dono ligou)
+        function renderDriverExtras() {
+            const d = state.profile, cb = document.getElementById('drvCaucaoBox'), mb = document.getElementById('drvMultasBox');
+            if (!cb || !mb) return;
+            const st = cauStatus(d, state.pixHistory);
+            cb.classList.toggle('hidden', !st);
+            if (st) {
+                const c = st.c, ok = st.falta <= 0.005;
+                const pct = st.total ? Math.min(100, Math.round(st.pago / st.total * 100)) : 100;
+                cb.innerHTML = `<div class="p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 space-y-2">
+                    <p class="text-xs font-semibold uppercase text-amber-700 dark:text-amber-300"><i class="fa-solid fa-shield-halved mr-1"></i> Sua caução</p>
+                    <p class="text-sm"><b>${fmtMoney(st.pago)}</b> pagos de <b>${fmtMoney(st.total)}</b>${ok ? ' · <span class="text-emerald-600 font-semibold">Quitada</span>' : ''}</p>
+                    <div class="h-2 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden"><div class="h-full bg-amber-500" style="width:${pct}%"></div></div>
+                    ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${c.parcelas}x de ${fmtMoney(c.valor_parcela)}${ok ? '' : ` · falta ${fmtMoney(st.falta)}`}</p>` : ''}
+                </div>`;
+            }
+            const m = multasOf(d), itens = m ? (m.itens || []) : [];
+            mb.classList.toggle('hidden', !m);
+            if (m) {
+                const abertos = itens.filter(i => !multaPagaAuto(d, i, state.pixHistory)), tot = abertos.reduce((a, i) => a + Number(i.valor || 0), 0);
+                mb.innerHTML = `<div class="p-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 space-y-2">
+                    <p class="text-xs font-semibold uppercase text-red-700 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Multas e outras despesas</p>
+                    ${itens.length ? itens.map(i => `<div class="flex justify-between gap-3 text-sm border-t border-red-100 dark:border-red-900/40 pt-1.5"><span class="min-w-0 break-words">${esc(i.desc)}<br><span class="text-xs text-gray-500">${fmtDate(i.data)} · ${multaPagaAuto(d, i, state.pixHistory) ? 'Paga' : (i.cobrada ? 'No Pix de ' + fmtDate(i.cobrada) : 'Vai no próximo Pix')}</span></span><b class="whitespace-nowrap ${multaPagaAuto(d, i, state.pixHistory) ? 'text-emerald-600' : ''}">${fmtMoney(i.valor)}</b></div>`).join('') : '<p class="text-xs italic text-gray-500">Nada a pagar.</p>'}
+                    ${abertos.length ? `<p class="text-sm font-bold text-right">Em aberto: ${fmtMoney(tot)}</p>` : ''}
+                </div>`;
+            }
         }
         // ===== VALORES DA COBRANÇA: aluguel do carro + acréscimo − desconto =====
         async function editVehicleRent(id) {
@@ -3608,6 +3747,9 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             document.getElementById('newPixCauBox').classList.toggle('hidden', !cn);
             document.getElementById('newPixCauOn').checked = !!cn;
             document.getElementById('newPixCauTxt').textContent = cn ? `Caução ${cn.k}/${cn.n}: ${fmtMoney(cn.valor)}` : '';
+            const mp = multasPendentes(d), mbox = document.getElementById('newPixMultBox');
+            mbox.classList.toggle('hidden', !mp.length);
+            mbox.innerHTML = mp.length ? `<p class="text-xs font-bold uppercase text-red-700 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i>Multas e despesas do motorista</p>` + mp.map(i => `<label class="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" class="w-5 h-5 newPixMult" data-mid="${i.id}" checked onchange="calcNewPix()"><span class="min-w-0 break-words">${esc(i.desc)}: <b>${fmtMoney(i.valor)}</b></span></label>`).join('') + '<p class="text-xs text-gray-500 dark:text-gray-400">Desmarque o que não for cobrar nesta semana.</p>' : '';
             // acréscimo que se repete (se a caução já está na ficha, o acréscimo "caução" antigo não entra de novo)
             const ex = d.pix_extra || {};
             let addDesc = '', addVal = '', repeat = false;
@@ -3632,16 +3774,19 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const editingCau = document.getElementById('newPixMode').value === 'edit';
             const cn = !editingCau && document.getElementById('newPixCauOn').checked ? cauNext(d) : null;
             const cau = cn ? cn.valor : 0;
+            const multasSel = editingCau ? [] : [...document.querySelectorAll('.newPixMult:checked')].map(el => multasPendentes(d).find(i => i.id === el.dataset.mid)).filter(Boolean);
+            const mult = multasSel.reduce((a, i) => a + Number(i.valor || 0), 0);
             const addDesc = document.getElementById('newPixAddDesc').value.trim(), discDesc = document.getElementById('newPixDiscDesc').value.trim();
-            const total = Math.round((rent + cau + add - disc) * 100) / 100;
+            const total = Math.round((rent + cau + mult + add - disc) * 100) / 100;
             const editing = document.getElementById('newPixMode').value === 'edit';
             const lines = [];
             if (rent) lines.push(`${editing ? 'Valor da cobrança' : 'Aluguel' + (v ? ' ' + v.model + ' (' + v.plate + ')' : ' da semana')}: ${fmtMoney(rent)}`);
             if (cau) lines.push(`+ Caução ${cn.k}/${cn.n}: ${fmtMoney(cau)}`);
+            multasSel.forEach(i => lines.push(`+ ${i.desc}: ${fmtMoney(i.valor)}`));
             if (add) lines.push(`+ ${addDesc || 'Acréscimo'}: ${fmtMoney(add)}`);
             if (disc) lines.push(`− ${discDesc || 'Desconto'}: ${fmtMoney(disc)}`);
-            if (add || disc || cau) lines.push(`Total: ${fmtMoney(total)}`);
-            return { d, v, rent, cau, cn, add, disc, addDesc, discDesc, total, lines };
+            if (add || disc || cau || mult) lines.push(`Total: ${fmtMoney(total)}`);
+            return { d, v, rent, cau, cn, mult, multasSel, add, disc, addDesc, discDesc, total, lines };
         }
         function calcNewPix() {
             const p = newPixParts();
@@ -4090,7 +4235,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             if (amount == null || amount <= 0) { showToast("Informe o valor do aluguel (ex: 550,00). O total precisa ser maior que zero.", "error"); return; }
             if (parts.add && !parts.addDesc) { showToast("Escreva o motivo do acréscimo (ex: Caução 1/10).", "error"); return; }
             if (parts.disc && !parts.discDesc) { showToast("Escreva o motivo do desconto (ex: despesa paga pelo motorista).", "error"); return; }
-            const resumo = `${editing ? 'Salvar' : 'Enviar'} este Pix para ${d ? d.name : 'o motorista'}?\n\n${parts.lines.join('\n') || 'Total: ' + fmtMoney(amount)}${parts.add || parts.disc || parts.cau ? '' : '\nTotal: ' + fmtMoney(amount)}`;
+            const resumo = `${editing ? 'Salvar' : 'Enviar'} este Pix para ${d ? d.name : 'o motorista'}?\n\n${parts.lines.join('\n') || 'Total: ' + fmtMoney(amount)}${parts.add || parts.disc || parts.cau || parts.mult ? '' : '\nTotal: ' + fmtMoney(amount)}`;
             if (!confirm(resumo)) return;
             setBusy(form, true);
             try {
@@ -4122,6 +4267,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 delete ex.repetir; delete ex.descricao; delete ex.valor; delete ex.ultimo_enviado;
                 if (repeat) Object.assign(ex, { repetir: true, descricao: parts.addDesc, valor: parts.add, ultimo_enviado: true });
                 if (parts.cau && ex.caucao) ex.caucao = { ...ex.caucao, cobradas: (ex.caucao.cobradas || 0) + 1 };
+                if (parts.multasSel.length && ex.multas) { const hoje = todayISO(), ids = new Set(parts.multasSel.map(i => i.id)); ex.multas = { ...ex.multas, itens: (ex.multas.itens || []).map(i => ids.has(i.id) ? { ...i, cobrada: hoje } : i) }; }
                 updates.pix_extra = Object.keys(ex).length ? ex : null;
                 // carro sem valor de aluguel: guarda o valor digitado nele
                 if (parts.v && parts.v.rent_amount == null && parts.rent > 0) sb.from('vehicles').update({ rent_amount: parts.rent }).eq('id', parts.v.id).then(() => {}, () => {});
