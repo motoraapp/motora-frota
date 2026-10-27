@@ -1398,8 +1398,9 @@
                 return id;
             },
             master_delete_driver({ p_id }) {
-                DEMO.db.profiles = DEMO.db.profiles.filter(p => p.id !== p_id);
-                ['receipts', 'pix_history', 'terms_acceptances'].forEach(t => { DEMO.db[t] = DEMO.db[t].filter(x => x.driver_id !== p_id); });
+                // igual ao real: só bloqueia o acesso, nada de documento ou registro é apagado
+                const d = DEMO.db.profiles.find(p => p.id === p_id && p.role === 'driver');
+                if (d) Object.assign(d, { role: 'excluido', deleted_at: new Date().toISOString(), deleted_login: d.username, username: 'excluido.' + d.id + '@motora.app', vehicle_id: null });
             },
             driver_submit_cnh({ p_path }) {
                 const d = DEMO.db.profiles.find(p => p.id === DEMO.userId); if (d) Object.assign(d, { cnh_pending_path: p_path, cnh_sent_at: new Date().toISOString() });
@@ -2378,7 +2379,7 @@
                                 <button onclick="viewAsDriver('${d.id}')" class="mt-2 text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg whitespace-nowrap" title="Entrar na conta deste motorista, sem precisar da senha dele"><i class="fa-solid fa-right-to-bracket mr-1"></i> Entrar na conta</button>
                                 ${driverToDelete === d.id ? `
                                     <div class="mt-2 flex flex-wrap items-center gap-2 font-normal">
-                                        <span class="text-xs text-red-500">Excluir ${esc(d.name)}? Isso apaga os documentos dele.</span>
+                                        <span class="text-xs text-red-500">Excluir ${esc(d.name)}? Ele não vai mais conseguir entrar no app. Documentos, Pix e comprovantes continuam guardados no app e no Drive.</span>
                                         <button onclick="confirmDeleteDriver('${d.id}')" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg">Sim, excluir</button>
                                         <button onclick="cancelDeleteDriver()" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-3 py-1.5 rounded-lg">Cancelar</button>
                                     </div>
@@ -2559,17 +2560,11 @@
         async function confirmDeleteDriver(id) {
             driverToDelete = null;
             try {
-                // Apaga os arquivos do motorista (documentos e comprovantes)
-                const paths = [];
-                for (const folder of [id, `${id}/receipts`]) {
-                    const { data } = await sb.storage.from(BUCKET).list(folder, { limit: 1000 });
-                    (data || []).filter(o => o.id).forEach(o => paths.push(`${folder}/${o.name}`));
-                }
-                if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+                // Só bloqueia o acesso do motorista: documentos, Pix, comprovantes e histórico ficam guardados
                 const { error } = await sb.rpc('master_delete_driver', { p_id: id });
                 if (error) throw error;
                 await reload();
-                showToast("Motorista excluído com sucesso.");
+                showToast("Motorista excluído. Ele não entra mais no app; os documentos continuam guardados.");
             } catch (err) {
                 renderMasterPanel();
                 showToast(friendlyError(err), 'error');

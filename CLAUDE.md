@@ -36,6 +36,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Sempre que uma CNH nova for enviada, a foto do perfil do motorista também é atualizada.
 - CNH vencida: aviso na tela principal do dono e do motorista e botão para enviar a CNH nova; quando o motorista atualizar, o dono é avisado e o botão some.
 - Botão "Instalar app" no PWA do motorista: aparece só no Android (some no iPhone).
+- **Excluir motorista** não apaga nada: `master_delete_driver` muda o perfil para `role = 'excluido'` (com `deleted_at` e `deleted_login`), bloqueia o login para sempre, libera o nome de usuário e o carro. Documentos, Pix, comprovantes, termos e arquivos ficam guardados no app e no Drive.
 - Termos de uso: o motorista precisa aceitar se ainda não aceitou ou sempre que os termos mudarem.
 
 ## Cobrança Pix (semanal)
@@ -67,6 +68,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Lembrete diário: das 20:30 às 00:00 (Brasília), de 30 em 30 min, o dono recebe notificação perguntando se já enviou o relatório de ganhos do app do dia. Para sozinho quando existe ganho lançado com a data do dia Também para no dia marcado com o botão "Hoje estou de folga" (tabela `app_days_off`). Tocar na notificação abre direto Controle financeiro → Ganhos aplicativo, no lançamento (`?abrir=ganhos`). O `sw.js` abre o endereço da notificação relativo à pasta do app (funciona no GitHub Pages). (função `app_earning_reminder`, cron `motora-lembrete-ganhos-app`).
 - Despesas do veículo: ao escolher a nota/comprovante, a IA (Gemini, `motora-sync` com `ai_read_files` kind `expense`) preenche tipo (usa os tipos existentes ou sugere um novo, criado ao salvar), valor, data e descrição; avisa se a placa da nota for de outro carro.
 - Documentos e planilhas vão para o Google Drive da conta do dono (não da esposa).
+- **Envio automático ao Drive:** todo documento novo ou alterado vai sozinho (gatilhos do banco → `drive_notify` → `motora-sync`): CNH, comprovante de endereço, contrato, termo de vistoria, comprovantes, Pix, despesas (também quando alteradas), CRLV-e dos veículos (`vehicle_doc`), fotos da vistoria (`inspection`) e termos aceitos (`terms`, arquivo .html).
 
 ## Pendências
 - Trocar o endereço usado pelo APK para o GitHub Pages (hoje aponta para o Netlify em `android/app/src/main/res/values/strings.xml`). O dono deixou para depois — só fazer quando ele pedir.
