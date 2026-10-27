@@ -47,6 +47,8 @@
         body { padding-bottom: env(safe-area-inset-bottom, 0px); }
         header { padding-top: env(safe-area-inset-top, 0px); }
         @media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
+        /* iPhone (app na tela de início): os campos precisam aceitar toque, seleção e teclado */
+        input, textarea, select, [contenteditable]:not([contenteditable="false"]) { -webkit-user-select: text !important; user-select: text !important; touch-action: auto !important; pointer-events: auto; -webkit-touch-callout: default; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
@@ -2092,6 +2094,28 @@
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoRefresh(); });
         window.addEventListener('focus', autoRefresh);
         window.addEventListener('online', autoRefresh);
+
+        // iPhone com o app na tela de início: às vezes o toque no campo não abre o teclado
+        // (o campo fica "preso" com foco antigo ao voltar para o app). Aqui: ao sair do app solta o foco,
+        // e ao tocar num campo de texto o foco é dado dentro do próprio toque, o que faz o iPhone abrir o teclado.
+        (function tecladoIPhone() {
+            const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+            if (!ios || !app) return;
+            const CAMPO = 'input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=button]):not([type=submit]):not([type=reset]):not([type=color]):not([type=hidden]), textarea, [contenteditable]:not([contenteditable="false"])';
+            const soltar = () => { const a = document.activeElement; if (a && a !== document.body && a.matches && a.matches(CAMPO)) try { a.blur(); } catch (e) {} };
+            document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') soltar(); });
+            window.addEventListener('pagehide', soltar);
+            let ini = null; // só conta como toque se o dedo não arrastou (rolar a tela não abre o teclado)
+            document.addEventListener('touchstart', ev => { const t = ev.touches && ev.touches[0]; ini = t ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+            document.addEventListener('touchend', ev => {
+                const t = ev.changedTouches && ev.changedTouches[0];
+                if (!ini || !t || Math.abs(t.clientX - ini.x) > 10 || Math.abs(t.clientY - ini.y) > 10) return;
+                const el = ev.target && ev.target.closest ? ev.target.closest(CAMPO) : null;
+                if (!el || el.disabled || el.readOnly) return;
+                if (document.activeElement !== el) { try { el.focus(); } catch (e) {} }
+            }, { passive: true });
+        })();
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.addEventListener('message', ev => { if (ev.data && ev.data.type === 'refresh') { autoRefresh(); if (state.profile && state.profile.role === 'master') loadIA().then(() => { if (!document.getElementById('modalIA').classList.contains('hidden')) renderIA(); }).catch(() => {}); } });
         }
