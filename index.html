@@ -136,6 +136,21 @@
         .bottomNav button.aberto i { transform: scale(1.12); }
         html[data-design="novo"] #secMasterPanel > .masterTopo { padding: 18px 20px !important; }
         html[data-theme="t6"] { --bg:#111111; --bar:#161616; --card:#1c1c1c; --line:#2c2c2c; --text:#f5f5f5; --muted:#a3a3a3; --accent:#dc2626; --accent-text:#f87171; --on-accent:#fff; --pay:#dc2626; --on-pay:#fff; --btn2:#2c2c2c; --soft2:#151515; --input:#1c1c1c; --radius:10px; }
+        /* Celular: nada precisa ser arrastado para o lado. Tabelas viram cartões (rótulo em cima, valor embaixo) */
+        @media (max-width: 639px) {
+            .overflow-x-auto:has(> table) { overflow-x: visible !important; }
+            .overflow-x-auto > table, .overflow-x-auto > table > tbody, .overflow-x-auto > table > tbody > tr, .overflow-x-auto > table > tbody > tr > td { display: block; width: 100%; }
+            .overflow-x-auto > table > thead { display: none; }
+            .overflow-x-auto > table > tbody > tr { padding: 10px 0; border-top: 1px solid rgba(148,163,184,.25); }
+            .overflow-x-auto > table > tbody > tr:first-child { border-top: 0; }
+            .overflow-x-auto > table > tbody > tr > td { padding: 3px 0 !important; text-align: left !important; white-space: normal !important; }
+            .overflow-x-auto > table > tbody > tr > td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #6b7280; margin-bottom: 1px; }
+            .overflow-x-auto > table > tbody > tr > td > .flex { justify-content: flex-start !important; flex-wrap: wrap; }
+            .overflow-x-auto > table > tbody > tr > td button, .overflow-x-auto > table > tbody > tr > td a { white-space: normal !important; }
+            .overflow-x-auto > table > tbody > tr > td:first-child { font-size: 15px; }
+            html:not([data-design="novo"]) #drvTabs nav { flex-wrap: wrap; overflow-x: visible; gap: 0; }
+            body, main { overflow-x: hidden; }
+        }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
@@ -3384,6 +3399,20 @@
                 }
             } catch (e) { if (e && e.name !== 'AbortError') showToast('Não foi possível gerar a imagem.', 'error'); }
         }
+
+        // Celular: cada célula das tabelas ganha o nome da coluna (vira cartão, sem arrastar para o lado)
+        function rotularTabelas(root) {
+            (root || document).querySelectorAll('.overflow-x-auto > table').forEach(t => {
+                const heads = [...t.querySelectorAll(':scope > thead th')].map(th => th.textContent.trim());
+                if (!heads.length) return;
+                t.querySelectorAll(':scope > tbody > tr').forEach(tr => [...tr.children].forEach((td, i) => {
+                    const h = heads[i];
+                    if (h && !/^a[çc][õo]es$/i.test(h) && td.colSpan === 1 && i > 0) td.dataset.label = h; else delete td.dataset.label;
+                }));
+            });
+        }
+        new MutationObserver(() => { clearTimeout(rotularTabelas.t); rotularTabelas.t = setTimeout(() => rotularTabelas(), 50); })
+            .observe(document.body, { childList: true, subtree: true });
 
         // ÁREAS DO DONO: 1 toque abre, outro toque no mesmo botão fecha (e abrir uma fecha a outra)
         const AREAS = {
