@@ -1197,7 +1197,7 @@
                     created_at: new Date(due0 - (d.weeks * 7 + 2) * 86400000).toISOString(),
                 };
                 db.profiles.push(prof);
-                if (d.id !== 'demo-d4') db.terms_acceptances.push({ id: demoId(), driver_id: d.id, terms_version: TERMS_VERSION, accepted_items: {}, driver_name: d.name, driver_login: d.username.replace('@motora.app', ''), accepted_at: prof.created_at });
+                if (d.id !== 'demo-d4') db.terms_acceptances.push({ id: demoId(), driver_id: d.id, terms_version: TERMS_VERSION, accepted_items: TERMS_ITEMS.map(i => i.k), driver_name: d.name, driver_login: d.username.replace('@motora.app', ''), accepted_at: prof.created_at });
                 for (let k = d.weeks - 1; k >= 0; k--) {
                     const due = due0 - k * 7 * 86400000;
                     let sent = due - 86400000 - (14 * 3600 + 59 * 60 + 59) * 1000; // domingo 09:00
@@ -4610,7 +4610,7 @@
         }
         function acceptanceHtml(a, who) {
             if (!a) return `<p class="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 text-sm"><i class="fa-solid fa-clock mr-1"></i> ${who ? esc(who) + ' ainda não aceitou' : 'Ainda não aceitos'} nesta versão.</p>`;
-            const items = (a.accepted_items || []).map(k => (TERMS_ITEMS.find(i => i.k === k) || { t: esc(k) }).t);
+            const items = (Array.isArray(a.accepted_items) ? a.accepted_items : []).map(k => (TERMS_ITEMS.find(i => i.k === k) || { t: esc(k) }).t);
             return `<div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-200 text-sm space-y-1">
                 <p class="font-bold"><i class="fa-solid fa-circle-check mr-1"></i> Aceito em ${fmtDateTime(a.accepted_at)} (horário de Brasília)</p>
                 <p>${esc(a.driver_name || who || '')}${a.driver_cpf ? ' · CPF ' + esc(a.driver_cpf) : ''}${a.driver_login ? ' · login ' + esc(showLogin(a.driver_login)) : ''}</p>
@@ -4649,7 +4649,7 @@
                 <b>Registro do aceite</b><br>Aceito em ${fmtDateTime(a.accepted_at)} (horário de Brasília)<br>
                 ${esc(a.driver_name || '')}${a.driver_cpf ? ' · CPF ' + esc(a.driver_cpf) : ''}${a.driver_login ? ' · login ' + esc(showLogin(a.driver_login)) : ''}<br>
                 Versão ${esc(a.terms_version)}${a.ip ? ' · IP ' + esc(a.ip) : ''}<br>
-                Itens marcados:<ul>${(a.accepted_items || []).map(k => `<li>${(TERMS_ITEMS.find(i => i.k === k) || { t: esc(k) }).t}</li>`).join('')}</ul>
+                Itens marcados:<ul>${(Array.isArray(a.accepted_items) ? a.accepted_items : []).map(k => `<li>${(TERMS_ITEMS.find(i => i.k === k) || { t: esc(k) }).t}</li>`).join('')}</ul>
                 <small>Código do texto (SHA-256): ${esc(a.terms_hash || '')}<br>Aparelho: ${esc(a.user_agent || '')}</small></div>` : '';
             const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Termos MOTORA ${TERMS_VERSION}</title>
                 <style>body{font-family:Arial,sans-serif;max-width:760px;margin:24px auto;padding:0 16px;line-height:1.55;color:#111}h1{font-size:22px}h4{font-size:17px;margin-top:22px}div{margin:10px 0}</style></head>
