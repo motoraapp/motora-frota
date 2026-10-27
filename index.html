@@ -128,7 +128,12 @@
         html[data-design="novo"] #drvTabs nav button i { font-size: 19px; }
         html[data-design="novo"] #drvTabs nav button.border-blue-600 { border-top-color: var(--accent) !important; }
         /* Dono: os botões grandes do topo ficam na barra de baixo */
-        html[data-design="novo"] #secMasterPanel > .masterTopo .masterAbas, html[data-design="novo"] #secMasterPanel > .masterAtalho { display: none !important; }
+        html[data-design="novo"] #secMasterPanel > .masterTopo .masterAbas, html[data-design="novo"] #secMasterPanel > .masterAtalhos { display: none !important; }
+        /* Com a barra de baixo, as janelas param acima dela: assim dá para tocar de novo no botão e fechar */
+        html[data-design="novo"] body.com-nav .fixed.inset-0.z-40 { bottom: calc(66px + env(safe-area-inset-bottom)); }
+        html[data-design="novo"] body.com-nav .fixed.inset-0.z-40 > div, html[data-design="novo"] body.com-nav .fixed.inset-0.z-40 > form { padding-bottom: 16px !important; max-height: calc(100% - 24px) !important; }
+        .bottomNav button.aberto, html[data-design="novo"] .bottomNav button.aberto { color: var(--accent-text, #0f5f6b); }
+        .bottomNav button.aberto i { transform: scale(1.12); }
         html[data-design="novo"] #secMasterPanel > .masterTopo { padding: 18px 20px !important; }
         html[data-theme="t6"] { --bg:#111111; --bar:#161616; --card:#1c1c1c; --line:#2c2c2c; --text:#f5f5f5; --muted:#a3a3a3; --accent:#dc2626; --accent-text:#f87171; --on-accent:#fff; --pay:#dc2626; --on-pay:#fff; --btn2:#2c2c2c; --soft2:#151515; --input:#1c1c1c; --radius:10px; }
     </style>
@@ -411,46 +416,69 @@
 
         <!-- PAINEL MASTER (ADMINISTRAÇÃO) -->
         <section id="secMasterPanel" class="hidden space-y-6">
-            <div class="masterTopo flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="masterTopo flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
                     <h2 class="text-xl font-bold">Painel de Controle Master</h2>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Gestão completa de veículos, motoristas e pagamentos</p>
                 </div>
+                <div id="masterResumo" class="grid grid-cols-4 gap-2 sm:max-w-md w-full"></div>
                 <div class="masterAbas flex gap-2 border-b sm:border-b-0 border-gray-200 dark:border-gray-700 pb-2 sm:pb-0">
-                    <button onclick="switchMasterTab('vehicles')" id="tabMasterVehicles" class="px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm">
+                    <button onclick="closeAreas();switchMasterTab('vehicles')" id="tabMasterVehicles" class="px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm">
                         <i class="fa-solid fa-car mr-1"></i> Veículos
                     </button>
-                    <button onclick="switchMasterTab('drivers')" id="tabMasterDrivers" class="px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    <button onclick="closeAreas();switchMasterTab('drivers')" id="tabMasterDrivers" class="px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         <i class="fa-solid fa-users mr-1"></i> Motoristas
                     </button>
-                    <button onclick="openSettings()" class="px-3 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title="Configurações">
+                    <button onclick="toggleArea('cfg')" data-area="cfg" class="px-3 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title="Configurações">
                         <i class="fa-solid fa-gear"></i>
                     </button>
                 </div>
             </div>
 
-            <button onclick="openPixArea()" class="masterAtalho w-full py-3 rounded-2xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex items-center justify-center gap-2">
-                <i class="fa-brands fa-pix"></i> Área do Pix
-            </button>
-
-            <button onclick="openIA()" class="masterAtalho w-full py-3 rounded-2xl font-bold text-sm bg-green-600 hover:bg-green-700 text-white shadow-sm flex items-center justify-center gap-2">
-                <i class="fa-solid fa-robot"></i> Área IA <span class="iaBadge hidden ml-1 px-2 py-0.5 rounded-full bg-white text-green-700 text-xs"></span>
-            </button>
-
-            <button id="btnFinance" onclick="openFinance()" class="masterAtalho w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2">
-                <i class="fa-solid fa-sack-dollar"></i> Controle financeiro
-            </button>
+            <!-- Atalhos do dono (design antigo; no design novo ficam na barra de baixo). 1 toque abre, outro toque fecha -->
+            <div class="masterAtalhos grid grid-cols-3 gap-2">
+                <button onclick="toggleArea('pix')" data-area="pix" class="py-3 rounded-2xl font-bold text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                    <i class="fa-brands fa-pix text-lg sm:text-base"></i> Área do Pix
+                </button>
+                <button onclick="toggleArea('ia')" data-area="ia" class="py-3 rounded-2xl font-bold text-xs sm:text-sm bg-green-600 hover:bg-green-700 text-white shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                    <span class="relative"><i class="fa-solid fa-robot text-lg sm:text-base"></i></span> <span>Área IA <span class="iaBadge hidden ml-1 px-1.5 py-0.5 rounded-full bg-white text-green-700 text-[10px]"></span></span>
+                </button>
+                <button id="btnFinance" onclick="toggleArea('fin')" data-area="fin" class="py-3 rounded-2xl font-bold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                    <i class="fa-solid fa-sack-dollar text-lg sm:text-base"></i> Financeiro
+                </button>
+            </div>
 
             <!-- Aviso: falta criar a tabela dos termos no banco -->
             <div id="termsSetupBanner" class="hidden"></div>
 
             <!-- SUB-ABA: GESTÃO DE VEÍCULOS -->
             <div id="subMasterVehicles" class="space-y-6">
+                <!-- Lista de Veículos -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <button type="button" onclick="toggleDobra('dVehList')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Veículos Cadastrados</h3><i id="dVehListSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
+                    <div id="dVehList" class="dobraCorpo mt-4">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold uppercase text-gray-500">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">Modelo</th>
+                                    <th class="p-3">Placa</th>
+                                    <th class="p-3">CRLV-e</th>
+                                    <th class="p-3 text-right rounded-r-xl">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblVehiclesList" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                <!-- Renderizado via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    </div>
+                </div>
+
                 <!-- Form de Adicionar Veículo -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-plus-circle text-blue-500"></i> Cadastrar Novo Veículo
-                    </h3>
+                    <button type="button" onclick="toggleDobra('dVehForm')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-500"></i> Cadastrar Novo Veículo</h3><i id="dVehFormSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i></button>
+                    <div id="dVehForm" class="dobraCorpo mt-4 hidden">
                     <form onsubmit="handleAddVehicle(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Modelo / Descrição</label>
@@ -471,36 +499,40 @@
                             </button>
                         </div>
                     </form>
-                </div>
-
-                <!-- Lista de Veículos -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold text-lg mb-4">Veículos Cadastrados</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold uppercase text-gray-500">
-                                <tr>
-                                    <th class="p-3 rounded-l-xl">Modelo</th>
-                                    <th class="p-3">Placa</th>
-                                    <th class="p-3">CRLV-e</th>
-                                    <th class="p-3 text-right rounded-r-xl">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tblVehiclesList" class="divide-y divide-gray-100 dark:divide-gray-700">
-                                <!-- Renderizado via JS -->
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </div>
 
             <!-- SUB-ABA: GESTÃO DE MOTORISTAS -->
             <div id="subMasterDrivers" class="hidden space-y-6">
+                <!-- Lista de Motoristas -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <button type="button" onclick="toggleDobra('dDrvList')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Motoristas Cadastrados</h3><i id="dDrvListSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
+                    <div id="dDrvList" class="dobraCorpo mt-4">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold uppercase text-gray-500">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">Nome</th>
+                                    <th class="p-3">Veículo Alocado</th>
+                                    <th class="p-3">Status Pagamento</th>
+                                    <th class="p-3">Documentos</th>
+                                    <th class="p-3">Comprovantes</th>
+                                    <th class="p-3 text-right rounded-r-xl">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblDriversList" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                <!-- Renderizado via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    </div>
+                </div>
+
                 <!-- Form de Adicionar Motorista -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus text-blue-500"></i> Cadastrar Novo Motorista
-                    </h3>
+                    <button type="button" onclick="toggleDobra('dDrvForm')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-user-plus text-blue-500"></i> Cadastrar Novo Motorista</h3><i id="dDrvFormSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i></button>
+                    <div id="dDrvForm" class="dobraCorpo mt-4 hidden">
                     <form onsubmit="handleAddDriver(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="md:col-span-3 flex items-center gap-3 p-3 rounded-xl bg-indigo-50 dark:bg-gray-700/40 border border-indigo-100 dark:border-gray-700">
                             <button type="button" id="drvPhotoSlot" onclick="pickNewDriverPhoto()" title="Foto do motorista" class="w-16 h-20 rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex flex-col items-center justify-center text-gray-400 text-[10px]">
@@ -561,27 +593,6 @@
                             </button>
                         </div>
                     </form>
-                </div>
-
-                <!-- Lista de Motoristas -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <h3 class="font-bold text-lg mb-4">Motoristas Cadastrados</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold uppercase text-gray-500">
-                                <tr>
-                                    <th class="p-3 rounded-l-xl">Nome</th>
-                                    <th class="p-3">Veículo Alocado</th>
-                                    <th class="p-3">Status Pagamento</th>
-                                    <th class="p-3">Documentos</th>
-                                    <th class="p-3">Comprovantes</th>
-                                    <th class="p-3 text-right rounded-r-xl">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tblDriversList" class="divide-y divide-gray-100 dark:divide-gray-700">
-                                <!-- Renderizado via JS -->
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             </div>
@@ -592,12 +603,12 @@
 
     <!-- Barra de baixo do dono (só no design novo) -->
     <nav id="masterNav" class="bottomNav" style="grid-template-columns:repeat(6,1fr)">
-        <button type="button" id="mnVeh" onclick="switchMasterTab('vehicles');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-car"></i>Veículos</button>
-        <button type="button" id="mnDrv" onclick="switchMasterTab('drivers');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-users"></i>Motoristas</button>
-        <button type="button" onclick="openPixArea()"><i class="fa-brands fa-pix"></i>Pix</button>
-        <button type="button" onclick="openIA()" style="position:relative"><i class="fa-solid fa-robot"></i>IA<span class="iaBadge hidden" style="position:absolute;top:2px;right:18%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:18px"></span></button>
-        <button type="button" onclick="openFinance()"><i class="fa-solid fa-sack-dollar"></i>Financeiro</button>
-        <button type="button" onclick="openSettings()"><i class="fa-solid fa-gear"></i>Ajustes</button>
+        <button type="button" id="mnVeh" onclick="closeAreas();switchMasterTab('vehicles');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-car"></i>Veículos</button>
+        <button type="button" id="mnDrv" onclick="closeAreas();switchMasterTab('drivers');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-users"></i>Motoristas</button>
+        <button type="button" data-area="pix" onclick="toggleArea('pix')"><i class="fa-brands fa-pix"></i>Pix</button>
+        <button type="button" data-area="ia" onclick="toggleArea('ia')" style="position:relative"><i class="fa-solid fa-robot"></i>IA<span class="iaBadge hidden" style="position:absolute;top:2px;right:18%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:18px"></span></button>
+        <button type="button" data-area="fin" onclick="toggleArea('fin')"><i class="fa-solid fa-sack-dollar"></i>Financeiro</button>
+        <button type="button" data-area="cfg" onclick="toggleArea('cfg')"><i class="fa-solid fa-gear"></i>Ajustes</button>
     </nav>
 
     <!-- MODAL PRIMEIRO LOGIN -->
@@ -2299,6 +2310,7 @@
 
         function renderMasterPanel() {
             DOC_REG = [];
+            renderMasterResumo();
             const vehTbody = document.getElementById('tblVehiclesList');
             if (state.vehicles.length === 0) {
                 vehTbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-gray-400 italic">Nenhum veículo cadastrado.</td></tr>`;
@@ -3373,6 +3385,57 @@
             } catch (e) { if (e && e.name !== 'AbortError') showToast('Não foi possível gerar a imagem.', 'error'); }
         }
 
+        // ÁREAS DO DONO: 1 toque abre, outro toque no mesmo botão fecha (e abrir uma fecha a outra)
+        const AREAS = {
+            pix: { modal: 'modalPixArea', open: () => openPixArea(), close: () => closePixArea() },
+            ia: { modal: 'modalIA', open: () => openIA(), close: () => closeIA() },
+            fin: { modal: 'modalFinance', open: () => openFinance(), close: () => closeFinance() },
+            cfg: { modal: 'modalSettings', open: () => openSettings(), close: () => closeSettings() },
+        };
+        const areaAberta = k => !document.getElementById(AREAS[k].modal).classList.contains('hidden');
+        function markAreas() {
+            document.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('aberto', areaAberta(b.dataset.area)));
+        }
+        function closeAreas(except) {
+            Object.keys(AREAS).forEach(k => { if (k !== except && areaAberta(k)) AREAS[k].close(); });
+            markAreas();
+        }
+        function toggleArea(k) {
+            if (areaAberta(k)) { AREAS[k].close(); markAreas(); return; }
+            closeAreas(k);
+            Promise.resolve(AREAS[k].open()).finally(markAreas);
+            markAreas();
+        }
+        // qualquer jeito de fechar a janela (X, fora dela) atualiza os botões
+        document.addEventListener('click', () => setTimeout(markAreas, 0), true);
+
+        // CARTÕES QUE ABREM E FECHAM (tela principal do dono). O aparelho lembra a escolha.
+        function dobraSalva() { try { return JSON.parse(localStorage.getItem('motora_dobras') || '{}'); } catch (e) { return {}; } }
+        function setDobra(id, aberto) {
+            const el = document.getElementById(id); if (!el) return;
+            el.classList.toggle('hidden', !aberto);
+            const seta = document.getElementById(id + 'Seta'); if (seta) seta.classList.toggle('rotate-180', aberto);
+        }
+        function toggleDobra(id) {
+            const aberto = document.getElementById(id).classList.contains('hidden');
+            setDobra(id, aberto);
+            const st = dobraSalva(); st[id] = aberto;
+            try { localStorage.setItem('motora_dobras', JSON.stringify(st)); } catch (e) {}
+        }
+        (function () { const st = dobraSalva(); Object.keys(st).forEach(id => setDobra(id, st[id])); })();
+
+        // Resumo no topo do painel do dono (cada quadrinho é um atalho)
+        function renderMasterResumo() {
+            const box = document.getElementById('masterResumo'); if (!box) return;
+            const atraso = state.drivers.filter(d => d.payment_status === 'Em atraso').length;
+            const zap = iaRows.filter(r => r.status === 'pendente').length;
+            const item = (n, txt, cor, acao) => `<button type="button" onclick="${acao}" class="p-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-center"><span class="block text-lg font-bold ${cor}">${n}</span><span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400">${txt}</span></button>`;
+            box.innerHTML = item(state.vehicles.length, 'Veículos', '', "closeAreas();switchMasterTab('vehicles');markMasterNav()")
+                + item(state.drivers.length, 'Motoristas', '', "closeAreas();switchMasterTab('drivers');markMasterNav()")
+                + item(atraso, 'Em atraso', atraso ? 'text-red-600' : 'text-emerald-600', "closeAreas();switchMasterTab('drivers');markMasterNav()")
+                + item(zap, 'WhatsApp a enviar', zap ? 'text-green-600' : '', "toggleArea('ia')");
+        }
+
         // ÁREA IA (MASTER): mensagens de WhatsApp prontas, sem robô (o dono só aperta Enviar)
         let iaRows = [], iaTab = 'pendente', iaFocus = null, iaReady = true;
         async function loadIA() {
@@ -3384,6 +3447,7 @@
         function updateIABadge() {
             const n = iaRows.filter(r => r.status === 'pendente').length;
             document.querySelectorAll('.iaBadge').forEach(b => { b.textContent = n > 99 ? '99+' : n; b.classList.toggle('hidden', !n); });
+            renderMasterResumo();
         }
         async function loadIASetting() {
             try {
