@@ -22,6 +22,10 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - O master pode **entrar na conta real** de um motorista (botão "Entrar na conta", sem a senha dele) pela função `motora-login-as` do Supabase; o botão "Voltar ao master" (ou Sair) devolve a sessão do master. Dentro da conta do motorista não aparecem termos nem pedido de notificações.
 - **Motorista:** faz login e vê CRLV-e, contrato, próximo pagamento (QR code, link e botão de copiar) e envia comprovante.
 
+## Design e demonstração
+- **Design novo / antigo:** em Configurações → "Aparência do app" o dono escolhe o visual do painel dele e o dos motoristas (vale para todos). Fica em `app_settings` chave `design` = `{master, motorista}` ('novo'|'antigo'); padrão sem registro: master novo, motorista antigo. Design novo = tema neutro `tn` (claro: cinza/branco com azul-petróleo #0f5f6b) ou `tnd` (escuro, grafite, segue o celular), cartões arredondados, janelas que sobem de baixo e barra de navegação embaixo (dono: Veículos, Motoristas, Pix, Financeiro, Ajustes; motorista: as abas CRLV-e, Contrato, Pagamento, Vistoria). Os temas de cor antigos (t1–t6) só valem no design antigo.
+- **Modo demonstração:** login `teste`/`teste` = dono com ~4 meses de dados fictícios; `motorista`/`motorista` = motorista fictício (Marcos Lima). Tudo fica só na memória do aparelho (sessionStorage `motora_demo_v1`): um cliente falso no lugar do Supabase (`demoClient`), sem contas reais, sem banco, sem IA, sem notificações. Faixa "MODO DEMONSTRAÇÃO" no topo; Sair encerra a demonstração. Não criar contas reais `teste`/`motorista` no Supabase.
+
 ## Regras de negócio
 - Login: usuário = primeiro nome + sobrenome juntos, em minúsculas (ex.: Thiago Gomes Borges → `thiagogomes`); senha = 6 primeiros dígitos do CPF. Campo de usuário com teclado em minúsculas. Caixinha para salvar a senha.
 - Login errado mostra uma mensagem de erro; não mostrar mensagem quando o login está certo.

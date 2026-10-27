@@ -88,6 +88,48 @@
         html[data-theme="t3"] { --bg:#0b0b0c; --bar:#111113; --card:#18181b; --line:#27272a; --text:#fafafa; --muted:#a1a1aa; --accent:#facc15; --accent-text:#facc15; --on-accent:#111111; --pay:#facc15; --on-pay:#111111; --btn2:#27272a; --soft2:#121214; --input:#18181b; --radius:12px; }
         html[data-theme="t4"] { --bg:#052e2b; --bar:#042522; --card:#0b3b37; --line:#115e56; --text:#ecfdf5; --muted:#99d5c7; --accent:#10b981; --accent-text:#34d399; --on-accent:#022c22; --pay:#10b981; --on-pay:#022c22; --btn2:#115e56; --soft2:#08332f; --input:#0b3b37; --radius:18px; }
         html[data-theme="t5"] { --bg:#f5f3ff; --bar:#ffffff; --card:#ffffff; --line:#e9e5ff; --text:#1e1b4b; --muted:#6b6894; --accent:#6d28d9; --accent-text:#6d28d9; --on-accent:#fff; --pay:#7c3aed; --on-pay:#fff; --btn2:#f1eefe; --soft2:#faf8ff; --input:#ffffff; --radius:20px; }
+
+        /* ===================== DESIGN NOVO (neutro, inspirado no RODA) ===================== */
+        /* Paleta neutra: cinza-claro e branco com azul-petróleo (claro) / grafite (escuro) */
+        html[data-theme="tn"] { --bg:#f4f4f5; --bar:#ffffff; --card:#ffffff; --line:#e4e4e7; --text:#18181b; --muted:#6b7280; --accent:#0f5f6b; --accent-text:#0f5f6b; --on-accent:#ffffff; --pay:#0f5f6b; --on-pay:#ffffff; --btn2:#f0f0f1; --soft2:#fafafa; --input:#ffffff; --radius:20px; --shadow:0 1px 2px rgba(24,24,27,.04),0 6px 20px rgba(24,24,27,.05); }
+        html[data-theme="tnd"] { --bg:#18181b; --bar:#1f1f23; --card:#232327; --line:#34343a; --text:#f4f4f5; --muted:#a1a1aa; --accent:#5eb3bf; --accent-text:#7cc4ce; --on-accent:#0b1f22; --pay:#5eb3bf; --on-pay:#0b1f22; --btn2:#2c2c31; --soft2:#1d1d21; --input:#1d1d21; --radius:20px; --shadow:0 1px 2px rgba(0,0,0,.3); }
+        html[data-design="novo"] body { font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+        html[data-design="novo"] header { box-shadow: none !important; }
+        html[data-design="novo"] header h1 { font-size: 20px; letter-spacing: .06em; }
+        html[data-design="novo"] header .bg-blue-600 { border-radius: 12px; }
+        html[data-design="novo"] #btnThemes { display: none !important; } /* os temas de cor valem só no design antigo */
+        html[data-design="novo"] main .rounded-2xl, html[data-design="novo"] .fixed .rounded-2xl { box-shadow: var(--shadow) !important; }
+        html[data-design="novo"] main .rounded-xl { border-radius: 14px; }
+        html[data-design="novo"] input:not([type=checkbox]):not([type=radio]):not([type=file]), html[data-design="novo"] select, html[data-design="novo"] textarea { font-size: 16px !important; border-radius: 12px !important; min-height: 46px; }
+        html[data-design="novo"] textarea { min-height: 80px; }
+        html[data-design="novo"] button, html[data-design="novo"] a[class*="py-"] { min-height: 40px; }
+        html[data-theme="tn"] .bg-teal-600, html[data-theme="tn"] .hover\:bg-teal-700:hover, html[data-theme="tnd"] .bg-teal-600, html[data-theme="tnd"] .hover\:bg-teal-700:hover { background: var(--accent) !important; color: var(--on-accent) !important; }
+        html[data-theme="tn"] .bg-indigo-600, html[data-theme="tn"] .hover\:bg-indigo-700:hover { background: #3f3f46 !important; }
+        html[data-theme="tnd"] .bg-indigo-600, html[data-theme="tnd"] .hover\:bg-indigo-700:hover { background: #52525b !important; }
+        html[data-design="novo"] #finCards p.text-lg, html[data-design="novo"] #appTotals p.text-lg { font-size: 24px; letter-spacing: -.01em; }
+        html[data-design="novo"] #drvChargeAmount { font-size: 40px; }
+        /* Janelas sobem de baixo no celular */
+        @media (max-width: 639px) {
+            html[data-design="novo"] .fixed.inset-0.flex.items-center.justify-center { align-items: flex-end !important; padding: 0 !important; }
+            html[data-design="novo"] .fixed.inset-0.flex.items-center.justify-center > div, html[data-design="novo"] .fixed.inset-0.flex.items-center.justify-center > form {
+                border-radius: 24px 24px 0 0 !important; max-height: 92vh; width: 100%; max-width: 100% !important; padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important; }
+        }
+        /* Barra de navegação embaixo (dono e motorista) */
+        .bottomNav { display: none; }
+        html[data-design="novo"] .bottomNav.ativo { display: grid; position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; background: var(--bar); border-top: 1px solid var(--line); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+        html[data-design="novo"] .bottomNav button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--muted); background: none; border: 0; padding: 6px 2px; border-radius: 12px; min-height: 52px; }
+        html[data-design="novo"] .bottomNav button i { font-size: 19px; }
+        html[data-design="novo"] .bottomNav button.atual { color: var(--accent-text); }
+        html[data-design="novo"] body.com-nav main { padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
+        /* Motorista: as abas viram a barra de baixo */
+        html[data-design="novo"] #drvTabs { margin: 0 !important; position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; background: var(--bar); border-top: 1px solid var(--line) !important; border-bottom: 0 !important; padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); }
+        html[data-design="novo"] #drvTabs nav { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 0 !important; }
+        html[data-design="novo"] #drvTabs nav button { flex-direction: column; gap: 3px !important; padding: 8px 2px !important; font-size: 11px !important; border-bottom: 0 !important; border-top: 3px solid transparent; border-radius: 0; }
+        html[data-design="novo"] #drvTabs nav button i { font-size: 19px; }
+        html[data-design="novo"] #drvTabs nav button.border-blue-600 { border-top-color: var(--accent) !important; }
+        /* Dono: os botões grandes do topo ficam na barra de baixo */
+        html[data-design="novo"] #secMasterPanel > .masterTopo .masterAbas, html[data-design="novo"] #secMasterPanel > .masterAtalho { display: none !important; }
+        html[data-design="novo"] #secMasterPanel > .masterTopo { padding: 18px 20px !important; }
         html[data-theme="t6"] { --bg:#111111; --bar:#161616; --card:#1c1c1c; --line:#2c2c2c; --text:#f5f5f5; --muted:#a3a3a3; --accent:#dc2626; --accent-text:#f87171; --on-accent:#fff; --pay:#dc2626; --on-pay:#fff; --btn2:#2c2c2c; --soft2:#151515; --input:#1c1c1c; --radius:10px; }
     </style>
 </head>
@@ -123,7 +165,7 @@
                 </button>
 
                 <!-- Temas -->
-                <button onclick="openThemes()" class="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors text-sm font-semibold flex items-center gap-2" title="Escolher tema">
+                <button id="btnThemes" onclick="openThemes()" class="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors text-sm font-semibold flex items-center gap-2" title="Escolher tema">
                     <i class="fa-solid fa-palette"></i><span class="hidden sm:inline">Temas</span>
                 </button>
 
@@ -225,7 +267,7 @@
             <div id="drvPixBanner" class="hidden"></div>
 
             <!-- Navegação de Abas -->
-            <div class="border-b border-gray-200 dark:border-gray-700">
+            <div id="drvTabs" class="border-b border-gray-200 dark:border-gray-700">
                 <nav class="flex gap-4 overflow-x-auto">
                     <button onclick="switchDriverTab('crlv')" id="tabBtnCrlv" class="py-3 px-4 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 dark:text-blue-400 flex items-center gap-2 whitespace-nowrap">
                         <i class="fa-solid fa-id-card"></i> CRLV-e
@@ -369,12 +411,12 @@
 
         <!-- PAINEL MASTER (ADMINISTRAÇÃO) -->
         <section id="secMasterPanel" class="hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="masterTopo flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
                     <h2 class="text-xl font-bold">Painel de Controle Master</h2>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Gestão completa de veículos, motoristas e pagamentos</p>
                 </div>
-                <div class="flex gap-2 border-b sm:border-b-0 border-gray-200 dark:border-gray-700 pb-2 sm:pb-0">
+                <div class="masterAbas flex gap-2 border-b sm:border-b-0 border-gray-200 dark:border-gray-700 pb-2 sm:pb-0">
                     <button onclick="switchMasterTab('vehicles')" id="tabMasterVehicles" class="px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm">
                         <i class="fa-solid fa-car mr-1"></i> Veículos
                     </button>
@@ -387,11 +429,11 @@
                 </div>
             </div>
 
-            <button onclick="openPixArea()" class="w-full py-3 rounded-2xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex items-center justify-center gap-2">
+            <button onclick="openPixArea()" class="masterAtalho w-full py-3 rounded-2xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex items-center justify-center gap-2">
                 <i class="fa-brands fa-pix"></i> Área do Pix
             </button>
 
-            <button id="btnFinance" onclick="openFinance()" class="w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2">
+            <button id="btnFinance" onclick="openFinance()" class="masterAtalho w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2">
                 <i class="fa-solid fa-sack-dollar"></i> Controle financeiro
             </button>
 
@@ -544,6 +586,15 @@
 
     </main>
 
+    <!-- Barra de baixo do dono (só no design novo) -->
+    <nav id="masterNav" class="bottomNav" style="grid-template-columns:repeat(5,1fr)">
+        <button type="button" id="mnVeh" onclick="switchMasterTab('vehicles');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-car"></i>Veículos</button>
+        <button type="button" id="mnDrv" onclick="switchMasterTab('drivers');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-users"></i>Motoristas</button>
+        <button type="button" onclick="openPixArea()"><i class="fa-brands fa-pix"></i>Pix</button>
+        <button type="button" onclick="openFinance()"><i class="fa-solid fa-sack-dollar"></i>Financeiro</button>
+        <button type="button" onclick="openSettings()"><i class="fa-solid fa-gear"></i>Ajustes</button>
+    </nav>
+
     <!-- MODAL PRIMEIRO LOGIN -->
     <div id="modalFirstLogin" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
@@ -615,6 +666,17 @@
                 <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="space-y-2">
+                <h4 class="font-semibold text-sm"><i class="fa-solid fa-brush text-blue-500 mr-1"></i> Aparência do app</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Escolha o visual de cada um. O dos motoristas vale para todos os motoristas.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Painel do dono</label>
+                        <select id="cfgDesignMaster" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="novo">Design novo</option><option value="antigo">Design antigo</option></select></div>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">App dos motoristas</label>
+                        <select id="cfgDesignDriver" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="novo">Design novo</option><option value="antigo">Design antigo</option></select></div>
+                </div>
+                <button onclick="saveDesign(this)" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm">Salvar aparência</button>
+            </div>
+            <div class="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-wand-magic-sparkles text-indigo-500 mr-1"></i> Leitura de documentos com IA (Gemini)</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Status: <span id="cfgGeminiStatus"></span></p>
                 <input type="password" id="cfgGemini" autocomplete="off" placeholder="Cole aqui a chave do Gemini (começa com AIza...)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
@@ -1011,7 +1073,349 @@
             },
             removeItem: k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} }
         };
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storage: sessionStore, persistSession: true, autoRefreshToken: true } });
+        let sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storage: sessionStore, persistSession: true, autoRefreshToken: true } });
+
+        // =====================================================================
+        // MODO DEMONSTRAÇÃO — usuário "teste" (senha "teste") = dono com 4 meses
+        // de dados fictícios; usuário "motorista" (senha "motorista") = motorista
+        // fictício. Tudo fica só na memória deste aparelho (sessionStorage):
+        // NÃO usa o banco de dados real, NÃO cria contas e NÃO chama a IA.
+        // =====================================================================
+        const SB_REAL = sb;
+        let DEMO = null; // null | { role, db, userId, files }
+        const DEMO_LOGINS = { teste: { senha: 'teste', role: 'master' }, motorista: { senha: 'motorista', role: 'driver' } };
+        const DEMO_KEY = 'motora_demo_v1';
+        function demoLoginRole(u, p) {
+            const l = String(u || '').trim().toLowerCase(), x = DEMO_LOGINS[l];
+            return x && String(p || '') === x.senha ? x.role : null;
+        }
+        function demoId() { return 'demo-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2)); }
+        function demoSave() { try { sessionStorage.setItem(DEMO_KEY, JSON.stringify({ role: DEMO.role, userId: DEMO.userId, db: DEMO.db })); } catch (e) {} }
+        function demoSaved() { try { return JSON.parse(sessionStorage.getItem(DEMO_KEY)); } catch (e) { return null; } }
+
+        // ---- datas no horário de Brasília ----
+        function demoLocal(y, m, d, h, mi) { return new Date(Date.UTC(y, m, d, h + 3, mi || 0)).toISOString(); } // h = hora de Brasília
+        function demoParts(ms) { const d = new Date(ms - 3 * 3600 * 1000); return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate(), dow: d.getUTCDay() }; }
+        function demoDay(ms) { const p = demoParts(ms); return `${p.y}-${String(p.m + 1).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`; }
+        function demoNextDue(ms) { // próxima segunda (ou a mesma, se for segunda) 23:59:59 de Brasília
+            const p = demoParts(ms), add = (8 - (p.dow === 0 ? 7 : p.dow)) % 7;
+            return new Date(Date.UTC(p.y, p.m, p.d + add, 23 + 3, 59, 59)).toISOString();
+        }
+
+        // ---- dados fictícios (4 meses) ----
+        function demoBuild(role) {
+            const now = Date.now();
+            let seed = 20261027;
+            const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+            const pick = (a, b) => Math.round((a + rnd() * (b - a)) * 100) / 100;
+            const db = { profiles: [], vehicles: [], receipts: [], pix_history: [], vehicle_expenses: [], expense_types: [], inspection_photos: [],
+                terms_acceptances: [], app_earnings: [], app_expenses: [], app_days_off: [], app_settings: [{ key: 'design', value: { master: 'novo', motorista: 'novo' } }], __docs: [] };
+            const doc = p => { db.__docs.push(p); return p; };
+            const ago = days => now - days * 86400000;
+            const master = { id: 'demo-master', role: 'master', name: 'Dono (demonstração)', username: 'teste@motora.app', payment_status: 'Em dia', created_at: new Date(ago(130)).toISOString() };
+            db.profiles.push(master);
+
+            const V = [
+                { id: 'demo-v1', model: 'FIAT/ARGO DRIVE 1.0', plate: 'DMO1A11' },
+                { id: 'demo-v2', model: 'CHEVROLET/ONIX 1.0', plate: 'DMO2B22' },
+                { id: 'demo-v3', model: 'HYUNDAI/HB20 1.0M', plate: 'DMO3C33' },
+                { id: 'demo-v4', model: 'RENAULT/KWID ZEN 1.0', plate: 'DMO4D44' },
+            ];
+            V.forEach(v => db.vehicles.push({ ...v, crlv_path: doc(`demo/${v.id}/crlv-e.svg`), created_at: new Date(ago(130)).toISOString() }));
+
+            const exp = (dd) => demoDay(now + dd * 86400000);
+            const D = [
+                { id: 'demo-d1', name: 'Marcos Lima', username: 'motorista@motora.app', vehicle_id: 'demo-v1', rent: 650, weeks: 17, cnh_expiry: exp(900), phone: '(11) 90000-0001', cpf: '000.000.001-01' },
+                { id: 'demo-d2', name: 'Ana Ribeiro', username: 'anaribeiro@motora.app', vehicle_id: 'demo-v2', rent: 600, weeks: 17, cnh_expiry: exp(500), phone: '(11) 90000-0002', cpf: '000.000.002-02', caucao: 10 },
+                { id: 'demo-d3', name: 'Paulo Santos', username: 'paulosantos@motora.app', vehicle_id: 'demo-v3', rent: 620, weeks: 17, cnh_expiry: exp(20), phone: '(11) 90000-0003', cpf: '000.000.003-03' },
+                { id: 'demo-d4', name: 'Juliana Alves', username: 'julianaalves@motora.app', vehicle_id: 'demo-v4', rent: 550, weeks: 9, cnh_expiry: exp(700), phone: '(11) 90000-0004', cpf: '000.000.004-04' },
+            ];
+            const due0 = new Date(demoNextDue(now)).getTime();
+            const brl = v => v.toFixed(2).replace('.', ',');
+            D.forEach((d, di) => {
+                const prof = {
+                    id: d.id, role: 'driver', name: d.name, username: d.username, vehicle_id: d.vehicle_id, payment_status: 'Em dia',
+                    phone: d.phone, cpf: d.cpf, rg: '00.000.00' + (di + 1) + '-0', birth_date: '199' + (di + 1) + '-0' + (di + 3) + '-1' + di,
+                    cnh_number: '0000000000' + (di + 1), cnh_category: 'B', cnh_expiry: d.cnh_expiry,
+                    address: 'Rua Exemplo, ' + (100 + di * 25) + ' – Bairro Demonstração – São Paulo/SP',
+                    cnh_path: doc(`demo/${d.id}/cnh.svg`), address_path: doc(`demo/${d.id}/endereco.svg`), contract_path: doc(`demo/${d.id}/contrato.svg`),
+                    created_at: new Date(due0 - (d.weeks * 7 + 2) * 86400000).toISOString(),
+                };
+                db.profiles.push(prof);
+                if (d.id !== 'demo-d4') db.terms_acceptances.push({ id: demoId(), driver_id: d.id, terms_version: TERMS_VERSION, accepted_items: {}, driver_name: d.name, driver_login: d.username.replace('@motora.app', ''), accepted_at: prof.created_at });
+                for (let k = d.weeks - 1; k >= 0; k--) {
+                    const due = due0 - k * 7 * 86400000;
+                    let sent = due - 86400000 - (14 * 3600 + 59 * 60 + 59) * 1000; // domingo 09:00
+                    if (sent > now) sent = now - 2 * 3600000;
+                    const itens = [['Aluguel semanal', d.rent]];
+                    const nCau = d.caucao ? d.weeks - k : 0;
+                    if (d.caucao && nCau <= d.caucao) itens.push([`Caução ${nCau}/${d.caucao}`, 100]);
+                    if (d.id === 'demo-d1' && k === 6) itens.push(['Multa de trânsito', 130.16]);
+                    if (d.id === 'demo-d3' && k === 10) itens.push(['Avaria (retrovisor)', 180]);
+                    const amount = Math.round(itens.reduce((a, i) => a + i[1], 0) * 100) / 100;
+                    const description = itens.map(i => `${i[0]} R$ ${brl(i[1])}`).join('\n');
+                    const h = { id: demoId(), driver_id: d.id, sent_at: new Date(sent).toISOString(), due_at: new Date(due).toISOString(), amount, description, receipt_id: null, paid_at: null, created_at: new Date(sent).toISOString() };
+                    db.pix_history.push(h);
+                    // como cada motorista paga
+                    let payAt = null, status = 'ok', reject = null;
+                    if (k === 0) {
+                        if (d.id === 'demo-d2') payAt = Math.min(now - 3600000, sent + 3 * 3600000);
+                        else if (d.id === 'demo-d4') { payAt = Math.min(now - 1800000, sent + 4 * 3600000); status = 'pendente'; }
+                        else payAt = null; // Marcos e Paulo ainda não pagaram esta semana
+                    } else if (d.id === 'demo-d3' && k === 1) { payAt = due - 5 * 3600000; status = 'recusado'; reject = 'Comprovante ilegível. Envie a foto inteira do comprovante.'; }
+                    else if (d.id === 'demo-d3' && (k === 5 || k === 9 || k === 13)) payAt = due + 2 * 86400000; // atrasado
+                    else if (d.id === 'demo-d1' && k === 8) payAt = due + 86400000;
+                    else payAt = due - (6 + Math.floor(rnd() * 12)) * 3600000;
+                    if (!payAt) continue;
+                    const r = {
+                        id: demoId(), driver_id: d.id, file_name: 'comprovante.jpg', file_path: doc(`demo/${d.id}/comprovante-${k}.svg`), created_at: new Date(payAt).toISOString(),
+                        ai_status: status === 'recusado' ? 'alerta' : 'ok', ai_checked_at: new Date(payAt + 60000).toISOString(),
+                        ai_result: { valor: amount, situacao: 'realizado', recebedor_nome: 'Locador (demonstração)', pagador_nome: d.name, data_hora: new Date(payAt - 3 * 3600000).toISOString().slice(0, 16), id_transacao: 'E00000000DEMO' + String(di) + String(k).padStart(2, '0'), problemas: status === 'recusado' ? ['Não deu para ler o valor.'] : [] },
+                        confirmed_at: status === 'ok' ? new Date(payAt + 2 * 3600000).toISOString() : null,
+                        rejected_at: status === 'recusado' ? new Date(payAt + 3 * 3600000).toISOString() : null, reject_reason: reject,
+                    };
+                    db.receipts.push(r);
+                    if (status !== 'recusado') h.receipt_id = r.id;
+                    if (status === 'ok') h.paid_at = r.created_at;
+                }
+                const cur = db.pix_history.filter(h => h.driver_id === d.id).sort((a, b) => a.sent_at < b.sent_at ? 1 : -1)[0];
+                Object.assign(prof, { pix_sent_at: cur.sent_at, pix_due_at: cur.due_at, pix_amount: cur.amount, pix_description: cur.description, pix_code: null, pix_qr_path: null, pix_link: 'chave:email|pix.demonstracao@exemplo.com' });
+                const late = db.pix_history.some(h => h.driver_id === d.id && !h.paid_at && new Date(h.due_at).getTime() < now && !db.receipts.some(r => r.driver_id === d.id && !r.rejected_at && !r.confirmed_at && r.created_at >= h.sent_at));
+                prof.payment_status = late ? 'Em atraso' : 'Em dia';
+            });
+
+            // despesas dos carros
+            const T = ['Manutenção', 'Troca de óleo', 'Pneus', 'Seguro', 'Licenciamento', 'Lavagem', 'Multa'].map(n => ({ id: demoId(), name: n }));
+            db.expense_types = T;
+            const tid = n => T.find(t => t.name === n).id;
+            const vexp = (vid, tipo, amount, days, description) => db.vehicle_expenses.push({ id: demoId(), vehicle_id: vid, type_id: tid(tipo), amount, expense_date: demoDay(ago(days)), description, file_path: null, created_at: new Date(ago(days)).toISOString() });
+            V.forEach((v, i) => {
+                for (let m = 0; m < 4; m++) vexp(v.id, 'Seguro', 189.9 + i * 10, 5 + m * 30, 'Parcela do seguro');
+                vexp(v.id, 'Troca de óleo', 219.9, 20 + i * 7, 'Óleo e filtro');
+                vexp(v.id, 'Troca de óleo', 229.9, 80 + i * 5, 'Óleo e filtro');
+                vexp(v.id, 'Lavagem', 45, 12 + i * 3, 'Lavagem completa');
+            });
+            vexp('demo-v3', 'Pneus', 1240, 60, '4 pneus novos');
+            vexp('demo-v3', 'Manutenção', 380, 33, 'Troca do retrovisor');
+            vexp('demo-v2', 'Manutenção', 560, 95, 'Pastilhas e discos de freio');
+            vexp('demo-v1', 'Licenciamento', 162.83, 110, 'Licenciamento anual');
+            vexp('demo-v4', 'Manutenção', 210, 15, 'Alinhamento e balanceamento');
+
+            // ganhos e despesas do aplicativo (o dono também roda de Uber/99)
+            for (let dd = 122; dd >= 1; dd--) {
+                const day = demoDay(ago(dd)), dow = demoParts(ago(dd)).dow;
+                if (dow === 0 || rnd() < 0.07) { db.app_days_off.push({ day, created_at: new Date(ago(dd)).toISOString() }); continue; }
+                const trips = 10 + Math.floor(rnd() * 9), hours = 7 + Math.floor(rnd() * 4), mins = Math.floor(rnd() * 6) * 10;
+                db.app_earnings.push({ id: demoId(), app: 'Uber', amount: pick(170, 330), earning_date: day, vehicle_id: null, description: `${trips} viagens · ${hours} h ${mins} m online`, created_at: new Date(ago(dd)).toISOString() });
+                if (rnd() < 0.55) db.app_earnings.push({ id: demoId(), app: '99', amount: pick(55, 160), earning_date: day, vehicle_id: null, description: null, created_at: new Date(ago(dd)).toISOString() });
+                if (rnd() < 0.12) db.app_earnings.push({ id: demoId(), app: 'inDrive', amount: pick(40, 110), earning_date: day, vehicle_id: null, description: null, created_at: new Date(ago(dd)).toISOString() });
+                if (dd % 2 === 0) db.app_expenses.push({ id: demoId(), category: 'Gasolina', amount: pick(95, 160), expense_date: day, description: null, created_at: new Date(ago(dd)).toISOString() });
+                if (rnd() < 0.7) db.app_expenses.push({ id: demoId(), category: 'Alimentação', amount: pick(18, 42), expense_date: day, description: null, created_at: new Date(ago(dd)).toISOString() });
+                if (dd % 14 === 3) db.app_expenses.push({ id: demoId(), category: 'Lavagem', amount: 35, expense_date: day, description: null, created_at: new Date(ago(dd)).toISOString() });
+                if (dd % 30 === 7) db.app_expenses.push({ id: demoId(), category: 'Manutenção', amount: pick(90, 260), expense_date: day, description: null, created_at: new Date(ago(dd)).toISOString() });
+            }
+            return { db, userId: role === 'master' ? 'demo-master' : 'demo-d1' };
+        }
+
+        // ---- documentos fictícios (imagem gerada na hora) ----
+        function demoDocBlob(path) {
+            const n = String(path).toLowerCase();
+            const t = n.includes('crlv') ? 'CRLV-e' : n.includes('cnh') ? 'CNH' : n.includes('contrato') ? 'Contrato de locação' : n.includes('endereco') ? 'Comprovante de endereço' : n.includes('comprovante') ? 'Comprovante de Pix' : 'Documento';
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f5f5f4"/><rect x="30" y="30" width="540" height="740" rx="18" fill="#fff" stroke="#d6d3d1" stroke-width="3"/><text x="300" y="150" font-family="Arial" font-size="42" font-weight="bold" text-anchor="middle" fill="#292524">${t}</text>${[230, 290, 350, 410, 470, 530].map(y => `<rect x="80" y="${y}" width="${300 + (y % 140)}" height="22" rx="6" fill="#e7e5e4"/>`).join('')}<text x="300" y="660" font-family="Arial" font-size="30" font-weight="bold" text-anchor="middle" fill="#b45309">DOCUMENTO FICTÍCIO</text><text x="300" y="705" font-family="Arial" font-size="24" text-anchor="middle" fill="#78716c">Demonstração do MOTORA</text></svg>`;
+            return new Blob([svg], { type: 'image/svg+xml' });
+        }
+
+        // ---- "banco de dados" na memória, com a mesma forma de uso do Supabase ----
+        function demoQuery(table) {
+            const st = { op: 'select', filters: [], order: [], limit: null, single: false, maybe: false, payload: null, returning: false };
+            const q = {
+                select() { if (st.op !== 'select') st.returning = true; return q; },
+                eq(c, v) { st.filters.push(r => String(r[c]) === String(v)); return q; },
+                neq(c, v) { st.filters.push(r => String(r[c]) !== String(v)); return q; },
+                in(c, a) { const s = (a || []).map(String); st.filters.push(r => s.includes(String(r[c]))); return q; },
+                gte(c, v) { st.filters.push(r => r[c] != null && String(r[c]) >= String(v)); return q; },
+                gt(c, v) { st.filters.push(r => r[c] != null && String(r[c]) > String(v)); return q; },
+                lt(c, v) { st.filters.push(r => r[c] != null && String(r[c]) < String(v)); return q; },
+                lte(c, v) { st.filters.push(r => r[c] != null && String(r[c]) <= String(v)); return q; },
+                is(c, v) { st.filters.push(r => (r[c] ?? null) === v); return q; },
+                order(c, o) { st.order.push({ c, asc: !(o && o.ascending === false) }); return q; },
+                limit(n) { st.limit = n; return q; },
+                maybeSingle() { st.maybe = true; return q; },
+                single() { st.single = true; return q; },
+                insert(p) { st.op = 'insert'; st.payload = p; return q; },
+                update(p) { st.op = 'update'; st.payload = p; return q; },
+                upsert(p) { st.op = 'upsert'; st.payload = p; return q; },
+                delete() { st.op = 'delete'; return q; },
+                then(ok, fail) { return Promise.resolve().then(run).then(ok, fail); },
+            };
+            const clone = x => JSON.parse(JSON.stringify(x));
+            function out(list) {
+                list = clone(list);
+                if (st.single) return list.length ? { data: list[0], error: null } : { data: null, error: { message: 'Registro não encontrado.' } };
+                if (st.maybe) return { data: list[0] || null, error: null };
+                return { data: list, error: null };
+            }
+            function run() {
+                if (!DEMO) return { data: null, error: { message: 'Demonstração encerrada.' } };
+                const rows = DEMO.db[table] = DEMO.db[table] || [];
+                const match = r => st.filters.every(f => f(r));
+                const key = table === 'app_settings' ? 'key' : table === 'app_days_off' ? 'day' : 'id';
+                const nowIso = new Date().toISOString();
+                if (st.op === 'select') {
+                    let list = rows.filter(match);
+                    for (const o of st.order.slice().reverse()) list.sort((a, b) => { const x = a[o.c], y = b[o.c]; if (x == null) return 1; if (y == null) return -1; const r = (typeof x === 'number' && typeof y === 'number') ? x - y : String(x).localeCompare(String(y)); return o.asc ? r : -r; });
+                    if (st.limit != null) list = list.slice(0, st.limit);
+                    return out(list);
+                }
+                if (st.op === 'insert' || st.op === 'upsert') {
+                    const added = [];
+                    for (const p of (Array.isArray(st.payload) ? st.payload : [st.payload])) {
+                        const i = p[key] != null ? rows.findIndex(r => String(r[key]) === String(p[key])) : -1;
+                        if (i >= 0 && st.op === 'insert') return { data: null, error: { message: 'duplicate key value' } };
+                        if (i >= 0) { Object.assign(rows[i], p); added.push(rows[i]); continue; }
+                        const row = { id: demoId(), created_at: nowIso, ...p };
+                        demoOnInsert(table, row);
+                        rows.push(row); added.push(row);
+                    }
+                    demoSave();
+                    return st.returning ? out(added) : { data: null, error: null };
+                }
+                if (st.op === 'update') {
+                    const changed = [];
+                    rows.filter(match).forEach(r => { const old = { ...r }; Object.assign(r, st.payload); demoOnUpdate(table, r, old); changed.push(r); });
+                    demoSave();
+                    return st.returning ? out(changed) : { data: null, error: null };
+                }
+                if (st.op === 'delete') {
+                    DEMO.db[table] = rows.filter(r => !match(r));
+                    demoSave();
+                    return { data: null, error: null };
+                }
+                return { data: null, error: null };
+            }
+            return q;
+        }
+        // imita as regras automáticas do banco real
+        function demoOnUpdate(table, r, old) {
+            if (table !== 'profiles' || r.role !== 'driver' || DEMO.keepDates) return;
+            const novo = (r.pix_code || r.pix_qr_path) && (r.pix_code !== old.pix_code || r.pix_qr_path !== old.pix_qr_path || r.pix_sent_at !== old.pix_sent_at);
+            if (novo) {
+                r.pix_sent_at = new Date().toISOString(); r.pix_due_at = demoNextDue(Date.now());
+                DEMO.db.pix_history.push({ id: demoId(), driver_id: r.id, sent_at: r.pix_sent_at, due_at: r.pix_due_at, amount: r.pix_amount, description: r.pix_description || null, receipt_id: null, paid_at: null, created_at: r.pix_sent_at });
+            } else { r.pix_sent_at = old.pix_sent_at; r.pix_due_at = old.pix_due_at; }
+        }
+        function demoOnInsert(table, row) {
+            if (table === 'receipts') {
+                const d = DEMO.db.profiles.find(p => p.id === row.driver_id) || {};
+                row.ai_status = 'ok'; row.ai_checked_at = new Date().toISOString();
+                row.ai_result = { valor: d.pix_amount != null ? Number(d.pix_amount) : null, situacao: 'realizado', recebedor_nome: 'Locador (demonstração)', pagador_nome: d.name || '', data_hora: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 16), id_transacao: 'E00000000DEMO' + Date.now().toString().slice(-6), problemas: [] };
+                const h = DEMO.db.pix_history.filter(x => x.driver_id === row.driver_id && !x.paid_at && x.sent_at < row.created_at).sort((a, b) => a.sent_at < b.sent_at ? 1 : -1)[0];
+                if (h) h.receipt_id = row.id;
+            }
+        }
+        const DEMO_RPC = {
+            get_app_config_status: () => ({ gemini: false, drive: false }),
+            master_confirm_receipt({ p_receipt }) {
+                const r = DEMO.db.receipts.find(x => x.id === p_receipt); if (!r) throw new Error('comprovante não encontrado');
+                Object.assign(r, { confirmed_at: new Date().toISOString(), rejected_at: null, reject_reason: null });
+                const d = DEMO.db.profiles.find(p => p.id === r.driver_id); if (d) d.payment_status = 'Em dia';
+                const h = DEMO.db.pix_history.filter(x => x.driver_id === r.driver_id && !x.paid_at && (x.receipt_id === r.id || x.sent_at < r.created_at)).sort((a, b) => (b.receipt_id === r.id) - (a.receipt_id === r.id) || (a.sent_at < b.sent_at ? 1 : -1))[0];
+                if (h) Object.assign(h, { paid_at: r.created_at, receipt_id: r.id });
+            },
+            master_reject_receipt({ p_receipt, p_reason }) {
+                const r = DEMO.db.receipts.find(x => x.id === p_receipt); if (!r) throw new Error('comprovante não encontrado');
+                Object.assign(r, { rejected_at: new Date().toISOString(), confirmed_at: null, reject_reason: (p_reason || '').trim() || null });
+                DEMO.db.pix_history.forEach(h => { if (h.receipt_id === r.id && !h.paid_at) h.receipt_id = null; });
+            },
+            master_edit_pix({ p_driver, p_code, p_qr_path, p_link, p_amount, p_description }) {
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d || !d.pix_sent_at) throw new Error('este motorista não tem Pix enviado');
+                Object.assign(d, { pix_code: p_code, pix_qr_path: p_qr_path, pix_link: p_link, pix_amount: p_amount, pix_description: p_description });
+                DEMO.db.pix_history.forEach(h => { if (h.driver_id === p_driver && h.sent_at === d.pix_sent_at && !h.paid_at) Object.assign(h, { amount: p_amount, description: p_description }); });
+            },
+            master_delete_pix({ p_driver }) {
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) throw new Error('motorista não encontrado');
+                DEMO.db.pix_history = DEMO.db.pix_history.filter(h => !(h.driver_id === p_driver && h.sent_at === d.pix_sent_at && !h.paid_at));
+                Object.assign(d, { pix_code: null, pix_qr_path: null, pix_link: null, pix_amount: null, pix_description: null, pix_sent_at: null, pix_due_at: null });
+            },
+            master_create_driver({ p_email, p_name, p_vehicle, p_pix_code }) {
+                const id = demoId();
+                DEMO.db.profiles.push({ id, role: 'driver', name: p_name, username: p_email, vehicle_id: p_vehicle || null, payment_status: 'Em dia', pix_code: p_pix_code || null, created_at: new Date().toISOString() });
+                return id;
+            },
+            master_delete_driver({ p_id }) {
+                DEMO.db.profiles = DEMO.db.profiles.filter(p => p.id !== p_id);
+                ['receipts', 'pix_history', 'terms_acceptances'].forEach(t => { DEMO.db[t] = DEMO.db[t].filter(x => x.driver_id !== p_id); });
+            },
+            driver_submit_cnh({ p_path }) {
+                const d = DEMO.db.profiles.find(p => p.id === DEMO.userId); if (d) Object.assign(d, { cnh_pending_path: p_path, cnh_sent_at: new Date().toISOString() });
+            },
+            set_app_config() { throw new Error('Na demonstração as configurações não são salvas.'); },
+        };
+        function demoClient() {
+            const session = () => DEMO && DEMO.userId ? { user: { id: DEMO.userId, email: (DEMO.db.profiles.find(p => p.id === DEMO.userId) || {}).username }, access_token: 'demo:' + DEMO.userId, refresh_token: 'demo:' + DEMO.userId } : null;
+            const files = () => (DEMO.files = DEMO.files || {});
+            const blobOf = path => files()[path] || (DEMO.db.__docs.includes(path) ? demoDocBlob(path) : null);
+            return {
+                from: demoQuery,
+                rpc: async (name, args) => {
+                    try {
+                        DEMO.keepDates = true;
+                        const data = DEMO_RPC[name] ? DEMO_RPC[name](args || {}) : null;
+                        demoSave();
+                        return { data: data ?? null, error: null };
+                    } catch (e) { return { data: null, error: { message: e.message } }; }
+                    finally { if (DEMO) DEMO.keepDates = false; }
+                },
+                functions: {
+                    invoke: async (name, opts) => {
+                        const b = (opts && opts.body) || {};
+                        if (name === 'motora-login-as') { const d = DEMO.db.profiles.find(p => p.id === b.driver_id && p.role === 'driver'); return d ? { data: { token_hash: 'demo:' + d.id, name: d.name }, error: null } : { data: { error: 'motorista não encontrado' }, error: null }; }
+                        if (name === 'motora-push') return { data: { sent: 0 }, error: null };
+                        return { data: { ok: false, error: 'A leitura por IA fica desligada na demonstração.' }, error: null };
+                    },
+                },
+                storage: {
+                    from: () => ({
+                        upload: async (path, file) => { files()[path] = file; return { data: { path }, error: null }; },
+                        download: async path => { const b = blobOf(path); return b ? { data: b, error: null } : { data: null, error: { message: 'Arquivo não encontrado.' } }; },
+                        createSignedUrl: async path => { const b = blobOf(path); return b ? { data: { signedUrl: URL.createObjectURL(b) }, error: null } : { data: null, error: { message: 'Arquivo não encontrado.' } }; },
+                        createSignedUrls: async paths => ({ data: paths.map(p => { const b = blobOf(p); return b ? { path: p, signedUrl: URL.createObjectURL(b), error: null } : { path: p, signedUrl: null, error: 'Arquivo não encontrado.' }; }), error: null }),
+                        list: async () => ({ data: [], error: null }),
+                        remove: async () => ({ data: [], error: null }),
+                    }),
+                },
+                auth: {
+                    getSession: async () => ({ data: { session: session() }, error: null }),
+                    signOut: async opts => { if (opts && opts.scope === 'local') { DEMO.userId = null; demoSave(); } else demoStop(); return { error: null }; },
+                    verifyOtp: async ({ token_hash }) => { DEMO.userId = String(token_hash).replace(/^demo:/, ''); demoSave(); return { data: { user: session().user }, error: null }; },
+                    setSession: async s => { DEMO.userId = String(s.access_token || '').replace(/^demo:/, ''); demoSave(); const ss = session(); return { data: { session: ss, user: ss && ss.user }, error: null }; },
+                    signInWithPassword: async () => ({ data: null, error: { message: 'Invalid login credentials' } }),
+                },
+            };
+        }
+        function demoStart(role, saved) {
+            const built = saved && saved.db ? { db: saved.db, userId: saved.userId } : demoBuild(role);
+            DEMO = { role, db: built.db, userId: built.userId, files: {} };
+            sb = demoClient();
+            demoSave();
+            demoBanner(true);
+            return { id: DEMO.userId };
+        }
+        function demoStop() {
+            DEMO = null; sb = SB_REAL;
+            try { sessionStorage.removeItem(DEMO_KEY); } catch (e) {}
+            demoBanner(false);
+        }
+        function demoBanner(on) {
+            let el = document.getElementById('demoBanner');
+            if (!el && on) {
+                el = document.createElement('div'); el.id = 'demoBanner';
+                el.style.cssText = 'background:#3f3f46;color:#fafafa;font:600 12px system-ui,sans-serif;text-align:center;padding:calc(6px + env(safe-area-inset-top)) 10px 6px;';
+                el.innerHTML = 'MODO DEMONSTRAÇÃO · dados fictícios · nada é salvo no sistema · <a href="#" onclick="logout();return false" style="color:#fde68a;text-decoration:underline">Sair</a>';
+                document.body.insertBefore(el, document.body.firstChild);
+            }
+            if (el) el.style.display = on ? '' : 'none';
+        }
 
         // ESTADO EM MEMÓRIA (carregado do Supabase)
         let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [] };
@@ -1065,6 +1469,8 @@
             if (savedUser) document.getElementById('loginUser').value = savedUser;
             document.getElementById('chkRememberPass').checked = lsGet('motora_remember') !== '0';
 
+            const demoPrev = demoSaved(); // recarregou a página no meio da demonstração
+            if (demoPrev && demoPrev.role && demoPrev.userId) demoStart(demoPrev.role, demoPrev);
             const { data } = await sb.auth.getSession();
             if (data && data.session) {
                 state.user = data.session.user;
@@ -1114,6 +1520,57 @@
         }
         function toggleDarkMode() { openThemes(); }
 
+        // ===== DESIGN NOVO / ANTIGO (escolhido pelo dono; o dos motoristas fica no banco e vale para todos) =====
+        let designCfg = { master: 'novo', motorista: 'antigo' };
+        async function loadDesignCfg() {
+            try {
+                const { data } = await sb.from('app_settings').select('value').eq('key', 'design').maybeSingle();
+                designCfg = { master: 'novo', motorista: 'antigo', ...((data && data.value) || {}) };
+            } catch (e) {}
+            return designCfg;
+        }
+        function applyDesign() {
+            const role = state.profile ? state.profile.role : null;
+            const which = !role ? (lsGet('motora_design_last') || 'antigo') : (role === 'master' ? designCfg.master : designCfg.motorista);
+            const novo = which === 'novo';
+            const root = document.documentElement;
+            root.dataset.design = novo ? 'novo' : 'antigo';
+            if (role) lsSet('motora_design_last', novo ? 'novo' : 'antigo');
+            if (novo) {
+                const dark = !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+                root.dataset.theme = dark ? 'tnd' : 'tn';
+                root.classList.toggle('dark', dark);
+                const meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.content = dark ? '#1f1f23' : '#ffffff';
+            } else applyTheme(currentTheme());
+            const showM = novo && role === 'master';
+            document.getElementById('masterNav').classList.toggle('ativo', showM);
+            document.body.classList.toggle('com-nav', novo && !!role);
+            if (showM) markMasterNav();
+        }
+        function markMasterNav() {
+            const v = !document.getElementById('subMasterVehicles').classList.contains('hidden');
+            document.getElementById('mnVeh').classList.toggle('atual', v);
+            document.getElementById('mnDrv').classList.toggle('atual', !v);
+        }
+        function fillDesignCfg() {
+            document.getElementById('cfgDesignMaster').value = designCfg.master === 'antigo' ? 'antigo' : 'novo';
+            document.getElementById('cfgDesignDriver').value = designCfg.motorista === 'novo' ? 'novo' : 'antigo';
+        }
+        async function saveDesign(btn) {
+            const value = { master: document.getElementById('cfgDesignMaster').value, motorista: document.getElementById('cfgDesignDriver').value };
+            if (btn) btn.disabled = true;
+            try {
+                const { error } = await sb.from('app_settings').upsert({ key: 'design', value, updated_at: new Date().toISOString() });
+                if (error) throw error;
+                designCfg = value;
+                applyDesign();
+                showToast('Aparência salva! Motoristas: design ' + (value.motorista === 'novo' ? 'novo' : 'antigo') + '.');
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+            finally { if (btn) btn.disabled = false; }
+        }
+        if (window.matchMedia) try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (document.documentElement.dataset.design === 'novo') applyDesign(); }); } catch (e) {}
+
         function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
             document.getElementById('toastMsg').innerText = msg;
@@ -1135,7 +1592,10 @@
             if (remember) lsSet('motora_saved_login', u); else lsDel('motora_saved_login');
 
             setBusy(form, true);
-            const { data, error } = await sb.auth.signInWithPassword({ email: toEmail(u), password: p });
+            let data, error;
+            const demoRole = demoLoginRole(u, p);
+            if (demoRole) { if (DEMO) demoStop(); demoStart(demoRole); data = { user: (await sb.auth.getSession()).data.session.user }; error = null; }
+            else { if (DEMO) demoStop(); ({ data, error } = await sb.auth.signInWithPassword({ email: toEmail(u), password: p })); }
             setBusy(form, false);
             if (error) { showToast(friendlyError(error), 'error'); return; }
 
@@ -1173,6 +1633,7 @@
             notifPrompted = false; notifTried = false; notifSubOk = false; contractDocShown = null;
             document.getElementById('headerRoleSubtitle').innerText = "Sistema de Gestão";
             document.getElementById('lastUpdated').innerText = '';
+            applyDesign();
             showSection('secLogin');
             showToast("Sessão encerrada com sucesso.");
         }
@@ -1242,6 +1703,7 @@
                 state.features = await loadDriverFeatures();
             }
             await loadTermsAcceptances(profile);
+            await loadDesignCfg();
             const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
@@ -1281,6 +1743,7 @@
         // RENDERIZAÇÃO GERAL
         function renderApp() {
             if (!state.profile) return;
+            applyDesign();
             renderViewAsBanner();
             setTimeout(refreshNotifButton, 0);
             document.getElementById('btnLogout').classList.remove('hidden');
@@ -1309,7 +1772,7 @@
                 updateStatusToggleUI();
                 if (state.viewingAs) return; // master vendo como motorista: sem termos e sem pedir notificações
                 if (needsTermsAcceptance()) { openTermsGate(); return; } // primeiro aceita os termos, depois o resto
-                checkDriverNotifications(!notifPrompted);
+                if (!DEMO) checkDriverNotifications(!notifPrompted); // na demonstração não pede notificações
                 notifPrompted = true;
                 if (new URLSearchParams(location.search).get('aba') === 'pagamento') {
                     switchDriverTab('payment');
@@ -1530,7 +1993,7 @@
             }
 
             // Valor e descrição da cobrança
-            const hasPix = !!(driver.pix_code || driver.pix_qr_path);
+            const hasPix = !!(driver.pix_code || driver.pix_qr_path || parsePixKey(driver.pix_link));
             const charge = document.getElementById('drvChargeInfo');
             const showCharge = hasPix && driver.pix_amount != null;
             charge.classList.toggle('hidden', !showCharge);
@@ -1856,7 +2319,7 @@
                                 </select>
                                 <div class="text-xs text-gray-400 mt-1 whitespace-nowrap">${d.pix_due_at ? 'Vence: ' + fmtDue(d.pix_due_at, true) : 'Sem Pix enviado'}</div>
                                 <button onclick="openNewPix('${d.id}')" class="mt-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-pix mr-1"></i> Novo Pix</button>
-                                ${(d.pix_code || d.pix_qr_path) ? `<div class="flex gap-1 mt-1">
+                                ${(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link)) ? `<div class="flex gap-1 mt-1">
                                     <button onclick="openEditPix('${d.id}')" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Editar o Pix enviado"><i class="fa-solid fa-pen mr-1"></i> Editar</button>
                                     <button onclick="deletePix('${d.id}', this)" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Excluir o Pix enviado"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>
                                 </div>` : ''}
@@ -2184,6 +2647,7 @@
             document.getElementById('cfgDriveStatus').innerHTML = appConfig.drive ? ok : no;
         }
         async function openSettings() {
+            fillDesignCfg();
             document.getElementById('cfgGemini').value = '';
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
@@ -2879,7 +3343,7 @@
             const d = state.drivers.find(x => x.id === document.getElementById('pixAreaDriver').value);
             if (!d) { box.innerHTML = '<p class="text-sm text-gray-400 italic">Escolha um motorista para ver, enviar, editar ou excluir o Pix.</p>'; return; }
             const veh = state.vehicles.find(v => v.id === d.vehicle_id);
-            const hasPix = !!(d.pix_code || d.pix_qr_path);
+            const hasPix = !!(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link));
             const recs = d.pix_sent_at ? state.receipts.filter(r => r.driver_id === d.id && new Date(r.created_at) >= new Date(d.pix_sent_at)) : [];
             let last = recs[recs.length - 1];
             const cur = d.pix_sent_at ? allocatePix(d.id).charges.find(c => Math.abs(new Date(c.h.sent_at) - new Date(d.pix_sent_at)) < 2000) : null;
@@ -2999,7 +3463,7 @@
         }
 
         // NOTIFICAÇÕES NO CELULAR (Web Push)
-        function pushSupported() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+        function pushSupported() { if (DEMO) return false; return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
         function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
         function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
         function b64ToBytes(b64) {
