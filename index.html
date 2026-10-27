@@ -1342,6 +1342,9 @@
             ];
             const RENT = { 'demo-v1': 650, 'demo-v2': 500, 'demo-v3': 620, 'demo-v4': 550 };
             V.forEach(v => db.vehicles.push({ ...v, rent_amount: RENT[v.id], crlv_path: doc(`demo/${v.id}/crlv-e.svg`), created_at: new Date(ago(130)).toISOString() }));
+            // fotos da vistoria (desenhos), uma por posição
+            V.forEach(v => [['dianteira', 'Dianteira'], ['traseira', 'Traseira'], ['lateral_esquerda', 'Lateral esquerda'], ['lateral_direita', 'Lateral direita'], ['painel', 'Painel']]
+                .forEach(([slot, label]) => db.inspection_photos.push({ id: demoId(), vehicle_id: v.id, slot, label, file_path: doc(`demo/${v.id}/vistoria-${slot}.svg`), created_at: new Date(ago(120)).toISOString() })));
 
             const exp = (dd) => demoDay(now + dd * 86400000);
             const D = [
@@ -1359,9 +1362,11 @@
                     cnh_number: '0000000000' + (di + 1), cnh_category: 'B', cnh_expiry: d.cnh_expiry,
                     address: 'Rua Exemplo, ' + (100 + di * 25) + ' – Bairro Demonstração – São Paulo/SP',
                     cnh_path: doc(`demo/${d.id}/cnh.svg`), address_path: doc(`demo/${d.id}/endereco.svg`), contract_path: doc(`demo/${d.id}/contrato.svg`),
+                    inspection_term_path: doc(`demo/${d.id}/termo-vistoria.svg`),
                     created_at: new Date(due0 - (d.weeks * 7 + 2) * 86400000).toISOString(),
                 };
                 db.profiles.push(prof);
+                doc(`${d.id}/foto.jpg`); // foto de perfil desenhada
                 if (d.id !== 'demo-d4') db.terms_acceptances.push({ id: demoId(), driver_id: d.id, terms_version: TERMS_VERSION, accepted_items: TERMS_ITEMS.map(i => i.k), driver_name: d.name, driver_login: d.username.replace('@motora.app', ''), accepted_at: prof.created_at });
                 for (let k = d.weeks - 1; k >= 0; k--) {
                     const due = due0 - k * 7 * 86400000;
@@ -1457,11 +1462,83 @@
         }
 
         // ---- documentos fictícios (imagem gerada na hora) ----
+        // ---- documentos e fotos fictícios (desenhados na hora; campos com AAAA/0000 e tarja "NÃO É REAL") ----
         function demoDocBlob(path) {
             const n = String(path).toLowerCase();
-            const t = n.includes('crlv') ? 'CRLV-e' : n.includes('cnh') ? 'CNH' : n.includes('contrato') ? 'Contrato de locação' : n.includes('endereco') ? 'Comprovante de endereço' : n.includes('comprovante') ? 'Comprovante de Pix' : 'Documento';
-            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f5f5f4"/><rect x="30" y="30" width="540" height="740" rx="18" fill="#fff" stroke="#d6d3d1" stroke-width="3"/><text x="300" y="150" font-family="Arial" font-size="42" font-weight="bold" text-anchor="middle" fill="#292524">${t}</text>${[230, 290, 350, 410, 470, 530].map(y => `<rect x="80" y="${y}" width="${300 + (y % 140)}" height="22" rx="6" fill="#e7e5e4"/>`).join('')}<text x="300" y="660" font-family="Arial" font-size="30" font-weight="bold" text-anchor="middle" fill="#b45309">DOCUMENTO FICTÍCIO</text><text x="300" y="705" font-family="Arial" font-size="24" text-anchor="middle" fill="#78716c">Demonstração do MOTORA</text></svg>`;
-            return new Blob([svg], { type: 'image/svg+xml' });
+            const hash = [...n].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+            const tarja = (w, h, txt) => {
+                const L = Math.hypot(w, h);
+                return `<g transform="translate(${w / 2} ${h / 2}) rotate(${-Math.atan2(h, w) * 180 / Math.PI})" opacity="0.9">
+                    <rect x="${-L / 2}" y="-34" width="${L}" height="68" fill="#dc2626"/>
+                    <text x="0" y="12" font-family="Arial" font-size="${Math.round(Math.min(34, w / 18))}" font-weight="bold" fill="#fff" text-anchor="middle" letter-spacing="2">${txt}</text></g>
+                    <g><rect x="${w - 210}" y="14" width="196" height="34" rx="17" fill="#111827" opacity="0.85"/><text x="${w - 112}" y="37" font-family="Arial" font-size="15" font-weight="bold" fill="#fde68a" text-anchor="middle">DEMONSTRAÇÃO</text></g>`;
+            };
+            const svg = (w, h, body, txt) => new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}${tarja(w, h, txt || 'DOCUMENTO FICTÍCIO · NÃO É REAL')}</svg>`], { type: 'image/svg+xml' });
+            const t = (x, y, txt, o = {}) => `<text x="${x}" y="${y}" font-family="${o.mono ? 'Courier New' : 'Arial'}" font-size="${o.s || 16}" ${o.b ? 'font-weight="bold"' : ''} fill="${o.c || '#1f2937'}" ${o.a ? `text-anchor="${o.a}"` : ''}>${txt}</text>`;
+            const campo = (x, y, rot, val, w = 240) => `${t(x, y, rot, { s: 11, c: '#6b7280', b: 1 })}<rect x="${x - 4}" y="${y + 5}" width="${w}" height="28" rx="4" fill="#ffffff" opacity="0.8"/>${t(x + 4, y + 25, val, { s: 16, b: 1, mono: 1 })}`;
+            const cores = ['#f2c9a0', '#d9a679', '#a8754d', '#7a4b2e', '#e8b98f'], cabelo = ['#1f2937', '#4b2e1a', '#7c4a1e', '#111111', '#a16207'];
+            const rosto = (cx, cy, r, k) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#cbd5e1"/>
+                <ellipse cx="${cx}" cy="${cy + r * 0.95}" rx="${r * 0.85}" ry="${r * 0.6}" fill="#475569"/>
+                <circle cx="${cx}" cy="${cy - r * 0.12}" r="${r * 0.48}" fill="${cores[k % 5]}"/>
+                <path d="M${cx - r * 0.5} ${cy - r * 0.25} Q${cx} ${cy - r * 0.95} ${cx + r * 0.5} ${cy - r * 0.25} Q${cx} ${cy - r * 0.55} ${cx - r * 0.5} ${cy - r * 0.25}" fill="${cabelo[k % 5]}"/>
+                <circle cx="${cx - r * 0.17}" cy="${cy - r * 0.12}" r="${r * 0.05}" fill="#111"/><circle cx="${cx + r * 0.17}" cy="${cy - r * 0.12}" r="${r * 0.05}" fill="#111"/>
+                <path d="M${cx - r * 0.15} ${cy + r * 0.12} Q${cx} ${cy + r * 0.24} ${cx + r * 0.15} ${cy + r * 0.12}" stroke="#7f1d1d" stroke-width="${r * 0.04}" fill="none"/>`;
+            // FOTO DO MOTORISTA (avatar desenhado, não é foto de pessoa real)
+            if (/\/foto\.jpg$/.test(n)) return svg(400, 500, `<rect width="400" height="500" fill="#e2e8f0"/>${rosto(200, 230, 170, hash)}`, 'FOTO FICTÍCIA');
+            // FOTOS DA VISTORIA (desenho do carro)
+            if (n.includes('vistoria-')) {
+                const cor = ['#2563eb', '#dc2626', '#64748b', '#f8fafc'][hash % 4], fundo = '<rect width="800" height="600" fill="#cbd5e1"/><rect y="420" width="800" height="180" fill="#9ca3af"/>';
+                let carro;
+                if (n.includes('painel')) carro = `<rect width="800" height="600" fill="#1f2937"/><rect x="100" y="180" width="600" height="260" rx="40" fill="#111827"/>
+                    <circle cx="300" cy="310" r="90" fill="#0f172a" stroke="#94a3b8" stroke-width="6"/><circle cx="500" cy="310" r="90" fill="#0f172a" stroke="#94a3b8" stroke-width="6"/>
+                    <line x1="300" y1="310" x2="350" y2="260" stroke="#ef4444" stroke-width="6"/><line x1="500" y1="310" x2="460" y2="250" stroke="#ef4444" stroke-width="6"/>
+                    ${t(300, 380, '000 km/h', { s: 18, c: '#e5e7eb', a: 'middle', b: 1 })}${t(500, 380, '000000 km', { s: 18, c: '#e5e7eb', a: 'middle', b: 1 })}`;
+                else if (n.includes('lateral')) carro = `${fundo}<path d="M120 400 L160 300 Q190 250 260 245 L470 240 Q540 240 590 300 L680 320 Q700 330 700 360 L700 400 Z" fill="${cor}" stroke="#111827" stroke-width="4"/>
+                    <path d="M200 300 L240 262 L360 258 L360 300 Z M380 300 L380 258 L470 258 Q520 262 550 300 Z" fill="#bfdbfe" stroke="#111827" stroke-width="3"/>
+                    <circle cx="230" cy="405" r="48" fill="#111827"/><circle cx="230" cy="405" r="22" fill="#9ca3af"/><circle cx="590" cy="405" r="48" fill="#111827"/><circle cx="590" cy="405" r="22" fill="#9ca3af"/>`;
+                else carro = `${fundo}<path d="M190 420 L210 300 Q230 230 300 220 L500 220 Q570 230 590 300 L610 420 Z" fill="${cor}" stroke="#111827" stroke-width="4"/>
+                    <path d="M250 300 L275 245 L525 245 L550 300 Z" fill="#bfdbfe" stroke="#111827" stroke-width="3"/>
+                    <rect x="215" y="330" width="80" height="30" rx="8" fill="${n.includes('traseira') ? '#dc2626' : '#fef9c3'}" stroke="#111827" stroke-width="3"/><rect x="505" y="330" width="80" height="30" rx="8" fill="${n.includes('traseira') ? '#dc2626' : '#fef9c3'}" stroke="#111827" stroke-width="3"/>
+                    <rect x="340" y="370" width="120" height="36" rx="4" fill="#fff" stroke="#1e3a8a" stroke-width="3"/>${t(400, 396, 'AAA0A00', { s: 20, b: 1, a: 'middle', mono: 1 })}
+                    <rect x="200" y="420" width="70" height="40" rx="6" fill="#111827"/><rect x="530" y="420" width="70" height="40" rx="6" fill="#111827"/>`;
+                return svg(800, 600, carro, 'FOTO FICTÍCIA · NÃO É REAL');
+            }
+            // CNH (cartão)
+            if (n.includes('cnh')) return svg(860, 560, `<rect width="860" height="560" rx="26" fill="#dcfce7"/><rect x="0" y="0" width="860" height="70" rx="26" fill="#166534"/><rect x="0" y="40" width="860" height="30" fill="#166534"/>
+                ${t(30, 46, 'CARTEIRA DE HABILITAÇÃO · MODELO DE DEMONSTRAÇÃO', { s: 22, b: 1, c: '#fff' })}
+                <rect x="30" y="95" width="200" height="250" rx="10" fill="#e2e8f0" stroke="#166534" stroke-width="3"/>${rosto(130, 210, 85, hash)}
+                ${campo(260, 110, 'NOME', 'AAAAAAA AAAAAAA AAAA', 560)}${campo(260, 175, 'CPF', '000.000.000-00')}${campo(560, 175, 'DATA DE NASCIMENTO', '00/00/0000')}
+                ${campo(260, 240, 'Nº REGISTRO', '00000000000')}${campo(560, 240, 'VALIDADE', '00/00/0000')}${campo(260, 305, 'CATEGORIA', 'A0')}${campo(560, 305, '1ª HABILITAÇÃO', '00/00/0000')}
+                ${campo(30, 380, 'FILIAÇÃO', 'AAAAAAA AAAAAAA / AAAAAAA AAAAAAA', 790)}${t(30, 470, 'ASSINATURA: ____________________', { s: 16, c: '#166534' })}`);
+            // CRLV-e
+            if (n.includes('crlv')) return svg(600, 820, `<rect width="600" height="820" fill="#fff"/><rect x="20" y="20" width="560" height="780" fill="none" stroke="#1e3a8a" stroke-width="3"/>
+                ${t(300, 70, 'CERTIFICADO DE REGISTRO E', { s: 20, b: 1, a: 'middle', c: '#1e3a8a' })}${t(300, 96, 'LICENCIAMENTO DE VEÍCULO · EXEMPLO', { s: 20, b: 1, a: 'middle', c: '#1e3a8a' })}
+                ${campo(45, 140, 'PLACA', 'AAA0A00', 200)}${campo(300, 140, 'RENAVAM', '00000000000', 250)}${campo(45, 210, 'CHASSI', 'AAAAAAAAAAAAAAAAA', 505)}
+                ${campo(45, 280, 'MARCA / MODELO / VERSÃO', 'AAAAAA/AAAAA 0.0', 505)}${campo(45, 350, 'ANO FABRICAÇÃO', '0000', 200)}${campo(300, 350, 'ANO MODELO', '0000', 250)}
+                ${campo(45, 420, 'COR', 'AAAAAA', 200)}${campo(300, 420, 'COMBUSTÍVEL', 'AAAAAA', 250)}${campo(45, 490, 'NOME DO PROPRIETÁRIO', 'AAAAAAA AAAAAAA AAAA', 505)}
+                ${campo(45, 560, 'CPF / CNPJ', '000.000.000-00', 250)}${campo(45, 630, 'EXERCÍCIO', '0000', 200)}
+                <rect x="430" y="640" width="120" height="120" fill="#f3f4f6" stroke="#9ca3af"/>${t(490, 705, 'QR 0000', { s: 14, a: 'middle', c: '#6b7280' })}`);
+            // COMPROVANTE DE PIX
+            if (n.includes('comprovante')) return svg(480, 820, `<rect width="480" height="820" fill="#fff"/><rect width="480" height="110" fill="#0f766e"/>
+                ${t(240, 62, 'Comprovante Pix', { s: 30, b: 1, a: 'middle', c: '#fff' })}${t(240, 92, 'BANCO DE EXEMPLO S.A.', { s: 14, a: 'middle', c: '#ccfbf1' })}
+                ${t(240, 170, 'Valor', { s: 16, a: 'middle', c: '#6b7280' })}${t(240, 215, 'R$ 000,00', { s: 40, b: 1, a: 'middle' })}
+                ${campo(40, 260, 'DATA E HORA', '00/00/0000 00:00', 400)}${campo(40, 330, 'PAGADOR', 'AAAAAAA AAAAAAA', 400)}${campo(40, 400, 'RECEBEDOR', 'AAAAAAA AAAAAAA', 400)}
+                ${campo(40, 470, 'CHAVE PIX', 'aaaa@aaaa.com', 400)}${campo(40, 540, 'INSTITUIÇÃO', 'BANCO AAAAA', 400)}${campo(40, 610, 'ID DA TRANSAÇÃO', 'E00000000000000000000000000', 400)}`);
+            // COMPROVANTE DE ENDEREÇO (conta de luz)
+            if (n.includes('endereco')) return svg(600, 820, `<rect width="600" height="820" fill="#fff"/><rect width="600" height="100" fill="#facc15"/>
+                ${t(30, 58, 'CONTA DE ENERGIA · EXEMPLO', { s: 26, b: 1 })}${t(30, 84, 'DISTRIBUIDORA AAAAAAA', { s: 14 })}
+                ${campo(30, 140, 'CLIENTE', 'AAAAAAA AAAAAAA AAAA', 540)}${campo(30, 210, 'ENDEREÇO', 'RUA AAAAAAA AAAAA, 000', 540)}${campo(30, 280, 'BAIRRO / CIDADE / UF', 'AAAAAA · AAAAAAA/AA', 540)}
+                ${campo(30, 350, 'CEP', '00000-000', 250)}${campo(320, 350, 'REFERÊNCIA', '00/0000', 250)}${campo(30, 420, 'CONSUMO', '000 kWh', 250)}${campo(320, 420, 'VENCIMENTO', '00/00/0000', 250)}
+                <rect x="30" y="500" width="540" height="90" rx="8" fill="#fef3c7"/>${t(300, 555, 'TOTAL A PAGAR: R$ 000,00', { s: 26, b: 1, a: 'middle' })}
+                ${t(30, 660, '0000 0000 0000 0000 0000 0000 0000 0000', { s: 18, mono: 1, c: '#6b7280' })}`);
+            // CONTRATO / TERMO DE VISTORIA (texto)
+            const titulo = n.includes('termo') ? 'TERMO DE VISTORIA DO VEÍCULO' : 'CONTRATO DE LOCAÇÃO DE VEÍCULO';
+            let linhas = '';
+            for (let i = 0; i < 16; i++) linhas += `<rect x="50" y="${190 + i * 30}" width="${430 + ((hash >> i) & 7) * 10}" height="10" rx="5" fill="#d1d5db"/>`;
+            return svg(600, 820, `<rect width="600" height="820" fill="#fff"/>${t(300, 80, titulo, { s: 22, b: 1, a: 'middle' })}${t(300, 108, '(modelo de demonstração)', { s: 14, a: 'middle', c: '#6b7280' })}
+                ${t(50, 160, 'LOCADOR: AAAAAAA AAAAAAA · CPF 000.000.000-00', { s: 13 })}${t(50, 178, 'LOCATÁRIO: AAAAAAA AAAAAAA · CPF 000.000.000-00', { s: 13 })}${linhas}
+                <line x1="60" y1="740" x2="270" y2="740" stroke="#111827"/><line x1="330" y1="740" x2="540" y2="740" stroke="#111827"/>
+                ${t(165, 760, 'AAAAAAA (locador)', { s: 12, a: 'middle' })}${t(435, 760, 'AAAAAAA (locatário)', { s: 12, a: 'middle' })}`);
         }
 
         // ---- "banco de dados" na memória, com a mesma forma de uso do Supabase ----
