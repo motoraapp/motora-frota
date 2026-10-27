@@ -60,12 +60,19 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Botão de liga e desliga da IA: `app_settings` chave `ia_whatsapp` = `{ativo: true|false}` (sem registro = ligada). Desligada, nenhuma mensagem nova é criada.
 - Nada é enviado sozinho pelo WhatsApp: não usar robô nem API da Meta sem o dono pedir.
 
+## E-mail, telefones e regras da IA
+- Motorista tem **WhatsApp (telefone 1)** `phone`, **Telefone 2** `phone2` e **e-mail** `email` (cadastro novo e ficha). Botões de WhatsApp no cartão do motorista e na Área IA (Tel. 1 / Tel. 2).
+- **E-mail:** recibo, mensagens da Área IA e relatório do Financeiro podem ir por e-mail. A IA escreve (`motora-sync` `email_draft`, o conteúdo original nunca muda), o dono confere na janela "Conferir e-mail antes de enviar" e só então envia (`send_email`, só master), pelo script do Google da conta thiagogb20@gmail.com.
+- **Regras da IA:** na Área IA o dono adiciona e exclui regras (`app_settings` chave `ia_regras` = `{regras: [...]}`); a IA segue nas mensagens de WhatsApp e nos e-mails.
+- **Excluir carro** não apaga nada: `vehicles.deleted_at`; some da lista, motoristas ficam sem carro; CRLV-e, vistoria, despesas e ganhos ficam guardados e aparecem no Financeiro como "(excluído)". `state.allVehicles`/`allVeh()` guardam todos os carros para o histórico.
+
 ## Financeiro (master)
 - Separar "Aluguéis" e "Ganhos aplicativo" (corridas Uber/99/inDrive). Despesas em aba separada.
 - Aba "Aluguéis": Recebido = soma dos pagamentos por Pix no período (valor dos comprovantes aceitos, com a mesma distribuição entre cobranças do recibo); Em aberto = o que falta das cobranças. Período inclui Hoje, Esta semana e "Escolher datas". Área **Filtros**: Aluguéis (motorista, veículo); Ganhos aplicativo (aplicativo, tipo de despesa, veículo).
 - Aba "Ganhos aplicativo": lançar ganho (aplicativo, valor, veículo, data — padrão hoje; sem observação) e **Despesas** (tipo: Gasolina, Alimentação, Manutenção... ou "+ Adicionar outra despesa"; valor; data — padrão hoje), na tabela `app_expenses` (só o master). Mostra Ganhos, Despesas e quanto sobrou.
 - Ganhos aplicativo: o dono pode enviar o print da tela de ganhos (Uber/99/inDrive) e a IA (`ai_read_files` kind `earning`) preenche aplicativo, valor total e data (o dia com ganho, ou o fim do período, nunca depois de hoje); viagens, horas online e período vão na descrição. Avisa se já existir ganho igual.
 - Lembrete diário: das 20:30 às 00:00 (Brasília), de 30 em 30 min, o dono recebe notificação perguntando se já enviou o relatório de ganhos do app do dia. Para sozinho quando existe ganho lançado com a data do dia Também para no dia marcado com o botão "Hoje estou de folga" (tabela `app_days_off`). Tocar na notificação abre direto Controle financeiro → Ganhos aplicativo, no lançamento (`?abrir=ganhos`). O `sw.js` abre o endereço da notificação relativo à pasta do app (funciona no GitHub Pages). (função `app_earning_reminder`, cron `motora-lembrete-ganhos-app`).
+- **Gerar relatório** (botão no Financeiro): relatório da aba aberta, com o período e os filtros escolhidos (resumo, por veículo, por motorista, pagamentos, despesas / ganhos). Botões Salvar PDF (imprimir), Compartilhar e E-mail.
 - Despesas do veículo: ao escolher a nota/comprovante, a IA (Gemini, `motora-sync` com `ai_read_files` kind `expense`) preenche tipo (usa os tipos existentes ou sugere um novo, criado ao salvar), valor, data e descrição; avisa se a placa da nota for de outro carro.
 - Documentos e planilhas vão para o Google Drive da conta do dono (não da esposa).
 - **Envio automático ao Drive:** todo documento novo ou alterado vai sozinho (gatilhos do banco → `drive_notify` → `motora-sync`): CNH, comprovante de endereço, contrato, termo de vistoria, comprovantes, Pix, despesas (também quando alteradas), CRLV-e dos veículos (`vehicle_doc`), fotos da vistoria (`inspection`) e termos aceitos (`terms`, arquivo .html).

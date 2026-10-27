@@ -564,6 +564,18 @@
                             <input type="text" id="drvCpf" inputmode="numeric" placeholder="000.000.000-00" oninput="syncNewDriverAccess()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
                         <div>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i>WhatsApp</label>
+                            <input type="tel" id="drvWhats" inputmode="tel" autocomplete="off" placeholder="(11) 90000-0000" oninput="this.value = maskPhone(this.value)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i>WhatsApp 2 (opcional)</label>
+                            <input type="tel" id="drvWhats2" inputmode="tel" autocomplete="off" placeholder="(11) 90000-0000" oninput="this.value = maskPhone(this.value)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-solid fa-envelope text-blue-600 mr-1"></i>E-mail do motorista</label>
+                            <input type="email" id="drvContactEmail" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="nome@gmail.com" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        </div>
+                        <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Login (nome + sobrenome)</label>
                             <input type="text" id="drvEmail" required autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="Ex: thiagogomes" oninput="this.dataset.touched='1'" class="lowercase w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
@@ -784,7 +796,9 @@
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CPF</label><input id="dfCpf" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">RG</label><input id="dfRg" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data de nascimento</label><input type="date" id="dfBirth" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
-                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Telefone</label><input id="dfPhone" inputmode="tel" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i>WhatsApp</label><input id="dfPhone" type="tel" inputmode="tel" placeholder="(11) 90000-0000" oninput="this.value = maskPhone(this.value)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i>WhatsApp 2 (opcional)</label><input id="dfPhone2" type="tel" inputmode="tel" placeholder="(11) 90000-0000" oninput="this.value = maskPhone(this.value)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-solid fa-envelope text-blue-600 mr-1"></i>E-mail</label><input id="dfEmail" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="nome@gmail.com" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nº registro CNH</label><input id="dfCnh" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Categoria CNH</label><input id="dfCnhCat" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Validade CNH</label><input type="date" id="dfCnhExp" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -828,6 +842,7 @@
                 <pre id="reciboText" class="whitespace-pre-wrap text-sm font-sans p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600"></pre>
                 <p id="reciboPhoneInfo" class="text-xs text-gray-500 dark:text-gray-400"></p>
                 <a id="reciboWhats" href="#" target="_blank" rel="noopener" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-brands fa-whatsapp text-lg"></i> Enviar pelo WhatsApp</a>
+                <button onclick="emailRecibo()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-envelope"></i> Enviar por e-mail</button>
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="shareReciboImage()" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-image mr-1"></i> Enviar como imagem</button>
                     <button onclick="copyRecibo()" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-copy mr-1"></i> Copiar texto</button>
@@ -868,11 +883,59 @@
                     </span>
                     <span class="sw"><input type="checkbox" id="iaSwitch" onchange="toggleIA(this.checked)"><span></span></span>
                 </label>
+                <details id="iaRulesBox" class="rounded-xl border border-gray-200 dark:border-gray-700">
+                    <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-list-check text-indigo-500 mr-1"></i> Regras da IA <span id="iaRulesCount" class="text-xs font-normal text-gray-500"></span></summary>
+                    <div class="px-3 pb-3 space-y-2">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">A IA segue estas regras ao escrever as mensagens de WhatsApp e os e-mails. Ex.: "Sempre me chamar de Thiago", "Não usar emoji", "Lembrar que o atraso gera multa".</p>
+                        <div id="iaRulesList" class="space-y-2"></div>
+                        <div class="flex gap-2">
+                            <input id="iaRuleNew" maxlength="300" placeholder="Escreva uma regra nova" class="flex-1 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none" onkeydown="if(event.key==='Enter'){event.preventDefault();addIARule()}">
+                            <button onclick="addIARule()" class="px-4 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                    </div>
+                </details>
                 <div class="grid grid-cols-2 gap-2">
                     <button id="iaTabPend" onclick="iaShow('pendente')" class="py-2 rounded-xl text-sm font-semibold">Para enviar</button>
                     <button id="iaTabSent" onclick="iaShow('enviada')" class="py-2 rounded-xl text-sm font-semibold">Enviadas</button>
                 </div>
                 <div id="iaList" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- E-MAIL: a IA escreve, o dono confere e só então envia (sai pela conta Google do dono) -->
+    <div id="modalEmail" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-solid fa-envelope text-blue-600 mr-1"></i> Conferir e-mail antes de enviar</h3>
+                <button onclick="closeEmailCompose()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar space-y-3">
+                <p id="emailAiStatus" class="text-xs text-gray-500 dark:text-gray-400"></p>
+                <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Para</label><input id="emailTo" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="nome@gmail.com" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Assunto</label><input id="emailSubject" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Mensagem</label><textarea id="emailBody" rows="12" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
+                <p class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-solid fa-circle-info mr-1"></i>O e-mail sai pela sua conta Google (thiagogb20@gmail.com). Confira tudo e toque em <b>Confirmar e enviar</b>.</p>
+            </div>
+            <div class="p-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-2">
+                <button onclick="closeEmailCompose()" class="py-3 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-700">Cancelar</button>
+                <button id="emailSendBtn" onclick="sendEmailCompose()" class="py-3 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-paper-plane mr-1"></i> Confirmar e enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RELATÓRIO DO FINANCEIRO (segue o período e os filtros escolhidos) -->
+    <div id="modalReport" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full h-[92vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-solid fa-file-lines text-indigo-500 mr-1"></i> Relatório</h3>
+                <button onclick="closeFinReport()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <iframe id="reportFrame" title="Relatório" class="flex-1 w-full bg-white" style="border:0"></iframe>
+            <div class="p-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-3 gap-2">
+                <button onclick="printFinReport()" class="py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-file-pdf mr-1"></i> Salvar PDF</button>
+                <button onclick="shareFinReport()" class="py-2.5 rounded-xl text-xs font-bold bg-green-600 hover:bg-green-700 text-white"><i class="fa-solid fa-share-nodes mr-1"></i> Compartilhar</button>
+                <button onclick="emailFinReport()" class="py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-envelope mr-1"></i> E-mail</button>
             </div>
         </div>
     </div>
@@ -921,6 +984,7 @@
                         <button type="button" onclick="clearFinFilters()" class="w-full py-2 rounded-xl text-xs font-semibold bg-gray-200 dark:bg-gray-600"><i class="fa-solid fa-eraser mr-1"></i> Limpar filtros</button>
                     </div>
                 </details>
+                <button type="button" onclick="openFinReport()" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-file-lines mr-1"></i> Gerar relatório</button>
                 <div id="finRentBox" class="space-y-5">
                 <div id="finCards" class="grid grid-cols-2 gap-3"></div>
                 <div>
@@ -1751,7 +1815,7 @@
                 if (drv.error) throw drv.error;
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
-                state.vehicles = veh.data; state.drivers = drv.data; state.receipts = rec.data; state.inspection = insp.data;
+                state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.drivers = drv.data; state.receipts = rec.data; state.inspection = insp.data;
                 for (const x of extra) if (x.error) throw x.error;
                 state.expenses = extra[0].data; state.expenseTypes = extra[1].data; state.pixHistory = extra[2].data;
             } else {
@@ -1765,7 +1829,7 @@
                 if (veh.error) throw veh.error;
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
-                state.vehicles = veh.data; state.receipts = rec.data; state.drivers = []; state.inspection = insp.data;
+                state.allVehicles = null; state.vehicles = veh.data; state.receipts = rec.data; state.drivers = []; state.inspection = insp.data;
                 state.features = await loadDriverFeatures();
             }
             await loadTermsAcceptances(profile);
@@ -1992,7 +2056,7 @@
             checkApkUpdate();
             DOC_REG = [];
             const driver = state.profile;
-            const vehicle = state.vehicles.find(v => v.id === driver.vehicle_id);
+            const vehicle = allVeh().find(v => v.id === driver.vehicle_id);
             if (vehicle) {
                 document.getElementById('drvVehicleName').innerText = vehicle.model;
                 document.getElementById('drvVehicleDetails').innerText = `Placa: ${vehicle.plate}`;
@@ -2324,6 +2388,22 @@
             }
         }
 
+        // WhatsApp do motorista: máscara (11) 90000-0000 e link wa.me com 55 na frente
+        function maskPhone(v) {
+            let d = String(v || '').replace(/\D/g, '');
+            if (d.length > 11 && d.startsWith('55')) d = d.slice(2);
+            d = d.slice(0, 11);
+            if (d.length <= 2) return d ? '(' + d : '';
+            if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+            if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+            return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+        }
+        function waLink(phone) {
+            let ph = String(phone || '').replace(/\D/g, '');
+            if (ph.length === 10 || ph.length === 11) ph = '55' + ph;
+            return ph.length >= 12 ? 'https://wa.me/' + ph : '';
+        }
+        function allVeh() { return state.allVehicles || state.vehicles; }
         function renderMasterPanel() {
             DOC_REG = [];
             renderMasterResumo();
@@ -2341,7 +2421,7 @@
                         <td class="p-3 text-right">
                             ${vehicleToDelete === v.id ? `
                                 <div class="flex flex-wrap items-center justify-end gap-2">
-                                    <span class="text-xs text-red-500">Excluir? Os motoristas dele ficam sem veículo.</span>
+                                    <span class="text-xs text-red-500">Excluir? Os motoristas dele ficam sem veículo. CRLV-e, vistoria e despesas continuam guardados.</span>
                                     <button onclick="confirmDeleteVehicle('${v.id}')" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg">Sim, excluir</button>
                                     <button onclick="cancelDeleteVehicle()" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-3 py-1.5 rounded-lg">Cancelar</button>
                                 </div>
@@ -2367,7 +2447,7 @@
                 drvTbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400 italic">Nenhum motorista cadastrado.</td></tr>`;
             } else {
                 drvTbody.innerHTML = state.drivers.map(d => {
-                    const vehicle = state.vehicles.find(v => v.id === d.vehicle_id);
+                    const vehicle = allVeh().find(v => v.id === d.vehicle_id);
                     const recs = state.receipts.filter(r => r.driver_id === d.id);
                     const last = recs[recs.length - 1];
                     return `
@@ -2376,6 +2456,7 @@
                                 <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
                                 <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
                                 <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
+                                ${waLink(d.phone || d.phone2) ? `<a href="${waLink(d.phone || d.phone2)}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> Adicionar WhatsApp</button>`}
                                 <button onclick="viewAsDriver('${d.id}')" class="mt-2 text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg whitespace-nowrap" title="Entrar na conta deste motorista, sem precisar da senha dele"><i class="fa-solid fa-right-to-bracket mr-1"></i> Entrar na conta</button>
                                 ${driverToDelete === d.id ? `
                                     <div class="mt-2 flex flex-wrap items-center gap-2 font-normal">
@@ -2467,21 +2548,15 @@
         function cancelDeleteVehicle() { vehicleToDelete = null; renderMasterPanel(); }
 
         async function confirmDeleteVehicle(id) {
-            const v = state.vehicles.find(x => x.id === id);
             vehicleToDelete = null;
             try {
-                if (v && v.crlv_path) await sb.storage.from(BUCKET).remove([v.crlv_path]);
-                const photos = state.inspection.filter(p => p.vehicle_id === id).map(p => p.file_path);
-                if (photos.length) await sb.storage.from(BUCKET).remove(photos);
-                // Apaga também as despesas do veículo e as fotos das notas delas
-                const expFiles = state.expenses.filter(x => x.vehicle_id === id && x.file_path).map(x => x.file_path);
-                if (expFiles.length) await sb.storage.from(BUCKET).remove(expFiles);
-                const ex = await sb.from('vehicle_expenses').delete().eq('vehicle_id', id);
-                if (ex.error) throw ex.error;
-                const { error } = await sb.from('vehicles').delete().eq('id', id);
+                // Só tira o carro da lista: CRLV-e, vistoria, despesas e ganhos ficam guardados (no app e no Drive)
+                const { error } = await sb.from('vehicles').update({ deleted_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw error;
+                const up = await sb.from('profiles').update({ vehicle_id: null }).eq('vehicle_id', id);
+                if (up.error) throw up.error;
                 await reload();
-                showToast("Veículo excluído com sucesso.");
+                showToast("Veículo excluído. CRLV-e, vistoria e despesas continuam guardados.");
             } catch (err) {
                 renderMasterPanel();
                 showToast(friendlyError(err), 'error');
@@ -2517,6 +2592,12 @@
                 const updates = { ...newDriverExtra };
                 const cpf = document.getElementById('drvCpf').value.trim();
                 if (cpf) updates.cpf = cpf;
+                const whats = document.getElementById('drvWhats').value.trim();
+                if (whats) updates.phone = whats;
+                const whats2 = document.getElementById('drvWhats2').value.trim();
+                if (whats2) updates.phone2 = whats2;
+                const mail = document.getElementById('drvContactEmail').value.trim().toLowerCase();
+                if (mail) updates.email = mail;
                 for (const [col, [inputId, base]] of Object.entries(files)) {
                     const f = document.getElementById(inputId).files[0];
                     if (f) {
@@ -2751,7 +2832,7 @@
 
         // ===== FICHA DO MOTORISTA =====
         let fileDriverId = null;
-        const DF = { name: 'dfName', cpf: 'dfCpf', rg: 'dfRg', birth_date: 'dfBirth', phone: 'dfPhone', cnh_number: 'dfCnh', cnh_category: 'dfCnhCat', cnh_expiry: 'dfCnhExp', address: 'dfAddress' };
+        const DF = { name: 'dfName', cpf: 'dfCpf', rg: 'dfRg', birth_date: 'dfBirth', phone: 'dfPhone', phone2: 'dfPhone2', email: 'dfEmail', cnh_number: 'dfCnh', cnh_category: 'dfCnhCat', cnh_expiry: 'dfCnhExp', address: 'dfAddress' };
         function openDriverFile(id) {
             const d = state.drivers.find(x => x.id === id);
             if (!d) return;
@@ -2925,7 +3006,7 @@
             const paid = [], open = [];
             drivers.forEach(d => {
                 const al = allocatePix(d.id);
-                al.pays.forEach(p => { if (inRange(dayBR(p.r.created_at), r) && p.val) paid.push({ driver_id: d.id, amount: p.val }); });
+                al.pays.forEach(p => { if (inRange(dayBR(p.r.created_at), r) && p.val) paid.push({ driver_id: d.id, amount: p.val, day: dayBR(p.r.created_at) }); });
                 al.charges.forEach(c => { if (c.remaining > 0.005) open.push({ driver_id: d.id, amount: c.remaining }); });
             });
             const vehFilterSet = fVeh ? [fVeh] : (fDrv ? [vehOf(fDrv)].filter(Boolean) : null);
@@ -2949,22 +3030,159 @@
                     <tbody>${rows.join('')}</tbody></table></div>` : '<p class="text-xs italic text-gray-400">Nada neste período.</p>';
             const money = (v, neg) => `<span class="${neg && v < 0 ? 'text-red-500 font-semibold' : ''}">${fmtMoney(v)}</span>`;
 
-            const vRows = state.vehicles.filter(v => !vehFilterSet || vehFilterSet.includes(v.id)).map(v => {
+            const vData = allVeh().filter(v => !vehFilterSet || vehFilterSet.includes(v.id)).map(v => {
                 const rec = sum(paid.filter(h => drvVeh(h.driver_id) === v.id), h => h.amount);
                 const sp = sum(exps.filter(x => x.vehicle_id === v.id), x => x.amount);
                 return { v, rec, sp };
-            }).filter(x => x.rec || x.sp).map(x => row([`${esc(x.v.model)}<br><span class="text-gray-400">${esc(x.v.plate)}</span>`, fmtMoney(x.rec), fmtMoney(x.sp), money(x.rec - x.sp, true)]));
+            }).filter(x => x.rec || x.sp);
+            const vRows = vData.map(x => row([`${esc(x.v.model)}${x.v.deleted_at ? ' <span class="text-gray-400">(excluído)</span>' : ''}<br><span class="text-gray-400">${esc(x.v.plate)}</span>`, fmtMoney(x.rec), fmtMoney(x.sp), money(x.rec - x.sp, true)]));
             document.getElementById('finVehicles').innerHTML = table(['Veículo', 'Recebido', 'Despesas', 'Saldo'], vRows);
 
-            const dRows = drivers.map(d => ({ d, rec: sum(paid.filter(h => h.driver_id === d.id), h => h.amount), pen: sum(open.filter(h => h.driver_id === d.id), h => h.amount) }))
-                .filter(x => x.rec || x.pen).map(x => row([esc(x.d.name), fmtMoney(x.rec), x.pen ? `<span class="text-amber-600 font-semibold">${fmtMoney(x.pen)}</span>` : fmtMoney(0)]));
+            const dData = drivers.map(d => ({ d, rec: sum(paid.filter(h => h.driver_id === d.id), h => h.amount), pen: sum(open.filter(h => h.driver_id === d.id), h => h.amount) }))
+                .filter(x => x.rec || x.pen);
+            const dRows = dData.map(x => row([esc(x.d.name), fmtMoney(x.rec), x.pen ? `<span class="text-amber-600 font-semibold">${fmtMoney(x.pen)}</span>` : fmtMoney(0)]));
             document.getElementById('finDrivers').innerHTML = table(['Motorista', 'Recebido', 'Em aberto'], dRows);
+            // dados guardados para o botão "Gerar relatório"
+            const dName = id => (state.drivers.find(d => d.id === id) || {}).name || 'Motorista';
+            const vName = id => { const v = allVeh().find(x => x.id === id); return v ? `${v.model} (${v.plate})` : '-'; };
+            const tName = id => (state.expenseTypes.find(t => t.id === id) || {}).name || 'Despesa';
+            lastFinData = {
+                titulo: 'Relatório de aluguéis',
+                cards: [['Recebido', received], ['Despesas', spent], [balance >= 0 ? 'Lucro' : 'Prejuízo', Math.abs(balance)], ['Em aberto (a receber)', pending]],
+                tabelas: [
+                    { titulo: 'Por veículo', head: ['Veículo', 'Recebido', 'Despesas', 'Saldo'], rows: vData.map(x => [`${x.v.model} (${x.v.plate})${x.v.deleted_at ? ' – excluído' : ''}`, fmtMoney(x.rec), fmtMoney(x.sp), fmtMoney(x.rec - x.sp)]) },
+                    { titulo: 'Por motorista', head: ['Motorista', 'Recebido', 'Em aberto'], rows: dData.map(x => [x.d.name, fmtMoney(x.rec), fmtMoney(x.pen)]) },
+                    { titulo: 'Pagamentos recebidos', head: ['Data', 'Motorista', 'Valor'], rows: paid.slice().sort((a, b) => String(a.day).localeCompare(String(b.day))).map(h => [fmtDate(h.day), dName(h.driver_id), fmtMoney(h.amount)]) },
+                    { titulo: 'Despesas dos veículos', head: ['Data', 'Veículo / tipo', 'Valor'], rows: exps.slice().sort((a, b) => String(a.expense_date).localeCompare(String(b.expense_date))).map(x => [fmtDate(x.expense_date), `${vName(x.vehicle_id)} · ${tName(x.type_id)}${x.description ? ' · ' + x.description : ''}`, fmtMoney(x.amount)]) },
+                ],
+            };
+        }
+
+        // ===== E-MAIL (a IA escreve, o dono confere e confirma; sai pela conta Google do dono) =====
+        let emailCtx = null;
+        const okEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || '').trim());
+        // opts: { to, subject, body, driverName, kind, content } — com "content", a IA escreve o texto em volta
+        async function openEmailCompose(opts) {
+            emailCtx = opts || {};
+            document.getElementById('emailTo').value = opts.to || '';
+            document.getElementById('emailSubject').value = opts.subject || '';
+            document.getElementById('emailBody').value = opts.body || '';
+            const st = document.getElementById('emailAiStatus'), btn = document.getElementById('emailSendBtn');
+            st.innerHTML = opts.to ? '' : '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i>Sem e-mail na ficha: digite o e-mail de quem vai receber.';
+            document.getElementById('modalEmail').classList.remove('hidden');
+            if (!opts.content || DEMO) return;
+            btn.disabled = true; btn.classList.add('opacity-50');
+            st.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> A IA está escrevendo o e-mail...';
+            try {
+                const { data, error } = await sb.functions.invoke('motora-sync', { body: { type: 'email_draft', kind: opts.kind || 'mensagem', name: opts.driverName || '', content: opts.content } });
+                if (error || !data || !data.ok) throw new Error((data && data.error) || 'sem resposta');
+                if (data.subject) document.getElementById('emailSubject').value = data.subject;
+                if (data.body) document.getElementById('emailBody').value = data.body;
+                st.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-indigo-500 mr-1"></i> Escrito pela IA. Confira e, se quiser, mude o texto antes de enviar.' + (opts.to ? '' : '<br><i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i>Digite o e-mail de quem vai receber.');
+            } catch (e) {
+                st.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> A IA não respondeu agora; deixei uma mensagem pronta. Confira antes de enviar.';
+            } finally { btn.disabled = false; btn.classList.remove('opacity-50'); }
+        }
+        function closeEmailCompose() { document.getElementById('modalEmail').classList.add('hidden'); emailCtx = null; }
+        async function sendEmailCompose() {
+            const to = document.getElementById('emailTo').value.trim(), subject = document.getElementById('emailSubject').value.trim(), body = document.getElementById('emailBody').value.trim();
+            if (!okEmail(to)) { showToast('Digite um e-mail válido em "Para".', 'error'); return; }
+            if (!subject || !body) { showToast('Preencha o assunto e a mensagem.', 'error'); return; }
+            if (DEMO) { showToast('Na demonstração o e-mail não é enviado.'); closeEmailCompose(); return; }
+            const btn = document.getElementById('emailSendBtn'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando...';
+            try {
+                const { data, error } = await sb.functions.invoke('motora-sync', { body: { type: 'send_email', to, subject, body } });
+                if (error || !data || !data.ok) throw new Error((data && data.error) || 'não foi possível enviar');
+                const done = emailCtx && emailCtx.onSent; closeEmailCompose();
+                showToast('E-mail enviado para ' + to + '.');
+                if (done) done();
+            } catch (e) { showToast('E-mail não enviado: ' + friendlyError(e), 'error'); }
+            finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i> Confirmar e enviar'; }
+        }
+        function emailRecibo() {
+            const d = state.drivers.find(x => x.id === reciboDriverId) || {};
+            const text = reciboLines.join('\n');
+            openEmailCompose({ to: d.email || '', subject: 'Recibo de pagamento - MOTORA', body: `Olá, ${String(d.name || '').split(' ')[0] || 'motorista'}!\n\nSegue o seu recibo de pagamento:\n\n${text}`, driverName: d.name || '', kind: 'recibo', content: text });
+        }
+        function emailIA(id) {
+            const r = iaRows.find(x => x.id === id); if (!r) return;
+            const d = state.drivers.find(x => x.id === r.driver_id) || {};
+            const ta = document.getElementById('iaMsg_' + id);
+            const text = ta ? ta.value : r.message;
+            openEmailCompose({ to: d.email || '', subject: (r.title || 'Aviso') + ' - MOTORA', body: text, driverName: d.name || '', kind: 'aviso', content: text, onSent: () => iaMark(id, text) });
+        }
+
+        // ===== RELATÓRIO DO FINANCEIRO =====
+        let lastFinData = null, lastReport = null;
+        function finFiltersText() {
+            const ids = finTab === 'apps' ? [['appFltApp', 'Aplicativo'], ['appFltExp', 'Tipo de despesa'], ['appFltVeh', 'Veículo']] : [['finFltDriver', 'Motorista'], ['finFltVehicle', 'Veículo']];
+            const out = ids.filter(([id]) => document.getElementById(id).value).map(([id, nome]) => { const el = document.getElementById(id); return `${nome}: ${el.options[el.selectedIndex].text}`; });
+            return out.length ? out.join(' · ') : 'Nenhum (tudo)';
+        }
+        function finPeriodText() {
+            const sel = document.getElementById('finPeriod'), r = finRange(sel.value);
+            if (!r[0] && !r[1]) return sel.options[sel.selectedIndex].text;
+            const ate = r[1] ? (() => { const d = new Date(r[1] + 'T12:00:00'); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })() : null;
+            const nome = sel.value === 'custom' ? '' : sel.options[sel.selectedIndex].text + ': ';
+            return `${nome}${r[0] ? fmtDate(r[0]) : 'início'} a ${ate ? fmtDate(ate) : 'hoje'}`;
+        }
+        function buildReportHtml(d, periodo, filtros) {
+            const e = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            const dono = state.profile && state.profile.name ? state.profile.name : 'MOTORA';
+            const cards = d.cards.map(([k, v]) => `<div class="card"><span>${e(k)}</span><b>${e(fmtMoney(v))}</b></div>`).join('');
+            const tabelas = d.tabelas.map(t => `<h2>${e(t.titulo)}</h2>` + (t.rows.length
+                ? `<table><thead><tr>${t.head.map((h, i) => `<th${i === t.head.length - 1 ? ' class="v"' : ''}>${e(h)}</th>`).join('')}</tr></thead><tbody>${t.rows.map(r => `<tr>${r.map((c, i) => `<td${i === r.length - 1 ? ' class="v"' : ''}>${e(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+                : '<p class="vazio">Nada neste período.</p>')).join('');
+            const gerado = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(d.titulo)} - MOTORA</title>
+<style>
+*{box-sizing:border-box} body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;margin:0;padding:18px;font-size:13px;line-height:1.4;background:#fff}
+h1{font-size:19px;margin:0 0 2px;color:#0f5f6b} .sub{color:#6b7280;font-size:12px;margin:0 0 2px}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0} .card{border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px} .card span{display:block;font-size:11px;color:#6b7280} .card b{font-size:16px}
+h2{font-size:14px;margin:18px 0 6px;padding-bottom:4px;border-bottom:2px solid #0f5f6b}
+table{width:100%;border-collapse:collapse;table-layout:fixed} th{font-size:10px;text-transform:uppercase;color:#6b7280;text-align:left;padding:4px 4px;border-bottom:1px solid #e5e7eb}
+td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere} .v{text-align:right;width:28%} .vazio{color:#9ca3af;font-style:italic}
+.rod{margin-top:20px;color:#9ca3af;font-size:10px} @media print{body{padding:0} h2{break-after:avoid} tr{break-inside:avoid}}
+</style></head><body>
+<h1>${e(d.titulo)}</h1><p class="sub"><b>${e(dono)}</b> · MOTORA</p><p class="sub">Período: ${e(periodo)}</p><p class="sub">Filtros: ${e(filtros)}</p>
+<div class="cards">${cards}</div>${tabelas}
+<p class="rod">Gerado em ${e(gerado)} pelo app MOTORA.</p></body></html>`;
+        }
+        function openFinReport() {
+            if (!lastFinData) { showToast('Aguarde o financeiro carregar e tente de novo.', 'error'); return; }
+            const periodo = finPeriodText(), filtros = finFiltersText();
+            const html = buildReportHtml(lastFinData, periodo, filtros);
+            const texto = [lastFinData.titulo + ' - MOTORA', 'Período: ' + periodo, 'Filtros: ' + filtros, '', ...lastFinData.cards.map(([k, v]) => `${k}: ${fmtMoney(v)}`)].join('\n');
+            const textoCompleto = texto + '\n' + lastFinData.tabelas.map(t => `\n== ${t.titulo} ==\n` + (t.rows.length ? t.rows.map(r => r.join(' | ')).join('\n') : 'Nada neste período.')).join('\n');
+            lastReport = { html, texto, textoCompleto, titulo: lastFinData.titulo, nome: `${lastFinData.titulo} - ${periodo}`.replace(/[\\/:*?"<>|]/g, '-') };
+            document.getElementById('reportFrame').srcdoc = html;
+            document.getElementById('modalReport').classList.remove('hidden');
+        }
+        function closeFinReport() { document.getElementById('modalReport').classList.add('hidden'); }
+        function printFinReport() {
+            try { const w = document.getElementById('reportFrame').contentWindow; w.focus(); w.print(); }
+            catch (e) { showToast('Não foi possível abrir a impressão. Use Compartilhar.', 'error'); }
+        }
+        async function shareFinReport() {
+            if (!lastReport) return;
+            const file = new File([lastReport.html], lastReport.nome + '.html', { type: 'text/html' });
+            try {
+                if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: lastReport.titulo, text: lastReport.texto }); return; }
+                if (navigator.share) { await navigator.share({ title: lastReport.titulo, text: lastReport.texto }); return; }
+            } catch (e) { if (e && e.name === 'AbortError') return; }
+            const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+            showToast('Relatório baixado.');
+        }
+        function emailFinReport() {
+            if (!lastReport) return;
+            const me = state.profile && state.profile.username && !String(state.profile.username).endsWith('@motora.app') ? state.profile.username : 'thiagogb20@gmail.com';
+            openEmailCompose({ to: me, subject: lastReport.titulo + ' - MOTORA', body: lastReport.textoCompleto });
         }
 
         // ===== DESPESAS DO VEÍCULO =====
         let expVehicleId = null;
         function openExpenses(vehicleId) {
-            const v = state.vehicles.find(x => x.id === vehicleId);
+            const v = allVeh().find(x => x.id === vehicleId);
             if (!v) return;
             expVehicleId = vehicleId;
             document.getElementById('expVehicleName').innerText = `${v.model} — Placa ${v.plate}`;
@@ -3017,7 +3235,7 @@
                 if (okDateISO(x.data)) { document.getElementById('expDate').value = x.data; got.push('data'); }
                 const desc = [x.descricao, x.estabelecimento].filter(Boolean).join(' - ');
                 if (desc) { document.getElementById('expDesc').value = desc.slice(0, 200); got.push('descrição'); }
-                const v = state.vehicles.find(v => v.id === expVehicleId);
+                const v = allVeh().find(v => v.id === expVehicleId);
                 const plateWarn = x.placa && v && String(x.placa).replace(/[^A-Z0-9]/gi, '').toUpperCase() !== String(v.plate || '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
                     ? ` <b class="text-amber-700 dark:text-amber-300">Atenção: a nota mostra a placa ${esc(x.placa)}.</b>` : '';
                 st.innerHTML = got.length
@@ -3153,7 +3371,7 @@
         }
 
         function openInspection(vehicleId) {
-            const v = state.vehicles.find(x => x.id === vehicleId);
+            const v = allVeh().find(x => x.id === vehicleId);
             if (!v) return;
             inspVehicleId = vehicleId;
             document.getElementById('inspVehicleName').innerText = `${v.model} — Placa ${v.plate}`;
@@ -3259,7 +3477,7 @@
             document.getElementById('modalNewPix').classList.remove('hidden');
         }
         // ===== RECIBO DE PAGAMENTO =====
-        let reciboLines = [];
+        let reciboLines = [], reciboDriverId = null;
         // Distribui os pagamentos (comprovantes aceitos) pelas cobranças, da mais antiga para a mais nova.
         // O que sobra de um pagamento quita a cobrança seguinte (mesmo que ela tenha sido enviada depois).
         function receiptValue(x) { return x.paid_amount != null ? Number(x.paid_amount) : ((x.ai_result || {}).valor != null ? Number(x.ai_result.valor) : null); }
@@ -3286,7 +3504,7 @@
             const r = state.receipts.find(x => x.id === id);
             if (!r) return null;
             const d = state.drivers.find(x => x.id === r.driver_id) || {};
-            const v = state.vehicles.find(x => x.id === d.vehicle_id);
+            const v = allVeh().find(x => x.id === d.vehicle_id);
             const { pays } = allocatePix(r.driver_id);
             // grupo: as cobranças quitadas por este comprovante e todos os pagamentos que também entraram nelas
             const me = pays.find(p => p.r.id === r.id);
@@ -3350,6 +3568,7 @@
             reciboLines = L;
             const text = L.join('\n');
             document.getElementById('reciboText').textContent = text;
+            reciboDriverId = d.id || null;
             let ph = String(d.phone || '').replace(/\D/g, '');
             if (ph.length === 10 || ph.length === 11) ph = '55' + ph;
             const wa = document.getElementById('reciboWhats');
@@ -3491,12 +3710,38 @@
             if (error) { paintIASwitch(!on); showToast('Não foi possível mudar a IA. Tente de novo.', 'error'); return; }
             showToast(on ? 'IA ligada: as próximas mensagens vão aparecer aqui.' : 'IA desligada: nenhuma mensagem nova será preparada.');
         }
+        // REGRAS DA IA (app_settings chave ia_regras = { regras: [texto, ...] })
+        let iaRegras = [];
+        async function loadIARules() {
+            try { const { data } = await sb.from('app_settings').select('value').eq('key', 'ia_regras').maybeSingle(); iaRegras = (data && data.value && Array.isArray(data.value.regras)) ? data.value.regras : []; }
+            catch (e) { iaRegras = []; }
+            renderIARules();
+        }
+        function renderIARules() {
+            document.getElementById('iaRulesCount').textContent = iaRegras.length ? `(${iaRegras.length})` : '(nenhuma)';
+            document.getElementById('iaRulesList').innerHTML = iaRegras.length ? iaRegras.map((t, i) => `<div class="flex items-start gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50"><span class="text-xs font-bold text-indigo-600 mt-0.5">${i + 1}.</span><span class="flex-1 min-w-0 text-sm break-words">${esc(t)}</span><button onclick="delIARule(${i})" class="text-gray-400 hover:text-red-600 text-sm px-1" title="Excluir regra"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhuma regra ainda.</p>';
+        }
+        async function saveIARules(next) {
+            const { error } = await sb.from('app_settings').upsert({ key: 'ia_regras', value: { regras: next }, updated_at: new Date().toISOString() });
+            if (error) { showToast('Não foi possível salvar a regra. Tente de novo.', 'error'); return false; }
+            iaRegras = next; renderIARules(); return true;
+        }
+        async function addIARule() {
+            const el = document.getElementById('iaRuleNew'), t = el.value.trim();
+            if (!t) { showToast('Escreva a regra primeiro.', 'error'); return; }
+            if (await saveIARules([...iaRegras, t])) { el.value = ''; showToast('Regra adicionada.'); }
+        }
+        async function delIARule(i) {
+            if (!confirm('Excluir esta regra?\n\n' + iaRegras[i])) return;
+            if (await saveIARules(iaRegras.filter((_, k) => k !== i))) showToast('Regra excluída.');
+        }
         async function openIA(focusId) {
             iaFocus = focusId || null;
             if (focusId) iaTab = 'pendente';
             document.getElementById('modalIA').classList.remove('hidden');
             document.getElementById('iaList').innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
             paintIASwitch(await loadIASetting());
+            loadIARules();
             await loadIA().catch(() => {});
             renderIA();
         }
@@ -3521,7 +3766,7 @@
             }
             box.innerHTML = list.map(r => {
                 const d = state.drivers.find(x => x.id === r.driver_id);
-                const ph = iaPhone(d);
+                const ph = iaPhone(d) || iaPhone2(d);
                 const focus = r.id === iaFocus;
                 return `<div class="p-3 rounded-xl border ${focus ? 'border-green-500 ring-2 ring-green-500/40' : 'border-gray-200 dark:border-gray-700'} space-y-2">
                     <div class="flex justify-between items-start gap-2">
@@ -3535,8 +3780,9 @@
                     ${ph ? '' : '<p class="text-xs text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem telefone na ficha: o WhatsApp vai pedir para escolher o contato.</p>'}
                     ${r.status === 'pendente'
                         ? `<div class="grid grid-cols-3 gap-2">
-                            <button onclick="iaSend('${r.id}')" class="col-span-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar</button>
+                            ${iaPhone2(d) ? `<button onclick="iaSend('${r.id}', false, 1)" class="py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 1</button><button onclick="iaSend('${r.id}', false, 2)" class="py-2.5 bg-green-700 hover:bg-green-800 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 2</button>` : `<button onclick="iaSend('${r.id}')" class="col-span-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar</button>`}
                             <button onclick="iaMark('${r.id}')" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold" title="Já enviei por fora">Já enviei</button>
+                            <button onclick="emailIA('${r.id}')" class="col-span-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-envelope mr-1"></i> Enviar por e-mail${d && d.email ? '' : ' (digitar e-mail)'}</button>
                            </div>`
                         : `<div class="flex items-center justify-between gap-2">
                             <span class="text-xs font-semibold text-green-600"><i class="fa-solid fa-check-double mr-1"></i>Enviada ${r.sent_at ? fmtDateTimeBR(r.sent_at) : ''}</span>
@@ -3545,12 +3791,14 @@
                 </div>`;
             }).join('');
         }
-        function iaSend(id, again) {
+        function iaPhone2(d) { return iaPhone(d ? { phone: d.phone2 } : null); }
+        function iaSend(id, again, num) {
             const r = iaRows.find(x => x.id === id);
             if (!r) return;
             const ta = document.getElementById('iaMsg_' + id);
             const text = ta ? ta.value : r.message;
-            const ph = iaPhone(state.drivers.find(x => x.id === r.driver_id));
+            const dd = state.drivers.find(x => x.id === r.driver_id);
+            const ph = num === 2 ? iaPhone2(dd) : (iaPhone(dd) || iaPhone2(dd));
             window.open((ph ? 'https://wa.me/' + ph : 'https://wa.me/') + '?text=' + encodeURIComponent(text), '_blank');
             if (!again) iaMark(id, text);
         }
@@ -3586,7 +3834,7 @@
             const box = document.getElementById('pixAreaBody');
             const d = state.drivers.find(x => x.id === document.getElementById('pixAreaDriver').value);
             if (!d) { box.innerHTML = '<p class="text-sm text-gray-400 italic">Escolha um motorista para ver, enviar, editar ou excluir o Pix.</p>'; return; }
-            const veh = state.vehicles.find(v => v.id === d.vehicle_id);
+            const veh = allVeh().find(v => v.id === d.vehicle_id);
             const hasPix = !!(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link));
             const recs = d.pix_sent_at ? state.receipts.filter(r => r.driver_id === d.id && new Date(r.created_at) >= new Date(d.pix_sent_at)) : [];
             let last = recs[recs.length - 1];
@@ -4205,6 +4453,7 @@
                     if ((k === 'birth_date' || k === 'cnh_expiry') && !okDateISO(v)) continue;
                     newDriverExtra[k] = String(v);
                 }
+                const wEl = document.getElementById('drvWhats'); if (raw.telefone && !wEl.value.trim()) wEl.value = maskPhone(String(raw.telefone));
                 syncNewDriverAccess();
                 const n = (raw.nome ? 1 : 0) + (raw.cpf ? 1 : 0) + Object.keys(newDriverExtra).length;
                 st.innerHTML = n ? `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Pronto! A IA leu ${n} dado(s)${newDriverPhoto ? ' e a foto' : ''}. Confira nome, CPF, usuário e senha e toque em <b>Salvar Motorista</b>.` : 'A IA não encontrou dados nos documentos. Digite à mão.';
@@ -4292,8 +4541,18 @@
             elist.innerHTML = ex.error ? `<p class="text-xs text-red-500">${esc(friendlyError(ex.error))}</p>` : (exps.length ? `<div class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">${exps.map(x => `<div class="py-2 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="font-semibold">${esc(x.category)} · <span class="text-red-600 dark:text-red-400">${fmtMoney(x.amount)}</span></div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">${fmtDate(x.expense_date)}</div></div>
                     <button onclick="deleteAppExpense('${x.id}')" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div>` : '<p class="text-xs italic text-gray-400">Nenhuma despesa lançada neste período.</p>');
+            lastFinData = {
+                titulo: 'Relatório de ganhos com aplicativo',
+                cards: [['Ganhos', total], ['Despesas', spent], [net >= 0 ? 'Sobrou' : 'Faltou', Math.abs(net)]],
+                tabelas: [
+                    { titulo: 'Ganhos por aplicativo', head: ['Aplicativo', 'Valor'], rows: Object.entries(by).map(([k, v]) => [k, fmtMoney(v)]) },
+                    { titulo: 'Despesas por tipo', head: ['Tipo', 'Valor'], rows: Object.entries(byExp).map(([k, v]) => [k, fmtMoney(v)]) },
+                    { titulo: 'Ganhos lançados', head: ['Data', 'Aplicativo / veículo', 'Valor'], rows: data.slice().reverse().map(x => { const v = allVeh().find(y => y.id === x.vehicle_id); return [fmtDate(x.earning_date), `${x.app}${v ? ' · ' + v.plate : ''}${x.description ? ' · ' + x.description : ''}`, fmtMoney(x.amount)]; }) },
+                    { titulo: 'Despesas lançadas', head: ['Data', 'Tipo', 'Valor'], rows: exps.slice().reverse().map(x => [fmtDate(x.expense_date), `${x.category}${x.description ? ' · ' + x.description : ''}`, fmtMoney(x.amount)]) },
+                ],
+            };
             list.innerHTML = data.length ? `<div class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">${data.map(x => {
-                const v = state.vehicles.find(y => y.id === x.vehicle_id);
+                const v = allVeh().find(y => y.id === x.vehicle_id);
                 return `<div class="py-2 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="font-semibold">${esc(x.app)} · ${fmtMoney(x.amount)}</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 truncate">${fmtDate(x.earning_date)}${v ? ' · ' + esc(v.plate) : ''}${x.description ? ' · ' + esc(x.description) : ''}</div></div>
                     <button onclick="deleteAppEarning('${x.id}')" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`;
