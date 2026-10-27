@@ -798,13 +798,27 @@
                     <form onsubmit="saveAppEarning(event)" class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
                         <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Aplicativo</label>
                             <select id="appName" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option>Uber</option><option>99</option><option>inDrive</option><option>Outro</option></select></div>
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor (R$)</label><input id="appAmount" inputmode="decimal" required placeholder="Ex: 320,50" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data</label><input type="date" id="appDate" required class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor (R$)</label><input id="appAmount" inputmode="decimal" required placeholder="Ex: 320,50" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Veículo (opcional)</label><select id="appVehicle" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select></div>
-                        <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Observação (opcional)</label><input id="appDesc" placeholder="Ex: semana de 20 a 26/10" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data</label><input type="date" id="appDate" required class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="col-span-2"><button type="submit" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-plus mr-1"></i> Lançar ganho</button></div>
                     </form>
                     <div id="appList"></div>
+
+                    <!-- DESPESAS DO APLICATIVO (gasolina, alimentação...) -->
+                    <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <h4 class="font-semibold text-sm mb-2"><i class="fa-solid fa-gas-pump mr-1 text-red-500"></i> Despesas</h4>
+                        <form onsubmit="saveAppExpense(event)" class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
+                            <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Tipo de despesa</label>
+                                <select id="appExpType" onchange="onAppExpTypeChange()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
+                                <div id="appExpNewBox" class="hidden mt-2"><input id="appExpNew" placeholder="Nome da nova despesa (ex: Troca de óleo)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            </div>
+                            <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor (R$)</label><input id="appExpAmount" inputmode="decimal" required placeholder="Ex: 150,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            <div class="col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data</label><input type="date" id="appExpDate" required class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            <div class="col-span-2"><button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-plus mr-1"></i> Lançar despesa</button></div>
+                        </form>
+                        <div id="appExpList" class="mt-2"></div>
+                    </div>
                     <p class="text-xs text-gray-400">Só você vê esta parte. Os ganhos de aplicativo não se misturam com os aluguéis.</p>
                 </div>
             </div>
@@ -2282,6 +2296,7 @@
         }
         function switchFinTab(tab) {
             finTab = tab;
+            if (tab === 'apps') { document.getElementById('appDate').value = todayISO(); document.getElementById('appExpDate').value = todayISO(); }
             const on = 'py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white', off = 'py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300';
             document.getElementById('finTabRent').className = tab === 'rent' ? on : off;
             document.getElementById('finTabApps').className = tab === 'apps' ? on : off;
@@ -3412,10 +3427,28 @@
             if (error) { list.innerHTML = `<p class="text-xs text-red-500">${esc(friendlyError(error))}</p>`; tot.innerHTML = ''; return; }
             const total = data.reduce((a, x) => a + Number(x.amount || 0), 0);
             const by = {}; data.forEach(x => by[x.app] = (by[x.app] || 0) + Number(x.amount || 0));
-            tot.innerHTML = `<div class="p-3 rounded-xl border bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200">
-                    <p class="text-xs font-semibold opacity-80"><i class="fa-solid fa-mobile-screen mr-1"></i>Ganhos no período</p>
-                    <p class="text-lg font-bold mt-1">${fmtMoney(total)}</p>
-                    ${Object.keys(by).length ? `<p class="text-xs mt-1">${Object.entries(by).map(([k, v]) => `${esc(k)}: ${fmtMoney(v)}`).join(' · ')}</p>` : ''}</div>`;
+            // despesas do período
+            let eq = sb.from('app_expenses').select('*').order('expense_date', { ascending: false });
+            if (r[0]) eq = eq.gte('expense_date', r[0]);
+            if (r[1]) eq = eq.lt('expense_date', r[1]);
+            const ex = await eq;
+            const exps = ex.error ? [] : ex.data;
+            const spent = exps.reduce((a, x) => a + Number(x.amount || 0), 0);
+            const byExp = {}; exps.forEach(x => byExp[x.category] = (byExp[x.category] || 0) + Number(x.amount || 0));
+            const net = total - spent;
+            const card = (label, value, cls, icon, extra) => `<div class="p-3 rounded-xl border ${cls}"><p class="text-xs font-semibold opacity-80"><i class="fa-solid ${icon} mr-1"></i>${label}</p><p class="text-lg font-bold mt-1">${fmtMoney(value)}</p>${extra || ''}</div>`;
+            tot.innerHTML = `<div class="grid grid-cols-2 gap-2">` +
+                card('Ganhos no período', total, 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200', 'fa-mobile-screen',
+                    Object.keys(by).length ? `<p class="text-xs mt-1">${Object.entries(by).map(([k, v]) => `${esc(k)}: ${fmtMoney(v)}`).join(' · ')}</p>` : '') +
+                card('Despesas', spent, 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200', 'fa-gas-pump',
+                    Object.keys(byExp).length ? `<p class="text-xs mt-1">${Object.entries(byExp).map(([k, v]) => `${esc(k)}: ${fmtMoney(v)}`).join(' · ')}</p>` : '') +
+                `</div>` + card(net >= 0 ? 'Sobrou (ganhos − despesas)' : 'Faltou (despesas maiores)', Math.abs(net), (net >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200') + ' mt-2', 'fa-scale-balanced');
+            fillAppExpTypes(exps);
+            if (!document.getElementById('appExpDate').value) document.getElementById('appExpDate').value = todayISO();
+            const elist = document.getElementById('appExpList');
+            elist.innerHTML = ex.error ? `<p class="text-xs text-red-500">${esc(friendlyError(ex.error))}</p>` : (exps.length ? `<div class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">${exps.map(x => `<div class="py-2 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="font-semibold">${esc(x.category)} · <span class="text-red-600 dark:text-red-400">${fmtMoney(x.amount)}</span></div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">${fmtDate(x.expense_date)}</div></div>
+                    <button onclick="deleteAppExpense('${x.id}')" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div>` : '<p class="text-xs italic text-gray-400">Nenhuma despesa lançada neste período.</p>');
             list.innerHTML = data.length ? `<div class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">${data.map(x => {
                 const v = state.vehicles.find(y => y.id === x.vehicle_id);
                 return `<div class="py-2 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="font-semibold">${esc(x.app)} · ${fmtMoney(x.amount)}</div>
@@ -3433,15 +3466,60 @@
                     app: document.getElementById('appName').value, amount,
                     earning_date: document.getElementById('appDate').value || todayISO(),
                     vehicle_id: document.getElementById('appVehicle').value || null,
-                    description: document.getElementById('appDesc').value.trim() || null,
                 });
                 if (error) throw error;
-                document.getElementById('appAmount').value = ''; document.getElementById('appDesc').value = '';
+                document.getElementById('appAmount').value = ''; document.getElementById('appDate').value = todayISO();
                 showToast('Ganho lançado!');
                 renderAppEarnings();
             } catch (err) { showToast(friendlyError(err), 'error'); }
             finally { setBusy(form, false); }
         }
+        // ===== DESPESAS DO APLICATIVO =====
+        const APP_EXP_DEFAULT = ['Gasolina', 'Alimentação', 'Manutenção', 'Lavagem', 'Pedágio', 'Estacionamento', 'Internet / celular'];
+        function appExpCustomTypes() { try { return JSON.parse(localStorage.getItem('motora_app_exp_types')) || []; } catch (e) { return []; } }
+        function fillAppExpTypes(exps) {
+            const sel = document.getElementById('appExpType'), keep = sel.value;
+            const types = [...new Set([...APP_EXP_DEFAULT, ...appExpCustomTypes(), ...(exps || []).map(x => x.category)])];
+            sel.innerHTML = types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('') + '<option value="__new">+ Adicionar outra despesa</option>';
+            if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+            onAppExpTypeChange();
+        }
+        function onAppExpTypeChange() {
+            const isNew = document.getElementById('appExpType').value === '__new';
+            document.getElementById('appExpNewBox').classList.toggle('hidden', !isNew);
+            if (isNew) document.getElementById('appExpNew').focus();
+        }
+        async function saveAppExpense(e) {
+            e.preventDefault();
+            const form = e.target, amount = parseMoney(document.getElementById('appExpAmount').value);
+            if (!amount) { showToast('Digite um valor válido.', 'error'); return; }
+            let cat = document.getElementById('appExpType').value;
+            if (cat === '__new') {
+                cat = document.getElementById('appExpNew').value.trim();
+                if (!cat) { showToast('Digite o nome da nova despesa.', 'error'); return; }
+                cat = cat.charAt(0).toUpperCase() + cat.slice(1);
+                const custom = appExpCustomTypes();
+                if (!custom.includes(cat)) { custom.push(cat); try { localStorage.setItem('motora_app_exp_types', JSON.stringify(custom)); } catch (err) {} }
+            }
+            setBusy(form, true);
+            try {
+                const { error } = await sb.from('app_expenses').insert({ category: cat, amount, expense_date: document.getElementById('appExpDate').value || todayISO() });
+                if (error) throw error;
+                document.getElementById('appExpAmount').value = ''; document.getElementById('appExpNew').value = '';
+                document.getElementById('appExpDate').value = todayISO();
+                document.getElementById('appExpType').value = cat;
+                showToast('Despesa lançada!');
+                renderAppEarnings();
+            } catch (err) { showToast(friendlyError(err), 'error'); }
+            finally { setBusy(form, false); }
+        }
+        async function deleteAppExpense(id) {
+            if (!confirm('Excluir esta despesa?')) return;
+            const { error } = await sb.from('app_expenses').delete().eq('id', id);
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            showToast('Despesa excluída.'); renderAppEarnings();
+        }
+
         async function deleteAppEarning(id) {
             if (!confirm('Excluir este lançamento?')) return;
             const { error } = await sb.from('app_earnings').delete().eq('id', id);

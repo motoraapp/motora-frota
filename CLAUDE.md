@@ -47,6 +47,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 
 ## Financeiro (master)
 - Separar "Aluguéis" e "Ganhos aplicativo" (corridas Uber/99/inDrive). Despesas em aba separada.
+- Aba "Ganhos aplicativo": lançar ganho (aplicativo, valor, veículo, data — padrão hoje; sem observação) e **Despesas** (tipo: Gasolina, Alimentação, Manutenção... ou "+ Adicionar outra despesa"; valor; data — padrão hoje), na tabela `app_expenses` (só o master). Mostra Ganhos, Despesas e quanto sobrou.
 - Documentos e planilhas vão para o Google Drive da conta do dono (não da esposa).
 
 ## Pendências
