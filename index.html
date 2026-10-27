@@ -773,14 +773,37 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Período</label>
-                    <select id="finPeriod" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <select id="finPeriod" onchange="onFinPeriodChange()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        <option value="today">Hoje</option>
+                        <option value="week">Esta semana</option>
                         <option value="month">Este mês</option>
                         <option value="last">Mês passado</option>
                         <option value="3m">Últimos 3 meses</option>
                         <option value="year">Este ano</option>
                         <option value="all">Tudo</option>
+                        <option value="custom">Escolher datas...</option>
                     </select>
+                    <div id="finCustomBox" class="hidden grid grid-cols-2 gap-2 mt-2">
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">De</label><input type="date" id="finFrom" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Até</label><input type="date" id="finTo" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    </div>
                 </div>
+                <!-- FILTROS -->
+                <details id="finFilters" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+                    <summary class="p-3 text-sm font-semibold cursor-pointer select-none"><i class="fa-solid fa-filter mr-1 text-blue-500"></i> Filtros <span id="finFilterCount" class="text-xs text-blue-600 dark:text-blue-400"></span></summary>
+                    <div class="px-3 pb-3 space-y-3">
+                        <div id="finFilterRent" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Motorista</label><select id="finFltDriver" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select></div>
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Veículo</label><select id="finFltVehicle" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select></div>
+                        </div>
+                        <div id="finFilterApps" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Aplicativo</label><select id="appFltApp" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Todos</option><option>Uber</option><option>99</option><option>inDrive</option><option>Outro</option></select></div>
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Tipo de despesa</label><select id="appFltExp" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Todos</option></select></div>
+                            <div class="sm:col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Veículo (ganhos)</label><select id="appFltVeh" onchange="renderFinance()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select></div>
+                        </div>
+                        <button type="button" onclick="clearFinFilters()" class="w-full py-2 rounded-xl text-xs font-semibold bg-gray-200 dark:bg-gray-600"><i class="fa-solid fa-eraser mr-1"></i> Limpar filtros</button>
+                    </div>
+                </details>
                 <div id="finRentBox" class="space-y-5">
                 <div id="finCards" class="grid grid-cols-2 gap-3"></div>
                 <div>
@@ -791,7 +814,7 @@
                     <h4 class="font-semibold text-sm mb-2"><i class="fa-solid fa-users mr-1 text-blue-500"></i> Por motorista</h4>
                     <div id="finDrivers"></div>
                 </div>
-                <p class="text-xs text-gray-400">Recebido = Pix com comprovante enviado no período. Em aberto = Pix enviados que ainda não foram pagos. O valor de cada motorista conta para o veículo que está com ele hoje.</p>
+                <p class="text-xs text-gray-400">Recebido = soma de tudo que foi pago por Pix no período (valor dos comprovantes aceitos; um pagamento pode quitar mais de uma cobrança). Em aberto = o que ainda falta pagar das cobranças enviadas. O valor de cada motorista conta para o veículo que está com ele hoje.</p>
                 </div>
                 <div id="finAppsBox" class="hidden space-y-4">
                     <div id="appTotals"></div>
@@ -2283,10 +2306,42 @@
             if (period === 'last') return [ym(y, m - 1), ym(y, m)];
             if (period === '3m') return [ym(y, m - 2), ym(y, m + 1)];
             if (period === 'year') return [`${y}-01-01`, `${y + 1}-01-01`];
+            const addDay = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+            if (period === 'today') return [t, addDay(t, 1)];
+            if (period === 'week') { const wd = (new Date(t + 'T12:00:00').getDay() + 6) % 7; return [addDay(t, -wd), addDay(t, 7 - wd)]; } // segunda a domingo
+            if (period === 'custom') {
+                const f = document.getElementById('finFrom').value || null, to = document.getElementById('finTo').value || null;
+                return [f, to ? addDay(to, 1) : null];
+            }
             return [null, null];
         }
         function dayBR(v) { return v ? (String(v).length === 10 ? String(v) : new Date(v).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })) : null; }
         function inRange(day, r) { return day && (!r[0] || day >= r[0]) && (!r[1] || day < r[1]); }
+
+        function onFinPeriodChange() {
+            const custom = document.getElementById('finPeriod').value === 'custom';
+            document.getElementById('finCustomBox').classList.toggle('hidden', !custom);
+            if (custom && !document.getElementById('finFrom').value) { document.getElementById('finFrom').value = todayISO().slice(0, 8) + '01'; document.getElementById('finTo').value = todayISO(); }
+            renderFinance();
+        }
+        function fillFinFilters() {
+            const setOpts = (id, html) => { const el = document.getElementById(id), keep = el.value; el.innerHTML = html; if ([...el.options].some(o => o.value === keep)) el.value = keep; };
+            const vOpts = state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
+            setOpts('finFltDriver', '<option value="">Todos</option>' + state.drivers.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join(''));
+            setOpts('finFltVehicle', '<option value="">Todos</option>' + vOpts);
+            setOpts('appFltVeh', '<option value="">Todos</option>' + vOpts);
+        }
+        function clearFinFilters() {
+            ['finFltDriver', 'finFltVehicle', 'appFltApp', 'appFltExp', 'appFltVeh'].forEach(id => document.getElementById(id).value = '');
+            renderFinance();
+        }
+        function updateFinFilterCount() {
+            const ids = finTab === 'apps' ? ['appFltApp', 'appFltExp', 'appFltVeh'] : ['finFltDriver', 'finFltVehicle'];
+            const n = ids.filter(id => document.getElementById(id).value).length;
+            document.getElementById('finFilterCount').innerText = n ? `(${n} ativo${n > 1 ? 's' : ''})` : '';
+            document.getElementById('finFilterRent').classList.toggle('hidden', finTab === 'apps');
+            document.getElementById('finFilterApps').classList.toggle('hidden', finTab !== 'apps');
+        }
 
         let finTab = 'rent';
         function openFinance() {
@@ -2307,11 +2362,21 @@
         function closeFinance() { document.getElementById('modalFinance').classList.add('hidden'); }
 
         function renderFinance() {
+            fillFinFilters(); updateFinFilterCount();
             if (finTab === 'apps') { renderAppEarnings(); return; }
             const r = finRange(document.getElementById('finPeriod').value);
-            const paid = state.pixHistory.filter(h => h.paid_at && inRange(dayBR(h.paid_at), r));
-            const open = state.pixHistory.filter(h => !h.paid_at);
-            const exps = state.expenses.filter(x => inRange(dayBR(x.expense_date), r));
+            const fDrv = document.getElementById('finFltDriver').value, fVeh = document.getElementById('finFltVehicle').value;
+            const vehOf = id => (state.drivers.find(d => d.id === id) || {}).vehicle_id;
+            const drivers = state.drivers.filter(d => (!fDrv || d.id === fDrv) && (!fVeh || d.vehicle_id === fVeh));
+            // Recebido = soma dos pagamentos (comprovantes aceitos) feitos no período; Em aberto = o que falta das cobranças
+            const paid = [], open = [];
+            drivers.forEach(d => {
+                const al = allocatePix(d.id);
+                al.pays.forEach(p => { if (inRange(dayBR(p.r.created_at), r) && p.val) paid.push({ driver_id: d.id, amount: p.val }); });
+                al.charges.forEach(c => { if (c.remaining > 0.005) open.push({ driver_id: d.id, amount: c.remaining }); });
+            });
+            const vehFilterSet = fVeh ? [fVeh] : (fDrv ? [vehOf(fDrv)].filter(Boolean) : null);
+            const exps = state.expenses.filter(x => inRange(dayBR(x.expense_date), r) && (!vehFilterSet || vehFilterSet.includes(x.vehicle_id)));
             const sum = (list, f) => list.reduce((a, x) => a + Number(f(x) || 0), 0);
             const received = sum(paid, h => h.amount), pending = sum(open, h => h.amount), spent = sum(exps, x => x.amount);
             const balance = received - spent;
@@ -2331,14 +2396,14 @@
                     <tbody>${rows.join('')}</tbody></table></div>` : '<p class="text-xs italic text-gray-400">Nada neste período.</p>';
             const money = (v, neg) => `<span class="${neg && v < 0 ? 'text-red-500 font-semibold' : ''}">${fmtMoney(v)}</span>`;
 
-            const vRows = state.vehicles.map(v => {
+            const vRows = state.vehicles.filter(v => !vehFilterSet || vehFilterSet.includes(v.id)).map(v => {
                 const rec = sum(paid.filter(h => drvVeh(h.driver_id) === v.id), h => h.amount);
                 const sp = sum(exps.filter(x => x.vehicle_id === v.id), x => x.amount);
                 return { v, rec, sp };
             }).filter(x => x.rec || x.sp).map(x => row([`${esc(x.v.model)}<br><span class="text-gray-400">${esc(x.v.plate)}</span>`, fmtMoney(x.rec), fmtMoney(x.sp), money(x.rec - x.sp, true)]));
             document.getElementById('finVehicles').innerHTML = table(['Veículo', 'Recebido', 'Despesas', 'Saldo'], vRows);
 
-            const dRows = state.drivers.map(d => ({ d, rec: sum(paid.filter(h => h.driver_id === d.id), h => h.amount), pen: sum(open.filter(h => h.driver_id === d.id), h => h.amount) }))
+            const dRows = drivers.map(d => ({ d, rec: sum(paid.filter(h => h.driver_id === d.id), h => h.amount), pen: sum(open.filter(h => h.driver_id === d.id), h => h.amount) }))
                 .filter(x => x.rec || x.pen).map(x => row([esc(x.d.name), fmtMoney(x.rec), x.pen ? `<span class="text-amber-600 font-semibold">${fmtMoney(x.pen)}</span>` : fmtMoney(0)]));
             document.getElementById('finDrivers').innerHTML = table(['Motorista', 'Recebido', 'Em aberto'], dRows);
         }
@@ -3423,6 +3488,9 @@
             let q = sb.from('app_earnings').select('*').order('earning_date', { ascending: false });
             if (r[0]) q = q.gte('earning_date', r[0]);
             if (r[1]) q = q.lt('earning_date', r[1]);
+            const fApp = document.getElementById('appFltApp').value, fExp = document.getElementById('appFltExp').value, fAV = document.getElementById('appFltVeh').value;
+            if (fApp) q = q.eq('app', fApp);
+            if (fAV) q = q.eq('vehicle_id', fAV);
             const { data, error } = await q;
             if (error) { list.innerHTML = `<p class="text-xs text-red-500">${esc(friendlyError(error))}</p>`; tot.innerHTML = ''; return; }
             const total = data.reduce((a, x) => a + Number(x.amount || 0), 0);
@@ -3431,7 +3499,13 @@
             let eq = sb.from('app_expenses').select('*').order('expense_date', { ascending: false });
             if (r[0]) eq = eq.gte('expense_date', r[0]);
             if (r[1]) eq = eq.lt('expense_date', r[1]);
+            if (fExp) eq = eq.eq('category', fExp);
             const ex = await eq;
+            // tipos de despesa no filtro
+            const fe = document.getElementById('appFltExp'), keepFe = fe.value;
+            const allTypes = [...new Set([...APP_EXP_DEFAULT, ...appExpCustomTypes(), ...(ex.data || []).map(x => x.category)])];
+            fe.innerHTML = '<option value="">Todos</option>' + allTypes.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+            fe.value = keepFe;
             const exps = ex.error ? [] : ex.data;
             const spent = exps.reduce((a, x) => a + Number(x.amount || 0), 0);
             const byExp = {}; exps.forEach(x => byExp[x.category] = (byExp[x.category] || 0) + Number(x.amount || 0));
