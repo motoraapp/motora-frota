@@ -270,6 +270,7 @@
 
             <!-- Perfil do motorista: caução (pago e quanto falta) e previsão da próxima semana (quando em dia) -->
             <div id="drvProfileExtras" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            <button id="btnMeusRecibos" onclick="openMeusRecibos()" class="w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-receipt"></i> Meus recibos <span id="meusRecibosCount" class="px-2 py-0.5 rounded-full bg-white/25 text-xs"></span></button>
 
             <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
             <a id="btnInstallApk" href="motora.apk" download="MOTORA.apk" class="hidden items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-sm">
@@ -941,6 +942,25 @@
                     <button id="iaTabSent" onclick="iaShow('enviada')" class="py-2 rounded-xl text-sm font-semibold">Enviadas</button>
                 </div>
                 <div id="iaList" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEUS RECIBOS (motorista): todos os recibos pagos, cada um em PDF -->
+    <div id="modalMeusRecibos" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-solid fa-receipt text-emerald-600 mr-1"></i> Meus recibos</h3>
+                <button onclick="closeMeusRecibos()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="meusRecibosList" class="p-4 overflow-y-auto custom-scrollbar space-y-2 flex-1"></div>
+            <div id="meuReciboView" class="hidden flex-1 flex flex-col min-h-0">
+                <iframe id="meuReciboFrame" title="Recibo" class="flex-1 w-full bg-white" style="border:0"></iframe>
+                <div class="p-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-3 gap-2">
+                    <button onclick="voltarMeusRecibos()" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-arrow-left mr-1"></i> Voltar</button>
+                    <button onclick="pdfMeuRecibo()" class="py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-file-pdf mr-1"></i> Salvar PDF</button>
+                    <button onclick="shareMeuRecibo()" class="py-2.5 rounded-xl text-xs font-bold bg-green-600 hover:bg-green-700 text-white"><i class="fa-solid fa-share-nodes mr-1"></i> Enviar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -2126,6 +2146,7 @@
         function renderDriverPanel() {
             try { renderDriverExtras(); } catch (e) { console.error(e); }
             try { renderDriverProfileExtras(); } catch (e) { console.error(e); }
+            try { const n = meusRecibosLista().length; document.getElementById('meusRecibosCount').textContent = n || ''; } catch (e) {}
             updateInstallApkButton();
             checkApkUpdate();
             DOC_REG = [];
@@ -3757,11 +3778,11 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     // se a parcela atual ainda está no Pix desta semana, a próxima é a seguinte
                     linhas.push([`Caução ${cn.k}/${cn.n}`, cn.valor]);
                 }
-                multasPendentes(d).forEach(i => linhas.push([i.desc, Number(i.valor)]));
                 const total = linhas.reduce((a, [, x]) => a + x, 0);
                 cards.push(`<div class="p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 space-y-2">
                     <p class="text-xs font-semibold uppercase text-blue-700 dark:text-blue-300"><i class="fa-regular fa-calendar mr-1"></i> Próxima semana</p>
                     <p class="text-sm">Pagamento até <b>${venc.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}, 23:59</b></p>
+                    <p class="text-xs text-gray-600 dark:text-gray-300">Vale de ${(() => { const dom = new Date(venc); dom.setDate(venc.getDate() + 6); return venc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (segunda) a ' + dom.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (domingo)'; })()}</p>
                     ${linhas.length ? linhas.map(([k, x]) => `<div class="flex justify-between gap-3 text-sm"><span class="min-w-0 break-words">${esc(k)}</span><b class="whitespace-nowrap">${fmtMoney(x)}</b></div>`).join('')
                         + `<div class="flex justify-between gap-3 text-sm font-bold border-t border-blue-200 dark:border-blue-800 pt-1.5"><span>Total previsto</span><span>${fmtMoney(total)}</span></div>`
                         : '<p class="text-xs text-gray-500">O valor aparece quando o dono enviar o Pix.</p>'}
@@ -3770,6 +3791,65 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             }
             box.innerHTML = cards.join('');
             box.classList.toggle('hidden', !cards.length);
+        }
+        // o Pix que vence na segunda vale daquela segunda até o domingo seguinte
+        function semanaDoPix(h) {
+            if (!h || !h.due_at) return '';
+            const seg = new Date(new Date(h.due_at).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+            const dom = new Date(seg); dom.setDate(seg.getDate() + 6);
+            const f = x => x.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            return `segunda ${f(seg)} a domingo ${f(dom)}`;
+        }
+        // ===== MEUS RECIBOS (área do motorista) =====
+        let meuReciboAtual = null;
+        function meusRecibosLista() {
+            return state.receipts.filter(r => r.driver_id === state.profile.id && !r.rejected_at && (r.confirmed_at || r.ai_status === 'ok'))
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        }
+        function openMeusRecibos() {
+            const list = meusRecibosLista(), box = document.getElementById('meusRecibosList');
+            document.getElementById('meuReciboView').classList.add('hidden');
+            box.classList.remove('hidden');
+            box.innerHTML = list.length ? list.map(r => {
+                const x = reciboData(r.id); const sem = x && x.charges.length ? semanaDoPix(x.charges[0].h) : '';
+                return `<button onclick="verMeuRecibo('${r.id}')" class="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 flex items-center gap-3">
+                    <i class="fa-solid fa-file-pdf text-red-500 text-2xl"></i>
+                    <span class="flex-1 min-w-0"><span class="block text-sm font-bold">${fmtDate(r.created_at)} · ${fmtMoney(x ? x.valor : receiptValue(r))}</span>
+                    <span class="block text-xs text-gray-500 dark:text-gray-400 break-words">${sem ? 'Válido de ' + esc(sem) : 'Pagamento confirmado'}</span></span>
+                    <i class="fa-solid fa-chevron-right text-gray-400"></i></button>`;
+            }).join('') : '<p class="text-sm text-gray-400 italic text-center py-6">Nenhum recibo ainda. Ele aparece aqui quando o seu pagamento for confirmado.</p>';
+            document.getElementById('modalMeusRecibos').classList.remove('hidden');
+        }
+        function closeMeusRecibos() { document.getElementById('modalMeusRecibos').classList.add('hidden'); }
+        function reciboPdfHtml(L) {
+            const e = t => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+            const corpo = L.slice(2).map(t => !t ? '<div class="sp"></div>' : (/^Recebi de/.test(t) ? `<p class="dest">${e(t)}</p>` : (/^(Total pago|Situação|Ainda em aberto|Válido de)/.test(t) ? `<p><b>${e(t)}</b></p>` : `<p>${e(t)}</p>`))).join('');
+            return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(L[0])} ${e(L[1])}</title>
+<style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111827;margin:0;padding:22px;font-size:14px;line-height:1.45;background:#fff}
+.top{border-top:8px solid #059669;padding-top:12px;margin-bottom:10px} h1{font-size:19px;margin:0;color:#065f46} .n{color:#6b7280;font-size:12px;margin:2px 0 0}
+p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;margin:6px 0} .sp{height:8px}
+.rod{margin-top:18px;color:#9ca3af;font-size:10px}</style></head><body>
+<div class="top"><h1>${e(L[0])}</h1><p class="n">${e(L[1])}</p></div>${corpo}
+<p class="rod">Documento gerado pelo app MOTORA.</p></body></html>`;
+        }
+        function verMeuRecibo(id) {
+            const t = reciboTexto(id); if (!t) return;
+            meuReciboAtual = { html: reciboPdfHtml(t.L), nome: 'Recibo MOTORA ' + fmtDate(t.x.r.created_at).replace(/\//g, '-') };
+            document.getElementById('meusRecibosList').classList.add('hidden');
+            document.getElementById('meuReciboView').classList.remove('hidden');
+            document.getElementById('meuReciboFrame').srcdoc = meuReciboAtual.html;
+        }
+        function voltarMeusRecibos() { document.getElementById('meuReciboView').classList.add('hidden'); document.getElementById('meusRecibosList').classList.remove('hidden'); }
+        function pdfMeuRecibo() {
+            try { const w = document.getElementById('meuReciboFrame').contentWindow; w.focus(); w.print(); }
+            catch (e) { showToast('Não foi possível abrir. Use Compartilhar.', 'error'); }
+        }
+        async function shareMeuRecibo() {
+            if (!meuReciboAtual) return;
+            const file = new File([meuReciboAtual.html], meuReciboAtual.nome + '.html', { type: 'text/html' });
+            try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: meuReciboAtual.nome }); return; } }
+            catch (e) { if (e && e.name === 'AbortError') return; }
+            const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; a.click();
         }
         // ===== VALORES DA COBRANÇA: aluguel do carro + acréscimo − desconto =====
         async function editVehicleRent(id) {
@@ -3878,7 +3958,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function reciboData(id) {
             const r = state.receipts.find(x => x.id === id);
             if (!r) return null;
-            const d = state.drivers.find(x => x.id === r.driver_id) || {};
+            const d = state.drivers.find(x => x.id === r.driver_id) || (state.profile && state.profile.id === r.driver_id ? state.profile : {});
             const v = allVeh().find(x => x.id === d.vehicle_id);
             const { pays } = allocatePix(r.driver_id);
             // grupo: as cobranças quitadas por este comprovante e todos os pagamentos que também entraram nelas
@@ -3899,9 +3979,9 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             return { r, d, v, charges, list, valor, cobrado, aberto, credito };
         }
         function fmtDateTimeBR(iso) { return iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'; }
-        function openRecibo(id) {
+        function reciboTexto(id) {
             const x = reciboData(id);
-            if (!x) { showToast('Comprovante não encontrado.', 'error'); return; }
+            if (!x) return null;
             const { r, d, v, charges, list, valor, cobrado, aberto, credito } = x;
             const payDate = y => { const t = (y.ai_result || {}).data_hora; if (!t) return fmtDateTimeBR(y.created_at); const s = String(t); const dt = new Date(s.length <= 16 ? s + ':00-03:00' : s); return isNaN(dt) ? s : fmtDateTimeBR(dt); };
             const L = [];
@@ -3923,6 +4003,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             }
             if (v) L.push('Veículo: ' + v.model + ' - ' + v.plate);
             if (charges.length === 1) L.push('Vencimento: ' + fmtDate(charges[0].h.due_at));
+            charges.forEach(c => { const w = semanaDoPix(c.h); if (w) L.push('Válido de ' + w + (charges.length > 1 ? ' (cobrança de ' + fmtDate(c.h.sent_at) + ')' : '')); });
             L.push('Forma de pagamento: Pix');
             if (list.length > 1) {
                 L.push('Pagamentos:');
@@ -3939,7 +4020,13 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             if (rb) L.push('Recebedor: ' + rb);
             L.push('Confirmado em: ' + fmtDateTimeBR(r.confirmed_at || r.ai_checked_at || r.created_at));
             L.push('');
-            L.push(state.profile && state.profile.name ? state.profile.name : 'Locador');
+            L.push(state.profile && state.profile.role === 'master' && state.profile.name ? state.profile.name : ((r.ai_result || {}).recebedor_nome || 'Locador'));
+            return { x, L };
+        }
+        function openRecibo(id) {
+            const t = reciboTexto(id);
+            if (!t) { showToast('Comprovante não encontrado.', 'error'); return; }
+            const { d } = t.x, L = t.L;
             reciboLines = L;
             const text = L.join('\n');
             document.getElementById('reciboText').textContent = text;
