@@ -870,7 +870,11 @@
                     </div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor (R$)</label><input id="expAmount" inputmode="decimal" required placeholder="Ex: 1.250,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data</label><input type="date" id="expDate" required class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
-                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nota / comprovante (opcional)</label><input type="file" id="expFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                    <div class="sm:col-span-2 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800">
+                        <label class="block text-xs font-semibold uppercase text-indigo-700 dark:text-indigo-300 mb-1"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Nota / comprovante (a IA preenche)</label>
+                        <input type="file" id="expFile" accept="image/*,application/pdf" onchange="aiReadExpense()" class="w-full text-xs">
+                        <p id="expAiStatus" class="text-xs text-indigo-900 dark:text-indigo-200 mt-1">Envie a foto ou o PDF da nota: a IA reconhece o tipo, o valor, a data e a descrição.</p>
+                    </div>
                     <div class="sm:col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Descrição (opcional)</label><input id="expDesc" placeholder="Ex: troca de pastilhas" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div class="sm:col-span-2"><button type="submit" class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-plus mr-1"></i> Adicionar despesa</button></div>
                 </form>
@@ -2441,6 +2445,40 @@
             document.getElementById('expNewType').value = '';
             showToast(`Tipo "${name}" criado!`);
         }
+        // IA: lê a nota/comprovante da despesa e preenche o formulário
+        let expAiBusy = false;
+        async function aiReadExpense() {
+            const f = document.getElementById('expFile').files[0];
+            const st = document.getElementById('expAiStatus');
+            if (!f || expAiBusy) return;
+            expAiBusy = true;
+            st.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> A IA está lendo a nota...';
+            try {
+                const path = await uploadTmp(f, 'despesa');
+                if (!path) throw new Error('Não foi possível enviar o arquivo.');
+                const x = await aiReadFiles([path], 'expense', state.expenseTypes.map(t => t.name));
+                const got = [];
+                if (x.tipo) {
+                    const t = state.expenseTypes.find(t => t.name.toLowerCase() === String(x.tipo).trim().toLowerCase());
+                    if (t) { fillExpenseTypes(t.id); document.getElementById('expNewTypeBox').classList.add('hidden'); }
+                    else { fillExpenseTypes('__new'); document.getElementById('expNewTypeBox').classList.remove('hidden'); document.getElementById('expNewType').value = String(x.tipo).trim(); }
+                    got.push('tipo');
+                }
+                if (x.valor != null && !isNaN(Number(x.valor))) { document.getElementById('expAmount').value = Number(x.valor).toFixed(2).replace('.', ','); got.push('valor'); }
+                if (okDateISO(x.data)) { document.getElementById('expDate').value = x.data; got.push('data'); }
+                const desc = [x.descricao, x.estabelecimento].filter(Boolean).join(' - ');
+                if (desc) { document.getElementById('expDesc').value = desc.slice(0, 200); got.push('descrição'); }
+                const v = state.vehicles.find(v => v.id === expVehicleId);
+                const plateWarn = x.placa && v && String(x.placa).replace(/[^A-Z0-9]/gi, '').toUpperCase() !== String(v.plate || '').replace(/[^A-Z0-9]/gi, '').toUpperCase()
+                    ? ` <b class="text-amber-700 dark:text-amber-300">Atenção: a nota mostra a placa ${esc(x.placa)}.</b>` : '';
+                st.innerHTML = got.length
+                    ? `<i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> A IA preencheu: ${got.join(', ')}. Confira antes de salvar.${plateWarn}`
+                    : '<i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i> A IA não achou os dados nesta nota. Preencha à mão.';
+            } catch (e) {
+                st.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i> ${esc(e.message || 'A IA não conseguiu ler.')} Preencha à mão.`;
+            } finally { expAiBusy = false; clearTmp('despesa'); }
+        }
+
         function renderExpenses() {
             const list = state.expenses.filter(x => x.vehicle_id === expVehicleId);
             const typeName = id => (state.expenseTypes.find(t => t.id === id) || {}).name || '-';
@@ -2466,7 +2504,11 @@
         async function saveExpense(e) {
             e.preventDefault();
             const form = e.target;
-            const typeId = document.getElementById('expType').value;
+            let typeId = document.getElementById('expType').value;
+            if (typeId === '__new' && document.getElementById('expNewType').value.trim()) {
+                await createExpenseType();
+                typeId = document.getElementById('expType').value;
+            }
             if (!typeId || typeId === '__new') { showToast("Escolha ou crie o tipo de despesa.", "error"); return; }
             const amount = parseMoney(document.getElementById('expAmount').value);
             if (amount == null) { showToast("Valor inválido (ex: 1.250,00).", "error"); return; }
@@ -2479,6 +2521,7 @@
                 const { error } = await sb.from('vehicle_expenses').insert({ vehicle_id: vehicleId, type_id: typeId, amount, expense_date: document.getElementById('expDate').value || todayISO(), description: document.getElementById('expDesc').value.trim() || null, file_path });
                 if (error) throw error;
                 ['expAmount', 'expDesc', 'expFile'].forEach(i => document.getElementById(i).value = '');
+                document.getElementById('expAiStatus').innerText = 'Envie a foto ou o PDF da nota: a IA reconhece o tipo, o valor, a data e a descrição.';
                 await loadAndRender();
                 renderExpenses();
                 showToast("Despesa adicionada!");
@@ -3369,8 +3412,8 @@
             labels.forEach(l => delete TMP[l]);
             if (ps.length) sb.storage.from(BUCKET).remove(ps).catch(() => {});
         }
-        async function aiReadFiles(paths, kind) {
-            const { data, error } = await sb.functions.invoke('motora-sync', { body: { type: 'ai_read_files', kind, paths } });
+        async function aiReadFiles(paths, kind, types) {
+            const { data, error } = await sb.functions.invoke('motora-sync', { body: { type: 'ai_read_files', kind, paths, types } });
             if (error) throw new Error('Leitura automática indisponível agora.');
             if (!data || !data.ok) throw new Error((data && data.error) || 'A IA não conseguiu ler o documento.');
             return data.fields || {};
