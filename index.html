@@ -818,6 +818,7 @@
                 </div>
                 <div id="finAppsBox" class="hidden space-y-4">
                     <div id="appTotals"></div>
+                    <div id="appDayOff"></div>
                     <form onsubmit="saveAppEarning(event)" class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
                         <div class="col-span-2 p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800">
                             <label class="block text-xs font-semibold uppercase text-indigo-700 dark:text-indigo-300 mb-1"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Print dos ganhos (a IA preenche)</label>
@@ -3527,6 +3528,7 @@
 
         // ===== GANHOS APLICATIVO (Uber/99/inDrive) – só o master =====
         async function renderAppEarnings() {
+            renderDayOff();
             const r = finRange(document.getElementById('finPeriod').value);
             const sel = document.getElementById('appVehicle'), keep = sel.value;
             sel.innerHTML = '<option value="">Nenhum</option>' + state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
@@ -3603,6 +3605,27 @@
             } catch (err) { showToast(friendlyError(err), 'error'); }
             finally { setBusy(form, false); }
         }
+        // FOLGA: o lembrete das 20:30–00:00 para quando o dia está marcado como folga
+        function workDayISO() { return new Date(Date.now() - 3600 * 1000).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }); }
+        async function renderDayOff() {
+            const box = document.getElementById('appDayOff');
+            const day = workDayISO();
+            const { data, error } = await sb.from('app_days_off').select('day').eq('day', day).maybeSingle();
+            if (error) { box.innerHTML = ''; return; }
+            box.innerHTML = data
+                ? `<div class="p-3 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 text-sky-900 dark:text-sky-200 flex items-center justify-between gap-2 text-sm">
+                        <span><i class="fa-solid fa-umbrella-beach mr-1"></i> Hoje (${fmtDate(day)}) você está <b>de folga</b>. Sem lembretes.</span>
+                        <button onclick="setDayOff(false)" class="text-xs font-semibold underline whitespace-nowrap">Desfazer</button></div>`
+                : `<button onclick="setDayOff(true)" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-sky-100 hover:bg-sky-200 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200"><i class="fa-solid fa-umbrella-beach mr-1"></i> Hoje estou de folga</button>`;
+        }
+        async function setDayOff(on) {
+            const day = workDayISO();
+            const { error } = on ? await sb.from('app_days_off').insert({ day }) : await sb.from('app_days_off').delete().eq('day', day);
+            if (error && !/duplicate/i.test(error.message || '')) { showToast(friendlyError(error), 'error'); return; }
+            showToast(on ? 'Bom descanso! Os lembretes de hoje foram desligados.' : 'Folga desfeita. Os lembretes de hoje voltam.');
+            renderDayOff();
+        }
+
         // IA: lê o print da tela de ganhos (Uber/99/inDrive) e preenche o lançamento
         let appAiBusy = false;
         async function aiReadEarning() {
