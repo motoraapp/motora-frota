@@ -242,6 +242,14 @@
                     </button>
                 </form>
 
+                <div class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-700 text-center space-y-2">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Quer conhecer o app? Veja uma demonstração com dados fictícios:</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="abrirDemo('master')" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="fa-solid fa-user-tie mr-1"></i> Ver como dono</button>
+                        <button type="button" onclick="abrirDemo('driver')" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="fa-solid fa-car mr-1"></i> Ver como motorista</button>
+                    </div>
+                </div>
+
             </div>
         </section>
 
@@ -1332,14 +1340,15 @@
                 { id: 'demo-v3', model: 'HYUNDAI/HB20 1.0M', plate: 'DMO3C33' },
                 { id: 'demo-v4', model: 'RENAULT/KWID ZEN 1.0', plate: 'DMO4D44' },
             ];
-            V.forEach(v => db.vehicles.push({ ...v, crlv_path: doc(`demo/${v.id}/crlv-e.svg`), created_at: new Date(ago(130)).toISOString() }));
+            const RENT = { 'demo-v1': 650, 'demo-v2': 500, 'demo-v3': 620, 'demo-v4': 550 };
+            V.forEach(v => db.vehicles.push({ ...v, rent_amount: RENT[v.id], crlv_path: doc(`demo/${v.id}/crlv-e.svg`), created_at: new Date(ago(130)).toISOString() }));
 
             const exp = (dd) => demoDay(now + dd * 86400000);
             const D = [
                 { id: 'demo-d1', name: 'Marcos Lima', username: 'motorista@motora.app', vehicle_id: 'demo-v1', rent: 650, weeks: 17, cnh_expiry: exp(900), phone: '(11) 90000-0001', cpf: '000.000.001-01' },
-                { id: 'demo-d2', name: 'Ana Ribeiro', username: 'anaribeiro@motora.app', vehicle_id: 'demo-v2', rent: 600, weeks: 17, cnh_expiry: exp(500), phone: '(11) 90000-0002', cpf: '000.000.002-02', caucao: 10 },
+                { id: 'demo-d2', name: 'Ana Ribeiro', username: 'anaribeiro@motora.app', vehicle_id: 'demo-v2', rent: 500, weeks: 17, cnh_expiry: exp(500), phone: '(11) 90000-0002', cpf: '000.000.002-02', caucao: 10 },
                 { id: 'demo-d3', name: 'Paulo Santos', username: 'paulosantos@motora.app', vehicle_id: 'demo-v3', rent: 620, weeks: 17, cnh_expiry: exp(20), phone: '(11) 90000-0003', cpf: '000.000.003-03' },
-                { id: 'demo-d4', name: 'Juliana Alves', username: 'julianaalves@motora.app', vehicle_id: 'demo-v4', rent: 550, weeks: 9, cnh_expiry: exp(700), phone: '(11) 90000-0004', cpf: '000.000.004-04' },
+                { id: 'demo-d4', name: 'Juliana Alves', username: 'julianaalves@motora.app', vehicle_id: 'demo-v4', rent: 550, weeks: 9, cnh_expiry: exp(700), phone: '(11) 90000-0004', cpf: '000.000.004-04', caucao: 12 },
             ];
             const due0 = new Date(demoNextDue(now)).getTime();
             const brl = v => v.toFixed(2).replace('.', ',');
@@ -1358,13 +1367,13 @@
                     const due = due0 - k * 7 * 86400000;
                     let sent = due - 86400000 - (14 * 3600 + 59 * 60 + 59) * 1000; // domingo 09:00
                     if (sent > now) sent = now - 2 * 3600000;
-                    const itens = [['Aluguel semanal', d.rent]];
+                    const itens = [[`Aluguel ${V.find(v => v.id === d.vehicle_id).model} (${V.find(v => v.id === d.vehicle_id).plate})`, d.rent]];
                     const nCau = d.caucao ? d.weeks - k : 0;
                     if (d.caucao && nCau <= d.caucao) itens.push([`Caução ${nCau}/${d.caucao}`, 100]);
                     if (d.id === 'demo-d1' && k === 6) itens.push(['Multa de trânsito', 130.16]);
                     if (d.id === 'demo-d3' && k === 10) itens.push(['Avaria (retrovisor)', 180]);
                     const amount = Math.round(itens.reduce((a, i) => a + i[1], 0) * 100) / 100;
-                    const description = itens.map(i => `${i[0]} R$ ${brl(i[1])}`).join('\n');
+                    const description = itens.map((i, n) => (n ? '+ ' : '') + `${i[0]}: R$ ${brl(i[1])}`).join('\n') + (itens.length > 1 ? `\nTotal: R$ ${brl(itens.reduce((a, x) => a + x[1], 0))}` : '');
                     const h = { id: demoId(), driver_id: d.id, sent_at: new Date(sent).toISOString(), due_at: new Date(due).toISOString(), amount, description, receipt_id: null, paid_at: null, created_at: new Date(sent).toISOString() };
                     db.pix_history.push(h);
                     // como cada motorista paga
@@ -1393,6 +1402,14 @@
                 Object.assign(prof, { pix_sent_at: cur.sent_at, pix_due_at: cur.due_at, pix_amount: cur.amount, pix_description: cur.description, pix_code: null, pix_qr_path: null, pix_link: 'chave:email|pix.demonstracao@exemplo.com' });
                 const late = db.pix_history.some(h => h.driver_id === d.id && !h.paid_at && new Date(h.due_at).getTime() < now && !db.receipts.some(r => r.driver_id === d.id && !r.rejected_at && !r.confirmed_at && r.created_at >= h.sent_at));
                 prof.payment_status = late ? 'Em atraso' : 'Em dia';
+                // caução, contatos e multas (para mostrar as funções novas)
+                if (d.caucao) prof.pix_extra = { caucao: { forma: 'parcelada', total: 200 + d.caucao * 100, entrada: 200, parcelas: d.caucao, valor_parcela: 100, cobradas: Math.min(d.caucao, d.weeks) } };
+                if (d.id === 'demo-d1') prof.pix_extra = { caucao: { forma: 'paga', total: 1000 }, multas: { ativo: true, itens: [
+                    { id: 'm-demo1', desc: 'Multa de trânsito', valor: 130.16, data: demoDay(ago(50)), cobrada: demoDay(now - 7 * 6 * 86400000 - 86400000), paga: true },
+                    { id: 'm-demo2', desc: 'Multa de estacionamento', valor: 88.38, data: demoDay(ago(3)), cobrada: null, paga: false } ] } };
+                if (d.id === 'demo-d3') prof.pix_extra = { multas: { ativo: true, itens: [{ id: 'm-demo3', desc: 'Franquia do seguro (retrovisor)', valor: 180, data: demoDay(ago(70)), cobrada: null, paga: true }] } };
+                prof.email = d.username.replace('@motora.app', '') + '@exemplo.com';
+                if (di % 2 === 0) prof.phone2 = '(11) 3000-000' + (di + 1);
             });
 
             // despesas dos carros
@@ -1411,6 +1428,17 @@
             vexp('demo-v2', 'Manutenção', 560, 95, 'Pastilhas e discos de freio');
             vexp('demo-v1', 'Licenciamento', 162.83, 110, 'Licenciamento anual');
             vexp('demo-v4', 'Manutenção', 210, 15, 'Alinhamento e balanceamento');
+
+            // Área IA: mensagens prontas e regras do dono
+            db.whatsapp_queue = [
+                { id: demoId(), driver_id: 'demo-d1', title: 'Novo Pix disponível', body: '', status: 'pendente', created_at: new Date(ago(0.1)).toISOString(), sent_at: null,
+                  message: 'Olá, Marcos! Seu Pix desta semana já está no app: R$ 650,00 (aluguel do FIAT/ARGO). Pagamento até segunda, 23:59. Depois de pagar, envie o comprovante pelo app. Obrigado!' },
+                { id: demoId(), driver_id: 'demo-d3', title: 'Problema no seu comprovante', body: '', status: 'pendente', created_at: new Date(ago(0.3)).toISOString(), sent_at: null,
+                  message: 'Oi, Paulo! O comprovante que você mandou ficou ilegível. Pode enviar de novo pelo app, com a foto inteira do comprovante? Valeu!' },
+                { id: demoId(), driver_id: 'demo-d2', title: 'Pagamento confirmado', body: '', status: 'enviada', created_at: new Date(ago(1)).toISOString(), sent_at: new Date(ago(0.9)).toISOString(),
+                  message: 'Ana, seu pagamento foi confirmado. Obrigado e boa semana!' },
+            ];
+            db.app_settings.push({ key: 'ia_whatsapp', value: { ativo: true } }, { key: 'ia_regras', value: { regras: ['Chamar o motorista pelo primeiro nome', 'Mensagens curtas e educadas', 'Não usar mais de um emoji'] } });
 
             // ganhos e despesas do aplicativo (o dono também roda de Uber/99)
             for (let dd = 122; dd >= 1; dd--) {
@@ -1628,15 +1656,29 @@
             try { sessionStorage.removeItem(DEMO_KEY); } catch (e) {}
             demoBanner(false);
         }
+        // abre a demonstração sem precisar digitar usuário e senha (botões do login e link ?demo=)
+        async function abrirDemo(role) {
+            if (DEMO) demoStop();
+            demoStart(role === 'driver' ? 'driver' : 'master');
+            state.user = (await sb.auth.getSession()).data.session.user;
+            try { await loadAndRender(); }
+            catch (e) { console.error(e); showToast('Não foi possível abrir a demonstração.', 'error'); demoStop(); showSection('secLogin'); }
+        }
+        async function trocarDemo() {
+            const role = DEMO && DEMO.role === 'driver' ? 'master' : 'driver';
+            await abrirDemo(role);
+            window.scrollTo(0, 0);
+        }
         function demoBanner(on) {
             let el = document.getElementById('demoBanner');
             if (!el && on) {
                 el = document.createElement('div'); el.id = 'demoBanner';
                 el.style.cssText = 'background:#3f3f46;color:#fafafa;font:600 12px system-ui,sans-serif;text-align:center;padding:calc(6px + env(safe-area-inset-top)) 10px 6px;';
-                el.innerHTML = 'MODO DEMONSTRAÇÃO · dados fictícios · nada é salvo no sistema · <a href="#" onclick="logout();return false" style="color:#fde68a;text-decoration:underline">Sair</a>';
+                el.innerHTML = 'MODO DEMONSTRAÇÃO · dados fictícios · nada é salvo · <a href="#" onclick="trocarDemo();return false" style="color:#a7f3d0;text-decoration:underline" id="demoTrocar">Ver como motorista</a> · <a href="#" onclick="logout();return false" style="color:#fde68a;text-decoration:underline">Sair</a>';
                 document.body.insertBefore(el, document.body.firstChild);
             }
             if (el) el.style.display = on ? '' : 'none';
+            const tr = document.getElementById('demoTrocar'); if (tr && DEMO) tr.textContent = DEMO.role === 'driver' ? 'Ver como dono' : 'Ver como motorista';
         }
 
         // ESTADO EM MEMÓRIA (carregado do Supabase)
@@ -1691,6 +1733,14 @@
             if (savedUser) document.getElementById('loginUser').value = savedUser;
             document.getElementById('chkRememberPass').checked = lsGet('motora_remember') !== '0';
 
+            // link de demonstração: ?demo (ou ?demo=dono) e ?demo=motorista abrem direto, sem login
+            const qp = new URLSearchParams(location.search);
+            if (qp.has('demo')) {
+                const role = /motorista|driver/i.test(qp.get('demo') || '') ? 'driver' : 'master';
+                history.replaceState(null, '', location.pathname);
+                await abrirDemo(role);
+                return;
+            }
             const demoPrev = demoSaved(); // recarregou a página no meio da demonstração
             if (demoPrev && demoPrev.role && demoPrev.userId) demoStart(demoPrev.role, demoPrev);
             const { data } = await sb.auth.getSession();
