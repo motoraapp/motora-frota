@@ -49,6 +49,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Separar "Aluguéis" e "Ganhos aplicativo" (corridas Uber/99/inDrive). Despesas em aba separada.
 - Aba "Aluguéis": Recebido = soma dos pagamentos por Pix no período (valor dos comprovantes aceitos, com a mesma distribuição entre cobranças do recibo); Em aberto = o que falta das cobranças. Período inclui Hoje, Esta semana e "Escolher datas". Área **Filtros**: Aluguéis (motorista, veículo); Ganhos aplicativo (aplicativo, tipo de despesa, veículo).
 - Aba "Ganhos aplicativo": lançar ganho (aplicativo, valor, veículo, data — padrão hoje; sem observação) e **Despesas** (tipo: Gasolina, Alimentação, Manutenção... ou "+ Adicionar outra despesa"; valor; data — padrão hoje), na tabela `app_expenses` (só o master). Mostra Ganhos, Despesas e quanto sobrou.
+- Ganhos aplicativo: o dono pode enviar o print da tela de ganhos (Uber/99/inDrive) e a IA (`ai_read_files` kind `earning`) preenche aplicativo, valor total e data (o dia com ganho, ou o fim do período, nunca depois de hoje); viagens, horas online e período vão na descrição. Avisa se já existir ganho igual.
 - Despesas do veículo: ao escolher a nota/comprovante, a IA (Gemini, `motora-sync` com `ai_read_files` kind `expense`) preenche tipo (usa os tipos existentes ou sugere um novo, criado ao salvar), valor, data e descrição; avisa se a placa da nota for de outro carro.
 - Documentos e planilhas vão para o Google Drive da conta do dono (não da esposa).
 
