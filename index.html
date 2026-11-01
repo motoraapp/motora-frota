@@ -421,7 +421,7 @@
                         <div id="drvReceiptBox" class="p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
                             <div>
                                 <h4 class="font-semibold text-sm mb-2 text-gray-700 dark:text-gray-300">Enviar Comprovante de Pagamento</h4>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Depois de pagar, envie aqui a foto ou PDF do comprovante <b>até segunda-feira às 23:59</b>. Assim seu status continua "Em dia".</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Depois de pagar, envie aqui a foto ou PDF do comprovante <b>até <span id="drvPayDayTxt">segunda-feira</span> às 23:59</b>. Assim seu status continua "Em dia".</p>
                                 
                                 <div class="space-y-3">
                                     <input type="file" id="fileReceipt" accept="image/*,application/pdf" class="block w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-blue-400">
@@ -836,6 +836,19 @@
                     </div>
                 </div>
                 <div id="dfCnhPending"></div>
+                <!-- DIA DO PAGAMENTO e COBRANÇA AUTOMÁTICA (Asaas) — profiles.payment_day_of_week / asaas_auto_charge_enabled -->
+                <div class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 space-y-3">
+                    <h4 class="font-semibold text-sm"><i class="fa-solid fa-calendar-day text-teal-600 mr-1"></i> Pagamento do motorista</h4>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Dia da semana do pagamento</label>
+                        <select id="dfPayDay" onchange="dfCobInfo()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <option value="1">Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option><option value="0">Domingo</option>
+                        </select></div>
+                    <label class="flex items-center justify-between gap-3 cursor-pointer">
+                        <span class="text-sm"><span class="font-semibold"><i class="fa-solid fa-robot text-teal-600 mr-1"></i> Pagamento automático pelo Asaas</span><br><span class="text-xs text-gray-500 dark:text-gray-400">Ligado: o Asaas cria a cobrança e confere o pagamento sozinho.</span></span>
+                        <span class="sw"><input type="checkbox" id="dfAsaasOn" onchange="dfCobInfo()"><span></span></span>
+                    </label>
+                    <p id="dfCobInfo" class="text-xs text-gray-600 dark:text-gray-300"></p>
+                </div>
                 <!-- CAUÇÃO do motorista (guardada em profiles.pix_extra.caucao) -->
                 <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10 p-3 space-y-3">
                     <h4 class="font-semibold text-sm"><i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i> Caução</h4>
@@ -935,6 +948,13 @@
                         <span class="block text-xs text-gray-500 dark:text-gray-400">Todo aviso enviado ao motorista vira uma mensagem de WhatsApp pronta para você enviar.</span>
                     </span>
                     <span class="sw"><input type="checkbox" id="iaSwitch" onchange="toggleIA(this.checked)"><span></span></span>
+                </label>
+                <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-900/10 cursor-pointer">
+                    <span class="min-w-0">
+                        <span id="roboSwitchLabel" class="block text-sm font-bold"><i class="fa-solid fa-robot text-green-600 mr-1"></i> Envio automático desligado</span>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Ligado: o robô do seu computador envia sozinho as mensagens e os recibos no WhatsApp do motorista (só disparo, ele não responde ninguém). <span id="roboStatus"></span></span>
+                    </span>
+                    <span class="sw"><input type="checkbox" id="roboSwitch" onchange="toggleRobo(this.checked)"><span></span></span>
                 </label>
                 <details id="iaRulesBox" class="rounded-xl border border-gray-200 dark:border-gray-700">
                     <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-list-check text-indigo-500 mr-1"></i> Regras da IA <span id="iaRulesCount" class="text-xs font-normal text-gray-500"></span></summary>
@@ -1437,6 +1457,7 @@
                 if (d.id === 'demo-d1') prof.pix_extra = { caucao: { forma: 'paga', total: 1000 }, multas: { ativo: true, itens: [
                     { id: 'm-demo1', desc: 'Multa de trânsito', valor: 130.16, data: demoDay(ago(50)), cobrada: demoDay(now - 7 * 6 * 86400000 - 86400000), paga: true },
                     { id: 'm-demo2', desc: 'Multa de estacionamento', valor: 88.38, data: demoDay(ago(3)), cobrada: null, paga: false } ] } };
+                if (d.id === 'demo-d2') Object.assign(prof, { payment_day_of_week: 1, asaas_auto_charge_enabled: true });
                 if (d.id === 'demo-d3') prof.pix_extra = { multas: { ativo: true, itens: [{ id: 'm-demo3', desc: 'Franquia do seguro (retrovisor)', valor: 180, data: demoDay(ago(70)), cobrada: null, paga: true }] } };
                 prof.email = d.username.replace('@motora.app', '') + '@exemplo.com';
                 if (di % 2 === 0) prof.phone2 = '(11) 3000-000' + (di + 1);
@@ -1468,7 +1489,7 @@
                 { id: demoId(), driver_id: 'demo-d2', title: 'Pagamento confirmado', body: '', status: 'enviada', created_at: new Date(ago(1)).toISOString(), sent_at: new Date(ago(0.9)).toISOString(),
                   message: 'Ana, seu pagamento foi confirmado. Obrigado e boa semana!' },
             ];
-            db.app_settings.push({ key: 'ia_whatsapp', value: { ativo: true } }, { key: 'ia_regras', value: { regras: ['Chamar o motorista pelo primeiro nome', 'Mensagens curtas e educadas', 'Não usar mais de um emoji'] } });
+            db.app_settings.push({ key: 'ia_whatsapp', value: { ativo: true } }, { key: 'whatsapp_robo', value: { ativo: true, visto_em: new Date().toISOString() } }, { key: 'ia_regras', value: { regras: ['Chamar o motorista pelo primeiro nome', 'Mensagens curtas e educadas', 'Não usar mais de um emoji'] } });
 
             // ganhos e despesas do aplicativo (o dono também roda de Uber/99)
             for (let dd = 122; dd >= 1; dd--) {
@@ -2432,7 +2453,7 @@
             const paidEarlier = !lastWeekRec && !!curCharge && curCharge.remaining <= 0.005 && curCharge.paidBy.length > 0;
             const paidThisPix = paidEarlier || (!!lastWeekRec && !lastWeekRec.rejected_at);
             if (driver.pix_due_at) {
-                dueEl.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Data de pagamento: ${fmtDue(driver.pix_due_at)} até 23:59`;
+                dueEl.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Data de pagamento: ${fmtDue(driver.pix_due_at)} até 23:59${driver.asaas_auto_charge_enabled ? '<br><i class="fa-solid fa-robot mr-1"></i> Pagamento conferido sozinho: depois de pagar não precisa enviar comprovante.' : ''}`;
             } else {
                 dueEl.innerHTML = '';
             }
@@ -2790,7 +2811,7 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td class="p-3 font-semibold">
                                 <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
-                                ${cauResumoHtml(d)}${multasResumoHtml(d)}
+                                ${cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
                                 <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
                                 <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
                                 ${waLink(d.phone || d.phone2) ? `<a href="${waLink(d.phone || d.phone2)}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> Adicionar WhatsApp</button>`}
@@ -3177,7 +3198,7 @@
             if (!d) return;
             fileDriverId = id;
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
-            dfCauFill(d); dfMultFill(d);
+            dfCauFill(d); dfMultFill(d); dfCobFill(d);
             document.getElementById('dfTitleName').innerText = d.name || '';
             fillAvatar(document.getElementById('dfPhoto'), id, d.name);
             const sel = document.getElementById('dfVehicle');
@@ -3208,6 +3229,7 @@
             for (const [col, el] of Object.entries(DF)) { const v = document.getElementById(el).value.trim(); updates[col] = v || null; }
             if (!updates.name) { showToast("Informe o nome.", "error"); return; }
             updates.vehicle_id = document.getElementById('dfVehicle').value || null;
+            { const c = dfCobRead(); updates.payment_day_of_week = c.dia; updates.asaas_auto_charge_enabled = c.asaas; }
             {   // caução: guardada junto com o acréscimo repetido, sem apagar o resto
                 const cur = (state.drivers.find(x => x.id === id) || {}).pix_extra || {};
                 const cau = dfCauRead();
@@ -3674,8 +3696,12 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             let actions = '';
             if (editable && slotKey) {
                 actions = `<div class="flex gap-1 mt-2">
-                    <label class="flex-1 text-center cursor-pointer text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded-lg">
-                        <i class="fa-solid fa-upload mr-1"></i>${p ? 'Trocar' : 'Enviar foto'}
+                    <label class="flex-1 text-center cursor-pointer text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1.5 rounded-lg" title="Abrir a câmera e tirar a foto agora">
+                        <i class="fa-solid fa-camera mr-1"></i>Câmera
+                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="uploadInspection('${slotKey}', this)">
+                    </label>
+                    <label class="flex-1 text-center cursor-pointer text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded-lg" title="Escolher uma foto da galeria">
+                        <i class="fa-solid fa-image mr-1"></i>${p ? 'Trocar' : 'Galeria'}
                         <input type="file" accept="image/*" class="hidden" onchange="uploadInspection('${slotKey}', this)">
                     </label>
                     ${p ? `<button type="button" onclick="deleteInspectionPhoto('${p.id}')" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg" title="Excluir foto"><i class="fa-solid fa-trash"></i></button>` : ''}
@@ -3698,7 +3724,10 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             }).join('');
             const extras = photos.filter(x => x.slot === 'adicional');
             const extraCards = extras.map((p, i) => photoCard(p, p.label || `Foto adicional ${i + 1}`, editable, null)).join('');
-            const plus = editable ? `<label class="cursor-pointer p-2 rounded-xl border-2 border-dashed border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-700/50 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 min-h-[150px]">
+            const plus = editable ? `<label class="cursor-pointer p-2 rounded-xl border-2 border-dashed border-emerald-400 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-gray-700/50 flex flex-col items-center justify-center text-emerald-600 dark:text-emerald-400 min-h-[150px]">
+                    <i class="fa-solid fa-camera text-3xl mb-1"></i><span class="text-xs font-semibold text-center">Tirar foto<br>com a câmera</span>
+                    <input type="file" accept="image/*" capture="environment" class="hidden" onchange="uploadInspection('adicional', this)">
+                </label><label class="cursor-pointer p-2 rounded-xl border-2 border-dashed border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-700/50 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 min-h-[150px]">
                     <i class="fa-solid fa-plus text-3xl mb-1"></i><span class="text-xs font-semibold text-center">Adicionar fotos<br>detalhadas</span>
                     <input type="file" accept="image/*" multiple class="hidden" onchange="uploadInspection('adicional', this)">
                 </label>` : '';
@@ -3790,11 +3819,12 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                                : { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit' };
             return new Date(iso).toLocaleDateString('pt-BR', opts);
         }
-        function nextDueLocal() {
-            // próxima segunda-feira (ou hoje, se for segunda) às 23:59, horário de Brasília
+        function nextDueLocal(dia) {
+            // próximo dia de pagamento do motorista (padrão segunda; ou hoje, se for o dia) às 23:59, horário de Brasília
+            if (!Number.isInteger(dia)) dia = 1;
             const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
             const dow = now.getDay(); // 0 domingo ... 1 segunda
-            const add = (8 - (dow === 0 ? 7 : dow)) % 7;
+            const add = (dia - dow + 7) % 7;
             const d = new Date(now); d.setDate(now.getDate() + add);
             return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
         }
@@ -3820,7 +3850,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             togglePixKeyFields();
             previewNewPixQr();
             fillNewPixValues(d);
-            document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Nova data de pagamento: <b>${nextDueLocal()} até 23:59</b>. O motorista recebe uma notificação no celular.`;
+            document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Nova data de pagamento: <b>${nextDueLocal(cobOf(d).dia)} até 23:59</b>. O motorista recebe uma notificação no celular.${cobOf(d).asaas ? ' <b>Atenção:</b> este motorista está no pagamento automático pelo Asaas — o Asaas já envia a cobrança sozinho.' : ''}`;
             document.getElementById('modalNewPix').classList.remove('hidden');
         }
         // ===== CAUÇÃO DO MOTORISTA =====
@@ -3902,6 +3932,29 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const pend = (m.itens || []).filter(i => !multaPagaAuto(d, i)), tot = pend.reduce((a, i) => a + Number(i.valor || 0), 0);
             return pend.length ? `<div class="text-xs font-normal text-red-600 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i>Multas/despesas em aberto: ${fmtMoney(tot)}</div>` : '';
         }
+        // DIA DO PAGAMENTO e PAGAMENTO AUTOMÁTICO (Asaas)
+        const DIAS_SEMANA = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+        // guardado nas colunas profiles.payment_day_of_week (0=domingo ... 6=sábado; vazio = segunda) e profiles.asaas_auto_charge_enabled
+        function cobOf(d) { const n = d && d.payment_day_of_week != null ? Number(d.payment_day_of_week) : 1; return { dia: n >= 0 && n <= 6 ? n : 1, asaas: !!(d && d.asaas_auto_charge_enabled) }; }
+        function dfCobFill(d) {
+            const c = cobOf(d);
+            document.getElementById('dfPayDay').value = String(c.dia);
+            document.getElementById('dfAsaasOn').checked = c.asaas;
+            dfCobInfo();
+        }
+        function dfCobRead() {
+            return { dia: Number(document.getElementById('dfPayDay').value), asaas: document.getElementById('dfAsaasOn').checked };
+        }
+        function dfCobInfo() {
+            const c = dfCobRead(), dia = DIAS_SEMANA[c.dia];
+            document.getElementById('dfCobInfo').innerHTML = c.asaas
+                ? `Toda <b>${dia}</b> (até 23:59) vence a cobrança. 3 dias antes o Asaas cria o Pix (QR code e copia e cola) com o valor da semana, o pagamento é conferido sozinho e o motorista recebe o recibo no WhatsApp. Você não precisa enviar Pix nem conferir comprovante. Sem taxa até 100 Pix por mês.`
+                : `Toda <b>${dia}</b> (até 23:59) vence a cobrança. Pagamento manual: você envia o Pix e confere o comprovante, como hoje.`;
+        }
+        function cobResumoHtml(d) {
+            const c = cobOf(d);
+            return `<div class="text-xs font-normal text-teal-700 dark:text-teal-300"><i class="fa-solid fa-calendar-day mr-1"></i>Paga toda ${DIAS_SEMANA[c.dia]}${c.asaas ? ' · <i class="fa-solid fa-robot"></i> Asaas automático' : ''}</div>`;
+        }
         let fileMultas = null; // cópia da lista da ficha aberta
         async function savePixExtra(id, mut) {
             const d = state.drivers.find(x => x.id === id); if (!d) return false;
@@ -3981,17 +4034,19 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 </div>`;
             }
         }
-        // próxima segunda 23:59 (Brasília) depois de uma data
-        function mondayAfter(ms) {
+        // próximo dia de pagamento do motorista (padrão segunda) 23:59 (Brasília) depois de uma data
+        function mondayAfter(ms, dia) {
+            if (!Number.isInteger(dia)) dia = 1;
             const sp = d => new Date(new Date(d).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
             const base = sp(ms); const dow = base.getDay();
-            let add = (8 - (dow === 0 ? 7 : dow)) % 7; if (add === 0) add = 7;
+            let add = (dia - dow + 7) % 7; if (add === 0) add = 7;
             const r = new Date(base); r.setDate(base.getDate() + add);
             return r;
         }
         function renderDriverProfileExtras() {
             const d = state.profile, box = document.getElementById('drvProfileExtras');
             if (!box || !d || d.role !== 'driver') return;
+            { const t = document.getElementById('drvPayDayTxt'); if (t) t.textContent = DIAS_SEMANA[cobOf(d).dia]; }
             const cards = [];
             // CAUÇÃO: total, pago e quanto falta
             const st = cauStatus(d, state.pixHistory);
@@ -4010,7 +4065,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             }
             // PRÓXIMA SEMANA: só quando está em dia
             if (d.payment_status !== 'Em atraso') {
-                const venc = mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0));
+                const venc = mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia);
                 const v = allVeh().find(x => x.id === d.vehicle_id);
                 const linhas = [];
                 if (v && v.rent_amount != null) linhas.push([`Aluguel ${v.model}`, Number(v.rent_amount)]);
@@ -4023,7 +4078,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 cards.push(`<div class="p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 space-y-2">
                     <p class="text-xs font-semibold uppercase text-blue-700 dark:text-blue-300"><i class="fa-regular fa-calendar mr-1"></i> Próxima semana</p>
                     <p class="text-sm">Pagamento até <b>${venc.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}, 23:59</b></p>
-                    <p class="text-xs text-gray-600 dark:text-gray-300">Vale de ${(() => { const dom = new Date(venc); dom.setDate(venc.getDate() + 6); return venc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (segunda) a ' + dom.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (domingo)'; })()}</p>
+                    <p class="text-xs text-gray-600 dark:text-gray-300">Vale de ${(() => { const dom = new Date(venc); dom.setDate(venc.getDate() + 6); return venc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (' + DIAS_SEMANA[venc.getDay()].replace('-feira', '') + ') a ' + dom.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (' + DIAS_SEMANA[dom.getDay()].replace('-feira', '') + ')'; })()}</p>
                     ${linhas.length ? linhas.map(([k, x]) => `<div class="flex justify-between gap-3 text-sm"><span class="min-w-0 break-words">${esc(k)}</span><b class="whitespace-nowrap">${fmtMoney(x)}</b></div>`).join('')
                         + `<div class="flex justify-between gap-3 text-sm font-bold border-t border-blue-200 dark:border-blue-800 pt-1.5"><span>Total previsto</span><span>${fmtMoney(total)}</span></div>`
                         : '<p class="text-xs text-gray-500">O valor aparece quando o dono enviar o Pix.</p>'}
@@ -4039,7 +4094,8 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const seg = new Date(new Date(h.due_at).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
             const dom = new Date(seg); dom.setDate(seg.getDate() + 6);
             const f = x => x.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            return `segunda ${f(seg)} a domingo ${f(dom)}`;
+            const nome = x => DIAS_SEMANA[x.getDay()].replace('-feira', '');
+            return `${nome(seg)} ${f(seg)} a ${nome(dom)} ${f(dom)}`;
         }
         // ===== MEUS RECIBOS (área do motorista) =====
         let meuReciboAtual = null;
@@ -4437,6 +4493,31 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             if (error) { paintIASwitch(!on); showToast('Não foi possível mudar a IA. Tente de novo.', 'error'); return; }
             showToast(on ? 'IA ligada: as próximas mensagens vão aparecer aqui.' : 'IA desligada: nenhuma mensagem nova será preparada.');
         }
+        // ROBÔ DO WHATSAPP (app_settings chave whatsapp_robo = { ativo, visto_em }) — o robô no PC envia as mensagens pendentes sozinho
+        async function loadRobo() {
+            try {
+                const { data } = await sb.from('app_settings').select('value').eq('key', 'whatsapp_robo').maybeSingle();
+                return (data && data.value) || {};
+            } catch (e) { return {}; }
+        }
+        function paintRobo(cfg) {
+            const on = !!cfg.ativo;
+            document.getElementById('roboSwitch').checked = on;
+            document.getElementById('roboSwitchLabel').innerHTML = `<i class="fa-solid fa-robot text-green-600 mr-1"></i> Envio automático ${on ? 'ligado' : 'desligado'}`;
+            const st = document.getElementById('roboStatus');
+            if (!cfg.visto_em) { st.innerHTML = '<br><b>Robô ainda não conectado no computador.</b>'; return; }
+            const min = Math.round((Date.now() - new Date(cfg.visto_em).getTime()) / 60000);
+            st.innerHTML = min <= 3 ? '<br><b class="text-green-700 dark:text-green-300">Robô funcionando agora.</b>' : `<br><b class="text-red-600">Robô parado há ${min < 120 ? min + ' min' : Math.round(min / 60) + ' h'} — confira se o computador está ligado.</b>`;
+        }
+        async function toggleRobo(on) {
+            const cur = await loadRobo();
+            // ao ligar, o robô só envia mensagens criadas daqui para frente (as antigas continuam no botão Enviar)
+            const value = { ...cur, ativo: on, ...(on ? { ativado_em: new Date().toISOString() } : {}) };
+            paintRobo(value);
+            const { error } = await sb.from('app_settings').upsert({ key: 'whatsapp_robo', value, updated_at: new Date().toISOString() });
+            if (error) { paintRobo(cur); showToast('Não foi possível mudar o envio automático. Tente de novo.', 'error'); return; }
+            showToast(on ? 'Envio automático ligado: o robô envia as mensagens sozinho.' : 'Envio automático desligado: você envia pelo botão Enviar, como antes.');
+        }
         // REGRAS DA IA (app_settings chave ia_regras = { regras: [texto, ...] })
         let iaRegras = [];
         async function loadIARules() {
@@ -4468,6 +4549,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('modalIA').classList.remove('hidden');
             document.getElementById('iaList').innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
             paintIASwitch(await loadIASetting());
+            loadRobo().then(paintRobo).catch(() => {});
             loadIARules();
             await loadIA().catch(() => {});
             renderIA();

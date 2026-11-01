@@ -1,0 +1,12 @@
+{
+  "name": "motora-robo-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Robô do MOTORA: envia sozinho as mensagens e recibos no WhatsApp dos motoristas",
+  "main": "robo.js",
+  "scripts": { "start": "node robo.js" },
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

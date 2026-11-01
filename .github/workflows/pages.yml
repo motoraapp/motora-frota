@@ -26,7 +26,7 @@ jobs:
         run: |
           mkdir -p _site
           # copia tudo do repositório, menos o que não faz parte do app
-          git ls-files | grep -vE '^(\.github/|android/|CLAUDE\.md$|\.gitignore$)' \
+          git ls-files | grep -vE '^(\.github/|android/|supabase/|robo-whatsapp/|CLAUDE\.md$|\.gitignore$)' \
             | xargs -d '\n' cp --parents -t _site/
           touch _site/.nojekyll
           ls -la _site
