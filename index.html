@@ -4083,21 +4083,21 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 const c = st.c, ok = st.falta <= 0.005;
                 const pct = st.total ? Math.min(100, Math.round(st.pago / st.total * 100)) : 100;
                 cb.innerHTML = `<div class="p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 space-y-2">
-                    <p class="text-xs font-semibold uppercase text-amber-700 dark:text-amber-300"><i class="fa-solid fa-shield-halved mr-1"></i> Sua caução</p>
+                    ${dobraTopo('drvDobraPagCaucao', 'text-amber-700 dark:text-amber-300', 'fa-solid fa-shield-halved', 'Sua caução')}
                     <p class="text-sm"><b>${fmtMoney(st.pago)}</b> pagos de <b>${fmtMoney(st.total)}</b>${ok ? ' · <span class="text-emerald-600 font-semibold">Quitada</span>' : ''}</p>
                     <div class="h-2 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden"><div class="h-full bg-amber-500" style="width:${pct}%"></div></div>
                     ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${c.parcelas}x de ${fmtMoney(c.valor_parcela)}${ok ? '' : ` · falta ${fmtMoney(st.falta)}`}</p>` : ''}
-                </div>`;
+                </div></div>`;
             }
             const m = multasOf(d), itens = m ? (m.itens || []) : [];
             mb.classList.toggle('hidden', !m);
             if (m) {
                 const abertos = itens.filter(i => !multaPagaAuto(d, i, state.pixHistory)), tot = abertos.reduce((a, i) => a + Number(i.valor || 0), 0);
                 mb.innerHTML = `<div class="p-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 space-y-2">
-                    <p class="text-xs font-semibold uppercase text-red-700 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Multas e outras despesas</p>
+                    ${dobraTopo('drvDobraMultas', 'text-red-700 dark:text-red-300', 'fa-solid fa-file-invoice-dollar', 'Multas e outras despesas')}
                     ${itens.length ? itens.map(i => `<div class="flex justify-between gap-3 text-sm border-t border-red-100 dark:border-red-900/40 pt-1.5"><span class="min-w-0 break-words">${esc(i.desc)}<br><span class="text-xs text-gray-500">${fmtDate(i.data)} · ${multaPagaAuto(d, i, state.pixHistory) ? 'Paga' : (i.cobrada ? 'No Pix de ' + fmtDate(i.cobrada) : 'Vai no próximo Pix')}</span></span><b class="whitespace-nowrap ${multaPagaAuto(d, i, state.pixHistory) ? 'text-emerald-600' : ''}">${fmtMoney(i.valor)}</b></div>`).join('') : '<p class="text-xs italic text-gray-500">Nada a pagar.</p>'}
                     ${abertos.length ? `<p class="text-sm font-bold text-right">Em aberto: ${fmtMoney(tot)}</p>` : ''}
-                </div>`;
+                </div></div>`;
             }
         }
         // próximo dia de pagamento do motorista (padrão segunda) 23:59 (Brasília) depois de uma data
@@ -4119,7 +4119,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             if (st) {
                 const ok = st.falta <= 0.005, pct = st.total ? Math.min(100, Math.round(st.pago / st.total * 100)) : 100, c = st.c;
                 cards.push(`<div class="p-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 space-y-2">
-                    <p class="text-xs font-semibold uppercase text-amber-700 dark:text-amber-300"><i class="fa-solid fa-shield-halved mr-1"></i> Sua caução</p>
+                    ${dobraTopo('drvDobraCaucao', 'text-amber-700 dark:text-amber-300', 'fa-solid fa-shield-halved', 'Sua caução')}
                     <div class="grid grid-cols-3 gap-2 text-center">
                         <div><p class="text-[10px] uppercase text-gray-500">Total</p><p class="font-bold">${fmtMoney(st.total)}</p></div>
                         <div><p class="text-[10px] uppercase text-gray-500">Já pago</p><p class="font-bold text-emerald-700 dark:text-emerald-300">${fmtMoney(st.pago)}</p></div>
@@ -4127,7 +4127,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     </div>
                     <div class="h-2 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden"><div class="h-full bg-amber-500" style="width:${pct}%"></div></div>
                     ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${c.parcelas}x de ${fmtMoney(c.valor_parcela)} · ${st.pagas || 0} parcela(s) paga(s)</p>` : ''}
-                </div>`);
+                </div></div>`);
             }
             // PRÓXIMA SEMANA: só quando está em dia
             if (d.payment_status !== 'Em atraso') {
@@ -4142,14 +4142,14 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 }
                 const total = linhas.reduce((a, [, x]) => a + x, 0);
                 cards.push(`<div class="p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 space-y-2">
-                    <p class="text-xs font-semibold uppercase text-blue-700 dark:text-blue-300"><i class="fa-regular fa-calendar mr-1"></i> Próxima semana</p>
+                    ${dobraTopo('drvDobraProxima', 'text-blue-700 dark:text-blue-300', 'fa-regular fa-calendar', 'Próxima semana')}
                     <p class="text-sm">Pagamento até <b>${venc.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}, 23:59</b></p>
                     <p class="text-xs text-gray-600 dark:text-gray-300">Vale de ${(() => { const dom = new Date(venc); dom.setDate(venc.getDate() + 6); return venc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (' + DIAS_SEMANA[venc.getDay()].replace('-feira', '') + ') a ' + dom.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' (' + DIAS_SEMANA[dom.getDay()].replace('-feira', '') + ')'; })()}</p>
                     ${linhas.length ? linhas.map(([k, x]) => `<div class="flex justify-between gap-3 text-sm"><span class="min-w-0 break-words">${esc(k)}</span><b class="whitespace-nowrap">${fmtMoney(x)}</b></div>`).join('')
                         + `<div class="flex justify-between gap-3 text-sm font-bold border-t border-blue-200 dark:border-blue-800 pt-1.5"><span>Total previsto</span><span>${fmtMoney(total)}</span></div>`
                         : '<p class="text-xs text-gray-500">O valor aparece quando o dono enviar o Pix.</p>'}
                     <p class="text-[11px] text-gray-500 dark:text-gray-400">Previsão. O valor final vem no Pix da semana.</p>
-                </div>`);
+                </div></div>`);
             }
             box.innerHTML = cards.join('');
             box.classList.toggle('hidden', !cards.length);
@@ -4513,6 +4513,11 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             setDobra(id, aberto);
             const st = dobraSalva(); st[id] = aberto;
             try { localStorage.setItem('motora_dobras', JSON.stringify(st)); } catch (e) {}
+        }
+        // cartão do motorista que minimiza: toque no título; começa aberto e o aparelho lembra a escolha
+        function dobraTopo(id, cor, icone, titulo) {
+            const aberto = dobraSalva()[id] !== false;
+            return `<button type="button" onclick="toggleDobra('${id}')" class="w-full flex items-center justify-between gap-2 text-xs font-semibold uppercase text-left ${cor}"><span><i class="${icone} mr-1"></i> ${titulo}</span><i id="${id}Seta" class="fa-solid fa-chevron-down transition-transform ${aberto ? 'rotate-180' : ''}"></i></button><div id="${id}" class="space-y-2 ${aberto ? '' : 'hidden'}">`;
         }
         (function () { const st = dobraSalva(); Object.keys(st).forEach(id => setDobra(id, st[id])); })();
 
