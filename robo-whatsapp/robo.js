@@ -63,8 +63,11 @@ function numeroBR(tel) {
   return n.length >= 12 ? n : null;
 }
 
-const PASTA = path.join(__dirname, 'sessao');
-fs.mkdirSync(path.join(PASTA, 'RemoteAuth-motora'), { recursive: true }); // pasta da conexão
+// no Hostless só a pasta temporária aceita gravar arquivos
+const BASE = path.join(require('os').tmpdir(), 'motora-robo');
+const PASTA = path.join(BASE, 'sessao');
+fs.mkdirSync(path.join(PASTA, 'RemoteAuth-motora'), { recursive: true });
+process.chdir(BASE); // o arquivo .zip da conexão é criado aqui
 
 const client = new Client({
   authStrategy: new RemoteAuth({ clientId: 'motora', store: loja, backupSyncIntervalMs: 5 * 60000, dataPath: PASTA }),
