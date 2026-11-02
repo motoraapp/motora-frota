@@ -1,4 +1,4 @@
--- MOTORA — novidades de 01/11/2026 (AINDA NÃO APLICADO; só aplicar quando o dono pedir a publicação)
+-- MOTORA — novidades de 01/11/2026 (APLICADO em 02/11/2026)
 -- 1) Backup diário às 00:00 (Brasília)
 -- 2) Dia da semana do pagamento por motorista (profiles.payment_day_of_week: 0=domingo ... 6=sábado; vazio = segunda)
 -- 3/4) Cobrança automática pelo Asaas (profiles.asaas_auto_charge_enabled)
