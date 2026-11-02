@@ -39,12 +39,18 @@ export function empacotar(pasta) {
   return zlib.gzipSync(JSON.stringify({ formato: FORMATO, arquivos }));
 }
 
+// a cópia só vale se creds.json estiver inteiro e já pareado
+export function credsValido(texto) {
+  try { const c = JSON.parse(texto); return !!(c && c.account && c.me && c.me.id); } catch { return false; }
+}
+
 // devolve os arquivos, ou null se o pacote não for uma conexão válida (ex.: zip antigo do robô com navegador)
 export function abrirPacote(buf) {
   try {
     const o = JSON.parse(zlib.gunzipSync(buf).toString('utf8'));
     if (o.formato !== FORMATO || !o.arquivos || !o.arquivos['creds.json']) return null;
     if (Object.keys(o.arquivos).some((n) => n.includes('/') || n.includes('\\') || n.includes('..'))) return null;
+    if (!credsValido(Buffer.from(o.arquivos['creds.json'], 'base64').toString('utf8'))) return null;
     return o.arquivos;
   } catch { return null; }
 }
@@ -58,8 +64,10 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
 
   let situacao = 'iniciando', qrAtual = null, sock = null, creds = null, conectado = false, encerrado = false;
   let pareando = false, pedidoAtendido = null, verificando = false, viuQr = false;
-  let tentativas = 0, sessaoRuim = 0, timerAbrir = null, timerBackup = null, ultimoBackup = 0, servidor = null;
-  const enviadasNaHora = [], falhas = {};
+  let tentativas = 0, timerAbrir = null, timerBackup = null, timerEstavel = null, ultimoBackup = 0, servidor = null;
+  let usou515 = false, primeiroQrEm = 0, reabertoPara = null, erroPareamento = null, versao = null;
+  let desconectadoDesde = relogio.agora();
+  const enviadasNaHora = [], falhas = {}, jaEnviadas = new Set(), avisadas = new Set();
 
   const pareado = () => !!(creds && creds.account && creds.me && creds.me.id);
   const limparLocal = () => { fs.rmSync(PASTA, { recursive: true, force: true }); fs.mkdirSync(PASTA, { recursive: true }); };
@@ -75,18 +83,31 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     try { corpo = await r.json(); } catch { /* resposta sem conteúdo */ }
     return { status: r.status, corpo };
   }
-  const motora = async (acao, extra) => (await motoraBruto(acao, extra)).corpo;
+  const motora = async (acao, extra) => {
+    const { status, corpo } = await motoraBruto(acao, extra);
+    if (status >= 400) throw new Error('MOTORA respondeu ' + status);
+    return corpo;
+  };
+  // erro do "conectar pelo número": a ação "qr" apaga o erro da tela, então ele é reenviado depois de cada QR
+  function avisarErroPareamento(erro) { erroPareamento = erro; return motora('parear_codigo', { erro }); }
 
   // ---------- conexão guardada no Supabase ----------
+  const existeGuardada = async () => !!(await motora('sessao_existe')).existe;
   async function restaurar() {
     limparLocal();
     for (let i = 0; !encerrado; i++) {
       try {
         const { status, corpo } = await motoraBruto('sessao_baixar');
         if (status >= 500) throw new Error('MOTORA respondeu ' + status);
-        if (!corpo.url) return false;
+        if (!corpo.url) {
+          if (await existeGuardada()) throw new Error('conexão guardada existe, mas não veio o endereço');
+          return false;
+        }
         const r = await fetchFn(corpo.url);
-        if (r.status === 404 || r.status === 400) return false;
+        if (r.status === 404 || r.status === 400) {
+          if (await existeGuardada()) throw new Error('conexão guardada existe, mas o download falhou');
+          return false;
+        }
         if (!r.ok) throw new Error('download respondeu ' + r.status);
         const arquivos = abrirPacote(Buffer.from(await r.arrayBuffer()));
         if (!arquivos) {
@@ -108,11 +129,20 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
 
   async function guardar() {
     if (!pareado()) return false;
+    let lido = null;
+    try { lido = fs.readFileSync(path.join(PASTA, 'creds.json'), 'utf8'); } catch { /* validado abaixo */ }
+    if (!credsValido(lido)) { // nunca trocar a cópia boa por um arquivo pela metade
+      log('Conexão local incompleta agora; a cópia guardada foi mantida.');
+      agendarBackup();
+      return false;
+    }
     for (let i = 0; i < 3; i++) {
       try {
         const { corpo } = await motoraBruto('sessao_enviar');
         if (!corpo.url) throw new Error('sem endereço para guardar');
-        const r = await fetchFn(corpo.url, { method: 'PUT', headers: { 'Content-Type': 'application/zip' }, body: empacotar(PASTA) });
+        const pacote = empacotar(PASTA);
+        if (!abrirPacote(pacote)) throw new Error('pacote incompleto');
+        const r = await fetchFn(corpo.url, { method: 'PUT', headers: { 'Content-Type': 'application/zip' }, body: pacote });
         if (!r.ok) throw new Error('respondeu ' + r.status);
         ultimoBackup = relogio.agora();
         log('Conexão do WhatsApp guardada.');
@@ -157,11 +187,11 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     viuQr = false;
     const { state, saveCreds } = await baileys.useMultiFileAuthState(PASTA);
     creds = state.creds;
-    const v = await Promise.race([
+    const v = versao || await Promise.race([
       Promise.resolve(baileys.fetchLatestBaileysVersion()).catch(() => null),
       relogio.dormir(10000).then(() => null),
     ]);
-    if (v) log('Versão do WhatsApp:', (v.version || []).join('.'), v.isLatest ? '(última)' : '(embutida)');
+    if (v && !versao) { versao = v; log('Versão do WhatsApp:', (v.version || []).join('.'), v.isLatest ? '(última)' : '(embutida)'); }
     if (encerrado) return;
     const s = baileys.makeWASocket({
       ...(v && v.version ? { version: v.version } : {}),
@@ -181,19 +211,25 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
 
   function aoMudar(u) {
     if (u.qr) {
+      if (!viuQr) primeiroQrEm = relogio.agora();
       viuQr = true;
       // durante o pareamento o QR fica calado: a ação "qr" apagaria o código da tela do dono
       if (pareando) return;
       qrAtual = u.qr; situacao = 'esperando ler o QR code';
       log('QR code novo: abra a Área IA do MOTORA e leia com o WhatsApp.');
-      motora('qr', { qr: u.qr, pagina: SENHA_PAGINA }).catch(() => {});
+      motora('qr', { qr: u.qr, pagina: SENHA_PAGINA })
+        .then(() => (erroPareamento ? motora('parear_codigo', { erro: erroPareamento }) : null))
+        .catch(() => {});
     }
     if (u.connection === 'open') {
-      conectado = true; pareando = false; qrAtual = null; tentativas = 0; sessaoRuim = 0;
+      conectado = true; pareando = false; qrAtual = null; erroPareamento = null; desconectadoDesde = null; avisadas.clear();
+      // só zera as tentativas depois de 5 min estável: conexão que abre e cai logo não pode virar laço rápido
+      if (timerEstavel !== null) relogio.clearTimeout(timerEstavel);
+      timerEstavel = relogio.setTimeout(() => { timerEstavel = null; tentativas = 0; usou515 = false; }, 5 * MIN);
       situacao = 'funcionando';
       log('WhatsApp conectado. Verificando mensagens a cada 30 segundos.');
       motora('qr', { qr: null }).catch(() => {});
-      if (relogio.agora() - ultimoBackup >= 5 * MIN) guardar(); else agendarBackup();
+      agendarBackup(); // espera 1 min: logo ao conectar o WhatsApp ainda está gravando muita coisa
     }
     if (u.connection === 'close') {
       const erro = u.lastDisconnect && u.lastDisconnect.error;
@@ -213,25 +249,34 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     if (situacao === 'funcionando') situacao = 'reconectando';
     log(`WhatsApp desconectou: código ${codigo === undefined ? 'nenhum' : codigo} (${motivo || 'sem motivo'}), tentativa ${tentativas + 1}.`);
     const estavaPareado = pareado();
-    if (codigo === 515) { pareando = false; soltarSocket(); agendarAbrir(1000); return; } // normal logo depois de parear
-    if (codigo !== 500 && codigo !== 411) sessaoRuim = 0;
+    const qrAcabou = codigo === 408 && viuQr && !estavaPareado; // ninguém leu a tempo: é normal, não é falha
+    if (timerEstavel !== null) { relogio.clearTimeout(timerEstavel); timerEstavel = null; }
+    if (desconectadoDesde === null) desconectadoDesde = relogio.agora();
+    if (codigo === 515) { // normal logo depois de parear: reabre rápido só uma vez, para não virar laço
+      pareando = false; soltarSocket();
+      agendarAbrir(usou515 ? backoff() : 1000);
+      usou515 = true;
+      return;
+    }
+    if (codigo === 405) versao = null; // versão recusada: buscar de novo
     soltarSocket();
+    const reabrirQr = () => 5000 + Math.floor(aleatorio() * 5000);
     if (pareando && !estavaPareado) { // o pedido de código deixa dados incompletos: recomeça limpo
       pareando = false;
       esquecerConexao(false);
-      motora('parear_codigo', { erro: 'Código expirou, peça de novo.' }).catch(() => {});
-      agendarAbrir(backoff());
+      avisarErroPareamento('Código expirou, peça de novo.').catch(() => {});
+      agendarAbrir(qrAcabou ? reabrirQr() : backoff());
       return;
     }
-    if (codigo === 401 || ((codigo === 500 || codigo === 411) && ++sessaoRuim >= 3)) {
-      sessaoRuim = 0;
+    if (qrAcabou) { agendarAbrir(reabrirQr()); return; }
+    if (codigo === 401) { // só o 401 significa conexão encerrada: 500 e 411 também aparecem em instabilidade passageira
       esquecerConexao(estavaPareado).finally(() => agendarAbrir(30000));
       return;
     }
     if (codigo === 440) { agendarAbrir(5 * MIN); return; } // outra cópia do robô ligada (ex.: durante uma publicação)
     if (codigo === 403) {
       log('ATENÇÃO: o WhatsApp recusou esta conta (código 403). Nova tentativa em 1 hora.');
-      motora('parear_codigo', { erro: 'O WhatsApp recusou esta conta. Nova tentativa em 1 hora.' }).catch(() => {});
+      avisarErroPareamento('O WhatsApp recusou esta conta. Nova tentativa em 1 hora.').catch(() => {});
       agendarAbrir(60 * MIN);
       return;
     }
@@ -240,10 +285,12 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
 
   // ---------- conectar pelo número ----------
   async function verificarPareamento() {
-    if (encerrado || conectado || verificando || !viuQr || !sock) return; // só depois do 1º QR o canal está pronto
+    if (encerrado || conectado || verificando) return;
     verificando = true;
     try {
-      const { numero, pedido_em: pedido } = await motora('parear_ver');
+      let pedir;
+      try { pedir = await motora('parear_ver'); } catch (e) { log('Não consegui ver o pedido de código:', e.message); return; }
+      const { numero, pedido_em: pedido } = pedir;
       const recente = pedido && relogio.agora() - new Date(pedido).getTime() < 10 * MIN;
       if (!numero || !recente || pedido === pedidoAtendido) return;
       if (pareando) { // pediu de novo com outro número: recomeça limpo e atende no próximo QR
@@ -253,9 +300,20 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         viuQr = false;
         return;
       }
-      pedidoAtendido = pedido;
+      if (!sock || !viuQr) { // esperando para reconectar: o dono não pode ficar minutos em "Gerando..."
+        if (!sock && timerAbrir !== null && reabertoPara !== pedido) { reabertoPara = pedido; erroPareamento = null; agendarAbrir(1000); }
+        return; // só depois do 1º QR o canal está pronto
+      }
       const num = numeroBR(numero);
-      if (!num) { await motora('parear_codigo', { erro: 'Número inválido. Confira o DDD.' }); return; }
+      if (!num) { pedidoAtendido = pedido; await avisarErroPareamento('Número inválido. Confira o DDD.'); return; }
+      // o código vale só até o fim desta conexão: se ela já está no meio, abre outra para ele durar o tempo todo
+      if (relogio.agora() - primeiroQrEm > 20000 && reabertoPara !== pedido) {
+        reabertoPara = pedido; erroPareamento = null; viuQr = false;
+        agendarAbrir(0);
+        return;
+      }
+      pedidoAtendido = pedido;
+      erroPareamento = null;
       pareando = true;
       const codigo = await sock.requestPairingCode(num);
       await motora('parear_codigo', { codigo });
@@ -263,7 +321,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     } catch (e) {
       pareando = false;
       log('Não consegui gerar o código:', e.message);
-      await motora('parear_codigo', { erro: 'Não consegui gerar o código. Tente de novo ou use o QR.' }).catch(() => {});
+      await avisarErroPareamento('Não consegui gerar o código. Tente de novo ou use o QR.').catch(() => {});
     } finally { verificando = false; }
   }
 
@@ -282,6 +340,25 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     return false;
   }
 
+  // a mensagem já saiu: uma falha ao marcar nunca pode virar reenvio
+  async function marcarEnviada(id) {
+    try { await motora('enviada', { id }); jaEnviadas.delete(id); return true; }
+    catch (e) { log('Mensagem enviada, mas ainda não consegui marcar:', e.message); return false; }
+  }
+
+  // sem WhatsApp há mais de 10 min: avisa o dono uma vez por mensagem (ela segue no botão Enviar da Área IA)
+  async function sinalDeVida() {
+    if (conectado) return;
+    const resp = await motora('pendentes');
+    if (desconectadoDesde === null || relogio.agora() - desconectadoDesde < 10 * MIN) return;
+    if (!resp.ativo || !resp.mensagens) return;
+    for (const m of resp.mensagens) {
+      if (avisadas.has(m.id) || jaEnviadas.has(m.id)) continue;
+      avisadas.add(m.id);
+      await motora('falhou', { id: m.id, erro: 'O robô está sem conexão com o WhatsApp.' }).catch(() => avisadas.delete(m.id));
+    }
+  }
+
   async function ciclo() {
     if (!conectado || !sock) return;
     let resp;
@@ -289,14 +366,17 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     if (!resp.ativo || !resp.mensagens || !resp.mensagens.length) return;
     for (const m of resp.mensagens) {
       if (!conectado || !sock) return; // caiu no meio: a mensagem fica para a próxima rodada, sem contar falha
+      if (jaEnviadas.has(m.id)) { await marcarEnviada(m.id); continue; }
       if ((falhas[m.id] || 0) >= 3) continue;
       while (enviadasNaHora.length && relogio.agora() - enviadasNaHora[0] > 60 * MIN) enviadasNaHora.shift();
       if (enviadasNaHora.length >= LIMITE_POR_HORA) { log('Limite por hora atingido; continuo depois.'); return; }
       try {
         if (await enviar(m)) {
-          await motora('enviada', { id: m.id });
+          jaEnviadas.add(m.id);
           enviadasNaHora.push(relogio.agora());
           log(`Enviada para ${m.nome}.`);
+          agendarBackup(); // enviar altera as chaves da conversa
+          await marcarEnviada(m.id);
         } else {
           falhas[m.id] = 99;
           await motora('falhou', { id: m.id, erro: 'Número sem WhatsApp ou não cadastrado.' });
@@ -339,7 +419,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     servidor = http.createServer((q, r) => { pagina(q, r).catch(() => { r.writeHead(500); r.end(); }); }).listen(porta);
     repetir(5000, verificarPareamento);
     // sinal de vida mesmo antes de conectar (o app mostra se o robô está ligado)
-    repetir(MIN, async () => { if (!conectado) await motora('pendentes'); });
+    repetir(MIN, sinalDeVida);
     await restaurar();
     await abrir().catch(falhaAoAbrir);
     repetir(30000, ciclo);
@@ -350,12 +430,13 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     encerrado = true;
     if (timerAbrir !== null) relogio.clearTimeout(timerAbrir);
     if (timerBackup !== null) relogio.clearTimeout(timerBackup);
+    if (timerEstavel !== null) relogio.clearTimeout(timerEstavel);
     soltarSocket();
     if (servidor) servidor.close();
   }
 
   return {
-    iniciar, encerrar, ciclo, verificarPareamento, guardar, restaurar, abrir,
+    iniciar, encerrar, ciclo, verificarPareamento, sinalDeVida, guardar, restaurar, abrir,
     get situacao() { return situacao; }, get conectado() { return conectado; }, get pareando() { return pareando; },
     get socket() { return sock; }, get senhaPagina() { return SENHA_PAGINA; }, get servidor() { return servidor; }, PASTA,
   };

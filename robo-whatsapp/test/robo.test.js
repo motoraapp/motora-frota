@@ -6,6 +6,8 @@ import path from 'node:path';
 import { EventEmitter } from 'node:events';
 import { criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
+const CREDS = '{"account":{},"me":{"id":"x"}}';
+
 const flush = async () => { for (let i = 0; i < 8; i++) await new Promise((r) => setImmediate(r)); };
 
 function montar({ sessao = null, rotas = {} } = {}) {
@@ -107,12 +109,16 @@ test('queda 401 pareado: apaga tudo e reabre em 30 s, sem logout', async () => {
   await t.avancar(30000); assert.equal(t.sockets.length, 2);
 });
 
-test('500 três vezes seguidas conta como 401', async () => {
-  const t = montar(); t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
-  await t.robo.abrir();
-  for (let i = 0; i < 3; i++) { t.cai(500); await t.avancar(310000); }
-  assert.equal(acoes(t, 'sessao_apagar').length, 1);
-});
+for (const c of [500, 411]) {
+  test(`queda ${c} repetida nunca apaga a conexão`, async () => {
+    const t = montar(); t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
+    await t.robo.abrir();
+    fs.writeFileSync(path.join(t.robo.PASTA, 'creds.json'), CREDS);
+    for (let i = 0; i < 5; i++) { t.cai(c); await t.avancar(310000); }
+    assert.equal(acoes(t, 'sessao_apagar').length, 0);
+    assert.ok(fs.existsSync(path.join(t.robo.PASTA, 'creds.json')));
+  });
+}
 
 for (const c of [408, 405, 428, 503, undefined]) {
   test(`queda ${c}: tenta de novo com espera crescente até 5 min`, async () => {
@@ -193,22 +199,25 @@ const pacote = (dir, arqs) => { fs.mkdirSync(dir, { recursive: true }); for (con
 
 test('pacote: ida e volta, e recusa de lixo e nomes perigosos', async () => {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'p-'));
-  const buf = pacote(d, { 'creds.json': '{"a":1}', 'k-1.json': 'x' });
+  const buf = pacote(d, { 'creds.json': CREDS, 'k-1.json': 'x' });
   const a = abrirPacote(buf);
-  assert.equal(Buffer.from(a['creds.json'], 'base64').toString(), '{"a":1}');
+  assert.equal(Buffer.from(a['creds.json'], 'base64').toString(), CREDS);
+  assert.equal(abrirPacote(pacote(fs.mkdtempSync(path.join(os.tmpdir(), 'p-')), { 'creds.json': '{"account":' })), null, 'creds cortado');
+  assert.equal(abrirPacote(pacote(fs.mkdtempSync(path.join(os.tmpdir(), 'p-')), { 'creds.json': '{"me":{"id":"x"}}' })), null, 'sem account');
   assert.equal(abrirPacote(Buffer.from('PK\x03\x04 zip antigo')), null);
   const zlib = await import('node:zlib');
   const mau = (o) => zlib.gzipSync(JSON.stringify(o));
-  assert.equal(abrirPacote(mau({ formato: 'x', arquivos: { 'creds.json': 'e30=' } })), null);
+  const bom = Buffer.from(CREDS).toString('base64');
+  assert.equal(abrirPacote(mau({ formato: 'x', arquivos: { 'creds.json': bom } })), null);
   assert.equal(abrirPacote(mau({ formato: 'motora-baileys-1', arquivos: { 'k.json': 'e30=' } })), null);
-  assert.equal(abrirPacote(mau({ formato: 'motora-baileys-1', arquivos: { 'creds.json': 'e30=', '../x': 'e30=' } })), null);
+  assert.equal(abrirPacote(mau({ formato: 'motora-baileys-1', arquivos: { 'creds.json': bom, '../x': 'e30=' } })), null);
 });
 
 test('restaurar: conexão boa grava arquivos', async () => {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'p-'));
-  const t = montar({ sessao: pacote(d, { 'creds.json': '{"a":1}' }) });
+  const t = montar({ sessao: pacote(d, { 'creds.json': CREDS }) });
   assert.equal(await t.robo.restaurar(), true);
-  assert.equal(fs.readFileSync(path.join(t.robo.PASTA, 'creds.json'), 'utf8'), '{"a":1}');
+  assert.equal(fs.readFileSync(path.join(t.robo.PASTA, 'creds.json'), 'utf8'), CREDS);
 });
 
 test('restaurar: zip antigo apaga e segue; sem sessão segue', async () => {
@@ -223,7 +232,7 @@ test('restaurar: zip antigo apaga e segue; sem sessão segue', async () => {
 test('restaurar: erro de rede NÃO apaga e tenta de novo', async () => {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'p-'));
   let n = 0;
-  const t = montar({ sessao: pacote(d, { 'creds.json': '{}' }), rotas: { sessao_baixar: (resp) => (++n === 1 ? resp(503, {}) : resp(200, { url: 'https://baixar/1' })) } });
+  const t = montar({ sessao: pacote(d, { 'creds.json': CREDS }), rotas: { sessao_baixar: (resp) => (++n === 1 ? resp(503, {}) : resp(200, { url: 'https://baixar/1' })) } });
   const p = t.robo.restaurar();
   await t.avancar(5000);
   assert.equal(await p, true); assert.equal(acoes(t, 'sessao_apagar').length, 0);
@@ -233,21 +242,40 @@ test('guardar: só pareado; envio com erro tenta 3 vezes', async () => {
   const t = montar(); await t.robo.abrir();
   assert.equal(await t.robo.guardar(), false);
   t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
+  fs.writeFileSync(path.join(t.robo.PASTA, 'creds.json'), CREDS);
   assert.equal(await t.robo.guardar(), true); assert.equal(t.puts.length, 1);
-  assert.ok(abrirPacote(t.puts[0]) === null, 'pasta sem creds.json não é conexão válida');
+  assert.ok(abrirPacote(t.puts[0]));
   const r = montar({ rotas: { put: 500 } }); r.estado.creds.me = { id: 'x' }; r.estado.creds.account = {};
   await r.robo.abrir();
+  fs.writeFileSync(path.join(r.robo.PASTA, 'creds.json'), CREDS);
   const p = r.robo.guardar(); await r.avancar(20000);
   assert.equal(await p, false); assert.equal(r.puts.length, 3);
+});
+
+test('guardar: arquivo cortado não substitui a cópia boa', async () => {
+  const t = montar(); t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
+  await t.robo.abrir();
+  fs.writeFileSync(path.join(t.robo.PASTA, 'creds.json'), '{"account":');
+  assert.equal(await t.robo.guardar(), false); assert.equal(t.puts.length, 0);
 });
 
 test('creds.update salva e agenda cópia, no máximo uma', async () => {
   const t = montar(); t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
   await t.robo.abrir();
-  fs.writeFileSync(path.join(t.robo.PASTA, 'creds.json'), '{}');
+  fs.writeFileSync(path.join(t.robo.PASTA, 'creds.json'), CREDS);
   t.sockets[0].ev.emit('creds.update'); t.sockets[0].ev.emit('creds.update'); await t.flush();
   assert.equal(t.estado.salvou, 2);
   await t.avancar(60000); assert.equal(t.puts.length, 1);
+});
+
+test('restaurar: sem endereço mas com conexão guardada tenta de novo, sem pedir QR', async () => {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'p-'));
+  let n = 0;
+  const t = montar({ sessao: pacote(d, { 'creds.json': CREDS }), rotas: {
+    sessao_baixar: (resp) => (++n === 1 ? resp(404, { error: 'x' }) : resp(200, { url: 'https://baixar/1' })),
+    sessao_existe: (resp) => resp(200, { existe: true }) } });
+  const p = t.robo.restaurar(); await t.avancar(5000);
+  assert.equal(await p, true); assert.equal(n, 2);
 });
 
 const msg = (id, tel = '62999999999') => ({ id, nome: 'Fulano', telefones: [tel], texto: 'oi ' + id });
@@ -259,6 +287,38 @@ test('envio: manda, marca enviada e espera 8–20 s', async () => {
   assert.deepEqual(t.sockets[0].enviadas, [['5562999999999@s.whatsapp.net', 'oi 1']]);
   assert.equal(acoes(t, 'enviada')[0].id, 1);
   const pausa = t.esperas.slice(a).at(-1); assert.ok(pausa >= 8000 && pausa < 20000);
+});
+
+test('envio: falha ao marcar (5xx ou rede) nunca reenvia', async () => {
+  for (const falha of ['5xx', 'rede']) {
+    let n = 0;
+    const t = montar({ rotas: { enviada: (resp) => { if (++n < 3) { if (falha === 'rede') throw new Error('sem rede'); return resp(503, {}); } return resp(200, { ok: true }); } } });
+    await t.robo.abrir(); t.abre(); await t.flush();
+    t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
+    for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(20000); await p; }
+    assert.equal(t.sockets[0].enviadas.length, 1);
+    assert.equal(n, 3); assert.equal(acoes(t, 'falhou').length, 0);
+  }
+});
+
+test('envio: agenda cópia da conexão depois de enviar', async () => {
+  const t = montar(); t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
+  await t.robo.abrir(); t.abre(); await t.flush();
+  fs.writeFileSync(path.join(t.robo.PASTA, 'creds.json'), CREDS);
+  await t.avancar(60000); const antes = t.puts.length;
+  t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
+  const p = t.robo.ciclo(); await t.avancar(5 * 60000); await p;
+  assert.equal(t.puts.length, antes + 1);
+});
+
+test('desconectado há mais de 10 min avisa uma vez por mensagem', async () => {
+  const t = montar(); await t.robo.abrir(); t.abre(); await t.flush();
+  t.st.pendentes = { ativo: true, mensagens: [msg(1), msg(2)] };
+  t.cai(503); await t.flush();
+  await t.robo.sinalDeVida(); assert.equal(acoes(t, 'falhou').length, 0);
+  await t.avancar(10 * 60000 + 1);
+  await t.robo.sinalDeVida(); assert.equal(acoes(t, 'falhou').length, 2);
+  await t.robo.sinalDeVida(); assert.equal(acoes(t, 'falhou').length, 2);
 });
 
 test('envio: sem conexão pula a rodada sem contar falha', async () => {
@@ -328,4 +388,77 @@ test('página /qr exige a chave certa', async () => {
   const errado = await (await fetch(base + '/qr?k=errada')).text();
   assert.doesNotMatch(errado, /data:QR/);
   await t.robo.encerrar();
+});
+
+test('QR que acabou (408) reabre em 5–10 s sem aumentar a espera', async () => {
+  const t = montar(); await t.robo.abrir();
+  for (let i = 0; i < 8; i++) {
+    t.qr(); await t.flush();
+    const a = t.esperas.length; t.cai(408); await t.flush();
+    const e = t.esperas.slice(a).at(-1); assert.ok(e >= 5000 && e <= 10000, String(e));
+    await t.avancar(10000);
+  }
+});
+
+test('pedido com conexão velha abre outra e pede o código no 1º QR', async () => {
+  const t = montar(); await t.robo.abrir(); t.qr(); await t.flush();
+  await t.avancar(30000);
+  t.st.parear = { numero: '62999999999', pedido_em: new Date(t.relogio.agora()).toISOString() };
+  await t.robo.verificarPareamento();
+  assert.equal(t.sockets[0].pedidos.length, 0);
+  await t.avancar(1); assert.equal(t.sockets.length, 2);
+  t.qr(); await t.flush(); await t.robo.verificarPareamento();
+  assert.deepEqual(t.sockets[1].pedidos, ['5562999999999']);
+});
+
+test('pedido durante a espera de reconexão antecipa a abertura, uma vez só', async () => {
+  const t = montar(); await t.robo.abrir();
+  t.cai(503); await t.flush();
+  t.st.parear = { numero: '62999999999', pedido_em: new Date(t.relogio.agora()).toISOString() };
+  await t.robo.verificarPareamento();
+  await t.avancar(1000); assert.equal(t.sockets.length, 2);
+  t.cai(503); await t.flush();
+  await t.robo.verificarPareamento();
+  await t.avancar(1000); assert.equal(t.sockets.length, 2, 'não vira laço');
+});
+
+test('515 reabre rápido só uma vez', async () => {
+  const t = montar(); t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
+  await t.robo.abrir();
+  t.cai(515); await t.avancar(1000); assert.equal(t.sockets.length, 2);
+  const a = t.esperas.length; t.cai(515); await t.flush();
+  assert.ok(t.esperas.slice(a).at(-1) >= 5000);
+});
+
+test('conexão que abre e cai logo aumenta a espera; estável por 5 min zera', async () => {
+  const t = montar(); t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
+  await t.robo.abrir();
+  let ult = 0;
+  for (let i = 0; i < 4; i++) { t.abre(); await t.flush(); const a = t.esperas.length; t.cai(503); await t.flush(); ult = t.esperas.slice(a).at(-1); await t.avancar(310000); }
+  assert.ok(ult >= 40000, String(ult));
+  t.abre(); await t.avancar(5 * 60000);
+  const a = t.esperas.length; t.cai(503); await t.flush();
+  assert.ok(t.esperas.slice(a).at(-1) < 6001);
+});
+
+test('versão é consultada uma vez; 405 busca de novo', async () => {
+  const t = montar(); let n = 0;
+  const s0 = t; await s0.robo.abrir(); assert.ok(s0.logs.filter((l) => /Versão/.test(l)).length === 1);
+  t.cai(503); await t.avancar(6001);
+  assert.equal(t.logs.filter((l) => /Versão/.test(l)).length, 1);
+  t.cai(405); await t.avancar(20000);
+  assert.equal(t.logs.filter((l) => /Versão/.test(l)).length, 2); n++;
+});
+
+test('erro do código volta depois do próximo QR e some com pedido novo', async () => {
+  const t = montar(); await t.robo.abrir(); t.qr(); await t.flush();
+  t.st.parear = { numero: '123', pedido_em: new Date(t.relogio.agora()).toISOString() };
+  await t.robo.verificarPareamento();
+  const erros = () => acoes(t, 'parear_codigo').filter((c) => /inválido/.test(c.erro || '')).length;
+  assert.equal(erros(), 1);
+  t.qr(); await t.flush(); assert.equal(erros(), 2);
+  t.st.parear = { numero: '62999999999', pedido_em: new Date(t.relogio.agora() + 1).toISOString() };
+  await t.robo.verificarPareamento();
+  assert.equal(t.sockets[0].pedidos.length, 1);
+  assert.equal(erros(), 2);
 });
