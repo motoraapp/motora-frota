@@ -1,4 +1,4 @@
--- MOTORA — 02/11/2026 (AINDA NÃO APLICADO; só aplicar quando o dono pedir a publicação)
+-- MOTORA — 02/11/2026 (APLICADO em 02/11/2026)
 -- Campos do Asaas no Financeiro: o dono salva a chave da API e o tipo de conta; vê o endereço e o token do webhook.
 create or replace function public.set_app_config(p_key text, p_value text)
  returns void language plpgsql security definer set search_path to 'public' as $function$
