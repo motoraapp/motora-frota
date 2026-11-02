@@ -951,6 +951,24 @@
                 <button onclick="closeIA()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-4 overflow-y-auto custom-scrollbar space-y-4">
+                <details id="iaChatBox" open class="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-900/10">
+                    <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-comments text-indigo-600 mr-1"></i> Perguntar à IA</summary>
+                    <div class="px-3 pb-3 space-y-2">
+                        <div id="iaChatDicas" class="space-y-1.5">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Pergunte sobre os dados do app ou peça um lançamento. Antes de lançar, a IA mostra um cartão para você confirmar.</p>
+                            <button type="button" onclick="iaChatDica('Qual o total que o motorista  pagou desde o início do contrato?')" class="block w-full text-left p-2 rounded-lg text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">Quanto um motorista pagou desde o início do contrato?</button>
+                            <button type="button" onclick="iaChatDica('Adicione uma despesa no veículo ')" class="block w-full text-left p-2 rounded-lg text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">Adicionar despesa no veículo</button>
+                            <button type="button" onclick="iaChatDica('Adicione um ganho no aplicativo ')" class="block w-full text-left p-2 rounded-lg text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">Adicionar ganho no aplicativo</button>
+                            <button type="button" onclick="iaChatDica('Adicione uma despesa do motorista ')" class="block w-full text-left p-2 rounded-lg text-xs bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">Adicionar despesa do motorista</button>
+                        </div>
+                        <div id="iaChatLista" class="space-y-2 max-h-[45vh] overflow-y-auto custom-scrollbar"></div>
+                        <div class="flex gap-2 items-end">
+                            <textarea id="iaChatTexto" rows="2" maxlength="1000" placeholder="Escreva sua pergunta" class="flex-1 min-w-0 p-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none resize-none" style="font-size:16px"></textarea>
+                            <button type="button" id="iaChatEnviar" onclick="iaChatEnviar()" aria-label="Enviar pergunta" class="h-11 w-11 shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                        <button type="button" id="iaChatNova" onclick="iaChatReset()" class="hidden text-xs font-semibold text-indigo-700 dark:text-indigo-300"><i class="fa-solid fa-rotate-left mr-1"></i> Nova conversa</button>
+                    </div>
+                </details>
                 <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer">
                     <span class="min-w-0">
                         <span id="iaSwitchLabel" class="block text-sm font-bold">IA ligada</span>
@@ -1856,6 +1874,7 @@
                     invoke: async (name, opts) => {
                         const b = (opts && opts.body) || {};
                         if (name === 'motora-login-as') { const d = DEMO.db.profiles.find(p => p.id === b.driver_id && p.role === 'driver'); return d ? { data: { token_hash: 'demo:' + d.id, name: d.name }, error: null } : { data: { error: 'motorista não encontrado' }, error: null }; }
+                        if (name === 'motora-assistente') return { data: demoAssistente(b.contents || []), error: null };
                         if (name === 'motora-push') {
                             if (b.type === 'cobranca') {
                                 const d = DEMO.db.profiles.find(p => p.id === b.driver_id);
@@ -2214,7 +2233,7 @@
             document.getElementById('notifBanner').className = 'hidden';
             document.getElementById('modalNotif').classList.add('hidden');
             document.getElementById('modalTerms').classList.add('hidden');
-            notifPrompted = false; notifTried = false; notifSubOk = false; contractDocShown = null;
+            iaChatReset(); notifPrompted = false; notifTried = false; notifSubOk = false; contractDocShown = null;
             document.getElementById('headerRoleSubtitle').innerText = "Sistema de Gestão";
             document.getElementById('lastUpdated').innerText = '';
             applyDesign();
@@ -5773,6 +5792,233 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             m.className = 'text-sm ' + (mailed ? 'text-emerald-600' : 'text-amber-600');
             m.innerHTML = mailed ? '<i class="fa-solid fa-envelope mr-1"></i> Enviamos estes dados para o seu e-mail.' : '<i class="fa-solid fa-triangle-exclamation mr-1"></i> O e-mail ainda não está configurado. Anote os dados acima.';
             document.getElementById('modalCreds').classList.remove('hidden');
+        }
+
+        // demonstração: simula a IA (sem Gemini) só para mostrar a área "Perguntar à IA"
+        function demoAssistente(contents) {
+            const u = contents[contents.length - 1], chamada = (name, args) => ({ content: { role: 'model', parts: [{ functionCall: { name, args } }] } }), diz = text => ({ content: { role: 'model', parts: [{ text }] } });
+            const fr = (u.parts.find(p => p.functionResponse) || {}).functionResponse;
+            if (fr) {
+                const r = fr.response;
+                if (r.erro) return diz(r.erro + (r.opcoes && r.opcoes.length ? ' Opções: ' + r.opcoes.join(', ') + '.' : ''));
+                if (fr.name === 'consultar_motorista') return diz(`${r.motorista} pagou ${r.total_pago} desde a primeira cobrança (${r.primeira_cobranca}). Foram cobrados ${r.total_cobrado}; em aberto: ${r.em_aberto}.`);
+                if (fr.name.startsWith('propor_')) return diz('Confira o cartão acima e toque em Confirmar para lançar.');
+                return diz('Consulta feita.');
+            }
+            const t = u.parts.map(p => p.text || '').join(' '), q = iaNorm(t), val = (t.match(/(\d[\d.]*(?:,\d{1,2})?)\s*(?:reais)?/i) || [])[1];
+            const dr = (state.drivers || []).find(d => iaNorm(d.name).split(' ').some(w => w.length > 2 && (' ' + q + ' ').includes(' ' + w + ' ')));
+            const ve = (state.vehicles || []).find(v => q.includes(iaNorm(v.plate)) || iaNorm(v.model).split(' ').some(w => w.length > 2 && q.includes(w)));
+            if (/ganho/.test(q)) { const app = /uber/.test(q) ? 'Uber' : /indrive/.test(q) ? 'inDrive' : /\b99\b/.test(q) ? '99' : null; const v2 = (t.replace(/\b99\b/, '').match(/(\d[\d.]*(?:,\d{1,2})?)/) || [])[1]; return app && v2 ? chamada('propor_ganho_aplicativo', { aplicativo: app, valor: v2 }) : diz('Demonstração: diga o aplicativo e o valor. Ex.: ganho na Uber de 250,00.'); }
+            if (/despesa/.test(q) && /veiculo|carro/.test(q)) return ve && val ? chamada('propor_despesa_veiculo', { veiculo: ve.plate, tipo: /oleo|manut/.test(q) ? 'Manutenção' : 'Outros', valor: val, descricao: t }) : diz('Demonstração: diga o carro e o valor. Ex.: despesa no veículo Onix de 150,00.');
+            if (/despesa|multa/.test(q)) return dr && val ? chamada('propor_despesa_motorista', { motorista: dr.name, descricao: /multa/.test(q) ? 'Multa' : 'Despesa', valor: val }) : diz('Demonstração: diga o motorista e o valor. Ex.: despesa do motorista Marcos de 90,00.');
+            if (dr) return chamada('consultar_motorista', { motorista: dr.name });
+            return diz('Demonstração: aqui as respostas são simuladas. Ex.: quanto o Marcos pagou desde o início do contrato?');
+        }
+        // ===== PERGUNTAR À IA (ÁREA IA, só o master) =====
+        // O Gemini (função motora-assistente) só escolhe a ferramenta; as contas são feitas aqui, com os mesmos dados e
+        // regras do Financeiro. Lançamentos viram um cartão e só são gravados quando o dono toca em Confirmar.
+        var iaChatContents = [], iaChatMsgs = [], iaChatBusy = false, iaExcluidos = null;
+        function iaChatReset() { iaChatContents = []; iaChatMsgs = []; iaChatBusy = false; iaExcluidos = null; renderIAChat(); }
+        function iaNorm(t) { return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+        function iaAcha(lista, texto, campos) {
+            const q = iaNorm(texto), ws = q.split(' ').filter(Boolean); if (!ws.length) return [];
+            const txt = x => campos(x).map(iaNorm).join(' ');
+            const exato = lista.filter(x => campos(x).some(c => iaNorm(c) === q)); if (exato.length) return exato;
+            return lista.filter(x => { const t = ' ' + txt(x) + ' ', compacto = t.replace(/ /g, ''); return ws.every(w => t.includes(' ' + w) || compacto.includes(w)); });
+        }
+        const iaVeicTxt = v => v ? `${v.model || 'Veículo'} ${v.plate || ''}`.trim() : 'sem carro';
+        const iaCamposVeic = v => [v.plate || '', v.model || ''];
+        function iaDataOk(t) { if (!/^\d{4}-\d{2}-\d{2}$/.test(String(t || ''))) return false; const d = new Date(t + 'T12:00:00Z'); return !isNaN(d) && d.toISOString().slice(0, 10) === t; }
+        function iaOpcoes(tipo, lista, nome) { return { erro: lista.length ? `Encontrei mais de um ${tipo}. Pergunte ao dono qual é.` : `Não encontrei ${tipo} com "${nome}".`, opcoes: lista.slice(0, 8) }; }
+        async function iaTodosMotoristas() {
+            if (!iaExcluidos) { const { data } = await sb.from('profiles').select('*').eq('role', 'excluido'); iaExcluidos = data || []; }
+            return [...state.drivers, ...iaExcluidos];
+        }
+        async function iaFerramenta(nome, a) {
+            a = a || {};
+            const veic = id => allVeh().find(v => v.id === id);
+            const valor = parseMoney(typeof a.valor === 'number' ? String(a.valor) : a.valor);
+            const dataOuHoje = () => a.data ? (iaDataOk(a.data) ? a.data : null) : todayISO();
+            if (nome === 'listar_motoristas') {
+                return { motoristas: (await iaTodosMotoristas()).map(d => ({ nome: d.name, carro: iaVeicTxt(veic(d.vehicle_id)), excluido: d.role === 'excluido' })) };
+            }
+            if (nome === 'consultar_motorista') {
+                const achados = iaAcha(await iaTodosMotoristas(), a.motorista, d => [d.name || '', d.username || '']);
+                if (achados.length !== 1) return iaOpcoes('motorista', achados.map(d => d.name), a.motorista);
+                const d = achados[0], al = allocatePix(d.id), agora = Date.now();
+                const soma = (l, f) => l.reduce((t, x) => t + Number(f(x) || 0), 0);
+                const primeira = al.charges[0], cau = cauStatus(d), m = (d.pix_extra && d.pix_extra.multas && d.pix_extra.multas.itens) || [];
+                const estimados = al.pays.filter(p => receiptValue(p.r) == null).length;
+                return {
+                    motorista: d.name, situacao: d.role === 'excluido' ? 'excluído' : (d.status || ''), carro: iaVeicTxt(veic(d.vehicle_id)),
+                    primeira_cobranca: primeira ? fmtDate(primeira.h.sent_at) : 'nenhuma', cobrancas: al.charges.length, total_cobrado: fmtMoney(soma(al.charges, c => c.h.amount)),
+                    total_pago: fmtMoney(soma(al.pays, p => p.val)), pagamentos: al.pays.length,
+                    pagamentos_sem_valor_no_comprovante: estimados,
+                    em_aberto: fmtMoney(soma(al.charges, c => c.remaining > 0.005 ? c.remaining : 0)),
+                    vencido: fmtMoney(soma(al.charges.filter(c => c.h.due_at && new Date(c.h.due_at).getTime() < agora), c => c.remaining > 0.005 ? c.remaining : 0)),
+                    credito: fmtMoney(soma(al.pays, p => p.left)),
+                    caucao: cau ? { total: fmtMoney(cau.total), pago: fmtMoney(cau.pago), falta: fmtMoney(cau.falta) } : 'sem caução',
+                    despesas_e_multas: m.slice(-20).map(i => ({ o_que: i.desc, valor: fmtMoney(i.valor), data: fmtDate(i.data), situacao: multaPagaAuto(d, i) ? 'paga' : i.cobrada ? 'cobrada no Pix' : 'vai no próximo Pix' })),
+                    ultimos_pagamentos: al.pays.slice(-5).reverse().map(p => ({ data: fmtDate(p.r.created_at), valor: fmtMoney(p.val) })),
+                };
+            }
+            if (nome === 'consultar_veiculo') {
+                const achados = iaAcha(allVeh(), a.veiculo, iaCamposVeic);
+                if (achados.length !== 1) return iaOpcoes('veículo', achados.map(iaVeicTxt), a.veiculo);
+                if ((a.inicio && !iaDataOk(a.inicio)) || (a.fim && !iaDataOk(a.fim))) return { erro: 'Data inválida. Use AAAA-MM-DD.' };
+                const v = achados[0], ex = state.expenses.filter(x => x.vehicle_id === v.id && (!a.inicio || dayBR(x.expense_date) >= a.inicio) && (!a.fim || dayBR(x.expense_date) <= a.fim));
+                const nomeTipo = id => (state.expenseTypes.find(t => t.id === id) || {}).name || 'Outros', porTipo = {};
+                ex.forEach(x => { porTipo[nomeTipo(x.type_id)] = (porTipo[nomeTipo(x.type_id)] || 0) + Number(x.amount || 0); });
+                const dr = state.drivers.find(d => d.vehicle_id === v.id);
+                return {
+                    veiculo: iaVeicTxt(v), excluido: !!v.deleted_at, motorista: dr ? dr.name : 'nenhum', aluguel_semana: v.rent_amount != null ? fmtMoney(v.rent_amount) : 'não informado',
+                    periodo: a.inicio || a.fim ? `${a.inicio ? fmtDate(a.inicio) : 'início'} a ${a.fim ? fmtDate(a.fim) : 'hoje'}` : 'todo o histórico',
+                    total_despesas: fmtMoney(ex.reduce((t, x) => t + Number(x.amount || 0), 0)), quantidade: ex.length,
+                    por_tipo: Object.entries(porTipo).map(([tipo, t]) => ({ tipo, total: fmtMoney(t) })),
+                    ultimas_despesas: ex.slice(0, 10).map(x => ({ data: fmtDate(x.expense_date), tipo: nomeTipo(x.type_id), valor: fmtMoney(x.amount), descricao: x.description || '' })),
+                };
+            }
+            if (nome === 'consultar_financeiro') {
+                if (!iaDataOk(a.inicio) || !iaDataOk(a.fim)) return { erro: 'Preciso das datas no formato AAAA-MM-DD.' };
+                const dentro = t => { const x = dayBR(t); return x >= a.inicio && x <= a.fim; };
+                let recebido = 0, aberto = 0;
+                (await iaTodosMotoristas()).forEach(d => { const al = allocatePix(d.id); al.pays.forEach(p => { if (dentro(p.r.created_at)) recebido += Number(p.val || 0); }); if (d.role !== 'excluido') al.charges.forEach(c => { if (c.remaining > 0.005) aberto += c.remaining; }); });
+                const despV = state.expenses.filter(x => dentro(x.expense_date)).reduce((t, x) => t + Number(x.amount || 0), 0);
+                const [g, e] = await Promise.all([sb.from('app_earnings').select('*').gte('earning_date', a.inicio).lte('earning_date', a.fim), sb.from('app_expenses').select('*').gte('expense_date', a.inicio).lte('expense_date', a.fim)]);
+                if (g.error || e.error) return { erro: 'Não consegui ler os dados de aplicativo.' };
+                const porApp = {}; (g.data || []).forEach(x => { porApp[x.app] = (porApp[x.app] || 0) + Number(x.amount || 0); });
+                const ganhos = (g.data || []).reduce((t, x) => t + Number(x.amount || 0), 0), despA = (e.data || []).reduce((t, x) => t + Number(x.amount || 0), 0);
+                return {
+                    periodo: `${fmtDate(a.inicio)} a ${fmtDate(a.fim)}`,
+                    alugueis: { recebido: fmtMoney(recebido), em_aberto_hoje_todas_as_cobrancas: fmtMoney(aberto), despesas_veiculos: fmtMoney(despV), saldo: fmtMoney(recebido - despV) },
+                    aplicativo: { ganhos: fmtMoney(ganhos), por_aplicativo: Object.entries(porApp).map(([app, t]) => ({ app, total: fmtMoney(t) })), despesas: fmtMoney(despA), sobrou: fmtMoney(ganhos - despA) },
+                };
+            }
+            if (nome.startsWith('propor_')) {
+                if (!(valor > 0)) return { erro: 'Valor inválido. Pergunte o valor ao dono.' };
+                const data = dataOuHoje(); if (!data) return { erro: 'Data inválida. Pergunte a data ao dono.' };
+                let c = null;
+                if (nome === 'propor_despesa_veiculo') {
+                    const achados = iaAcha(state.vehicles, a.veiculo, iaCamposVeic);
+                    if (achados.length !== 1) return iaOpcoes('veículo', achados.map(iaVeicTxt), a.veiculo);
+                    const tipo = String(a.tipo || '').trim(); if (!tipo) return { erro: 'Pergunte o tipo da despesa.' };
+                    const existente = state.expenseTypes.find(t => iaNorm(t.name) === iaNorm(tipo));
+                    c = { acao: nome, titulo: 'Despesa do veículo', linhas: [['Veículo', iaVeicTxt(achados[0])], ['Tipo', (existente ? existente.name : tipo) + (existente ? '' : ' (tipo novo)')], ['Valor', fmtMoney(valor)], ['Data', fmtDate(data)], ...(a.descricao ? [['Descrição', a.descricao]] : [])], dados: { vehicle_id: achados[0].id, tipo: existente ? existente.name : tipo, type_id: existente ? existente.id : null, amount: valor, expense_date: data, description: a.descricao ? String(a.descricao).trim() : null } };
+                } else if (nome === 'propor_ganho_aplicativo') {
+                    const app = ['Uber', '99', 'inDrive'].find(x => iaNorm(x) === iaNorm(a.aplicativo)); if (!app) return { erro: 'Pergunte qual aplicativo: Uber, 99 ou inDrive.' };
+                    let v = null; if (a.veiculo) { const achados = iaAcha(state.vehicles, a.veiculo, iaCamposVeic); if (achados.length !== 1) return iaOpcoes('veículo', achados.map(iaVeicTxt), a.veiculo); v = achados[0]; }
+                    c = { acao: nome, titulo: 'Ganho de aplicativo', linhas: [['Aplicativo', app], ['Valor', fmtMoney(valor)], ['Data', fmtDate(data)], ...(v ? [['Veículo', iaVeicTxt(v)]] : []), ...(a.descricao ? [['Descrição', a.descricao]] : [])], dados: { app, amount: valor, earning_date: data, vehicle_id: v ? v.id : null, description: a.descricao ? String(a.descricao).trim() : null } };
+                } else if (nome === 'propor_despesa_aplicativo') {
+                    const tipo = String(a.tipo || '').trim(); if (!tipo) return { erro: 'Pergunte o tipo da despesa.' };
+                    c = { acao: nome, titulo: 'Despesa de aplicativo', linhas: [['Tipo', tipo], ['Valor', fmtMoney(valor)], ['Data', fmtDate(data)]], dados: { category: tipo, amount: valor, expense_date: data } };
+                } else if (nome === 'propor_despesa_motorista') {
+                    const achados = iaAcha(state.drivers, a.motorista, d => [d.name || '', d.username || '']);
+                    if (achados.length !== 1) return iaOpcoes('motorista', achados.map(d => d.name), a.motorista);
+                    const desc = String(a.descricao || '').trim(); if (!desc) return { erro: 'Pergunte o que é a despesa.' };
+                    c = { acao: nome, titulo: 'Despesa do motorista', aviso: `Fica visível para ${String(achados[0].name || '').split(' ')[0]} e entra marcada no próximo Pix dele.`, linhas: [['Motorista', achados[0].name], ['O que é', desc], ['Valor', fmtMoney(valor)], ['Data', fmtDate(data)]], dados: { driver_id: achados[0].id, desc, valor, data } };
+                } else return { erro: 'Ação desconhecida.' };
+                iaChatMsgs.push({ tipo: 'cartao', ...c, estado: 'aguardando' });
+                return { situacao: 'Cartão mostrado. Nada foi gravado ainda: peça ao dono para conferir e tocar em Confirmar.' };
+            }
+            return { erro: 'Ferramenta desconhecida.' };
+        }
+        const IA_ROTULO = { listar_motoristas: 'lista de motoristas', consultar_motorista: 'ficha e pagamentos do motorista', consultar_veiculo: 'despesas do veículo', consultar_financeiro: 'Financeiro' };
+        function renderIAChat() {
+            const box = document.getElementById('iaChatLista'); if (!box) return;
+            const lin = (l, v) => `<div class="flex justify-between gap-3"><span class="text-gray-500 dark:text-gray-400 shrink-0">${esc(l)}</span><span class="font-semibold text-right min-w-0 break-words">${esc(v)}</span></div>`;
+            box.innerHTML = iaChatMsgs.map((m, i) => {
+                if (m.tipo === 'eu') return `<div class="ml-8 p-2.5 rounded-xl rounded-br-sm bg-indigo-600 text-white text-sm whitespace-pre-wrap break-words">${esc(m.texto)}</div>`;
+                if (m.tipo === 'ia') return `<div class="mr-4 p-2.5 rounded-xl rounded-bl-sm bg-gray-100 dark:bg-gray-700 text-sm whitespace-pre-wrap break-words">${esc(m.texto)}${m.fontes ? `<div class="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">Consultado: ${esc(m.fontes)}</div>` : ''}</div>`;
+                if (m.tipo === 'erro') return `<div class="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm">${esc(m.texto)}</div>`;
+                const pos = m.estado === 'salvo' ? '<p class="mt-2 text-sm font-bold text-emerald-700 dark:text-emerald-300"><i class="fa-solid fa-circle-check mr-1"></i> Lançado</p>'
+                    : m.estado === 'cancelado' ? '<p class="mt-2 text-sm font-bold text-gray-500"><i class="fa-solid fa-xmark mr-1"></i> Cancelado, nada foi lançado</p>'
+                    : `<div class="grid grid-cols-2 gap-2 mt-3"><button type="button" onclick="iaCancelarCartao(${i})" ${m.estado === 'salvando' ? 'disabled' : ''} class="py-2.5 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-700">Cancelar</button><button type="button" onclick="iaConfirmarCartao(${i})" ${m.estado === 'salvando' ? 'disabled' : ''} class="py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white">${m.estado === 'salvando' ? '<i class="fa-solid fa-spinner fa-spin"></i> Salvando' : 'Confirmar'}</button></div>`;
+                return `<div class="p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-sm"><p class="font-bold mb-2"><i class="fa-solid fa-pen-to-square text-amber-600 mr-1"></i> ${esc(m.titulo)}: confira</p><div class="space-y-1">${m.linhas.map(x => lin(x[0], x[1])).join('')}</div>${m.aviso ? `<p class="mt-2 text-xs text-amber-800 dark:text-amber-200">${esc(m.aviso)}</p>` : ''}${pos}</div>`;
+            }).join('') + (iaChatBusy ? '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Consultando...</p>' : '');
+            document.getElementById('iaChatDicas').classList.toggle('hidden', !!iaChatMsgs.length);
+            document.getElementById('iaChatNova').classList.toggle('hidden', !iaChatMsgs.length);
+            const b = document.getElementById('iaChatEnviar'); if (b) b.disabled = iaChatBusy;
+            box.scrollTop = box.scrollHeight;
+        }
+        function iaChatDica(t) { document.getElementById('iaChatTexto').value = t; document.getElementById('iaChatTexto').focus(); }
+        async function iaChatEnviar() {
+            const el = document.getElementById('iaChatTexto'), texto = el.value.trim();
+            if (!texto || iaChatBusy) return;
+            if (iaChatContents.length > 44) { iaChatMsgs.push({ tipo: 'erro', texto: 'Esta conversa ficou longa. Toque em Nova conversa para continuar.' }); renderIAChat(); return; }
+            el.value = ''; iaChatMsgs.push({ tipo: 'eu', texto }); iaChatContents.push({ role: 'user', parts: [{ text: texto }] });
+            iaChatBusy = true; renderIAChat();
+            const fontes = new Set();
+            try {
+                for (let volta = 0; volta < 6; volta++) {
+                    const { data, error } = await sb.functions.invoke('motora-assistente', { body: { contents: iaChatContents } });
+                    if (error || !data || data.error || !data.content) throw new Error((data && data.error) || 'A área de perguntas ainda não foi ativada no servidor, ou a internet falhou.');
+                    iaChatContents.push(data.content);
+                    const chamadas = data.content.parts.filter(p => p.functionCall);
+                    if (!chamadas.length) {
+                        const t = data.content.parts.map(p => p.text || '').join('').replace(/\*\*/g, '').trim();
+                        if (t) iaChatMsgs.push({ tipo: 'ia', texto: t, fontes: [...fontes].join(', ') });
+                        return;
+                    }
+                    const respostas = [];
+                    for (const p of chamadas) {
+                        const nome = p.functionCall.name;
+                        if (IA_ROTULO[nome]) fontes.add(IA_ROTULO[nome]);
+                        let r; try { r = await iaFerramenta(nome, p.functionCall.args); } catch (e) { r = { erro: 'Não consegui ler esse dado.' }; }
+                        respostas.push({ functionResponse: { name: nome, response: r } });
+                    }
+                    renderIAChat();
+                    iaChatContents.push({ role: 'user', parts: respostas });
+                }
+                throw new Error('A IA não terminou a resposta. Tente perguntar de outro jeito.');
+            } catch (e) {
+                iaChatMsgs.push({ tipo: 'erro', texto: e.message || 'A IA não respondeu. Tente de novo.' });
+                // tira do histórico o que ficou pela metade, para a próxima pergunta não falhar
+                while (iaChatContents.length) { const u = iaChatContents.pop(); if (u.role === 'user' && u.parts.some(p => p.text === texto)) break; }
+            } finally { iaChatBusy = false; renderIAChat(); }
+        }
+        function iaChatNota(t) { iaChatContents.push({ role: 'user', parts: [{ text: t }] }, { role: 'model', parts: [{ text: 'Entendido.' }] }); }
+        function iaCancelarCartao(i) { const m = iaChatMsgs[i]; if (!m || m.estado !== 'aguardando') return; m.estado = 'cancelado'; iaChatNota(`[O dono cancelou: ${m.titulo}. Nada foi lançado.]`); renderIAChat(); }
+        async function iaConfirmarCartao(i) {
+            const m = iaChatMsgs[i]; if (!m || m.estado !== 'aguardando') return;
+            const dd = m.dados;
+            if (m.acao === 'propor_ganho_aplicativo') {
+                const dup = await sb.from('app_earnings').select('id').eq('app', dd.app).eq('earning_date', dd.earning_date).eq('amount', dd.amount).limit(1);
+                if (dup.data && dup.data.length && !confirm('Já existe um ganho igual (mesmo aplicativo, data e valor). Lançar de novo?')) return;
+            }
+            m.estado = 'salvando'; renderIAChat();
+            try {
+                if (m.acao === 'propor_despesa_veiculo') {
+                    let typeId = dd.type_id;
+                    if (!typeId) {
+                        const t = await sb.from('expense_types').insert({ name: dd.tipo }).select().single();
+                        if (t.error) throw t.error;
+                        typeId = t.data.id; dd.type_id = typeId;
+                    }
+                    const { error } = await sb.from('vehicle_expenses').insert({ vehicle_id: dd.vehicle_id, type_id: typeId, amount: dd.amount, expense_date: dd.expense_date, description: dd.description, file_path: null });
+                    if (error) throw error;
+                    await loadAndRender();
+                } else if (m.acao === 'propor_ganho_aplicativo') {
+                    const { error } = await sb.from('app_earnings').insert({ app: dd.app, amount: dd.amount, earning_date: dd.earning_date, vehicle_id: dd.vehicle_id, description: dd.description });
+                    if (error) throw error;
+                } else if (m.acao === 'propor_despesa_aplicativo') {
+                    const { error } = await sb.from('app_expenses').insert({ category: dd.category, amount: dd.amount, expense_date: dd.expense_date });
+                    if (error) throw error;
+                } else if (m.acao === 'propor_despesa_motorista') {
+                    // lê a ficha de novo para não apagar algo mudado depois que o app abriu
+                    const atual = await sb.from('profiles').select('pix_extra').eq('id', dd.driver_id).single();
+                    if (atual.error) throw atual.error;
+                    const d = state.drivers.find(x => x.id === dd.driver_id); if (!d) throw new Error('Motorista não encontrado.');
+                    d.pix_extra = atual.data.pix_extra;
+                    const velhos = (d.pix_extra && d.pix_extra.multas && d.pix_extra.multas.itens) || [];
+                    const item = { id: 'm' + Date.now().toString(36), desc: dd.desc, valor: dd.valor, data: dd.data, cobrada: null, paga: false };
+                    if (!(await savePixExtra(dd.driver_id, x => { x.multas = { ...(x.multas || {}), ativo: true, itens: [...velhos, item] }; }))) throw new Error('Não foi possível salvar. Tente de novo.');
+                    renderMasterPanel();
+                }
+                m.estado = 'salvo';
+                iaChatNota(`[O dono confirmou e foi lançado: ${m.titulo} (${m.linhas.map(l => l.join(': ')).join('; ')}).]`);
+                showToast('Lançado!');
+            } catch (e) { m.estado = 'aguardando'; showToast(friendlyError(e), 'error'); }
+            renderIAChat();
         }
 
         // ===== GANHOS APLICATIVO (Uber/99/inDrive) – só o master =====
