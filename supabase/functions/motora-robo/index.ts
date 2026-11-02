@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     }
     // QR code para conectar o WhatsApp: o robô manda, o app mostra na Área IA (no Hostless não tem tela)
     if (body.acao === "qr") {
-      const v = { ...cfg, qr: body.qr || null, conectado: !body.qr, visto_em: new Date().toISOString() };
+      const v = { ...cfg, qr: body.qr || null, conectado: !body.qr, visto_em: new Date().toISOString(), ...(body.pagina ? { pagina: String(body.pagina) } : {}) };
       await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: v, updated_at: new Date().toISOString() });
       return json({ ok: true });
     }

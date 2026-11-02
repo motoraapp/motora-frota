@@ -24,10 +24,23 @@ const log = (...a) => console.log(`[${hora()}]`, ...a);
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const aleatorio = ([a, b]) => a + Math.floor(Math.random() * (b - a));
 let situacao = 'iniciando';
+let qrAtual = null;
+const QRCode = require('qrcode');
+// página do QR ao vivo: endereço com senha aleatória (muda a cada vez que o robô liga)
+const SENHA_PAGINA = require('crypto').randomBytes(12).toString('hex');
 
-// o Hostless confere se o app está vivo por este endereço
-http.createServer((_, res) => { res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Robô do MOTORA: ' + situacao); })
-  .listen(process.env.PORT || 8080);
+http.createServer(async (req, res) => {
+  const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/qr' && u.searchParams.get('k') === SENHA_PAGINA) {
+    let corpo;
+    if (situacao === 'funcionando' || situacao === 'conectado') corpo = '<h2 style="color:#15803d">✅ WhatsApp conectado!</h2><p>Pode fechar esta página.</p>';
+    else if (qrAtual) corpo = `<p>No celular: WhatsApp → <b>Aparelhos conectados</b> → <b>Conectar aparelho</b> e aponte para o código.</p><img src="${await QRCode.toDataURL(qrAtual, { width: 320, margin: 2 })}" style="width:320px;max-width:90vw">`;
+    else corpo = '<p>Preparando o código... aguarde.</p>';
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="4"><title>Conectar robô MOTORA</title><body style="font-family:sans-serif;text-align:center;padding:20px">${corpo}<p style="color:#888;font-size:12px">A página atualiza sozinha.</p></body>`);
+  }
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Robô do MOTORA: ' + situacao);
+}).listen(process.env.PORT || 8080);
 
 async function motora(acao, extra = {}) {
   const r = await fetch(URL_ROBO, {
@@ -78,8 +91,8 @@ const client = new Client({
   },
 });
 
-client.on('qr', (qr) => { situacao = 'esperando ler o QR code'; log('QR code novo: abra a Área IA do MOTORA e leia com o WhatsApp.'); motora('qr', { qr }).catch(() => {}); });
-client.on('authenticated', () => { situacao = 'conectado'; log('WhatsApp conectado.'); motora('qr', { qr: null }).catch(() => {}); });
+client.on('qr', (qr) => { qrAtual = qr; situacao = 'esperando ler o QR code'; log('QR code novo: abra a Área IA do MOTORA e leia com o WhatsApp.'); motora('qr', { qr, pagina: SENHA_PAGINA }).catch(() => {}); });
+client.on('authenticated', () => { qrAtual = null; situacao = 'conectado'; log('WhatsApp conectado.'); motora('qr', { qr: null }).catch(() => {}); });
 client.on('remote_session_saved', () => log('Conexão salva no Supabase.'));
 client.on('auth_failure', (m) => { situacao = 'falha ao conectar'; log('Falha ao conectar o WhatsApp:', m); });
 client.on('disconnected', (m) => { log('WhatsApp desconectou:', m, '— reiniciando.'); setTimeout(() => process.exit(1), 30000); });

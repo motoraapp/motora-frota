@@ -2,14 +2,19 @@
   "name": "motora-robo-whatsapp",
   "version": "2.0.0",
   "private": true,
-  "description": "Robô do MOTORA: envia sozinho as mensagens e recibos no WhatsApp dos motoristas (Hostless)",
+  "description": "Rob\u00f4 do MOTORA: envia sozinho as mensagens e recibos no WhatsApp dos motoristas (Hostless)",
   "main": "robo.js",
-  "scripts": { "start": "node robo.js" },
-  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node robo.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "archiver": "^5.3.2",
     "fs-extra": "^11.2.0",
     "unzipper": "^0.10.14",
-    "whatsapp-web.js": "^1.26.0"
+    "whatsapp-web.js": "^1.26.0",
+    "qrcode": "^1.5.4"
   }
 }
