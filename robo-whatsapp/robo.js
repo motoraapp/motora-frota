@@ -63,8 +63,11 @@ function numeroBR(tel) {
   return n.length >= 12 ? n : null;
 }
 
+const PASTA = path.join(__dirname, 'sessao');
+fs.mkdirSync(path.join(PASTA, 'RemoteAuth-motora'), { recursive: true }); // pasta da conexão
+
 const client = new Client({
-  authStrategy: new RemoteAuth({ clientId: 'motora', store: loja, backupSyncIntervalMs: 5 * 60000, dataPath: path.join(__dirname, 'sessao') }),
+  authStrategy: new RemoteAuth({ clientId: 'motora', store: loja, backupSyncIntervalMs: 5 * 60000, dataPath: PASTA }),
   puppeteer: {
     headless: true,
     executablePath: process.env.CHROME_PATH || undefined,
