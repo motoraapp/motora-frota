@@ -59,6 +59,36 @@ Deno.serve(async (req) => {
       }).catch(() => {});
       return json({ ok: true });
     }
+    // QR code para conectar o WhatsApp: o robô manda, o app mostra na Área IA (no Hostless não tem tela)
+    if (body.acao === "qr") {
+      const v = { ...cfg, qr: body.qr || null, conectado: !body.qr, visto_em: new Date().toISOString() };
+      await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: v, updated_at: new Date().toISOString() });
+      if (body.qr) await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-push`, {
+        method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" },
+        body: JSON.stringify({ type: "master_alert", title: "Conectar o WhatsApp do robô", body: "Abra a Área IA e leia o QR code com o WhatsApp.", url: "/?abrir=ia" }),
+      }).catch(() => {});
+      return json({ ok: true });
+    }
+    // sessão do WhatsApp guardada no Supabase (pasta privada "robo"): o robô não perde a conexão quando o Hostless reinicia
+    const ARQ = "sessao-whatsapp.zip";
+    if (body.acao === "sessao_existe") {
+      const { data } = await admin.storage.from("robo").list("", { search: ARQ });
+      return json({ existe: (data ?? []).some((f) => f.name === ARQ) });
+    }
+    if (body.acao === "sessao_enviar") {
+      const { data, error } = await admin.storage.from("robo").createSignedUploadUrl(ARQ, { upsert: true });
+      if (error) return json({ error: error.message }, 500);
+      return json({ url: data.signedUrl });
+    }
+    if (body.acao === "sessao_baixar") {
+      const { data, error } = await admin.storage.from("robo").createSignedUrl(ARQ, 600);
+      if (error) return json({ error: error.message }, 404);
+      return json({ url: data.signedUrl });
+    }
+    if (body.acao === "sessao_apagar") {
+      await admin.storage.from("robo").remove([ARQ]);
+      return json({ ok: true });
+    }
     return json({ error: "ação desconhecida" }, 400);
   } catch (e) {
     console.error(e);

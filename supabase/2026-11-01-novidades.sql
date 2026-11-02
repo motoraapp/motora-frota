@@ -63,6 +63,8 @@ on conflict (key) do nothing;
 
 -- ===== 1) Backup: pasta privada para os arquivos =====
 insert into storage.buckets(id, name, public) values ('backups', 'backups', false) on conflict (id) do nothing;
+-- pasta privada da sessão do WhatsApp do robô (Hostless)
+insert into storage.buckets(id, name, public) values ('robo', 'robo', false) on conflict (id) do nothing;
 
 -- ===== agendamentos =====
 select cron.unschedule(jobname) from cron.job where jobname in ('motora-backup-diario', 'motora-asaas-cobrar');

@@ -1,29 +1,14 @@
-ROBÔ DO WHATSAPP DO MOTORA
-==========================
-
-O que ele faz
-- Fica ligado no seu computador (sem janela do navegador) e, a cada 30 segundos,
-  pega no MOTORA as mensagens prontas (Pix novo, recibo, avisos) e envia sozinho
-  no WhatsApp de cada motorista.
-- Quem escreve as mensagens é a IA do MOTORA (Gemini, com a chave que já está cadastrada).
-- O robô NÃO lê, NÃO responde e NÃO conversa com ninguém. Só envia.
+ROBÔ DO WHATSAPP DO MOTORA (no Hostless)
+========================================
+- Roda no Hostless (hostless.cloud), sem precisar do seu computador ligado.
+- Só ENVIA as mensagens que a IA do MOTORA escreve (Pix, recibo, avisos). Não lê nem responde.
 - Liga e desliga pelo botão "Envio automático" na Área IA do app.
-- Ao ligar, ele só envia mensagens novas (as antigas continuam no botão Enviar).
-- Pausa de 8 a 20 segundos entre mensagens e no máximo 30 por hora, para o WhatsApp não bloquear.
+- O QR code para conectar o WhatsApp aparece na Área IA do app.
+- A conexão fica guardada no Supabase: se o Hostless reiniciar, não precisa ler o QR de novo.
+- Pausa de 8 a 20 s entre mensagens e no máximo 30 por hora.
 
-Como instalar (uma vez só)
-1. Instale o Node.js (versão LTS) em https://nodejs.org
-2. Copie esta pasta "robo-whatsapp" para o computador (ex.: Documentos).
-3. Copie o arquivo config.exemplo.json, renomeie a cópia para config.json
-   e coloque a chave do robô (o Claude te passa quando publicar).
-4. Dê dois cliques em INICIAR-ROBO.bat.
-5. Vai aparecer um quadrado (QR code). No celular: WhatsApp > Aparelhos conectados >
-   Conectar aparelho, e leia o código. Pronto: não precisa ler de novo.
+Configuração no Hostless (o Claude te guia):
+- Novo app a partir do GitHub, repositório motora-frota, pasta robo-whatsapp (usa o Dockerfile).
+- Variável CHAVE_ROBO = chave do robô (o Claude passa na publicação).
 
-Para ligar sozinho quando o computador reiniciar
-- Aperte Windows + R, digite  shell:startup  e Enter.
-- Crie ali um atalho para o INICIAR-ROBO.bat.
-
-Atenção
-- É uma automação não oficial do WhatsApp. O ideal é usar um número só da locadora.
-- O computador precisa ficar ligado e com internet. O app mostra na Área IA se o robô está funcionando.
+Atenção: é automação não oficial do WhatsApp; use de preferência um número só da locadora.

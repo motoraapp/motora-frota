@@ -952,7 +952,7 @@
                 <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-900/10 cursor-pointer">
                     <span class="min-w-0">
                         <span id="roboSwitchLabel" class="block text-sm font-bold"><i class="fa-solid fa-robot text-green-600 mr-1"></i> Envio automático desligado</span>
-                        <span class="block text-xs text-gray-500 dark:text-gray-400">Ligado: o robô do seu computador envia sozinho as mensagens e os recibos no WhatsApp do motorista (só disparo, ele não responde ninguém). <span id="roboStatus"></span></span>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Ligado: o robô (no Hostless) envia sozinho as mensagens e os recibos no WhatsApp do motorista (só disparo, ele não responde ninguém). <span id="roboStatus"></span></span><div id="roboQr" class="hidden mt-2 text-center"></div>
                     </span>
                     <span class="sw"><input type="checkbox" id="roboSwitch" onchange="toggleRobo(this.checked)"><span></span></span>
                 </label>
@@ -4505,6 +4505,12 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('roboSwitch').checked = on;
             document.getElementById('roboSwitchLabel').innerHTML = `<i class="fa-solid fa-robot text-green-600 mr-1"></i> Envio automático ${on ? 'ligado' : 'desligado'}`;
             const st = document.getElementById('roboStatus');
+            const qb = document.getElementById('roboQr');
+            if (cfg.qr && typeof qrcode === 'function') {
+                try { const q = qrcode(0, 'L'); q.addData(cfg.qr); q.make();
+                    qb.innerHTML = `<p class="text-xs font-bold mb-1">Conectar o WhatsApp: no celular abra WhatsApp → Aparelhos conectados → Conectar aparelho e leia:</p><img class="mx-auto bg-white p-2 rounded" src="${q.createDataURL(5, 8)}" alt="QR code">`;
+                    qb.classList.remove('hidden'); } catch (e) { qb.classList.add('hidden'); }
+            } else qb.classList.add('hidden');
             if (!cfg.visto_em) { st.innerHTML = '<br><b>Robô ainda não conectado no computador.</b>'; return; }
             const min = Math.round((Date.now() - new Date(cfg.visto_em).getTime()) / 60000);
             st.innerHTML = min <= 3 ? '<br><b class="text-green-700 dark:text-green-300">Robô funcionando agora.</b>' : `<br><b class="text-red-600">Robô parado há ${min < 120 ? min + ' min' : Math.round(min / 60) + ' h'} — confira se o computador está ligado.</b>`;
@@ -4550,6 +4556,8 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('iaList').innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
             paintIASwitch(await loadIASetting());
             loadRobo().then(paintRobo).catch(() => {});
+            clearInterval(window._roboTimer); // QR code do robô muda a cada ~20 s: atualiza enquanto a Área IA está aberta
+            window._roboTimer = setInterval(() => { if (document.getElementById('modalIA').classList.contains('hidden')) return clearInterval(window._roboTimer); loadRobo().then(paintRobo).catch(() => {}); }, 8000);
             loadIARules();
             await loadIA().catch(() => {});
             renderIA();
