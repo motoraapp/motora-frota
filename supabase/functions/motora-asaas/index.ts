@@ -78,7 +78,7 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   const ex: Extra = { ...(d.pix_extra || {}) };
   const asx: Extra = ex.asaas || {};
   if (venc.faltam > DIAS_ANTES) return { motorista: d.name, pulou: `faltam ${venc.faltam} dias` };
-  if (asx.vencimento === venc.iso) return { motorista: d.name, pulou: "cobrança desta semana já criada" };
+  if (asx.vencimento === venc.iso || ex.picpay?.vencimento === venc.iso) return { motorista: d.name, pulou: "cobrança desta semana já criada" };
 
   // ----- valores (mesma regra do Novo Pix) -----
   const { data: v } = d.vehicle_id ? await admin.from("vehicles").select("model, rent_amount").eq("id", d.vehicle_id).maybeSingle() : { data: null };
