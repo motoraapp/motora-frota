@@ -136,7 +136,7 @@ async function reciboDados(driverId: string) {
     .eq("driver_id", driverId).is("rejected_at", null).not("confirmed_at", "is", null)
     .order("confirmed_at", { ascending: false }).limit(1).maybeSingle();
   if (!r) return null;
-  const { data: h } = await admin.from("pix_history").select("due_at, amount, description")
+  const { data: h } = await admin.from("pix_history").select("due_at, amount, description, period_start, period_end, recibo_descricao")
     .eq("receipt_id", r.id).order("due_at").limit(5);
   const res = (r.ai_result || {}) as { valor?: number; data_hora?: string };
   const lines: string[] = ["RECIBO DE PAGAMENTO"];
@@ -147,7 +147,10 @@ async function reciboDados(driverId: string) {
   for (const x of h ?? []) {
     const seg = new Date(x.due_at);
     const dom = new Date(seg.getTime() + 6 * 86400000);
-    lines.push(`Semana de ${fmtDia(seg.toISOString())} a ${fmtDia(dom.toISOString())}${x.description ? " — " + String(x.description).replace(/\n/g, " · ") : ""}`);
+    const de = x.period_start ? fmtDia(`${x.period_start}T12:00:00-03:00`) : fmtDia(seg.toISOString());
+    const ate = x.period_end ? fmtDia(`${x.period_end}T12:00:00-03:00`) : fmtDia(dom.toISOString());
+    const desc = x.recibo_descricao || x.description;
+    lines.push(`Período de ${de} a ${ate}${desc ? " — " + String(desc).replace(/\n/g, " · ") : ""}`);
   }
   return { extra: lines.join("\n"), must };
 }
