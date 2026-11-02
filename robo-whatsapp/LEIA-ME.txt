@@ -1,10 +1,10 @@
 ROBÔ DO WHATSAPP DO MOTORA (no Hostless)
 ========================================
-- Roda no Hostless (hostless.cloud), sem precisar do seu computador ligado.
+- Roda no Hostless (hostless.cloud), sem precisar do seu computador ligado e sem navegador (biblioteca Baileys).
 - Só ENVIA as mensagens que a IA do MOTORA escreve (Pix, recibo, avisos). Não lê nem responde.
 - Liga e desliga pelo botão "Envio automático" na Área IA do app.
-- O QR code para conectar o WhatsApp aparece na Área IA do app.
-- A conexão fica guardada no Supabase: se o Hostless reiniciar, não precisa ler o QR de novo.
+- O QR code e a opção de conectar pelo número aparecem na Área IA do app.
+- A conexão fica guardada no Supabase: se o Hostless reiniciar, não precisa conectar de novo.
 - Pausa de 8 a 20 s entre mensagens e no máximo 30 por hora.
 
 Configuração no Hostless (o Claude te guia):
