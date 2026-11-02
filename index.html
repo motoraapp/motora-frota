@@ -741,6 +741,14 @@
                 <button onclick="saveDesign(this)" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm">Salvar aparência</button>
             </div>
             <div class="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 class="font-semibold text-sm"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i> Robô do WhatsApp</h4>
+                <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-900/10 cursor-pointer">
+                    <span class="min-w-0"><span id="roboCfgLabel" class="block text-sm font-bold">Envio automático desligado</span>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Ligado: o robô envia sozinho avisos, Pix e recibos no WhatsApp dos motoristas. Desligado: você envia pela Área IA. <span id="roboCfgStatus"></span></span></span>
+                    <span class="sw"><input type="checkbox" id="roboCfgSwitch" onchange="toggleRobo(this.checked)"><span></span></span>
+                </label>
+            </div>
+            <div class="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-wand-magic-sparkles text-indigo-500 mr-1"></i> Leitura de documentos com IA (Gemini)</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Status: <span id="cfgGeminiStatus"></span></p>
                 <input type="password" id="cfgGemini" autocomplete="off" placeholder="Cole aqui a chave do Gemini (começa com AIza...)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
@@ -1062,6 +1070,27 @@
                 <button onclick="closeFinance()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-4 overflow-y-auto custom-scrollbar space-y-5">
+                <details id="asaasBox" class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/10" ontoggle="if(this.open) loadAsaasInfo()">
+                    <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-robot text-teal-600 mr-1"></i> Asaas — pagamento automático <span id="asaasResumo" class="text-xs font-normal text-gray-500"></span></summary>
+                    <div class="px-3 pb-3 space-y-3 text-sm">
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">1. Chave da API do Asaas</label>
+                            <p class="text-xs text-gray-500 mb-1">No Asaas: Integrações → Chave de API → Gerar chave. Status: <span id="asaasKeyStatus">—</span></p>
+                            <input type="password" id="asaasKey" autocomplete="off" placeholder="Cole aqui a chave (começa com $aact_...)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <button type="button" onclick="saveAsaas('asaas_key', 'asaasKey')" class="mt-2 w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl text-sm">Salvar chave do Asaas</button></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">2. Tipo de conta</label>
+                            <select id="asaasAmb" onchange="saveAsaas('asaas_ambiente', 'asaasAmb')" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                <option value="">Conta de verdade (recebe dinheiro)</option><option value="sandbox">Conta de testes (sandbox)</option></select></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">3. Aviso de pagamento (webhook)</label>
+                            <p class="text-xs text-gray-500 mb-1">No Asaas: Integrações → Webhooks → Adicionar. Cole o endereço e o token abaixo, marque os eventos de <b>Cobranças</b> e salve.</p>
+                            <div class="space-y-1.5">
+                                <div class="flex gap-2"><input id="asaasHookUrl" readonly class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none text-xs"><button type="button" onclick="copiarAsaas('asaasHookUrl')" class="px-3 rounded-xl bg-gray-200 dark:bg-gray-600 text-xs font-semibold">Copiar</button></div>
+                                <div class="flex gap-2"><input id="asaasHookTok" type="password" readonly class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none text-xs"><button type="button" onclick="copiarAsaas('asaasHookTok')" class="px-3 rounded-xl bg-gray-200 dark:bg-gray-600 text-xs font-semibold">Copiar</button></div>
+                            </div></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">4. Chave Pix da conta Asaas</label>
+                            <p class="text-xs text-gray-500">Crie uma chave Pix <b>aleatória</b> no Asaas. O MOTORA pega sozinha. Usada: <span id="asaasPix">—</span></p></div>
+                        <p class="text-xs text-gray-500">5. Depois ligue "Pagamento automático pelo Asaas" na ficha de cada motorista.</p>
+                    </div>
+                </details>
                 <div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-700">
                     <button type="button" id="finTabRent" onclick="switchFinTab('rent')" class="py-2 rounded-lg text-sm font-semibold"><i class="fa-solid fa-key mr-1"></i> Aluguéis</button>
                     <button type="button" id="finTabApps" onclick="switchFinTab('apps')" class="py-2 rounded-lg text-sm font-semibold"><i class="fa-solid fa-mobile-screen mr-1"></i> Ganhos aplicativo</button>
@@ -1677,6 +1706,8 @@
         }
         const DEMO_RPC = {
             get_app_config_status: () => ({ gemini: false, drive: false }),
+            master_asaas_info: () => ({ chave: true, ambiente: 'sandbox', webhook_url: 'https://exemplo.supabase.co/functions/v1/motora-asaas', webhook_token: 'token-de-demonstracao', chave_pix: '0000-demonstracao' }),
+            set_app_config: () => null,
             master_confirm_receipt({ p_receipt }) {
                 const r = DEMO.db.receipts.find(x => x.id === p_receipt); if (!r) throw new Error('comprovante não encontrado');
                 Object.assign(r, { confirmed_at: new Date().toISOString(), rejected_at: null, reject_reason: null });
@@ -3163,6 +3194,7 @@
             document.getElementById('modalSettings').classList.remove('hidden');
             drawFeatureToggles();
             await loadConfigStatus(); paintConfig();
+            loadRobo().then(paintRobo).catch(() => {});
         }
         function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); }
         async function saveConfig(key, inputId) {
@@ -3174,6 +3206,32 @@
             await loadConfigStatus(); paintConfig();
             showToast(v ? "Configuração salva!" : "Configuração removida.");
             if (key === 'drive_url' && v) testDrive();
+        }
+        // ===== ASAAS (Financeiro) — chaves ficam em app_secrets; master_asaas_info mostra o que já existe =====
+        async function loadAsaasInfo() {
+            try {
+                const { data, error } = await sb.rpc('master_asaas_info');
+                if (error) throw error;
+                const i = data || {};
+                document.getElementById('asaasKeyStatus').innerHTML = i.chave ? '<b class="text-emerald-600">configurada ✓</b>' : '<b class="text-red-500">falta colocar</b>';
+                document.getElementById('asaasAmb').value = i.ambiente === 'sandbox' ? 'sandbox' : '';
+                document.getElementById('asaasHookUrl').value = i.webhook_url || '';
+                document.getElementById('asaasHookTok').value = i.webhook_token || '';
+                document.getElementById('asaasPix').textContent = i.chave_pix || 'ainda nenhuma';
+                document.getElementById('asaasResumo').textContent = i.chave ? '· ligado' : '· falta configurar';
+            } catch (e) { document.getElementById('asaasKeyStatus').textContent = 'não foi possível ler agora'; }
+        }
+        async function saveAsaas(key, inputId) {
+            const v = document.getElementById(inputId).value.trim();
+            const { error } = await sb.rpc('set_app_config', { p_key: key, p_value: v });
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            if (key === 'asaas_key') document.getElementById(inputId).value = '';
+            showToast(key === 'asaas_key' ? (v ? 'Chave do Asaas salva!' : 'Chave do Asaas removida.') : 'Tipo de conta salvo.');
+            loadAsaasInfo();
+        }
+        function copiarAsaas(id) {
+            const v = document.getElementById(id).value; if (!v) return;
+            (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => showToast('Copiado!'), () => showToast('Não consegui copiar; segure o dedo no campo para copiar.', 'error'));
         }
         async function testDrive() {
             const el = document.getElementById('cfgDriveResult');
@@ -4502,6 +4560,13 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         }
         function paintRobo(cfg) {
             const on = !!cfg.ativo;
+            {   // mesma chave nas Configurações
+                const sw = document.getElementById('roboCfgSwitch'); if (sw) sw.checked = on;
+                const lb = document.getElementById('roboCfgLabel'); if (lb) lb.textContent = 'Envio automático ' + (on ? 'ligado' : 'desligado');
+                const st2 = document.getElementById('roboCfgStatus');
+                if (st2) { const min = cfg.visto_em ? Math.round((Date.now() - new Date(cfg.visto_em).getTime()) / 60000) : null;
+                    st2.innerHTML = min === null ? '<br><b>Robô ainda não conectado.</b>' : cfg.qr ? '<br><b class="text-amber-600">Robô esperando você ler o QR code na Área IA.</b>' : min <= 3 ? '<br><b class="text-green-700 dark:text-green-300">Robô funcionando agora.</b>' : `<br><b class="text-red-600">Robô parado há ${min < 120 ? min + ' min' : Math.round(min / 60) + ' h'}.</b>`; }
+            }
             document.getElementById('roboSwitch').checked = on;
             document.getElementById('roboSwitchLabel').innerHTML = `<i class="fa-solid fa-robot text-green-600 mr-1"></i> Envio automático ${on ? 'ligado' : 'desligado'}`;
             const st = document.getElementById('roboStatus');
