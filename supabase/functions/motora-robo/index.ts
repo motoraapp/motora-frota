@@ -63,10 +63,6 @@ Deno.serve(async (req) => {
     if (body.acao === "qr") {
       const v = { ...cfg, qr: body.qr || null, conectado: !body.qr, visto_em: new Date().toISOString() };
       await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: v, updated_at: new Date().toISOString() });
-      if (body.qr) await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-push`, {
-        method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" },
-        body: JSON.stringify({ type: "master_alert", title: "Conectar o WhatsApp do robô", body: "Abra a Área IA e leia o QR code com o WhatsApp.", url: "/?abrir=ia" }),
-      }).catch(() => {});
       return json({ ok: true });
     }
     // sessão do WhatsApp guardada no Supabase (pasta privada "robo"): o robô não perde a conexão quando o Hostless reinicia
