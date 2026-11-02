@@ -91,11 +91,37 @@ const client = new Client({
   },
 });
 
-client.on('qr', (qr) => { qrAtual = qr; situacao = 'esperando ler o QR code'; log('QR code novo: abra a Área IA do MOTORA e leia com o WhatsApp.'); motora('qr', { qr, pagina: SENHA_PAGINA }).catch(() => {}); });
-client.on('authenticated', () => { qrAtual = null; situacao = 'conectado'; log('WhatsApp conectado.'); motora('qr', { qr: null }).catch(() => {}); });
+client.on('qr', (qr) => { if (pareando) return; qrAtual = qr; situacao = 'esperando ler o QR code'; log('QR code novo: abra a Área IA do MOTORA e leia com o WhatsApp.'); motora('qr', { qr, pagina: SENHA_PAGINA }).catch(() => {}); });
+client.on('code', (codigo) => { motora('parear_codigo', { codigo }).catch(() => {}); }); // o código é renovado sozinho a cada 3 min
+client.on('authenticated', () => { pareando = false; qrAtual = null; situacao = 'conectado'; log('WhatsApp conectado.'); motora('qr', { qr: null }).catch(() => {}); });
 client.on('remote_session_saved', () => log('Conexão salva no Supabase.'));
 client.on('auth_failure', (m) => { situacao = 'falha ao conectar'; log('Falha ao conectar o WhatsApp:', m); });
 client.on('disconnected', (m) => { log('WhatsApp desconectou:', m, '— reiniciando.'); setTimeout(() => process.exit(1), 30000); });
+
+// CONECTAR PELO NÚMERO: o dono pede na Área IA; o robô gera o código de 8 letras para digitar no WhatsApp
+let pareando = false;
+let pedidoAtendido = null;
+let verificando = false;
+setInterval(async () => {
+  if (situacao !== 'esperando ler o QR code' || verificando) return;
+  verificando = true;
+  try {
+    const { numero, pedido_em: pedido } = await motora('parear_ver');
+    const recente = pedido && Date.now() - new Date(pedido).getTime() < 10 * 60000;
+    if (!numero || !recente || pedido === pedidoAtendido) return;
+    pedidoAtendido = pedido;
+    const num = numeroBR(numero);
+    if (!num) { await motora('parear_codigo', { erro: 'Número inválido. Confira o DDD.' }); return; }
+    pareando = true;
+    const codigo = await client.requestPairingCode(num);
+    await motora('parear_codigo', { codigo });
+    log('Código para conectar pelo número gerado.');
+  } catch (e) {
+    pareando = false;
+    log('Não consegui gerar o código:', e.message);
+    await motora('parear_codigo', { erro: 'Não consegui gerar o código. Tente de novo ou use o QR.' }).catch(() => {});
+  } finally { verificando = false; }
+}, 5000);
 
 const enviadasNaHora = [];
 const falhas = {};

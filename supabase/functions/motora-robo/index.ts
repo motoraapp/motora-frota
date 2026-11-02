@@ -61,7 +61,18 @@ Deno.serve(async (req) => {
     }
     // QR code para conectar o WhatsApp: o robô manda, o app mostra na Área IA (no Hostless não tem tela)
     if (body.acao === "qr") {
-      const v = { ...cfg, qr: body.qr || null, conectado: !body.qr, visto_em: new Date().toISOString(), ...(body.pagina ? { pagina: String(body.pagina) } : {}) };
+      const v = { ...cfg, qr: body.qr || null, conectado: !body.qr, visto_em: new Date().toISOString(), ...(body.pagina ? { pagina: String(body.pagina) } : {}),
+        parear_codigo: null, parear_erro: null, ...(body.qr ? {} : { parear_numero: null, parear_pedido_em: null }) };
+      await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: v, updated_at: new Date().toISOString() });
+      return json({ ok: true });
+    }
+    // Conectar pelo número: o app grava o pedido em whatsapp_robo; o robô lê aqui e devolve o código de 8 letras
+    if (body.acao === "parear_ver") {
+      const c = cfg as { parear_numero?: string; parear_pedido_em?: string };
+      return json({ numero: c.parear_numero || null, pedido_em: c.parear_pedido_em || null });
+    }
+    if (body.acao === "parear_codigo") {
+      const v = { ...cfg, parear_codigo: body.codigo ? String(body.codigo) : null, parear_erro: body.erro ? String(body.erro) : null, visto_em: new Date().toISOString() };
       await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: v, updated_at: new Date().toISOString() });
       return json({ ok: true });
     }

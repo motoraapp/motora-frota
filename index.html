@@ -964,6 +964,14 @@
                     </span>
                     <span class="sw"><input type="checkbox" id="roboSwitch" onchange="toggleRobo(this.checked)"><span></span></span>
                 </label>
+                <div id="roboParear" class="hidden mt-2">
+                    <p class="text-xs font-bold mb-1">Ou conecte pelo número do WhatsApp:</p>
+                    <div class="flex gap-2">
+                        <input id="roboParearNumero" type="tel" inputmode="tel" placeholder="(62) 99999-9999" class="flex-1 min-w-0 p-2 border rounded-lg text-sm dark:bg-gray-700 dark:border-gray-600">
+                        <button type="button" id="roboParearBtn" onclick="pedirCodigoRobo()" class="px-3 py-2 rounded-lg bg-green-600 text-white text-sm font-bold">Gerar código</button>
+                    </div>
+                    <div id="roboParearInfo" class="mt-2 text-center"></div>
+                </div>
                 <details id="iaRulesBox" class="rounded-xl border border-gray-200 dark:border-gray-700">
                     <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-list-check text-indigo-500 mr-1"></i> Regras da IA <span id="iaRulesCount" class="text-xs font-normal text-gray-500"></span></summary>
                     <div class="px-3 pb-3 space-y-2">
@@ -4571,7 +4579,13 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('roboSwitchLabel').innerHTML = `<i class="fa-solid fa-robot text-green-600 mr-1"></i> Envio automático ${on ? 'ligado' : 'desligado'}`;
             const st = document.getElementById('roboStatus');
             const qb = document.getElementById('roboQr');
-            if (cfg.qr && typeof qrcode === 'function') {
+            const esperando = !!(cfg.qr || cfg.parear_numero);
+            document.getElementById('roboParear').classList.toggle('hidden', !esperando);
+            const info = document.getElementById('roboParearInfo');
+            if (cfg.parear_codigo) info.innerHTML = `<p class="text-xs mb-1">No celular: WhatsApp → Aparelhos conectados → Conectar aparelho → <b>Conectar com número de telefone</b>, e digite:</p><p class="text-2xl font-bold tracking-widest">${esc(String(cfg.parear_codigo).replace(/^(.{4})(.{4})$/, '$1-$2'))}</p>`;
+            else if (cfg.parear_erro) info.innerHTML = `<p class="text-xs font-bold text-red-600">${esc(cfg.parear_erro)}</p>`;
+            else info.innerHTML = cfg.parear_numero ? '<p class="text-xs">Gerando o código... aguarde.</p>' : '';
+            if (cfg.qr && !cfg.parear_codigo && typeof qrcode === 'function') {
                 try { const q = qrcode(0, 'L'); q.addData(cfg.qr); q.make();
                     qb.innerHTML = `<p class="text-xs font-bold mb-1">Conectar o WhatsApp: no celular abra WhatsApp → Aparelhos conectados → Conectar aparelho e leia:</p><img class="mx-auto bg-white p-2 rounded" src="${q.createDataURL(5, 8)}" alt="QR code">`;
                     qb.classList.remove('hidden'); } catch (e) { qb.classList.add('hidden'); }
@@ -4579,6 +4593,15 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             if (!cfg.visto_em) { st.innerHTML = '<br><b>Robô ainda não conectado no computador.</b>'; return; }
             const min = Math.round((Date.now() - new Date(cfg.visto_em).getTime()) / 60000);
             st.innerHTML = min <= 3 ? '<br><b class="text-green-700 dark:text-green-300">Robô funcionando agora.</b>' : `<br><b class="text-red-600">Robô parado há ${min < 120 ? min + ' min' : Math.round(min / 60) + ' h'} — confira se o computador está ligado.</b>`;
+        }
+        async function pedirCodigoRobo() {
+            const numero = document.getElementById('roboParearNumero').value.replace(/\D/g, '');
+            if (numero.length < 10) { showToast('Digite o número com DDD.', 'error'); return; }
+            const cur = await loadRobo();
+            const value = { ...cur, parear_numero: numero, parear_pedido_em: new Date().toISOString(), parear_codigo: null, parear_erro: null };
+            const { error } = await sb.from('app_settings').upsert({ key: 'whatsapp_robo', value, updated_at: new Date().toISOString() });
+            if (error) { showToast('Não foi possível pedir o código. Tente de novo.', 'error'); return; }
+            paintRobo(value);
         }
         async function toggleRobo(on) {
             const cur = await loadRobo();
