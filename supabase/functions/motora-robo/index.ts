@@ -9,7 +9,7 @@
 //   acao "atendimento": número desconhecido é saudado; sem resposta em 3 min, a Dara é chamada e a conversa passa por ela
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, primeiroNome, saudacao, textoDara } from "./comandos.ts";
+import { chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, primeiroNome, saudacao, textoDara, textoDaraMotorista } from "./comandos.ts";
 
 function serviceKey() {
   const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -124,6 +124,24 @@ Deno.serve(async (req) => {
         if (/^encerrar$/i.test(String(body.texto || "").trim())) return json({ tratado: true, resposta: `Conversa com ${rotulo(c)} encerrada.` });
         return json(body.midia ? { tratado: true, encaminhar: { jid: c.jid } } : { tratado: true, envios: [{ jid: c.jid, texto: String(body.texto || "") }] });
       }
+      // motorista cadastrado: sem saudação; 10 min sem resposta pelo número da locadora chama a Dara. Foto e PDF seguem como comprovante
+      const motorista = await motoristaDoFone(body.telefone);
+      if (motorista) {
+        if (body.arquivo) return json({ tratado: false });
+        const { data: atual } = await admin.from("whatsapp_atendimento").select("*").eq("chave", k).maybeSingle();
+        if (atual?.status === "com_dara" && Date.now() - new Date(atual.ultima_msg_em).getTime() <= SETE_DIAS) {
+          await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid) }).eq("id", atual.id);
+          const dara = await secret("dara_whatsapp");
+          return json({ tratado: true, envios: [{ telefone: dara, texto: body.midia ? `*${rotulo(atual)}* enviou:` : `*${rotulo(atual)}:*\n${String(body.texto || "")}` }], ...(body.midia ? { encaminhar: { telefone: dara } } : {}) });
+        }
+        if (atual?.status === "aguardando") {
+          await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), guardadas: body.texto ? [...(atual.guardadas || []), String(body.texto)] : atual.guardadas }).eq("id", atual.id);
+          return json({ tratado: true, lead_id: atual.id, guardar: true });
+        }
+        const { data: nova, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: motorista.name, motorista: true, status: "aguardando", guardadas: body.texto ? [String(body.texto)] : [], saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
+        if (error) return json({ error: error.message }, 500);
+        return json({ tratado: true, lead_id: nova.id, guardar: true });
+      }
       const { data: pessoas } = await admin.from("profiles").select("phone, phone2, pix_extra");
       if ((pessoas ?? []).some((p) => chaveFone(p.phone) === k || chaveFone(p.phone2) === k || chaveFone(p.pix_extra?.motorista2?.whatsapp) === k)) return json({ tratado: false });
       const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", k).maybeSingle();
@@ -134,7 +152,7 @@ Deno.serve(async (req) => {
         return json({ tratado: true });
       }
       if (!lead) {
-        const { count } = await admin.from("whatsapp_atendimento").select("id", { count: "exact", head: true }).gte("saudado_em", new Date(Date.now() - 3600 * 1000).toISOString());
+        const { count } = await admin.from("whatsapp_atendimento").select("id", { count: "exact", head: true }).eq("motorista", false).gte("saudado_em", new Date(Date.now() - 3600 * 1000).toISOString());
         if ((count ?? 0) >= 20) return json({ tratado: true }); // proteção contra bloqueio do WhatsApp
         const { data: novo, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "aguardando", guardadas: body.texto ? [String(body.texto)] : [], saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
         if (error) return json({ error: error.message }, 500);
@@ -155,8 +173,10 @@ Deno.serve(async (req) => {
     if (body.acao === "atendimento_fila") {
       const dara = await secret("dara_whatsapp");
       if (!dara) return json({ chamadas: [] });
-      const { data: leads } = await admin.from("whatsapp_atendimento").select("*").eq("status", "aguardando").lte("saudado_em", new Date(Date.now() - Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3) * 60000).toISOString()).order("saudado_em").limit(5);
-      return json({ chamadas: (leads ?? []).map((l) => ({ id: l.id, telefone: dara, textos: [textoDara(l.telefone), `*${rotulo(l)}*${(l.guardadas || []).length ? " perguntou:\n" + l.guardadas.join("\n") : ""}\n\nPara encerrar a conversa, responda ENCERRAR.`] })) });
+      const minDesconhecido = Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3), minMotorista = Number((cfg as { motorista_min?: number }).motorista_min ?? 10);
+      const { data: leads } = await admin.from("whatsapp_atendimento").select("*").eq("status", "aguardando").order("saudado_em").limit(30);
+      const vencidos = (leads ?? []).filter((l) => Date.now() - new Date(l.saudado_em).getTime() >= (l.motorista ? minMotorista : minDesconhecido) * 60000).slice(0, 5);
+      return json({ chamadas: vencidos.map((l) => ({ id: l.id, telefone: dara, textos: l.motorista ? [textoDaraMotorista(l.nome, l.telefone, l.guardadas || [], minMotorista)] : [textoDara(l.telefone), `*${rotulo(l)}*${(l.guardadas || []).length ? " perguntou:\n" + l.guardadas.join("\n") : ""}\n\nPara encerrar a conversa, responda ENCERRAR.`] })) });
     }
     if (body.acao === "atendimento_ok" && body.id) {
       await admin.from("whatsapp_atendimento").update({ status: "com_dara", escalado_em: new Date().toISOString(), guardadas: [] }).eq("id", body.id).eq("status", "aguardando");

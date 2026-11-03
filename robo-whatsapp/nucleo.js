@@ -509,7 +509,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         const q = ctx && ctx.quotedMessage ? abrirConteudo(ctx.quotedMessage) : null;
         const citado = q ? q.conversation || q.extendedTextMessage?.text || '' : '';
         const legenda = texto || arq?.caption || c.videoMessage?.caption || '';
-        const a = await comRepeticao('atendimento', { telefone, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, citado: String(citado).slice(0, 500) });
+        const a = await comRepeticao('atendimento', { telefone, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, arquivo: !!arq, citado: String(citado).slice(0, 500) });
         if (a.tratado) { await entregarAtendimento(a, msg, jid); return; }
       } catch (e) { vistas.delete(key.id); throw e; }
     }

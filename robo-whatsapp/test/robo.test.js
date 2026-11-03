@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, textoDara } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, textoDara, textoDaraMotorista } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
 import { ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
@@ -664,4 +664,12 @@ test('atendimento: saúda, chama a Dara e separa pessoa de robô', async () => {
   assert.equal(acoes(t, 'locadora_respondeu').length, 0);
   await receber(t, eu('HUMANO1'));
   assert.equal(acoes(t, 'locadora_respondeu').length, 1);
+});
+
+test('atendimento: aviso à Dara sobre motorista traz nome, mensagem e como encerrar', () => {
+  const t = textoDaraMotorista('Soyer Marshall', '5562999998888', ['O carro quebrou'], 10);
+  assert.match(t, /Soyer Marshall \(62\) 99999-8888/);
+  assert.match(t, /O carro quebrou/);
+  assert.match(t, /há 10 minutos/);
+  assert.match(t, /ENCERRAR/);
 });

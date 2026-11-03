@@ -73,6 +73,10 @@ export function saudacao(nome: unknown, agora = new Date()): string {
 export function textoDara(fone: unknown): string {
   return `Dara, aqui é a assistente virtual do Thiago. Ele deve estar ocupado em corrida e não viu a mensagem. Tem um número perguntando sobre aluguel de carro: ${foneBonito(fone)}. O que ele me perguntar vou encaminhar direto para você e sua resposta vou enviar para ele e intermediar a conversa do seu número.`;
 }
+export function textoDaraMotorista(nome: unknown, fone: unknown, mensagens: string[], minutos: number): string {
+  const msg = mensagens.length ? `e mandou esta mensagem:\n\n${mensagens.join("\n")}` : "e mandou o arquivo que segue abaixo.";
+  return `Dara, aqui é a assistente virtual do Thiago. O motorista ${String(nome ?? "")} ${foneBonito(fone)} está tentando falar com o Thiago ${msg}\n\nO Thiago não respondeu há ${minutos} minutos. Você pode responder?\n\nComo funciona: o que você escrever aqui eu envio para ele pelo número da locadora, e o que ele mandar eu trago para você. Se houver mais de uma conversa aberta, toque em Responder na mensagem da pessoa. Para encerrar, responda ENCERRAR.`;
+}
 export type Conversa = { id: string; chave: string; nome: string | null; telefone: string };
 // para quem vai a resposta da Dara: pela mensagem citada; sem citar, só se houver uma conversa aberta
 export function escolherConversa(abertas: Conversa[], citado: unknown): { conversa: Conversa } | { resposta: string } {
