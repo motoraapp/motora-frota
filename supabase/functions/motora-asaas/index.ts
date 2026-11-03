@@ -2,7 +2,7 @@
 // Só vale para motoristas com "Pagamento automático pelo Asaas" ligado na ficha (profiles.asaas_auto_charge_enabled).
 //
 // acao "cobrar" (cron "motora-asaas-cobrar", todo dia 08:00 de Brasília):
-//   para cada motorista ligado, quando faltam 3 dias ou menos para o dia de pagamento dele,
+//   para cada motorista ligado, quando falta 1 dia (ou no próprio dia, se a véspera falhou) para o dia de pagamento dele,
 //   cria no Asaas um QR CODE PIX ESTÁTICO com o valor da semana (aluguel do carro + parcela da caução + multas pendentes + acréscimo repetido),
 //   coloca o Pix copia e cola e o QR code no app do motorista e avisa (notificação + WhatsApp pelo robô).
 //   POR QUE QR ESTÁTICO: no Asaas os 100 primeiros Pix recebidos no mês por chave ou QR estático não pagam taxa;
@@ -25,7 +25,7 @@ function serviceKey() {
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey() as string, { auth: { persistSession: false } });
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
 const brl = (v: unknown) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const DIAS_ANTES = 3;
+const DIAS_ANTES = 1;
 
 async function secret(key: string) {
   const { data } = await admin.from("app_secrets").select("value").eq("key", key).maybeSingle();
@@ -136,7 +136,7 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   ex.asaas = { ...asx, qr: qr.id, qrs: [qr.id, ...(asx.qrs || [])].slice(0, 12), vencimento: venc.iso, criada_em: new Date().toISOString() };
   const { error } = await admin.from("profiles").update({
     pix_code: qr?.payload || null, pix_qr_path: qrPath, pix_link: null, pix_amount: total,
-    pix_description: linhas.join("\n"), pix_extra: ex,
+    pix_description: linhas.join("\n"), pix_extra: ex, pix_next: { due: venc.iso },
   }).eq("id", d.id);
   if (error) throw new Error("salvar no app: " + error.message);
 

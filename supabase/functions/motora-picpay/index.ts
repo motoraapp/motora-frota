@@ -2,7 +2,7 @@
 // Só vale para motoristas com "Automático pelo PicPay" na ficha (profiles.picpay_auto_charge_enabled).
 //
 // acao "cobrar" (cron "motora-picpay-cobrar", todo dia 08:05 de Brasília):
-//   quando faltam 3 dias ou menos para o dia de pagamento, cria a cobrança Pix no PicPay
+//   quando falta 1 dia (ou no próprio dia, se a véspera falhou) para o dia de pagamento, cria a cobrança Pix no PicPay
 //   (aluguel + parcela da caução + multas pendentes + acréscimo repetido), coloca copia e cola e QR code no app e avisa.
 //   Também reconfere as cobranças em aberto, caso um aviso do PicPay tenha se perdido.
 // webhook (o PicPay chama quando a cobrança muda): confere o token, reconsulta a cobrança no PicPay e,
@@ -22,7 +22,7 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey() as string
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 const brl = (v: unknown) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const DIAS_ANTES = 3;
+const DIAS_ANTES = 1;
 
 async function secret(key: string) {
   const { data } = await admin.from("app_secrets").select("value").eq("key", key).maybeSingle();
@@ -155,7 +155,7 @@ async function cobrarMotorista(d: Extra) {
   ex.picpay = { ...ppx, cobranca: cobId, ids: [cobId, ...(ppx.ids || [])].slice(0, 12), vencimento: venc.iso, criada_em: new Date().toISOString() };
   const { error } = await admin.from("profiles").update({
     pix_code: pix.qrCode, pix_qr_path: qrPath, pix_link: null, pix_amount: total,
-    pix_description: linhas.join("\n"), pix_extra: ex,
+    pix_description: linhas.join("\n"), pix_extra: ex, pix_next: { due: venc.iso },
   }).eq("id", d.id);
   if (error) throw new Error("salvar no app: " + error.message);
 

@@ -2606,7 +2606,7 @@
                     <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar comprovante</button>`;
             } else if (driver.pix_due_at && !paidThisPix) {
                 banner.className = "bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-                banner.innerHTML = `<div class="text-sm">${lastWeekRec && lastWeekRec.rejected_at ? `<b class="text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')}<br>` : ''}<b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b>${driver.pix_amount != null ? ` Valor: <b>${fmtMoney(driver.pix_amount)}</b>` : ''}<br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b> e depois envie o comprovante aqui no app.</div>
+                banner.innerHTML = `<div class="text-sm">${lastWeekRec && lastWeekRec.rejected_at ? `<b class="text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')}<br>` : ''}<b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b>${driver.pix_amount != null ? ` Valor: <b>${fmtMoney(driver.pix_amount)}</b>` : ''}<br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b>${(driver.asaas_auto_charge_enabled || driver.picpay_auto_charge_enabled) ? '. O pagamento é conferido sozinho.' : ' e depois envie o comprovante aqui no app.'}</div>
                     <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Ver pagamento</button>`;
             } else if (driver.pix_due_at && paidEarlier) {
                 banner.className = "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded-2xl p-4 text-sm";
@@ -4204,8 +4204,8 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const c = dfCobRead(), dia = DIAS_SEMANA[c.dia];
             const nome = c.auto === 'picpay' ? 'PicPay' : 'Asaas';
             document.getElementById('dfCobInfo').innerHTML = c.auto
-                ? `Toda <b>${dia}</b> (até 23:59) vence a cobrança. 3 dias antes o ${nome} cria o Pix (QR code e copia e cola) com o valor da semana, o pagamento é conferido sozinho e o motorista recebe o recibo no WhatsApp. Você não precisa enviar Pix nem conferir comprovante. ${c.auto === 'asaas' ? 'Sem taxa até 100 Pix por mês.' : 'O PicPay cobra a taxa do seu contrato por Pix pago, e o motorista precisa ter CPF e e-mail na ficha.'}`
-                : `Toda <b>${dia}</b> (até 23:59) vence a cobrança. Pagamento manual: você envia o Pix e confere o comprovante, como hoje.`;
+                ? `Toda <b>${dia}</b> (até 23:59) vence a cobrança. 2 dias antes você recebe um lembrete para confirmar o valor. 1 dia antes o ${nome} cria o Pix (QR code e copia e cola) com o valor da semana, o pagamento é conferido sozinho e o motorista recebe o recibo no WhatsApp. Você não precisa enviar Pix nem conferir comprovante. ${c.auto === 'asaas' ? 'Sem taxa até 100 Pix por mês.' : 'O PicPay cobra a taxa do seu contrato por Pix pago, e o motorista precisa ter CPF e e-mail na ficha.'}`
+                : `Toda <b>${dia}</b> (até 23:59) vence a cobrança. 2 dias antes você recebe um lembrete com o valor. Pagamento manual: você envia o Pix e confere o comprovante, como hoje.`;
         }
         function cobResumoHtml(d) {
             const c = cobOf(d);

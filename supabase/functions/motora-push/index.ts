@@ -89,7 +89,7 @@ async function iaAtiva() { return (await setting("ia_whatsapp"))?.ativo !== fals
 // robô ligado e dando sinal de vida nos últimos 5 minutos
 async function roboFuncionando() {
   const r = await setting("whatsapp_robo");
-  return !!r?.ativo && !!r?.visto_em && Date.now() - new Date(String(r.visto_em)).getTime() < 5 * 60000;
+  return !!r?.ativo && r?.conectado !== false && !!r?.visto_em && Date.now() - new Date(String(r.visto_em)).getTime() < 5 * 60000;
 }
 
 // Mensagem padrão (usada se a IA não responder)
