@@ -5139,6 +5139,21 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             iaRows = error ? [] : (data || []);
             updateIABadge();
         }
+        // Área IA aberta: o robô pode enviar a qualquer momento. Atualiza a lista para ninguém enviar a mesma mensagem de novo à mão.
+        setInterval(async () => {
+            const box = document.getElementById('iaList');
+            if (!box || !box.offsetParent) return;
+            const abertas = iaRows.filter(r => r.status === 'pendente').map(r => r.id);
+            if (!abertas.length) return;
+            const { data, error } = await sb.from('whatsapp_queue').select('id, status, sent_at').in('id', abertas);
+            if (error || !data) return;
+            let mudou = false;
+            data.forEach(n => { const r = iaRows.find(x => x.id === n.id); if (r && r.status !== n.status) { Object.assign(r, n); mudou = true; } });
+            if (!mudou) return;
+            updateIABadge();
+            const f = document.activeElement;
+            if (!(f && f.id && f.id.indexOf('iaMsg_') === 0)) renderIA();
+        }, 5000);
         function updateIABadge() {
             const n = iaRows.filter(r => r.status === 'pendente' || r.status === 'aprovar').length;
             document.querySelectorAll('.iaBadge').forEach(b => { b.textContent = n > 99 ? '99+' : n; b.classList.toggle('hidden', !n); });
@@ -5358,6 +5373,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function iaSend(id, again, num) {
             const r = iaRows.find(x => x.id === id);
             if (!r) return;
+            if (!again && r.status !== 'pendente') { showToast('O robô já enviou esta mensagem.'); renderIA(); return; }
             const ta = document.getElementById('iaMsg_' + id);
             const text = ta ? ta.value : r.message;
             const dd = state.drivers.find(x => x.id === r.driver_id);

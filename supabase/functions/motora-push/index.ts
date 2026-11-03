@@ -112,6 +112,13 @@ function baseMessage(first: string, title: string, body: string, extra: string) 
   return `Olá, ${first}! 👋\n\n*${title}*\n${body}${extra ? "\n\n" + extra : ""}\n\nQualquer dúvida, estou à disposição.`;
 }
 
+function textoNovoPix(first: string, d: { pix_amount?: number | null; pix_description?: string | null; pix_link?: string | null; pix_code?: string | null }, vencimento: string) {
+  const itens = String(d.pix_description || "").split("\n").map((l) => l.trim()).filter((l) => l && !/^total\s*:/i.test(l));
+  const k = pixKey(d.pix_link ?? null);
+  const pagar = k ? `*Chave Pix (${k.type}):*\n${k.key}` : d.pix_code ? `*Pix copia e cola:*\n${d.pix_code}` : "*Como pagar:* veja o QR code na aba Pagamento do app.";
+  return [`Olá, ${first}! 👋`, "*Novo Pix disponível*", ...(itens.length ? [itens.join("\n")] : []), `*Total: ${brl(d.pix_amount)}*\n*Vencimento:* ${vencimento} até 23:59`, pagar, "Depois de pagar, envie o comprovante por aqui mesmo ou pelo app."].join("\n\n");
+}
+
 async function regrasDono() {
   const list = (await setting("ia_regras"))?.regras;
   return Array.isArray(list) ? list.filter((t) => typeof t === "string" && t.trim()).slice(0, 40) as string[] : [];
@@ -212,7 +219,7 @@ async function gerarPdfRecibo(nome: string, texto: string) {
   return await pdf.save();
 }
 
-async function queueWhatsApp(driverId: string, title: string, body: string, opts: { extra?: string; must?: string[]; tom?: string; avisarDono?: boolean } = {}) {
+async function queueWhatsApp(driverId: string, title: string, body: string, opts: { extra?: string; must?: string[]; tom?: string; avisarDono?: boolean; vencimento?: string } = {}) {
   try {
     const { data: d } = await admin.from("profiles").select("id, name, pix_amount, pix_link, pix_code, pix_description, pix_extra").eq("id", driverId).maybeSingle();
     if (!d) return null;
@@ -234,7 +241,8 @@ async function queueWhatsApp(driverId: string, title: string, body: string, opts
       if (rec) { lines.push(rec.extra); must.push(...rec.must); }
     }
     const extra = lines.join("\n");
-    let message = await iaEscreve(first, title, body, extra, opts.tom);
+    // Novo Pix: texto fixo e organizado, sem IA, com o código numa linha só dele para copiar
+    let message = opts.vencimento ? textoNovoPix(first, d, opts.vencimento) : await iaEscreve(first, title, body, extra, opts.tom);
     // se a IA esquecer ou mudar algum dado importante, usa a mensagem padrão
     const norm = (s: string) => s.replace(/\s/g, ""); // "R$ 650,00" com espaço comum ou especial
     if (!message || must.some((m) => !norm(message!).includes(norm(m)))) message = baseMessage(first, title, body, extra);
@@ -284,7 +292,7 @@ function textoBoasVindas(d: any, v: any, login: string, senha: string | null, pr
   return l.join("\n");
 }
 
-async function sendToDriver(driverId: string, payload: Record<string, string>, opts: { extra?: string; must?: string[]; tom?: string } = {}) {
+async function sendToDriver(driverId: string, payload: Record<string, string>, opts: { extra?: string; must?: string[]; tom?: string; vencimento?: string } = {}) {
   // devolução informada: nada vai ao motorista sem o dono aprovar; a notificação sai junto com a aprovação (aprovar_msg)
   const { data: p } = await admin.from("profiles").select("pix_extra").eq("id", driverId).maybeSingle();
   const sent = p?.pix_extra?.devolucao ? 0 : await sendTo([driverId], payload);
@@ -378,7 +386,7 @@ Deno.serve(async (req) => {
         title: "Novo Pix disponível",
         body: `Nova data de pagamento: ${fmtDue(d.pix_due_at)} até 23:59. Depois de pagar, envie o comprovante pelo app.`,
         url: "/?aba=pagamento",
-      });
+      }, { vencimento: fmtDue(d.pix_due_at) });
       return json({ sent });
     }
 
