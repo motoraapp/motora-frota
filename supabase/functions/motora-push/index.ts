@@ -216,9 +216,9 @@ function textoBoasVindas(d: any, v: any, login: string, senha: string | null, pr
   return l.join("\n");
 }
 
-async function sendToDriver(driverId: string, payload: Record<string, string>) {
+async function sendToDriver(driverId: string, payload: Record<string, string>, opts: { extra?: string; must?: string[]; tom?: string } = {}) {
   const sent = await sendTo([driverId], payload);
-  await queueWhatsApp(driverId, payload.title, payload.body);
+  await queueWhatsApp(driverId, payload.title, payload.body, opts);
   return sent;
 }
 
@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
         return json({ sent });
       }
       if (body.type === "driver_alert" && body.driver_id) {
-        const sent = await sendToDriver(String(body.driver_id), { title: String(body.title || "MOTORA"), body: String(body.body || ""), url: safeUrl(body.url) });
+        const sent = await sendToDriver(String(body.driver_id), { title: String(body.title || "MOTORA"), body: String(body.body || ""), url: safeUrl(body.url) }, { extra: body.extra ? String(body.extra) : undefined, must: Array.isArray(body.must) ? body.must.map(String) : undefined, tom: body.tom ? String(body.tom) : undefined });
         return json({ sent });
       }
       return json({ error: "tipo desconhecido" }, 400);

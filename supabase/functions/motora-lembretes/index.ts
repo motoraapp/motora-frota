@@ -84,7 +84,48 @@ async function avisoMotorista(d: Extra) {
   return { ...base, title: "Lembrete: seu Pix vence hoje", body: `Pagamento até hoje, 23:59.${d.pix_amount != null ? ` Valor: ${brl(d.pix_amount)}.` : ""}${comprovante}` };
 }
 
+// mesma distribuição do app (allocatePix): pagamentos aceitos quitam as cobranças da mais antiga para a mais nova
+function emAberto(cobrancas: Extra[], pagos: Extra[], agora: number) {
+  const ch = cobrancas.filter((h) => h.amount != null).sort((a, b) => +new Date(a.sent_at) - +new Date(b.sent_at)).map((h) => ({ due: h.due_at, rest: Number(h.amount) }));
+  for (const r of pagos.filter((x) => !x.rejected_at && (x.confirmed_at || x.ai_status === "ok")).sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at))) {
+    const lido = Number(r.ai_result?.valor);
+    let v = lido > 0 ? lido : (ch.find((c) => c.rest > 0.005)?.rest ?? 0);
+    for (const c of ch) { if (v <= 0.005) break; const m = Math.min(v, c.rest); c.rest -= m; v -= m; }
+  }
+  const venc = ch.filter((c) => c.rest > 0.005 && new Date(c.due).getTime() < agora);
+  return { total: Math.round(venc.reduce((t, c) => t + c.rest, 0) * 100) / 100, datas: venc.map((c) => new Date(c.due).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" })) };
+}
+
+// 3) MOTORISTA EM ATRASO: uma mensagem por dia (09:00) até regularizar. Não envia se há comprovante aguardando conferência.
+async function avisoAtraso(d: Extra) {
+  if (d.payment_status !== "Em atraso") return null;
+  const { data: cobs } = await admin.from("pix_history").select("amount, sent_at, due_at").eq("driver_id", d.id);
+  const { data: recs } = await admin.from("receipts").select("confirmed_at, rejected_at, ai_status, ai_result, created_at").eq("driver_id", d.id);
+  if ((recs ?? []).some((r) => !r.rejected_at && !r.confirmed_at && r.ai_status !== "ok")) return null;
+  const { total, datas } = emAberto(cobs ?? [], recs ?? [], Date.now());
+  if (!(total > 0)) return null;
+  const auto = d.asaas_auto_charge_enabled || d.picpay_auto_charge_enabled;
+  const chave = String(d.pix_link || "").match(/^chave:[^|]+\|(.*)$/)?.[1];
+  const pagar = chave ? `Chave Pix: ${chave}` : d.pix_code ? `Pix copia e cola: ${d.pix_code}` : "";
+  const must = [brl(total), ...(chave ? [chave] : d.pix_code ? [d.pix_code] : [])];
+  return {
+    type: "driver_alert", driver_id: d.id, url: "/?aba=pagamento", title: "Pagamento em atraso",
+    body: `Seu pagamento de ${brl(total)} está em atraso (vencimento: ${datas.join(", ")}). Regularize o quanto antes.${auto ? "" : " Depois de pagar, envie o comprovante pelo app."}`,
+    extra: pagar, must, tom: "firme, educada e respeitosa",
+  };
+}
+
 async function lembrar(simular: boolean, quem: string) {
+  if (quem === "atraso") {
+    const { data: lista } = await admin.from("profiles").select("*").eq("role", "driver").eq("payment_status", "Em atraso");
+    const avisos: Extra[] = [];
+    for (const d of lista ?? []) { try { const a = await avisoAtraso(d); if (a) avisos.push(a); } catch (e) { console.error("atraso", d.name, e); } }
+    if (!simular) {
+      const token = (await secret("cron_token")) || "";
+      for (const a of avisos) { try { await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-push`, { method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": token }, body: JSON.stringify(a) }); } catch (e) { console.error("aviso", e); } }
+    }
+    return avisos;
+  }
   const { data: lista } = await admin.from("profiles").select("*").eq("role", "driver");
   const avisos: Extra[] = [];
   for (const d of lista ?? []) {

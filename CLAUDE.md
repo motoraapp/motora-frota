@@ -85,6 +85,9 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Função `motora-lembretes` (crons 08:30 dono e 19:00 motorista; SQL em `supabase/2026-11-03-lembretes.sql`). **2 dias antes:** o dono recebe notificação com o valor previsto de cada motorista para confirmar; é só lembrete, o Pix automático sai mesmo sem resposta. **No dia do vencimento, às 19h, se não pago:** o motorista recebe notificação e WhatsApp; no Pix manual pede o comprovante, no Asaas/PicPay não.
 - Asaas e PicPay criam o Pix **1 dia antes** (não mais 3), às 08:00/08:05, e avisam o motorista por notificação e WhatsApp. O Pix manual continua sendo enviado pelo dono.
 
+## Mensagem de atraso (preparada em 03/11/2026; ainda não publicada)
+- `motora-lembretes` `quem=atraso` (cron `motora-lembretes-atraso`, 09:00; SQL em `supabase/2026-11-03-atraso.sql`): motorista "Em atraso" recebe por dia notificação e WhatsApp com valor em aberto, vencimentos e forma de pagar, até regularizar. Pede comprovante só no Pix manual. Não envia se há comprovante aguardando conferência.
+
 ## Ajustes da próxima cobrança (03/11/2026)
 - Ficha do motorista → "Desconto ou valor extra na próxima cobrança" (`pix_extra.ajustes` = `[{id,tipo,desc,valor}]`). Entram no Novo Pix (marcados), no Asaas/PicPay e na previsão (`previsaoProxima`, também na "Próxima semana" do motorista, que agora inclui multas pendentes). Saem da lista quando o Pix é criado. Motoristas abre primeiro, com o cartão "Próximas cobranças". Excluir um Pix não devolve o ajuste.
 
