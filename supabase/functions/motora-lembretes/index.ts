@@ -35,9 +35,9 @@ function proximoDia(dia: number) {
 function previsao(d: Extra, aluguel: number | null) {
   const ex: Extra = d.pix_extra || {};
   let total = aluguel != null ? Number(aluguel) : 0;
-  const cau = ex.caucao;
+  const cau = ex.devolucao ? null : ex.caucao;
   if (cau?.forma === "parcelada" && Number(cau.cobradas || 0) < Number(cau.parcelas || 0) && Number(cau.valor_parcela) > 0) total += Number(cau.valor_parcela);
-  if (ex.multas?.ativo) for (const i of ex.multas.itens || []) if (!i.cobrada && !i.paga) total += Number(i.valor || 0);
+  if (!ex.devolucao && ex.multas?.ativo) for (const i of ex.multas.itens || []) if (!i.cobrada && !i.paga) total += Number(i.valor || 0);
   if (ex.repetir && Number(ex.valor) > 0 && !(cau?.forma && /cau[çc][ãa]o/i.test(ex.descricao || ""))) {
     const m = String(ex.descricao || "").match(/(\d+)\s*\/\s*(\d+)/);
     if (!(ex.ultimo_enviado && m && Number(m[1]) + 1 > Number(m[2]))) total += Number(ex.valor);
@@ -49,10 +49,14 @@ function previsao(d: Extra, aluguel: number | null) {
 const formaAuto = (d: Extra) => d.picpay_auto_charge_enabled ? "PicPay" : d.asaas_auto_charge_enabled ? "Asaas" : "";
 
 async function avisoDono(d: Extra, aluguel: number | null) {
-  if (d.pix_extra?.sem_cobranca) return null; // motorista proprietário: o carro não gera aluguel
+  if (d.pix_extra?.sem_cobranca) return null; // motorista proprietário ou carro já devolvido: sem cobrança
   const dia = d.payment_day_of_week ?? 1;
   const venc = proximoDia(dia);
   if (venc.faltam !== 2) return null;
+  if (d.pix_extra?.devolucao) { // devolução informada: no máximo 2 cobranças dentro do prazo
+    const { count } = await admin.from("pix_history").select("id", { count: "exact", head: true }).eq("driver_id", d.id).gte("due_at", d.pix_extra.devolucao.informada_em);
+    if ((count ?? 0) >= 2 || venc.iso > d.pix_extra.devolucao.ate) return null;
+  }
   if (d.pix_due_at && diaBR(d.pix_due_at) === venc.iso) return null; // o Pix desse vencimento já existe
   const valor = previsao(d, aluguel);
   if (!d.vehicle_id && !(valor > 0)) return null; // sem carro e sem nada a cobrar: não há o que confirmar
@@ -69,6 +73,7 @@ async function avisoDono(d: Extra, aluguel: number | null) {
 }
 
 async function avisoMotorista(d: Extra) {
+  if (d.pix_extra?.sem_cobranca) return null;
   if (!d.pix_due_at || !d.pix_sent_at || diaBR(d.pix_due_at) !== hojeBR()) return null;
   const { data: cob } = await admin.from("pix_history").select("paid_at").eq("driver_id", d.id).eq("sent_at", d.pix_sent_at).maybeSingle();
   if (!cob || cob.paid_at) return null;
@@ -99,7 +104,7 @@ function emAberto(cobrancas: Extra[], pagos: Extra[], agora: number) {
 
 // 3) MOTORISTA EM ATRASO: uma mensagem por dia (09:00) até regularizar. Não envia se há comprovante aguardando conferência.
 async function avisoAtraso(d: Extra) {
-  if (d.payment_status !== "Em atraso") return null;
+  if (d.payment_status !== "Em atraso" || d.pix_extra?.sem_cobranca) return null;
   const { data: cobs } = await admin.from("pix_history").select("amount, sent_at, due_at").eq("driver_id", d.id);
   const { data: recs } = await admin.from("receipts").select("confirmed_at, rejected_at, ai_status, ai_result, created_at").eq("driver_id", d.id);
   if ((recs ?? []).some((r) => !r.rejected_at && !r.confirmed_at && r.ai_status !== "ok")) return null;

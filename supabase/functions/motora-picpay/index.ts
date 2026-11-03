@@ -103,18 +103,23 @@ async function cobrarMotorista(d: Extra) {
   const email = String(d.email || "").trim();
   if (cpf.length !== 11 || !email.includes("@")) throw new Error("A ficha do motorista precisa de CPF e e-mail para cobrar pelo PicPay.");
 
+  // devolução informada: no máximo 2 cobranças depois do aviso; caução e multas não entram (multas saem da caução)
+  if (ex.devolucao) {
+    const { count } = await admin.from("pix_history").select("id", { count: "exact", head: true }).eq("driver_id", d.id).gte("due_at", ex.devolucao.informada_em);
+    if ((count ?? 0) >= 2 || venc.iso > ex.devolucao.ate) return { motorista: d.name, pulou: "devolução: sem mais cobranças no prazo" };
+  }
   // ----- valores (mesma regra do Novo Pix e do Asaas) -----
   const { data: v } = d.vehicle_id ? await admin.from("vehicles").select("model, rent_amount").eq("id", d.vehicle_id).maybeSingle() : { data: null };
   const linhas: string[] = [];
   let total = 0;
   if (v?.rent_amount != null) { total += Number(v.rent_amount); linhas.push(`Aluguel do ${v.model}: ${brl(v.rent_amount)}`); }
-  const cau = ex.caucao;
+  const cau = ex.devolucao ? null : ex.caucao;
   let cauCobrada = false;
   if (cau?.forma === "parcelada" && Number(cau.cobradas || 0) < Number(cau.parcelas || 0) && Number(cau.valor_parcela) > 0) {
     total += Number(cau.valor_parcela); cauCobrada = true;
     linhas.push(`+ Caução ${Number(cau.cobradas || 0) + 1}/${cau.parcelas}: ${brl(cau.valor_parcela)}`);
   }
-  const multas = ex.multas?.ativo ? (ex.multas.itens || []).filter((i: Extra) => !i.cobrada && !i.paga) : [];
+  const multas = !ex.devolucao && ex.multas?.ativo ? (ex.multas.itens || []).filter((i: Extra) => !i.cobrada && !i.paga) : [];
   for (const i of multas) { total += Number(i.valor || 0); linhas.push(`+ ${i.desc}: ${brl(i.valor)}`); }
   let novoRepetir: Extra | null = null;
   if (ex.repetir && Number(ex.valor) > 0 && !(cau?.forma && /cau[çc][ãa]o/i.test(ex.descricao || ""))) {

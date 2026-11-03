@@ -860,6 +860,8 @@
                 </div>
                 <div><label for="dfObs" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Observação (só o dono vê)</label>
                     <input id="dfObs" type="text" maxlength="120" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                <!-- DEVOLUÇÃO DO VEÍCULO (profiles.pix_extra.devolucao): aviso de 15 dias, até 2 cobranças, recebimento e caução -->
+                <div id="dfDevBox" class="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/60 dark:bg-orange-900/10 p-3 space-y-3"></div>
                 <div class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 space-y-3">
                     <h4 class="font-semibold text-sm"><i class="fa-solid fa-calendar-day text-teal-600 mr-1"></i> Pagamento do motorista</h4>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Dia da semana do pagamento</label>
@@ -1633,6 +1635,7 @@
                 prof.payment_status = late ? 'Em atraso' : 'Em dia';
                 // caução, contatos e multas (para mostrar as funções novas)
                 if (d.caucao) prof.pix_extra = { caucao: { forma: 'parcelada', total: 200 + d.caucao * 100, entrada: 200, parcelas: d.caucao, valor_parcela: 100, cobradas: Math.min(d.caucao, d.weeks) } };
+                if (d.id === 'demo-d2') prof.pix_extra = { ...(prof.pix_extra || {}), devolucao: { informada_em: new Date(Date.now() - 2 * 86400000).toISOString(), ate: new Date(Date.now() + 13 * 86400000).toLocaleDateString('sv-SE') } };
                 if (d.id === 'demo-d1') prof.pix_extra = { ajustes: [{ id: 'aj-demo', tipo: 'desconto', desc: 'Troca de óleo paga pelo motorista', valor: 80 }], caucao: { forma: 'paga', total: 1000 }, multas: { ativo: true, itens: [
                     { id: 'm-demo1', desc: 'Multa de trânsito', valor: 130.16, data: demoDay(ago(50)), cobrada: demoDay(now - 7 * 6 * 86400000 - 86400000), paga: true },
                     { id: 'm-demo2', desc: 'Multa de estacionamento', valor: 88.38, data: demoDay(ago(3)), cobrada: null, paga: false } ] } };
@@ -1893,6 +1896,12 @@
                 const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) throw new Error('motorista não encontrado');
                 DEMO.db.pix_history = DEMO.db.pix_history.filter(h => !(h.driver_id === p_driver && h.sent_at === d.pix_sent_at && !h.paid_at));
                 Object.assign(d, { pix_code: null, pix_qr_path: null, pix_link: null, pix_amount: null, pix_description: null, pix_sent_at: null, pix_due_at: null });
+            },
+            master_confirmar_devolucao({ p_driver, p_caucao_pago, p_descontos, p_data }) {
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) return;
+                const v = DEMO.db.vehicles.find(x => x.id === d.vehicle_id);
+                d.pix_extra = { ...(d.pix_extra || {}), sem_cobranca: true, devolucao: { ...d.pix_extra.devolucao, recebido_em: new Date().toISOString(), veiculo: v ? `${v.model} (${v.plate})` : '', caucao_pago: p_caucao_pago, descontos: p_descontos, caucao_devolver: Math.max(0, p_caucao_pago - p_descontos), caucao_ate: p_data } };
+                d.vehicle_id = null;
             },
             master_create_driver({ p_email, p_name, p_vehicle, p_pix_code }) {
                 const id = demoId();
@@ -2969,7 +2978,7 @@
             } else {
                 vehTbody.innerHTML = state.vehicles.map(v => `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                        <td class="p-3 font-semibold">${esc(v.model)}</td>
+                        <td class="p-3 font-semibold">${esc(v.model)}${state.drivers.some(d => d.vehicle_id === v.id) ? '' : ' <span class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 whitespace-nowrap">Disponível</span>'}</td>
                         <td class="p-3">${esc(v.plate)}</td>
                         <td class="p-3"><button onclick="editVehicleRent('${v.id}')" class="text-sm font-semibold ${v.rent_amount != null ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600'}"><i class="fa-solid fa-pen-to-square mr-1 text-xs"></i>${v.rent_amount != null ? fmtMoney(v.rent_amount) : 'Definir valor'}</button></td>
                         <td class="p-3">
@@ -3547,7 +3556,7 @@
             if (!d) return;
             fileDriverId = id;
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
-            dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender();
+            dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender(); dfDevEtapa = ''; dfDevRender();
             document.getElementById('dfObs').value = (d.pix_extra && d.pix_extra.observacao) || '';
             { const m2 = (d.pix_extra && d.pix_extra.motorista2) || {}; document.getElementById('dfM2Nome').value = m2.nome || ''; document.getElementById('dfM2Fone').value = m2.whatsapp || ''; }
             document.getElementById('dfTitleName').innerText = d.name || '';
@@ -4190,6 +4199,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function openNewPix(id) {
             const d = state.drivers.find(x => x.id === id);
             if (!d) return;
+            if (devOf(d) && (devOf(d).recebido_em || devPrevisao(d).itens.length === 0)) { showToast(devOf(d).recebido_em ? 'Este motorista já devolveu o carro: sem novas cobranças.' : 'Devolução: não há mais cobranças até o fim do prazo.', 'error'); return; }
             document.getElementById('newPixDriverId').value = id;
             document.getElementById('newPixMode').value = 'new';
             document.getElementById('newPixTitle').innerText = 'Enviar novo Pix';
@@ -4213,7 +4223,70 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         }
         // ===== CAUÇÃO DO MOTORISTA =====
         function cauOf(d) { const c = d && d.pix_extra && d.pix_extra.caucao; return c && c.forma ? c : null; }
+        // ===== DEVOLUÇÃO DO VEÍCULO: aviso com 15 dias, no máximo 2 aluguéis depois do aviso; caução e multas não são mais cobradas =====
+        function devOf(d) { return (d && d.pix_extra && d.pix_extra.devolucao) || null; }
+        function devCobrancas(d) { const dev = devOf(d); return dev ? (state.pixHistory || []).filter(h => h.driver_id === d.id && h.due_at && new Date(h.due_at) >= new Date(dev.informada_em)).length : 0; }
+        // próximos pagamentos que ainda faltam (nunca mais que 2 no total)
+        function devPrevisao(d) {
+            const dev = devOf(d); if (!dev || dev.recebido_em) return { itens: [], total: 0 };
+            const v = allVeh().find(x => x.id === d.vehicle_id), aluguel = v && v.rent_amount != null ? Number(v.rent_amount) : 0, itens = [];
+            const prim = mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia);
+            for (let i = 0; i < Math.max(0, 2 - devCobrancas(d)); i++) { const dt = new Date(prim); dt.setDate(prim.getDate() + i * 7); if (dt.toLocaleDateString('sv-SE') <= dev.ate) itens.push({ data: dt, valor: aluguel }); }
+            return { itens, total: itens.reduce((t, x) => t + x.valor, 0) };
+        }
+        let dfDevEtapa = '';
+        function dfDevRender() {
+            const box = document.getElementById('dfDevBox'), d = state.drivers.find(x => x.id === fileDriverId); if (!box || !d) return;
+            const dev = devOf(d), tit = '<h4 class="font-semibold text-sm"><i class="fa-solid fa-car-side text-orange-600 mr-1"></i> Devolução do veículo</h4>';
+            const btn = (cor, fn, txt) => `<button type="button" onclick="${fn}" class="text-xs font-semibold ${cor} px-3 py-2 rounded-lg">${txt}</button>`;
+            if (!dev) {
+                const ate = new Date(); ate.setDate(ate.getDate() + 15);
+                box.innerHTML = tit + (dfDevEtapa === 'avisar'
+                    ? `<p class="text-sm">Confirmar que ${esc(d.name)} avisou hoje? O prazo vai até <b>${ate.toLocaleDateString('pt-BR')}</b>, com no máximo 2 aluguéis. Caução parcelada e multas deixam de ser cobradas.</p><div class="flex flex-wrap gap-2">${btn('bg-orange-600 text-white', 'dfDevAvisar()', 'Sim, confirmar aviso')}${btn('bg-gray-200 dark:bg-gray-600', "dfDevIr('')", 'Cancelar')}</div>`
+                    : btn('bg-orange-600 hover:bg-orange-700 text-white', "dfDevIr('avisar')", 'Motorista informou a devolução'));
+                return;
+            }
+            if (dev.recebido_em) {
+                box.innerHTML = tit + `<p class="text-sm">Carro recebido em <b>${fmtDate(dev.recebido_em)}</b>${dev.veiculo ? ' · ' + esc(dev.veiculo) : ''}. Sem novas cobranças.</p>` + (Number(dev.caucao_pago) > 0 ? `<p class="text-sm">Caução a devolver: <b>${fmtMoney(dev.caucao_devolver)}</b> até <b>${fmtDate(dev.caucao_ate)}</b>${Number(dev.descontos) > 0 ? ` (descontados ${fmtMoney(dev.descontos)})` : ''}.</p>` : '');
+                return;
+            }
+            const p = devPrevisao(d), st = cauStatus(d, state.pixHistory), pago = st ? st.pago : 0, mult = multasAbertas(d).reduce((t, i) => t + Number(i.valor || 0), 0), dev2 = Math.max(0, pago - mult), at = atrasoDados(d.id);
+            const resumo = `<p class="text-sm">Avisou em <b>${fmtDate(dev.informada_em)}</b>. Prazo até <b>${fmtDate(dev.ate)}</b>. Cobranças dentro do prazo: <b>${devCobrancas(d)} de 2</b>.</p>` + (p.itens.length ? p.itens.map(i => `<div class="flex justify-between text-sm"><span>${i.data.toLocaleDateString('pt-BR')}</span><b>${fmtMoney(i.valor)}</b></div>`).join('') + `<div class="flex justify-between text-sm font-bold border-t border-orange-200 dark:border-orange-800 pt-1"><span>Total previsto</span><span>${fmtMoney(p.total)}</span></div>` : '<p class="text-xs text-gray-500">Não há mais cobranças até o fim do prazo.</p>');
+            if (dfDevEtapa === 'receber') {
+                const dt = new Date(); dt.setDate(dt.getDate() + 30);
+                box.innerHTML = tit + resumo + `<div class="text-sm space-y-1 border-t border-orange-200 dark:border-orange-800 pt-2"><p>Caução paga: <b>${fmtMoney(pago)}</b></p>${mult > 0 ? `<p>Multas a descontar: <b>${fmtMoney(mult)}</b></p>` : ''}<p>A devolver: <b>${fmtMoney(dev2)}</b></p>${at.total > 0 ? `<p class="text-red-600 font-semibold">Atenção: ${fmtMoney(at.total)} de aluguel em aberto. Depois de confirmar, ele não recebe mais cobranças.</p>` : ''}</div>
+                    <div><label for="dfDevData" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data máxima para devolver a caução</label><input id="dfDevData" type="date" value="${dt.toLocaleDateString('sv-SE')}" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <p class="text-xs text-gray-500">O carro fica disponível, o motorista recebe a mensagem no WhatsApp e continua vendo documentos e recibos.</p>
+                    <div class="flex flex-wrap gap-2">${btn('bg-emerald-600 text-white', 'dfDevReceber(this)', 'Confirmar: recebi o carro')}${btn('bg-gray-200 dark:bg-gray-600', "dfDevIr('')", 'Voltar')}</div>`;
+                return;
+            }
+            box.innerHTML = tit + resumo + `<div class="flex flex-wrap gap-2">${btn('bg-emerald-600 hover:bg-emerald-700 text-white', "dfDevIr('receber')", 'Recebi o carro')}${btn('bg-gray-200 dark:bg-gray-600', 'dfDevDesfazer()', 'Desfazer aviso')}</div>`;
+        }
+        function dfDevIr(e) { dfDevEtapa = e; dfDevRender(); }
+        async function dfDevSalvar(extra) {
+            const { error } = await sb.from('profiles').update({ pix_extra: extra }).eq('id', fileDriverId);
+            if (error) { showToast(friendlyError(error), 'error'); return false; }
+            await reload(); dfDevEtapa = ''; dfDevRender(); return true;
+        }
+        async function dfDevAvisar() {
+            const d = state.drivers.find(x => x.id === fileDriverId), ate = new Date(); ate.setDate(ate.getDate() + 15);
+            if (await dfDevSalvar({ ...(d.pix_extra || {}), devolucao: { informada_em: new Date().toISOString(), ate: ate.toLocaleDateString('sv-SE') } })) showToast('Devolução registrada.');
+        }
+        async function dfDevDesfazer() {
+            const d = state.drivers.find(x => x.id === fileDriverId), ex = { ...(d.pix_extra || {}) }; delete ex.devolucao;
+            if (await dfDevSalvar(ex)) showToast('Aviso de devolução desfeito.');
+        }
+        async function dfDevReceber(b) {
+            const d = state.drivers.find(x => x.id === fileDriverId), data = document.getElementById('dfDevData').value;
+            if (!data) { showToast('Informe a data máxima da caução.', 'error'); return; }
+            const st = cauStatus(d, state.pixHistory), mult = multasAbertas(d).reduce((t, i) => t + Number(i.valor || 0), 0);
+            b.disabled = true;
+            const { error } = await sb.rpc('master_confirmar_devolucao', { p_driver: d.id, p_caucao_pago: st ? st.pago : 0, p_descontos: mult, p_data: data });
+            if (error) { b.disabled = false; showToast(friendlyError(error), 'error'); return; }
+            await reload(); dfDevEtapa = ''; dfDevRender(); showToast('Carro recebido. O veículo está disponível.');
+        }
         function cauNext(d) { // próxima parcela a cobrar, ou null
+            if (devOf(d)) return null;
             const c = cauOf(d);
             if (!c || c.forma !== 'parcelada' || !(c.parcelas > 0) || !(c.valor_parcela > 0)) return null;
             const k = (c.cobradas || 0) + 1;
@@ -4271,7 +4344,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const pago = Math.min(total || Infinity, Number(c.entrada || 0) + pagas * Number(c.valor_parcela || 0));
             return { c, total, pago, falta: Math.max(0, total - pago), pagas };
         }
-        function obsResumoHtml(d) { const o = d.pix_extra && d.pix_extra.observacao, m2 = d.pix_extra && d.pix_extra.motorista2; return (o ? `<div class="mt-1 text-xs font-bold text-indigo-700 dark:text-indigo-300"><i class="fa-solid fa-note-sticky mr-1"></i>${esc(o)}</div>` : '') + (m2 ? `<div class="mt-1 text-xs font-normal text-gray-600 dark:text-gray-300"><i class="fa-brands fa-whatsapp mr-1"></i>2º motorista: ${esc(m2.nome)} · ${esc(m2.whatsapp)}</div>` : ''); }
+        function obsResumoHtml(d) { const o = d.pix_extra && d.pix_extra.observacao, m2 = d.pix_extra && d.pix_extra.motorista2, dv = devOf(d); return (dv ? `<div class="mt-1 text-xs font-bold text-orange-700 dark:text-orange-300"><i class="fa-solid fa-car-side mr-1"></i>${dv.recebido_em ? 'Carro devolvido em ' + fmtDate(dv.recebido_em) : 'Devolução até ' + fmtDate(dv.ate)}</div>` : '') + (o ? `<div class="mt-1 text-xs font-bold text-indigo-700 dark:text-indigo-300"><i class="fa-solid fa-note-sticky mr-1"></i>${esc(o)}</div>` : '') + (m2 ? `<div class="mt-1 text-xs font-normal text-gray-600 dark:text-gray-300"><i class="fa-brands fa-whatsapp mr-1"></i>2º motorista: ${esc(m2.nome)} · ${esc(m2.whatsapp)}</div>` : ''); }
         function cauResumoHtml(d) {
             const st = cauStatus(d); if (!st) return '';
             const ok = st.falta <= 0.005;
@@ -4285,7 +4358,8 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             if (!i.cobrada) return false;
             return (hist || state.pixHistory || []).some(h => h.driver_id === d.id && h.paid_at && dayBR(h.sent_at) === i.cobrada && String(h.description || '').includes(i.desc));
         }
-        function multasPendentes(d) { const m = multasOf(d); return m ? (m.itens || []).filter(i => !i.cobrada && !i.paga) : []; }
+        function multasAbertas(d) { const m = multasOf(d); return m ? (m.itens || []).filter(i => !i.cobrada && !i.paga) : []; }
+        function multasPendentes(d) { return devOf(d) ? [] : multasAbertas(d); } // na devolução, multa sai da caução
         function multasResumoHtml(d) {
             const m = multasOf(d); if (!m) return '';
             const pend = (m.itens || []).filter(i => !multaPagaAuto(d, i)), tot = pend.reduce((a, i) => a + Number(i.valor || 0), 0);
@@ -4463,8 +4537,17 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${c.parcelas}x de ${fmtMoney(c.valor_parcela)} · ${st.pagas || 0} parcela(s) paga(s)</p>` : ''}
                 </div></div>`);
             }
+            const dv = devOf(d);
+            if (dv) {
+                const pv = devPrevisao(d);
+                cards.push(`<div class="p-4 rounded-2xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 space-y-2">
+                    ${dobraTopo('drvDobraDevolucao', 'text-orange-700 dark:text-orange-300', 'fa-solid fa-car-side', 'Devolução do carro')}
+                    ${dv.recebido_em ? `<p class="text-sm">Carro recebido em <b>${fmtDate(dv.recebido_em)}</b>. Você não receberá mais cobranças.</p>${Number(dv.caucao_pago) > 0 ? `<p class="text-sm">Caução a devolver: <b>${fmtMoney(dv.caucao_devolver)}</b> até <b>${fmtDate(dv.caucao_ate)}</b>.</p>` : ''}`
+                    : `<p class="text-sm">Prazo para devolver: <b>${fmtDate(dv.ate)}</b></p>${pv.itens.length ? pv.itens.map(i => `<div class="flex justify-between gap-3 text-sm"><span>Pagamento até ${i.data.toLocaleDateString('pt-BR')}, 23:59</span><b class="whitespace-nowrap">${fmtMoney(i.valor)}</b></div>`).join('') + `<div class="flex justify-between gap-3 text-sm font-bold border-t border-orange-200 dark:border-orange-800 pt-1.5"><span>Total previsto</span><span>${fmtMoney(pv.total)}</span></div>` : '<p class="text-sm">Os pagamentos do prazo já foram cobrados.</p>'}<p class="text-[11px] text-gray-500 dark:text-gray-400">O pagamento é adiantado. A caução é devolvida depois da entrega do carro, descontadas eventuais multas ou danos.</p>`}
+                </div></div>`);
+            }
             // PRÓXIMA SEMANA: só quando está em dia
-            if (d.payment_status !== 'Em atraso') {
+            if (d.payment_status !== 'Em atraso' && !dv && !(d.pix_extra && d.pix_extra.sem_cobranca)) {
                 const venc = mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia);
                 const v = allVeh().find(x => x.id === d.vehicle_id);
                 const { linhas, total } = previsaoProxima(d);
