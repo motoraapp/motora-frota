@@ -75,3 +75,6 @@ end $$;
 revoke all on function public.robo_decidir_comprovante(uuid, boolean, text) from public, anon, authenticated;
 grant execute on function public.robo_decidir_comprovante(uuid, boolean, text) to service_role;
 revoke all on function public.receipt_avisa_dono() from public, anon, authenticated;
+
+-- Lembrete de ganhos: uma vez por dia, às 20:30 de Brasília (já aplicado em 03/11/2026)
+-- select cron.alter_job(4, schedule := '30 23 * * *');

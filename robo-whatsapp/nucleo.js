@@ -70,7 +70,7 @@ export function abrirConteudo(c) {
 }
 const numeroDoJid = (jid) => String(jid).split('@')[0].split(':')[0];
 
-export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn = (...a) => fetch(...a), pastaBase, relogio = relogioReal, aleatorio = Math.random, log: logExterno }) {
+export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn = (...a) => fetch(...a), pastaBase, relogio = relogioReal, aleatorio = Math.random, log: logExterno, aoReiniciar = null }) {
   const BASE = pastaBase || path.join(os.tmpdir(), 'motora-robo'); // no Hostless só a pasta temporária aceita gravar
   const PASTA = path.join(BASE, 'sessao');
   const hora = () => new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
@@ -363,10 +363,23 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     catch (e) { log('Mensagem enviada, mas ainda não consegui marcar:', e.message); return false; }
   }
 
+  // reinício remoto: guarda o 1º valor visto; se mudar depois, o dono pediu para reiniciar (assim não repete a cada ligada)
+  let reinicioVisto, reiniciando = false;
+  function verReinicio(resp) {
+    if (!resp || !('reiniciar_em' in resp) || reiniciando) return false;
+    if (reinicioVisto === undefined) { reinicioVisto = resp.reiniciar_em; return false; }
+    if (resp.reiniciar_em === reinicioVisto) return false;
+    reiniciando = true;
+    log('Reinício pedido pelo MOTORA: religando o robô.');
+    if (aoReiniciar) aoReiniciar();
+    return true;
+  }
+
   // sem WhatsApp há mais de 10 min: avisa o dono uma vez por mensagem (ela segue no botão Enviar da Área IA)
   async function sinalDeVida() {
     if (conectado) return;
     const resp = await motora('pendentes');
+    if (verReinicio(resp)) return;
     if (desconectadoDesde === null || relogio.agora() - desconectadoDesde < 10 * MIN) return;
     if (!resp.ativo || !resp.mensagens) return;
     for (const m of resp.mensagens) {
@@ -380,6 +393,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     if (!conectado || !sock) return;
     let resp;
     try { resp = await motora('pendentes'); } catch (e) { log('Sem conexão com o MOTORA:', e.message); return; }
+    if (verReinicio(resp)) return;
     if (!resp.ativo || !resp.mensagens || !resp.mensagens.length) return;
     for (const m of resp.mensagens) {
       if (!conectado || !sock) return; // caiu no meio: a mensagem fica para a próxima rodada, sem contar falha

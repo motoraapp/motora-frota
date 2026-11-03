@@ -48,7 +48,8 @@ Deno.serve(async (req) => {
     if (body.acao === "pendentes") {
       // sinal de vida: o app mostra "Robô funcionando agora"
       await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: { ...cfg, visto_em: new Date().toISOString() }, updated_at: new Date().toISOString() });
-      if (!cfg.ativo) return json({ ativo: false, mensagens: [] });
+      const reiniciar_em = (cfg as { reiniciar_em?: string }).reiniciar_em || null; // pedido de reinício do robô
+      if (!cfg.ativo) return json({ ativo: false, mensagens: [], reiniciar_em });
       const desde = cfg.ativado_em || new Date().toISOString();
       const { data: fila } = await admin.from("whatsapp_queue").select("id, driver_id, title, message, created_at, arquivo_path")
         .eq("status", "pendente").gte("created_at", desde).order("created_at").limit(5);
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
         const pdf = m.arquivo_path ? (await admin.storage.from("docs").createSignedUrl(m.arquivo_path, 3600)).data?.signedUrl : null;
         return { id: m.id, nome: p?.name || "", telefones: [p?.phone, p?.phone2].filter(Boolean), texto: m.message, excluido: p?.role === "excluido", pdf_url: pdf || null };
       }))).filter((m) => !m.excluido);
-      return json({ ativo: true, mensagens: [...doDono, ...mensagens] });
+      return json({ ativo: true, mensagens: [...doDono, ...mensagens], reiniciar_em });
     }
 
     if (body.acao === "enviada" && body.id) {

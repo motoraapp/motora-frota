@@ -20,6 +20,8 @@ const robo = criarRobo({
   qrcode: QRCode,
   chave,
   porta: process.env.PORT || 8080,
+  // o LIGAR-ROBO.bat (ou o Hostless) liga de novo, já com os arquivos novos
+  aoReiniciar: () => { robo.encerrar().finally(() => process.exit(0)); },
 });
 process.on('SIGTERM', () => { robo.encerrar().finally(() => process.exit(0)); });
 robo.iniciar();

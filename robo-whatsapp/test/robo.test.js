@@ -556,3 +556,17 @@ test('só foto e PDF viram comprovante', () => {
   assert.equal(extensao('image/jpeg'), 'jpg'); assert.equal(extensao('application/pdf'), 'pdf'); assert.equal(extensao('image/png; x'), 'png');
   assert.equal(extensao('video/mp4'), null); assert.equal(extensao('application/x-msdownload'), null);
 });
+test('reinício remoto: só quando o pedido muda depois de ligar', async () => {
+  const t = montar(); let reinicios = 0;
+  const r = criarRobo({ logger: {}, qrcode: {}, chave: 'k', fetchFn: async () => ({ status: 200, ok: true, json: async () => r.__resp }), pastaBase: t.robo.PASTA + '-r', relogio: t.relogio, aoReiniciar: () => { reinicios++; } });
+  fs.mkdirSync(r.PASTA, { recursive: true });
+  r.__resp = { ativo: false, mensagens: [], reiniciar_em: 'A' }; await r.sinalDeVida(); assert.equal(reinicios, 0);
+  await r.sinalDeVida(); assert.equal(reinicios, 0);
+  r.__resp = { ativo: false, mensagens: [], reiniciar_em: 'B' }; await r.sinalDeVida(); assert.equal(reinicios, 1);
+  await r.sinalDeVida(); assert.equal(reinicios, 1);
+});
+test('reinício remoto: função antiga sem o campo não reinicia', async () => {
+  const t = montar(); let reinicios = 0;
+  const r = criarRobo({ logger: {}, qrcode: {}, chave: 'k', fetchFn: async () => ({ status: 200, ok: true, json: async () => ({ ativo: false, mensagens: [] }) }), pastaBase: t.robo.PASTA + '-s', relogio: t.relogio, aoReiniciar: () => { reinicios++; } });
+  await r.sinalDeVida(); await r.sinalDeVida(); assert.equal(reinicios, 0);
+});
