@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, extensao } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao } from '../../supabase/functions/motora-robo/comandos.ts';
 import { criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
 const CREDS = '{"account":{},"me":{"id":"x"}}';
@@ -545,13 +545,33 @@ test('telefone: 9º dígito e 55 não atrapalham', () => {
   assert.equal(k, chaveFone('5562992661879')); assert.equal(k, chaveFone('556292661879'));
   assert.notEqual(k, chaveFone('63992661879')); assert.equal(chaveFone('123'), null); assert.equal(chaveFone(null), null);
 });
-test('comando do dono só com palavra e código', () => {
-  assert.deepEqual(lerComando(' *confirmar 1234* '), { confirmar: true, codigo: '1234', motivo: '' });
-  assert.deepEqual(lerComando('RECUSAR 0042 valor errado'), { confirmar: false, codigo: '0042', motivo: 'valor errado' });
-  assert.equal(lerComando('confirmar'), 'ajuda'); assert.equal(lerComando('Confirmar 12'), 'ajuda');
-  assert.equal(lerComando('ok'), null); assert.equal(lerComando('vou confirmar 1234 depois'), null);
-  assert.equal(lerComando('confirmar 12345'), 'ajuda');
+test('comando do dono começa com a palavra', () => {
+  assert.deepEqual(lerComando(' *confirmar* '), { confirmar: true, resto: '' });
+  assert.deepEqual(lerComando('RECUSAR valor errado'), { confirmar: false, resto: 'valor errado' });
+  assert.equal(lerComando('ok'), null); assert.equal(lerComando('vou confirmar depois'), null); assert.equal(lerComando('confirmarei'), null);
 });
+const A = { id: 'a', nome: 'Soyer Marshall Alves' }, B = { id: 'b', nome: 'Argélia Carla' }, C = { id: 'c', nome: 'Soyer Pereira' };
+test('um comprovante aberto: CONFIRMAR sozinho decide', () => {
+  assert.equal(escolher([A], { confirmar: true, resto: '' }).id, 'a');
+  assert.equal(escolher([A], { confirmar: true, resto: 'soyer' }).id, 'a');
+});
+test('um aberto, mas outro nome: não confirma o motorista errado', () => {
+  assert.match(escolher([A], { confirmar: true, resto: 'Argelia' }).resposta, /é de Soyer/);
+});
+test('recusar com motivo, com e sem nome', () => {
+  assert.deepEqual(escolher([A], { confirmar: false, resto: 'valor errado' }), { id: 'a', nome: A.nome, motivo: 'valor errado' });
+  assert.deepEqual(escolher([A, B], { confirmar: false, resto: 'Soyer valor errado' }), { id: 'a', nome: A.nome, motivo: 'valor errado' });
+});
+test('vários abertos: exige o nome e aceita sem acento', () => {
+  assert.match(escolher([A, B], { confirmar: true, resto: '' }).resposta, /CONFIRMAR Soyer[\s\S]*CONFIRMAR Argélia/);
+  assert.equal(escolher([A, B], { confirmar: true, resto: 'argelia' }).id, 'b');
+});
+test('nome repetido ou dois do mesmo motorista: não adivinha', () => {
+  assert.match(escolher([A, C], { confirmar: true, resto: 'Soyer' }).resposta, /nome completo/);
+  assert.equal(escolher([A, C], { confirmar: true, resto: 'Soyer Pereira' }).id, 'c');
+  assert.match(escolher([A, { ...A, id: 'a2' }], { confirmar: true, resto: 'Soyer' }).resposta, /2 comprovantes/);
+});
+test('nenhum aberto: avisa', () => { assert.match(escolher([], { confirmar: true, resto: '' }).resposta, /Não há/); });
 test('só foto e PDF viram comprovante', () => {
   assert.equal(extensao('image/jpeg'), 'jpg'); assert.equal(extensao('application/pdf'), 'pdf'); assert.equal(extensao('image/png; x'), 'png');
   assert.equal(extensao('video/mp4'), null); assert.equal(extensao('application/x-msdownload'), null);

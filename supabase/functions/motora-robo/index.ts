@@ -5,10 +5,10 @@
 //   acao "pendentes": devolve até 5 mensagens para enviar (só se o envio automático estiver ligado)
 //   acao "enviada":   marca a mensagem como enviada
 //   acao "falhou":    avisa o dono que uma mensagem não foi (ela continua no botão Enviar da Área IA)
-//   acao "mensagem":  texto recebido; do dono, CONFIRMAR/RECUSAR + código decide o comprovante
+//   acao "mensagem":  texto recebido; do dono, CONFIRMAR/RECUSAR decide o comprovante
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveFone, extensao, lerComando } from "./comandos.ts";
+import { chaveFone, escolher, extensao, lerComando } from "./comandos.ts";
 
 function serviceKey() {
   const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -96,20 +96,23 @@ Deno.serve(async (req) => {
       if (!(await ehDono(body.telefone))) return json({ resposta: null }); // só o número do dono dá ordens
       const c = lerComando(body.texto);
       if (!c) return json({ resposta: null });
-      if (c === "ajuda") return json({ resposta: "Use a palavra e o código do comprovante. Exemplo: CONFIRMAR 1234 ou RECUSAR 1234 valor errado" });
-      const { data: linha } = await admin.from("whatsapp_dono").select("id, receipt_id").eq("codigo", c.codigo).neq("status", "decidido").order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (!linha?.receipt_id) return json({ resposta: `Não achei comprovante aberto com o código ${c.codigo}.` });
-      const { data: res, error } = await admin.rpc("robo_decidir_comprovante", { p_receipt: linha.receipt_id, p_confirmar: c.confirmar, p_motivo: c.motivo || null });
+      // abertos: já enviados ao dono e ainda sem decisão (quem decidiu pelo app sai da lista)
+      const { data: linhas } = await admin.from("whatsapp_dono").select("id, receipt_id, receipts!inner(driver_id, confirmed_at, rejected_at)").eq("status", "enviada").not("receipt_id", "is", null);
+      const vivos = (linhas ?? []).filter((l) => { const r = l.receipts as unknown as { confirmed_at: string | null; rejected_at: string | null }; return !r.confirmed_at && !r.rejected_at; });
+      const ids = vivos.map((l) => (l.receipts as unknown as { driver_id: string }).driver_id);
+      const { data: pessoas } = ids.length ? await admin.from("profiles").select("id, name").in("id", ids) : { data: [] };
+      const abertos = vivos.map((l) => ({ id: l.id as string, receipt: l.receipt_id as string, nome: (pessoas ?? []).find((p) => p.id === (l.receipts as unknown as { driver_id: string }).driver_id)?.name || "motorista" }));
+      const e = escolher(abertos, c);
+      if ("resposta" in e) return json({ resposta: e.resposta });
+      const linha = abertos.find((a) => a.id === e.id)!;
+      const { data: res, error } = await admin.rpc("robo_decidir_comprovante", { p_receipt: linha.receipt, p_confirmar: c.confirmar, p_motivo: e.motivo || null });
       if (error) { console.error(error); return json({ resposta: "Não consegui registrar agora. Tente de novo em instantes ou decida pelo app." }); }
       await admin.from("whatsapp_dono").update({ status: "decidido" }).eq("id", linha.id);
-      const { data: rec } = await admin.from("receipts").select("driver_id").eq("id", linha.receipt_id).maybeSingle();
-      const { data: pes } = rec ? await admin.from("profiles").select("name").eq("id", rec.driver_id).maybeSingle() : { data: null };
-      const quem = pes?.name || "o motorista";
       const textos: Record<string, string> = {
-        confirmado: `✅ Comprovante de ${quem} confirmado. O motorista será avisado.`,
-        recusado: `❌ Comprovante de ${quem} recusado. O motorista será avisado.`,
-        ja_confirmado: `Esse comprovante de ${quem} já estava confirmado.`,
-        ja_recusado: `Esse comprovante de ${quem} já estava recusado. Para mudar, use o app.`,
+        confirmado: `✅ Comprovante de ${e.nome} confirmado. O motorista será avisado.`,
+        recusado: `❌ Comprovante de ${e.nome} recusado. O motorista será avisado.`,
+        ja_confirmado: `Esse comprovante de ${e.nome} já estava confirmado.`,
+        ja_recusado: `Esse comprovante de ${e.nome} já estava recusado. Para mudar, use o app.`,
       };
       return json({ resposta: textos[String(res)] || "Comprovante não encontrado." });
     }

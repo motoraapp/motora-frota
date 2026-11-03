@@ -17,7 +17,7 @@ create unique index if not exists whatsapp_dono_codigo on public.whatsapp_dono (
 
 create or replace function public.receipt_avisa_dono() returns trigger
 language plpgsql security definer set search_path = public as $$
-declare v_nome text; v_cod text; v_valor text; v_probs text; v_ia text; i int := 0;
+declare v_nome text; v_valor text; v_probs text; v_ia text;
 begin
   if old.ai_status is not null or new.ai_status is null or new.confirmed_at is not null or new.rejected_at is not null then return new; end if;
   if exists (select 1 from whatsapp_dono where receipt_id = new.id) then return new; end if;
@@ -28,15 +28,10 @@ begin
   v_ia := case new.ai_status when 'ok' then '✅ A IA conferiu: os dados batem.'
     when 'alerta' then E'⚠️ A IA encontrou problemas:\n' || coalesce(v_probs, '')
     else '⚠️ A IA não conseguiu ler. Confira o arquivo.' end;
-  loop
-    v_cod := lpad((floor(random() * 10000))::int::text, 4, '0');
-    exit when not exists (select 1 from whatsapp_dono where codigo = v_cod and status <> 'decidido');
-    i := i + 1; if i > 50 then raise exception 'sem código livre'; end if;
-  end loop;
-  insert into whatsapp_dono (message, arquivo_path, receipt_id, codigo) values (
+  insert into whatsapp_dono (message, arquivo_path, receipt_id) values (
     '🧾 *Comprovante de ' || coalesce(v_nome, 'motorista') || E'*\nValor: ' || v_valor || E'\n' || v_ia ||
-    E'\n\nPara decidir, responda:\n*CONFIRMAR ' || v_cod || E'*\nou\n*RECUSAR ' || v_cod || ' motivo*',
-    new.file_path, new.id, v_cod);
+    E'\n\nPara decidir, responda:\n*CONFIRMAR*\nou\n*RECUSAR motivo*\nCom mais de um aberto, diga o nome. Exemplo: *CONFIRMAR ' || split_part(coalesce(v_nome, 'Fulano'), ' ', 1) || '*',
+    new.file_path, new.id);
   return new;
 exception when others then
   raise warning 'receipt_avisa_dono: %', sqlerrm; -- o aviso nunca pode travar a conferência do comprovante
