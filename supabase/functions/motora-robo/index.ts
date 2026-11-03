@@ -47,7 +47,7 @@ async function nivelDaMensagem(texto: string, midia: boolean, figurinha: boolean
   const key = await secret("gemini_key");
   if (!key) return "normal";
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptNivel(texto) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0 } });
-  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerNivel, 12000, 6000);
+  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerNivel);
   return achou?.valor ?? "normal";
 }
 
@@ -58,7 +58,7 @@ async function resumoDe(mensagens: string[]) {
   if (junto.length <= 80) return junto;
   const key = await secret("gemini_key");
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptResumo(mensagens) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.1 } });
-  const achou = key ? await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerResumo, 12000, 6000) : null;
+  const achou = key ? await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerResumo) : null;
   return achou?.valor ?? junto.slice(0, 500);
 }
 
@@ -76,7 +76,7 @@ async function respostaCliente(conversa: string[], chave = "") {
   const ofertas = (carros ?? []).filter((v) => !presos.has(v.id) || simulados.has(v.id)).map(ofertaVeiculo);
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptCliente(ofertas, conversa) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.7 } });
   const aceita = (j: unknown) => { const r = lerRespostaCliente(j); return r && (!r.responder || (r.mensagem && valoresConferem(r.mensagem, ofertas))) ? r : null; };
-  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, aceita, 15000, 7000);
+  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, aceita);
   return achou?.valor.responder ? achou.valor.mensagem : null;
 }
 
@@ -85,7 +85,7 @@ async function avisoDara(reserva: string, d: Parameters<typeof promptDara>[0]) {
   if (!key) return reserva;
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptDara(d) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.9 } });
   const aceita = (j: unknown) => { const t = lerMensagemIA(j); return t && avisoDaraValido(t, d) ? t : null; };
-  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, aceita, 12000, 6000);
+  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, aceita);
   return achou?.valor ?? reserva;
 }
 

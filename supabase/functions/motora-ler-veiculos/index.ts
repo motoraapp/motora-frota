@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
           const t = (j as any)?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
           try { const m = t.match(/\{[\s\S]*\}/); return JSON.parse(m ? m[0] : t); } catch { return null; }
         };
-        const achou = await tentarGemini(key, modelo, corpo, aceita, 25000, 15000);
+        const achou = await tentarGemini(key, modelo, corpo, aceita, 45000, 20000);
         if (!achou) throw new Error("a IA não leu");
         const r = achou.valor as { cor?: string; ano_fabricacao?: number; ano_modelo?: number; placa?: string };
         const norm = (s: unknown) => String(s ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");

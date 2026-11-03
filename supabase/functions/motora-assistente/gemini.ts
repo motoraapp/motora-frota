@@ -19,24 +19,30 @@ export async function modelosGemini(key: string, configurado: string) {
   return [...new Set([configurado, ...CONHECIDOS, ...flash, ...outros])].filter(Boolean);
 }
 
+// REGRA DO DONO: sempre que a IA for usada, troca de modelo até ter resposta boa. Terminou a lista sem resposta: recomeça, enquanto houver tempo.
 // aceita(resposta) decide se a resposta serve; se não servir, tenta o próximo modelo
-export async function tentarGemini<T>(key: string, configurado: string, corpo: string, aceita: (j: unknown) => T | null, limiteMs = 40000, porTentativaMs = 20000): Promise<{ valor: T; modelo: string } | null> {
+export async function tentarGemini<T>(key: string, configurado: string, corpo: string, aceita: (j: unknown) => T | null, limiteMs = 60000, porTentativaMs = 15000): Promise<{ valor: T; modelo: string } | null> {
   const inicio = Date.now();
-  for (const modelo of await modelosGemini(key, configurado)) {
-    const resta = limiteMs - (Date.now() - inicio);
-    if (resta < 2000) break;
-    try {
-      const r = await fetch(`${BASE}/${modelo}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-        body: corpo,
-        signal: AbortSignal.timeout(Math.min(porTentativaMs, resta)),
-      });
-      if (r.status === 401) return null; // chave errada: outro modelo não resolve
-      if (!r.ok) { console.log("gemini falhou", modelo, r.status); continue; }
-      const valor = aceita(await r.json());
-      if (valor !== null) return { valor, modelo };
-    } catch (e) { console.log("gemini sem resposta", modelo, String(e).slice(0, 120)); }
+  let modelos = await modelosGemini(key, configurado);
+  while (modelos.length) {
+    for (const modelo of [...modelos]) {
+      const resta = limiteMs - (Date.now() - inicio);
+      if (resta < 2000) return null;
+      try {
+        const r = await fetch(`${BASE}/${modelo}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+          body: corpo,
+          signal: AbortSignal.timeout(Math.min(porTentativaMs, resta)),
+        });
+        if (r.status === 401) return null; // chave errada: outro modelo não resolve
+        if (r.status === 404) { modelos = modelos.filter((m) => m !== modelo); continue; } // modelo não existe mais
+        if (!r.ok) { console.log("gemini falhou", modelo, r.status); continue; }
+        const valor = aceita(await r.json());
+        if (valor !== null) return { valor, modelo };
+      } catch (e) { console.log("gemini sem resposta", modelo, String(e).slice(0, 120)); }
+    }
+    await new Promise((ok) => setTimeout(ok, 2000));
   }
   return null;
 }
