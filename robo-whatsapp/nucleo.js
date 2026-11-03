@@ -62,12 +62,23 @@ const JANELA_RECEBER = 3 * 24 * 60 * MIN; // mensagem mais velha que isso é his
 export function abrirConteudo(c) {
   let m = c;
   for (let i = 0; m && i < 5; i++) {
-    const dentro = m.ephemeralMessage || m.viewOnceMessage || m.viewOnceMessageV2 || m.viewOnceMessageV2Extension || m.documentWithCaptionMessage;
+    const dentro = m.ephemeralMessage || m.viewOnceMessage || m.viewOnceMessageV2 || m.viewOnceMessageV2Extension || m.documentWithCaptionMessage || m.editedMessage || m.deviceSentMessage || m.botInvokeMessage;
     if (!dentro) break;
     m = dentro.message;
   }
   return m || {};
 }
+// conta empresarial manda texto em formatos próprios (modelo, botões, lista)
+export function textoDe(c) {
+  const t = c.templateMessage, modelo = t && (t.hydratedTemplate || t.hydratedFourRowTemplate || t.fourRowTemplate);
+  return c.conversation || c.extendedTextMessage?.text || modelo?.hydratedContentText || c.interactiveMessage?.body?.text
+    || c.buttonsMessage?.contentText || c.buttonsMessage?.text || c.listMessage?.description || c.listMessage?.title
+    || c.buttonsResponseMessage?.selectedDisplayText || c.listResponseMessage?.title || c.templateButtonReplyMessage?.selectedDisplayText
+    || c.interactiveResponseMessage?.body?.text || '';
+}
+const TECNICOS = new Set(['messageContextInfo', 'senderKeyDistributionMessage', 'protocolMessage', 'reactionMessage', 'pollUpdateMessage', 'keepInChatMessage', 'pinInChatMessage', 'encReactionMessage', 'call']);
+// número escondido pelo WhatsApp: identifica a conversa sem número, para ainda poder atender
+export const contatoOculto = (jid) => `oculto ${String(jid).split('@')[0].replace(/\D/g, '').slice(-6)}`;
 // mensagens do robô têm este começo no código: assim dá para saber quando foi uma pessoa que respondeu pelo número da locadora
 const PREFIXO_ROBO = '3EB04D4F5241';
 const novoIdRobo = () => PREFIXO_ROBO + crypto.randomBytes(10).toString('hex').toUpperCase();
@@ -473,6 +484,13 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     } catch { /* segue sem número */ }
     return null;
   }
+  async function avisarArquivoSemNumero(jid, msg) {
+    const ult = semNumeroAvisado.get(jid) || 0; // avisa o dono no máximo 1 vez por hora por conversa
+    if (relogio.agora() - ult < 60 * MIN) return;
+    semNumeroAvisado.set(jid, relogio.agora());
+    await comRepeticao('comprovante_sem_numero', { nome: msg.pushName || '' });
+    log('Arquivo recebido sem número visível: dono avisado.');
+  }
   async function comRepeticao(acao, extra) {
     for (let i = 0; ; i++) {
       try { return await motora(acao, extra); } catch (e) {
@@ -498,29 +516,33 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     if (vistas.size > 5000) vistas.clear();
 
     const c = abrirConteudo(msg.message);
-    const texto = c.conversation || (c.extendedTextMessage && c.extendedTextMessage.text) || '';
+    const texto = textoDe(c);
     const arq = c.imageMessage || c.documentMessage || null;
-    const midia = !!(arq || c.audioMessage || c.videoMessage || c.ptvMessage || c.stickerMessage || c.locationMessage || c.contactMessage);
+    const tipos = Object.keys(c).filter((k) => c[k] && !TECNICOS.has(k));
+    const midia = !texto && tipos.length > 0; // qualquer outro tipo (áudio, vídeo, localização...) vai encaminhado
     if (!texto && !midia) return;
+    if (midia && !arq) log('Mensagem recebida sem texto, tipos:', tipos.join(', '));
     const telefone = await telefoneDe(key);
-    if (telefone && !(seg && relogio.agora() - seg * 1000 > JANELA_ATENDIMENTO)) {
+    const contato = telefone || contatoOculto(jid); // sem número não dá para saber se é motorista: segue o atendimento
+    if (!telefone && contato) log('Mensagem de número escondido pelo WhatsApp: atendendo sem o número.');
+    if (contato && !(seg && relogio.agora() - seg * 1000 > JANELA_ATENDIMENTO)) {
       try {
         const ctx = Object.values(c).find((v) => v && v.contextInfo)?.contextInfo;
         const q = ctx && ctx.quotedMessage ? abrirConteudo(ctx.quotedMessage) : null;
         const citado = q ? q.conversation || q.extendedTextMessage?.text || '' : '';
         const legenda = texto || arq?.caption || c.videoMessage?.caption || '';
-        const a = await comRepeticao('atendimento', { telefone, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, arquivo: !!arq, figurinha: !!c.stickerMessage, citado: String(citado).slice(0, 500) });
-        if (a.tratado) { await entregarAtendimento(a, msg, jid); return; }
+        const a = await comRepeticao('atendimento', { telefone: contato, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, arquivo: !!arq, figurinha: !!c.stickerMessage, citado: String(citado).slice(0, 500) });
+        if (a.tratado) {
+          await entregarAtendimento(a, msg, jid);
+          if (!telefone && arq) await avisarArquivoSemNumero(jid, msg); // pode ser comprovante: o dono confere
+          return;
+        }
       } catch (e) { vistas.delete(key.id); throw e; }
     }
     if (!texto && !arq) return;
     if (!telefone) {
       if (!arq) return;
-      const ult = semNumeroAvisado.get(jid) || 0; // avisa o dono no máximo 1 vez por hora por conversa
-      if (relogio.agora() - ult < 60 * MIN) return;
-      semNumeroAvisado.set(jid, relogio.agora());
-      await comRepeticao('comprovante_sem_numero', { nome: msg.pushName || '' });
-      log('Arquivo recebido sem número visível: dono avisado.');
+      await avisarArquivoSemNumero(jid, msg);
       return;
     }
     try {
@@ -548,7 +570,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   async function entregarAtendimento(a, msg, jid) {
     if (a.guardar && a.lead_id && msg && msg.message) {
       const c = abrirConteudo(msg.message);
-      if (!(c.conversation || c.extendedTextMessage)) guardadas.set(a.lead_id, [...(guardadas.get(a.lead_id) || []), msg]);
+      if (!textoDe(c)) guardadas.set(a.lead_id, [...(guardadas.get(a.lead_id) || []), msg]);
     }
     if (a.resposta) await responder(jid, a.resposta);
     for (const e of a.envios || []) {
@@ -572,8 +594,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     const ts = msg.messageTimestamp, seg = ts && ts.toNumber ? ts.toNumber() : Number(ts);
     if (!seg || relogio.agora() - seg * 1000 > JANELA_ATENDIMENTO) return;
     vistas.add(msg.key.id);
-    const telefone = await telefoneDe(msg.key);
-    if (!telefone) return;
+    const telefone = (await telefoneDe(msg.key)) || contatoOculto(jid);
     const a = await comRepeticao('locadora_respondeu', { telefone, em: new Date(seg * 1000).toISOString() });
     if (a.lead_id) guardadas.delete(a.lead_id);
     await entregarAtendimento(a, null, jid);

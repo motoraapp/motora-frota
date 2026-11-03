@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, textoDara, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, chaveContato, textoDara, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
-import { ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
+import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
 const CREDS = '{"account":{},"me":{"id":"x"}}';
 
@@ -682,4 +682,21 @@ test('atendimento: urgência da mensagem do motorista', () => {
   assert.equal(lerNivel(resp('{"nivel":"normal"}')), 'normal');
   assert.equal(lerNivel(resp('{"nivel":"qualquer"}')), null);
   assert.match(textoDaraMotorista('A', '5562999998888', ['x'], 1, 'urgente'), /^🚨 \*URGENTE\*[\s\S]*há 1 minuto\./);
+});
+
+test('atendimento: conta empresarial e número escondido', async () => {
+  assert.equal(textoDe({ templateMessage: { hydratedTemplate: { hydratedContentText: 'Olá' } } }), 'Olá');
+  assert.equal(textoDe({ interactiveMessage: { body: { text: 'Oi' } } }), 'Oi');
+  assert.equal(contatoOculto('123456789012@lid'), 'oculto 789012');
+  assert.equal(chaveContato('oculto 789012'), 'oculto789012');
+  assert.equal(chaveContato('(62) 99999-8888'), chaveFone('5562999998888'));
+  assert.equal(chaveContato('14155550123456'), '14155550123456');
+  assert.equal(foneBonito('oculto 789012'), '(contato oculto 789012)');
+  const a = { id: '1', chave: 'oculto789012', nome: 'A', telefone: 'oculto 789012' }, b = { id: '2', chave: 'x', nome: 'B', telefone: '5562911112222' };
+  assert.equal(escolherConversa([a, b], '*A (contato oculto 789012):* oi').conversa.id, '1');
+  const t = await ligado({ atendimento: (r, c) => r(200, { tratado: true, resposta: 'oi ' + c.telefone }) });
+  const lid = '123456789012@lid';
+  t.sockets[0].signalRepository = { lidMapping: { getPNForLID: async () => null } };
+  await receber(t, { key: { id: 'E1', remoteJid: lid, fromMe: false }, messageTimestamp: agoraSeg(), pushName: 'Loja', message: { templateMessage: { hydratedTemplate: { hydratedContentText: 'Quero alugar' } } } });
+  assert.deepEqual(t.sockets[0].enviadas.at(-1), [lid, 'oi oculto 789012']);
 });

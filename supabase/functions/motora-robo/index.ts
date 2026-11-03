@@ -9,7 +9,7 @@
 //   acao "atendimento": número desconhecido é saudado; sem resposta em 3 min, a Dara é chamada e a conversa passa por ela
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, type Nivel } from "./comandos.ts";
+import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, type Nivel } from "./comandos.ts";
 import { tentarGemini } from "./gemini.ts";
 
 function serviceKey() {
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const SETE_DIAS = 7 * 24 * 3600 * 1000;
     const rotulo = (l: { nome?: string | null; telefone: string }) => `${primeiroNome(l.nome) || "Contato"} ${foneBonito(l.telefone)}`;
     if (body.acao === "atendimento") {
-      const k = chaveFone(body.telefone);
+      const k = chaveContato(body.telefone);
       if (!k) return json({ tratado: false });
       const agora = new Date().toISOString();
       if (k === chaveFone(await secret("dono_whatsapp"))) {
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
         if (error) return json({ error: error.message }, 500);
         return json({ tratado: true, lead_id: nova.id, guardar: true });
       }
-      const { data: pessoas } = await admin.from("profiles").select("phone, phone2, pix_extra");
+      const { data: pessoas } = await admin.from("profiles").select("phone, phone2, pix_extra").neq("role", "excluido");
       if ((pessoas ?? []).some((p) => chaveFone(p.phone) === k || chaveFone(p.phone2) === k || chaveFone(p.pix_extra?.motorista2?.whatsapp) === k)) return json({ tratado: false });
       const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", k).maybeSingle();
       if (lead && lead.status !== "perguntar" && Date.now() - new Date(lead.ultima_msg_em).getTime() > SETE_DIAS) {
@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
       return json({ tratado: true, envios: [{ telefone: dara, texto: body.midia ? `*${rotulo(lead)}* enviou:` : `*${rotulo(lead)}:*\n${String(body.texto || "")}` }], ...(body.midia ? { encaminhar: { telefone: dara } } : {}) });
     }
     if (body.acao === "locadora_respondeu") {
-      const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", chaveFone(body.telefone) || "-").maybeSingle();
+      const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", chaveContato(body.telefone) || "-").maybeSingle();
       if (!lead || !["aguardando", "com_dara"].includes(lead.status) || String(body.em || "") < new Date(lead.saudado_em).toISOString()) return json({ tratado: true });
       await admin.from("whatsapp_atendimento").update({ status: "humano", ultima_msg_em: new Date().toISOString() }).eq("id", lead.id);
       return json({ tratado: true, lead_id: lead.id, envios: lead.status === "com_dara" ? [{ telefone: await secret("dara_whatsapp"), texto: `A conversa com ${rotulo(lead)} foi assumida pelo número da locadora. Não vou mais repassar.` }] : [] });

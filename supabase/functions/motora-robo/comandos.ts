@@ -6,6 +6,13 @@ export function chaveFone(t: unknown): string | null {
   if (n.length !== 10 && n.length !== 11) return null;
   return n.slice(0, 2) + n.slice(-8);
 }
+// conversa sem número conhecido: chave própria. Número fora do padrão brasileiro: usa todos os dígitos
+export function chaveContato(t: unknown): string | null {
+  const s = String(t ?? "");
+  const o = s.match(/^oculto (\d+)$/);
+  if (o) return "oculto" + o[1];
+  return chaveFone(s) || (s.replace(/\D/g, "") || null);
+}
 export type Comando = { confirmar: boolean; resto: string } | null;
 // a mensagem precisa começar com a palavra: "vou confirmar depois" não vale
 export function lerComando(texto: unknown): Comando {
@@ -55,6 +62,8 @@ export function extensao(mime: unknown): string | null {
 
 // ---------- atendimento de número desconhecido ----------
 export function foneBonito(t: unknown): string {
+  const oculto = String(t ?? "").match(/^oculto (\d+)$/);
+  if (oculto) return `(contato oculto ${oculto[1]})`;
   let n = String(t ?? "").replace(/\D/g, "");
   if (n.length >= 12 && n.startsWith("55")) n = n.slice(2);
   if (n.length === 11) return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
@@ -112,9 +121,10 @@ export function textoDaraMotorista(nome: unknown, fone: unknown, mensagens: stri
 export type Conversa = { id: string; chave: string; nome: string | null; telefone: string };
 // para quem vai a resposta da Dara: pela mensagem citada; sem citar, só se houver uma conversa aberta
 export function escolherConversa(abertas: Conversa[], citado: unknown): { conversa: Conversa } | { resposta: string } {
-  const m = String(citado ?? "").match(/\(\d{2}\) \d{4,5}-\d{4}/);
+  const m = String(citado ?? "").match(/\(\d{2}\) \d{4,5}-\d{4}|\(contato oculto \d+\)/);
   if (m) {
-    const k = chaveFone(m[0]), c = abertas.find((a) => a.chave === k);
+    const oculto = m[0].match(/oculto (\d+)/);
+    const k = oculto ? "oculto" + oculto[1] : chaveFone(m[0]), c = abertas.find((a) => a.chave === k);
     return c ? { conversa: c } : { resposta: `A conversa com ${m[0]} não está mais aberta.` };
   }
   if (abertas.length === 1) return { conversa: abertas[0] };
