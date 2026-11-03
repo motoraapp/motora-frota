@@ -28,7 +28,9 @@ export function escolher(abertos: Aberto[], c: { confirmar: boolean; resto: stri
     while (n < palavras.length && n < dig.length && palavras[n] === dig[n]) n++;
     return n;
   };
-  const achados = abertos.map((a) => ({ a, n: nomeNoInicio(a) })).filter((x) => x.n > 0);
+  const pontos = abertos.map((a) => ({ a, n: nomeNoInicio(a) }));
+  const maior = Math.max(0, ...pontos.map((x) => x.n));
+  const achados = maior > 0 ? pontos.filter((x) => x.n === maior) : []; // quem bate mais palavras do nome
   const lista = () => [...new Set(abertos.map((a) => a.nome.split(/\s+/)[0]))].map((n) => `${palavra} ${n}`).join("\nou\n");
   if (achados.length) {
     const nomes = new Set(achados.map((x) => norm(x.a.nome)));
