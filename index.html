@@ -745,6 +745,11 @@
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-gear mr-1"></i> Configurações</h3>
                 <button onclick="closeSettings()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
+            <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3 text-sm"><summary class="font-bold cursor-pointer"><i class="fa-solid fa-shield-halved text-blue-600 mr-1"></i> Mudanças no app pela IA do WhatsApp</summary>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">A palavra secreta é pedida para publicar uma mudança. Ninguém consegue ler o que for salvo aqui, nem você. Deixe em branco o que não quiser trocar.</p>
+                <input id="iaCodPalavra" type="password" autocomplete="new-password" placeholder="Palavra secreta (6 letras ou mais, sem espaço)" class="w-full mt-2 p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                <input id="iaCodToken" type="password" autocomplete="off" placeholder="Chave do GitHub" class="w-full mt-2 p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                <button type="button" onclick="salvarIaCodigo(this)" class="w-full mt-2 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar</button></details>
             <button type="button" onclick="abrirSenha()" class="w-full py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
             <div class="space-y-2">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-brush text-blue-500 mr-1"></i> Aparência do app</h4>
@@ -2205,6 +2210,16 @@
             document.getElementById('senhaUser').value = showLogin(state.user && state.user.email);
             senhaErro('');
             document.getElementById('modalSenha').classList.remove('hidden');
+        }
+        async function salvarIaCodigo(b) {
+            if (DEMO) { showToast('Indisponível na demonstração.', 'error'); return; }
+            const p = document.getElementById('iaCodPalavra'), t = document.getElementById('iaCodToken');
+            if (!p.value && !t.value) { showToast('Preencha ao menos um campo.', 'error'); return; }
+            b.disabled = true;
+            const { error } = await sb.rpc('master_ia_codigo', { p_palavra: p.value, p_token: t.value });
+            b.disabled = false;
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            p.value = ''; t.value = ''; showToast('Salvo.');
         }
         function fecharSenha() { document.getElementById('modalSenha').classList.add('hidden'); }
         async function salvarSenha(e) {

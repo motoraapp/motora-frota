@@ -29,6 +29,12 @@ jobs:
           git ls-files | grep -vE '^(\.github/|android/|supabase/|robo-whatsapp/|CLAUDE\.md$|\.gitignore$)' \
             | xargs -d '\n' cp --parents -t _site/
           touch _site/.nojekyll
+          # cópia de teste da IA do dono (ramo teste-ia): endereço do banco trocado, só abre a demonstração e não enxerga dado real
+          if git fetch --depth=1 origin teste-ia 2>/dev/null; then
+            mkdir -p _site/teste
+            cp _site/manifest.json _site/icon-192.png _site/icon-512.png _site/teste/ 2>/dev/null || true
+            git show FETCH_HEAD:index.html | sed -E 's#https://[a-z0-9]+\.supabase\.co#https://teste.invalid#g' > _site/teste/index.html
+          fi
           ls -la _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
