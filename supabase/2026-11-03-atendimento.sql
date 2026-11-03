@@ -11,6 +11,8 @@ create table if not exists public.whatsapp_atendimento (
   escalado_em timestamptz,
   ultima_msg_em timestamptz not null default now(),
   motorista boolean not null default false,
+  chamar_em timestamptz,
+  urgencia text,
   created_at timestamptz not null default now()
 );
 alter table public.whatsapp_atendimento enable row level security;

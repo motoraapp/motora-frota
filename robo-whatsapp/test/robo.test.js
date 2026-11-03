@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, textoDara, textoDaraMotorista } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, textoDara, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
 import { ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
@@ -672,4 +672,14 @@ test('atendimento: aviso à Dara sobre motorista traz nome, mensagem e como ence
   assert.match(t, /O carro quebrou/);
   assert.match(t, /há 10 minutos/);
   assert.match(t, /ENCERRAR/);
+});
+
+test('atendimento: urgência da mensagem do motorista', () => {
+  for (const t of ['ok', 'Obrigado!', 'valeu 👍', 'Muito obrigada', '👍', 'blz, bom dia']) assert.equal(nivelPorPalavras(t), 'agradecimento', t);
+  for (const t of ['Bati o carro', 'sofri um acidente', 'me roubaram', 'o carro quebrou', 'não liga mais']) assert.equal(nivelPorPalavras(t), 'urgente', t);
+  for (const t of ['ok, mas quando vence o aluguel?', 'posso trocar o dia?']) assert.equal(nivelPorPalavras(t), null, t);
+  const resp = (x) => ({ candidates: [{ content: { parts: [{ text: x }] } }] });
+  assert.equal(lerNivel(resp('{"nivel":"normal"}')), 'normal');
+  assert.equal(lerNivel(resp('{"nivel":"qualquer"}')), null);
+  assert.match(textoDaraMotorista('A', '5562999998888', ['x'], 1, 'urgente'), /^🚨 \*URGENTE\*[\s\S]*há 1 minuto\./);
 });
