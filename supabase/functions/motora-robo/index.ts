@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
       if (iniciada?.length) return json({ ok: true });
       // motorista: a conversa já abre. Desconhecido: espera a Dara dizer SIM (as mensagens ficam guardadas até lá)
       const { data: lin } = await admin.from("whatsapp_atendimento").select("motorista").eq("id", body.id).maybeSingle();
-      await admin.from("whatsapp_atendimento").update(lin?.motorista ? { status: "com_dara", escalado_em: new Date().toISOString(), guardadas: [] } : { status: "pergunta_dara", escalado_em: new Date().toISOString() }).eq("id", body.id).eq("status", "aguardando");
+      await admin.from("whatsapp_atendimento").update(lin?.motorista ? { status: "com_dara", escalado_em: new Date().toISOString(), guardadas: [] } : { status: "pergunta_dara", escalado_em: new Date().toISOString(), dono_avisado_em: null }).eq("id", body.id).eq("status", "aguardando");
       return json({ ok: true });
     }
     if (body.acao === "atendimento_falhou" && body.id) {
