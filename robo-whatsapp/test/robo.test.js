@@ -282,13 +282,13 @@ test('restaurar: sem endereço mas com conexão guardada tenta de novo, sem pedi
 
 const msg = (id, tel = '62999999999') => ({ id, nome: 'Fulano', telefones: [tel], texto: 'oi ' + id });
 
-test('envio: manda, marca enviada e espera 8–20 s', async () => {
+test('envio: manda, marca enviada e espera pelo menos 1 min', async () => {
   const t = montar(); await t.robo.abrir(); t.abre(); await t.flush();
   t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-  const a = t.esperas.length; const p = t.robo.ciclo(); await t.avancar(14000); await p;
+  const a = t.esperas.length; const p = t.robo.ciclo(); await t.avancar(80000); await p;
   assert.deepEqual(t.sockets[0].enviadas, [['5562999999999@s.whatsapp.net', 'oi 1']]);
   assert.equal(acoes(t, 'enviada')[0].id, 1);
-  const pausa = t.esperas.slice(a).at(-1); assert.ok(pausa >= 8000 && pausa < 20000);
+  const pausa = t.esperas.slice(a).at(-1); assert.ok(pausa >= 60000 && pausa < 75000);
 });
 
 test('envio: falha ao marcar (5xx ou rede) nunca reenvia', async () => {
@@ -297,7 +297,7 @@ test('envio: falha ao marcar (5xx ou rede) nunca reenvia', async () => {
     const t = montar({ rotas: { enviada: (resp) => { if (++n < 3) { if (falha === 'rede') throw new Error('sem rede'); return resp(503, {}); } return resp(200, { ok: true }); } } });
     await t.robo.abrir(); t.abre(); await t.flush();
     t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-    for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(20000); await p; }
+    for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(80000); await p; }
     assert.equal(t.sockets[0].enviadas.length, 1);
     assert.equal(n, 3); assert.equal(acoes(t, 'falhou').length, 0);
   }
@@ -334,17 +334,17 @@ test('envio: 9º dígito vem do onWhatsApp; sem WhatsApp falha definitiva; undef
   const t = montar(); await t.robo.abrir(); t.abre(); await t.flush(); const s = t.sockets[0];
   s.numeros['5562999999999'] = [{ exists: true, jid: '556299999999@s.whatsapp.net' }];
   t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-  let p = t.robo.ciclo(); await t.avancar(20000); await p;
+  let p = t.robo.ciclo(); await t.avancar(80000); await p;
   assert.equal(s.enviadas[0][0], '556299999999@s.whatsapp.net');
   s.numeros['5562988888888'] = [];
   t.st.pendentes = { ativo: true, mensagens: [msg(2, '62988888888')] };
-  p = t.robo.ciclo(); await t.avancar(20000); await p;
+  p = t.robo.ciclo(); await t.avancar(80000); await p;
   assert.equal(acoes(t, 'falhou')[0].id, 2);
   s.numeros['5562977777777'] = undefined;
   t.st.pendentes = { ativo: true, mensagens: [msg(3, '62977777777')] };
-  p = t.robo.ciclo(); await t.avancar(20000); await p;
+  p = t.robo.ciclo(); await t.avancar(80000); await p;
   assert.equal(acoes(t, 'falhou').length, 1);
-  for (let i = 0; i < 2; i++) { p = t.robo.ciclo(); await t.avancar(20000); await p; }
+  for (let i = 0; i < 2; i++) { p = t.robo.ciclo(); await t.avancar(80000); await p; }
   assert.equal(acoes(t, 'falhou').length, 2);
 });
 
@@ -352,11 +352,11 @@ test('envio: limite de 30 por hora', async () => {
   const t = montar(); await t.robo.abrir(); t.abre(); await t.flush();
   for (let i = 0; i < 31; i++) {
     t.st.pendentes = { ativo: true, mensagens: [msg(i)] };
-    const p = t.robo.ciclo(); await t.avancar(14000); await p;
+    const p = t.robo.ciclo(); await t.avancar(80000); await p;
     if (i === 30) assert.equal(t.sockets[0].enviadas.length, 30);
   }
   await t.avancar(3600000);
-  const p = t.robo.ciclo(); await t.avancar(14000); await p;
+  const p = t.robo.ciclo(); await t.avancar(80000); await p;
   assert.equal(t.sockets[0].enviadas.length, 31);
 });
 
@@ -368,7 +368,7 @@ test('logs não mostram telefone, código, chave nem endereço assinado', async 
   t.abre(); await t.flush();
   t.sockets[0].falharEnvio = true;
   t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-  for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(20000); await p; }
+  for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(80000); await p; }
   const tudo = t.logs.join('\n');
   assert.doesNotMatch(tudo, /\d{8,}|ABCD1234|token=|https:/);
   assert.doesNotMatch(acoes(t, 'falhou')[0].erro, /\d{8,}/);
@@ -537,7 +537,7 @@ test('aviso com imagem sai como imagem', async () => {
   const t = await ligado();
   let conteudo; t.sockets[0].sendMessage = async (j, c) => { conteudo = c; };
   t.st.pendentes = { ativo: true, mensagens: [{ id: 'm', nome: 'dono', telefones: ['62992661879'], texto: 'oi', imagem_url: 'https://x/a.jpg' }] };
-  const p = t.robo.ciclo(); await t.avancar(30000); await p;
+  const p = t.robo.ciclo(); await t.avancar(80000); await p;
   assert.deepEqual(conteudo, { image: { url: 'https://x/a.jpg' }, caption: 'oi' });
 });
 test('telefone: 9º dígito e 55 não atrapalham', () => {
