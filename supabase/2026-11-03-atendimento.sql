@@ -5,7 +5,7 @@ create table if not exists public.whatsapp_atendimento (
   telefone text not null,
   jid text not null,
   nome text,
-  status text not null default 'aguardando' check (status in ('aguardando','com_dara','humano','encerrado')),
+  status text not null default 'aguardando' check (status in ('aguardando','com_dara','humano','encerrado','perguntar')),
   guardadas jsonb not null default '[]',
   saudado_em timestamptz not null default now(),
   escalado_em timestamptz,

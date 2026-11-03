@@ -99,8 +99,21 @@ Deno.serve(async (req) => {
     const rotulo = (l: { nome?: string | null; telefone: string }) => `${primeiroNome(l.nome) || "Contato"} ${foneBonito(l.telefone)}`;
     if (body.acao === "atendimento") {
       const k = chaveFone(body.telefone);
-      if (!k || k === chaveFone(await secret("dono_whatsapp"))) return json({ tratado: false });
+      if (!k) return json({ tratado: false });
       const agora = new Date().toISOString();
+      if (k === chaveFone(await secret("dono_whatsapp"))) {
+        // depois de 7 dias o robô só volta a atender com a ordem do dono: ATENDER
+        const m = String(body.texto || "").trim().match(/^atender(?=\s|$)\s*(.*)$/i);
+        if (!m) return json({ tratado: false });
+        const { data: esperando } = await admin.from("whatsapp_atendimento").select("*").eq("status", "perguntar");
+        const alvo = chaveFone(m[1]);
+        const lista = (esperando ?? []).filter((l) => !alvo || l.chave === alvo);
+        if (!lista.length) return json({ tratado: true, resposta: "Não há conversa esperando sua ordem." });
+        if (lista.length > 1) return json({ tratado: true, resposta: `Há ${lista.length} esperando. Diga qual:\n${lista.map((l) => `ATENDER ${foneBonito(l.telefone)}`).join("\nou\n")}` });
+        const l = lista[0];
+        await admin.from("whatsapp_atendimento").update({ status: "aguardando", saudado_em: agora, ultima_msg_em: agora, escalado_em: null }).eq("id", l.id);
+        return json({ tratado: true, resposta: `Ok, vou atender ${rotulo(l)}.`, envios: [{ jid: l.jid, texto: saudacao(l.nome) }] });
+      }
       if (k === chaveFone(await secret("dara_whatsapp"))) {
         const { data: abertas } = await admin.from("whatsapp_atendimento").select("id, chave, nome, telefone, jid").eq("status", "com_dara").gte("ultima_msg_em", new Date(Date.now() - SETE_DIAS).toISOString());
         if (!abertas?.length) return json({ tratado: false });
@@ -114,15 +127,20 @@ Deno.serve(async (req) => {
       const { data: pessoas } = await admin.from("profiles").select("phone, phone2, pix_extra");
       if ((pessoas ?? []).some((p) => chaveFone(p.phone) === k || chaveFone(p.phone2) === k || chaveFone(p.pix_extra?.motorista2?.whatsapp) === k)) return json({ tratado: false });
       const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", k).maybeSingle();
-      const velho = !lead || Date.now() - new Date(lead.ultima_msg_em).getTime() > SETE_DIAS;
-      if (velho) {
+      if (lead && lead.status !== "perguntar" && Date.now() - new Date(lead.ultima_msg_em).getTime() > SETE_DIAS) {
+        // voltou depois de 7 dias: não responde nada sem o dono mandar
+        await admin.from("whatsapp_atendimento").update({ status: "perguntar", jid: String(body.jid), ultima_msg_em: agora, guardadas: body.texto ? [String(body.texto)] : [] }).eq("id", lead.id);
+        await admin.from("whatsapp_dono").insert({ message: `*${rotulo(lead)}* voltou a escrever depois de mais de 7 dias${body.texto ? `:\n${String(body.texto).slice(0, 500)}` : "."}\n\nA assistente não respondeu. Para ela atender, responda:\nATENDER ${foneBonito(lead.telefone)}` });
+        return json({ tratado: true });
+      }
+      if (!lead) {
         const { count } = await admin.from("whatsapp_atendimento").select("id", { count: "exact", head: true }).gte("saudado_em", new Date(Date.now() - 3600 * 1000).toISOString());
         if ((count ?? 0) >= 20) return json({ tratado: true }); // proteção contra bloqueio do WhatsApp
         const { data: novo, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "aguardando", guardadas: body.texto ? [String(body.texto)] : [], saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
         if (error) return json({ error: error.message }, 500);
         return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome) });
       }
-      await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(lead.status === "aguardando" && body.texto ? { guardadas: [...(lead.guardadas || []), String(body.texto)] } : {}) }).eq("id", lead.id);
+      await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(["aguardando", "perguntar"].includes(lead.status) && body.texto ? { guardadas: [...(lead.guardadas || []), String(body.texto)] } : {}) }).eq("id", lead.id);
       if (lead.status === "aguardando") return json({ tratado: true, lead_id: lead.id, guardar: true });
       if (lead.status !== "com_dara") return json({ tratado: true }); // uma pessoa já assumiu ou a conversa foi encerrada
       const dara = await secret("dara_whatsapp");
