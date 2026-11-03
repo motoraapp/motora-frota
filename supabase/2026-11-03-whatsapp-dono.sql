@@ -74,3 +74,6 @@ revoke all on function public.receipt_avisa_dono() from public, anon, authentica
 
 -- Lembrete de ganhos: uma vez por dia, às 20:30 de Brasília (já aplicado em 03/11/2026)
 -- select cron.alter_job(4, schedule := '30 23 * * *');
+
+-- Nova leitura de comprovante que a IA não conseguiu ler (já aplicado em 03/11/2026)
+-- select cron.schedule('motora-reler-comprovantes', '*/5 * * * *', $c$select public.call_edge('motora-sync', jsonb_build_object('type','verify_receipt','receipt_id', r.id)) from public.receipts r where r.ai_status='erro' and r.confirmed_at is null and r.rejected_at is null and r.created_at > now() - interval '24 hours' and coalesce(r.ai_result->>'origem','') not in ('asaas','picpay') order by r.created_at limit 3$c$);
