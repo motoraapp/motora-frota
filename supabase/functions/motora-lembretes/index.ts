@@ -49,6 +49,7 @@ function previsao(d: Extra, aluguel: number | null) {
 const formaAuto = (d: Extra) => d.picpay_auto_charge_enabled ? "PicPay" : d.asaas_auto_charge_enabled ? "Asaas" : "";
 
 async function avisoDono(d: Extra, aluguel: number | null) {
+  if (d.pix_extra?.sem_cobranca) return null; // motorista proprietário: o carro não gera aluguel
   const dia = d.payment_day_of_week ?? 1;
   const venc = proximoDia(dia);
   if (venc.faltam !== 2) return null;

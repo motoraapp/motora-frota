@@ -850,6 +850,8 @@
                     <div class="sm:col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Endereço</label><textarea id="dfAddress" rows="2" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
                 </div>
                 <!-- DIA DO PAGAMENTO e COBRANÇA AUTOMÁTICA (Asaas ou PicPay) — profiles.payment_day_of_week / asaas_auto_charge_enabled / picpay_auto_charge_enabled -->
+                <div><label for="dfObs" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Observação (só o dono vê)</label>
+                    <input id="dfObs" type="text" maxlength="120" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                 <div class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 space-y-3">
                     <h4 class="font-semibold text-sm"><i class="fa-solid fa-calendar-day text-teal-600 mr-1"></i> Pagamento do motorista</h4>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Dia da semana do pagamento</label>
@@ -2984,7 +2986,7 @@
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                             <td class="p-3 font-semibold">
                                 <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
-                                ${cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
+                                ${obsResumoHtml(d)}${cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
                                 <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
                                 <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
                                 ${waLink(d.phone || d.phone2) ? `<a href="${waLink(d.phone || d.phone2)}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> Adicionar WhatsApp</button>`}
@@ -3510,6 +3512,7 @@
             fileDriverId = id;
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
             dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender();
+            document.getElementById('dfObs').value = (d.pix_extra && d.pix_extra.observacao) || '';
             document.getElementById('dfTitleName').innerText = d.name || '';
             fillAvatar(document.getElementById('dfPhoto'), id, d.name);
             const sel = document.getElementById('dfVehicle');
@@ -3547,6 +3550,7 @@
                 if (cau && cau.forma === 'parcelada' && (!(cau.parcelas > 0) || !(cau.valor_parcela > 0))) { showToast('Caução parcelada: informe as vezes e o valor de cada parcela.', 'error'); return; }
                 const next = { ...cur }; if (cau) next.caucao = cau; else delete next.caucao;
                 if (fileMultas) next.multas = { ...fileMultas };
+                { const o = document.getElementById('dfObs').value.trim(); if (o) next.observacao = o; else delete next.observacao; }
                 updates.pix_extra = Object.keys(next).length ? next : null;
             }
             setBusy(form, true);
@@ -4225,6 +4229,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const pago = Math.min(total || Infinity, Number(c.entrada || 0) + pagas * Number(c.valor_parcela || 0));
             return { c, total, pago, falta: Math.max(0, total - pago), pagas };
         }
+        function obsResumoHtml(d) { const o = d.pix_extra && d.pix_extra.observacao; return o ? `<div class="mt-1 text-xs font-bold text-indigo-700 dark:text-indigo-300"><i class="fa-solid fa-note-sticky mr-1"></i>${esc(o)}</div>` : ''; }
         function cauResumoHtml(d) {
             const st = cauStatus(d); if (!st) return '';
             const ok = st.falta <= 0.005;
@@ -4305,7 +4310,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function abrirAjustes(id) { openDriverFile(id); setTimeout(() => { const b = document.getElementById('dfAjBox'); if (b) b.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 150); }
         function renderProxCobrancas() {
             const box = document.getElementById('proxCobList'); if (!box) return;
-            const lin = state.drivers.map(d => ({ d, venc: mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia), p: previsaoProxima(d) })).sort((a, b) => a.venc - b.venc);
+            const lin = state.drivers.filter(d => !(d.pix_extra && d.pix_extra.sem_cobranca)).map(d => ({ d, venc: mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia), p: previsaoProxima(d) })).sort((a, b) => a.venc - b.venc);
             box.innerHTML = lin.length ? lin.map(({ d, venc, p }) => `<div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-3"><div class="flex-1 min-w-0"><p class="font-semibold text-sm break-words">${esc(d.name)}</p><p class="text-xs text-gray-500">${venc.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} · <b>${fmtMoney(p.total)}</b>${ajustesOf(d).length ? ' · com ajuste' : ''}</p></div><button type="button" onclick="abrirAjustes('${d.id}')" class="px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white whitespace-nowrap">Editar valor</button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum motorista.</p>';
         }
         let fileMultas = null; // cópia da lista da ficha aberta
