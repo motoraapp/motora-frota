@@ -4310,7 +4310,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function abrirAjustes(id) { openDriverFile(id); setTimeout(() => { const b = document.getElementById('dfAjBox'); if (b) b.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 150); }
         function renderProxCobrancas() {
             const box = document.getElementById('proxCobList'); if (!box) return;
-            const lin = state.drivers.map(d => ({ d, venc: mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia), p: previsaoProxima(d) })).sort((a, b) => a.venc - b.venc);
+            const lin = state.drivers.filter(d => !(d.pix_extra && d.pix_extra.sem_cobranca)).map(d => ({ d, venc: mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia), p: previsaoProxima(d) })).sort((a, b) => a.venc - b.venc);
             box.innerHTML = lin.length ? lin.map(({ d, venc, p }) => `<div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-3"><div class="flex-1 min-w-0"><p class="font-semibold text-sm break-words">${esc(d.name)}</p><p class="text-xs text-gray-500">${venc.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} · <b>${fmtMoney(p.total)}</b>${ajustesOf(d).length ? ' · com ajuste' : ''}</p></div><button type="button" onclick="abrirAjustes('${d.id}')" class="px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white whitespace-nowrap">Editar valor</button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum motorista.</p>';
         }
         let fileMultas = null; // cópia da lista da ficha aberta
