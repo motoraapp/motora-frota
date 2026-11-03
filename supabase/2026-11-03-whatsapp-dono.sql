@@ -11,6 +11,7 @@ create table if not exists public.whatsapp_dono (
   sent_at timestamptz
 );
 alter table public.whatsapp_dono enable row level security; -- sem regras: só as funções internas acessam
+grant select, insert, update, delete on table public.whatsapp_dono to service_role;
 create index if not exists whatsapp_dono_pendente on public.whatsapp_dono (created_at) where status = 'pendente';
 create unique index if not exists whatsapp_dono_codigo on public.whatsapp_dono (codigo) where codigo is not null and status <> 'decidido';
 
