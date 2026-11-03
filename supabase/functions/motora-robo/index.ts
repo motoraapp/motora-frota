@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     if (body.acao === "atendimento_fila") {
       const dara = await secret("dara_whatsapp");
       if (!dara) return json({ chamadas: [] });
-      const { data: leads } = await admin.from("whatsapp_atendimento").select("*").eq("status", "aguardando").lte("saudado_em", new Date(Date.now() - 3 * 60000).toISOString()).order("saudado_em").limit(5);
+      const { data: leads } = await admin.from("whatsapp_atendimento").select("*").eq("status", "aguardando").lte("saudado_em", new Date(Date.now() - Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3) * 60000).toISOString()).order("saudado_em").limit(5);
       return json({ chamadas: (leads ?? []).map((l) => ({ id: l.id, telefone: dara, textos: [textoDara(l.telefone), `*${rotulo(l)}*${(l.guardadas || []).length ? " perguntou:\n" + l.guardadas.join("\n") : ""}\n\nPara encerrar a conversa, responda ENCERRAR.`] })) });
     }
     if (body.acao === "atendimento_ok" && body.id) {
