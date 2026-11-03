@@ -3176,11 +3176,19 @@
                 }
                 if (newDriverPhoto) await savePhoto(newId, newDriverPhoto).catch(() => {});
                 const mailed = await sendWelcomeEmail(newId, password);
+                // boas-vindas no WhatsApp: a senha padrão (6 primeiros números do CPF) não é gravada na mensagem
+                let semWhats = !whats;
+                if (whats) try {
+                    const padrao = cpf && password === cpf.replace(/\D/g, '').slice(0, 6);
+                    const { data: bv } = await sb.functions.invoke('motora-push', { body: { type: 'boas_vindas', driver_id: newId, login: showLogin(toEmail(login)), senha: padrao ? null : password } });
+                    semWhats = !!(bv && bv.semTelefone);
+                } catch (_) { showToast('Não consegui preparar o WhatsApp de boas-vindas.', 'error'); }
                 const aiUsed = Object.keys(newDriverExtra).length > 0;
                 form.reset();
                 resetNewDriverForm();
                 await reload();
                 showCredentials(name, showLogin(toEmail(login)), password, mailed);
+                if (semWhats) showToast('Sem WhatsApp na ficha: a mensagem de boas-vindas não foi criada.', 'error');
                 if ((updates.cnh_path || updates.address_path) && appConfig.gemini && !aiUsed) {
                     aiFillDriver(newId, true).catch(() => {}); // a IA ainda não tinha lido: lê agora e completa a ficha
                 }

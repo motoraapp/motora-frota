@@ -193,6 +193,29 @@ async function queueWhatsApp(driverId: string, title: string, body: string, opts
 }
 // =================== fim da Área IA ===================
 
+// Boas-vindas do motorista novo: texto fixo (a IA não reescreve, para não mudar login, valores nem datas)
+const LINK_APP = "https://motoraapp.github.io/motora-frota/";
+const DIAS = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+// deno-lint-ignore no-explicit-any
+function textoBoasVindas(d: any, v: any, login: string, senha: string | null, proxima: string) {
+  const first = String(d.name || "motorista").split(/\s+/)[0];
+  const dia = DIAS[d.payment_day_of_week ?? 1];
+  const auto = d.picpay_auto_charge_enabled || d.asaas_auto_charge_enabled;
+  const cau = d.pix_extra?.caucao;
+  const parcela = cau?.forma === "parcelada" && Number(cau.valor_parcela) > 0 ? Number(cau.valor_parcela) : 0;
+  const aluguel = v?.rent_amount != null ? Number(v.rent_amount) : null;
+  const l = [`Olá, ${first}! 👋 Seja bem-vindo(a) ao MOTORA, o app da locadora.`, "", "*Como entrar no app*", `Link: ${LINK_APP}`, `Usuário: ${login}`,
+    senha ? `Senha: ${senha}` : "Senha: os 6 primeiros números do seu CPF", "", "*Seu carro*"];
+  l.push(v ? `${v.model}, placa ${v.plate}` : "Será informado em breve.", "", "*Pagamento*", `Dia: toda ${dia}, até 23:59`, `Próximo vencimento: ${proxima}`);
+  if (aluguel != null) l.push(`Aluguel por semana: ${brl(aluguel)}`);
+  if (parcela) l.push(`Parcela da caução: ${brl(parcela)} (${cau.parcelas}x)`);
+  if (aluguel != null && parcela) l.push(`Total previsto por semana: ${brl(aluguel + parcela)}`);
+  l.push("", "*Mensagens automáticas que você vai receber*", "• Quando o Pix da semana for criado, com o valor e a forma de pagar", "• No dia do pagamento, lembrete se ainda não tiver pago",
+    auto ? "• Recibo quando o pagamento for confirmado (a conferência é automática, não precisa enviar comprovante)" : "• Recibo quando o pagamento for confirmado (depois de pagar, envie o comprovante pelo app)",
+    "• Aviso de pagamento em atraso e de CNH vencida", "", "Qualquer dúvida, estou à disposição.");
+  return l.join("\n");
+}
+
 async function sendToDriver(driverId: string, payload: Record<string, string>) {
   const sent = await sendTo([driverId], payload);
   await queueWhatsApp(driverId, payload.title, payload.body);
@@ -257,6 +280,21 @@ Deno.serve(async (req) => {
     }
 
     // Botão "Cobrar atraso": a IA escreve a cobrança e devolve o id da mensagem para abrir na Área IA
+    if (body.type === "boas_vindas") {
+      const { data: d } = await admin.from("profiles").select("*").eq("id", body.driver_id).maybeSingle();
+      if (!d) return json({ error: "motorista não encontrado" }, 404);
+      if (!String(d.phone || "").replace(/\D/g, "")) return json({ semTelefone: true });
+      const { data: v } = d.vehicle_id ? await admin.from("vehicles").select("model, plate, rent_amount").eq("id", d.vehicle_id).maybeSingle() : { data: null };
+      const hoje = new Date(new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" }) + "T12:00:00-03:00");
+      const venc = new Date(hoje.getTime() + (((d.payment_day_of_week ?? 1) - hoje.getUTCDay() + 7) % 7) * 86400000);
+      const proxima = venc.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" });
+      const message = textoBoasVindas(d, v, String(body.login || d.username || ""), body.senha ? String(body.senha) : null, proxima);
+      const { data: row, error } = await admin.from("whatsapp_queue").insert({ driver_id: d.id, title: "Boas-vindas", body: "Mensagem de boas-vindas com o acesso ao app.", message }).select("id").single();
+      if (error) return json({ error: error.message }, 500);
+      if (!(await roboFuncionando())) await sendTo(await masterIds(), { title: `WhatsApp para ${String(d.name).split(/\s+/)[0]} pronto`, body: "Boas-vindas. Toque para abrir o WhatsApp com a mensagem pronta.", url: `/?abrir=ia&msg=${row.id}` });
+      return json({ id: row.id });
+    }
+
     if (body.type === "cobranca") {
       const { data: d } = await admin.from("profiles").select("id, pix_link, pix_code").eq("id", body.driver_id).maybeSingle();
       if (!d) return json({ error: "motorista não encontrado" }, 404);
