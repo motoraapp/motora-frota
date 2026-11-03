@@ -161,7 +161,7 @@ async function gerarPdfRecibo(nome: string, texto: string) {
   const pdf = await PDFDocument.create();
   let page = pdf.addPage([595, 842]);
   const fonte = await pdf.embedFont(StandardFonts.Helvetica), negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const limpa = (t: string) => t.replace(/−/g, "-").replace(/[^\x20-\x7E\xA0-\xFF—–•]/g, "");
+  const limpa = (t: string) => t.replace(/−/g, "-").replace(/[^\n\x20-\x7E\xA0-\xFF—–•]/g, "");
   let y = 790;
   page.drawText("MOTORA - Recibo de pagamento", { x: 50, y, size: 18, font: negrito }); y -= 30;
   page.drawText(limpa(`Motorista: ${nome}`), { x: 50, y, size: 12, font: fonte }); y -= 28;
