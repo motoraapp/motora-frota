@@ -9,7 +9,7 @@
 //   acao "atendimento": número desconhecido é saudado; sem resposta em 3 min, a Dara é chamada e a conversa passa por ela
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, type Nivel } from "./comandos.ts";
+import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, textoDaraSim, lerDecisao, promptResumo, lerResumo, type Nivel } from "./comandos.ts";
 import { tentarGemini } from "./gemini.ts";
 
 function serviceKey() {
@@ -49,6 +49,17 @@ async function nivelDaMensagem(texto: string, midia: boolean, figurinha: boolean
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptNivel(texto) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0 } });
   const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerNivel, 12000, 6000);
   return achou?.valor ?? "normal";
+}
+
+// resumo do que a pessoa escreveu para a Dara decidir. Mensagem curta ou IA fora do ar: mostra o próprio texto
+async function resumoDe(mensagens: string[]) {
+  const junto = mensagens.join(" ").trim();
+  if (!junto) return "ainda não escreveu texto (pode ter mandado arquivo ou áudio).";
+  if (junto.length <= 80) return junto;
+  const key = await secret("gemini_key");
+  const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptResumo(mensagens) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.1 } });
+  const achou = key ? await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerResumo, 12000, 6000) : null;
+  return achou?.valor ?? junto.slice(0, 500);
 }
 
 Deno.serve(async (req) => {
@@ -130,6 +141,27 @@ Deno.serve(async (req) => {
       }
       if (k === chaveFone(await secret("dara_whatsapp"))) {
         const { data: abertas } = await admin.from("whatsapp_atendimento").select("id, chave, nome, telefone, jid").eq("status", "com_dara").gte("ultima_msg_em", new Date(Date.now() - SETE_DIAS).toISOString());
+        const { data: perguntas } = await admin.from("whatsapp_atendimento").select("*").eq("status", "pergunta_dara");
+        if (perguntas?.length) {
+          // a pergunta "quer responder?" espera SIM ou NÃO; responder em cima de outra conversa continua indo para ela
+          const citouAberta = !!body.citado && !!abertas?.length && !("resposta" in escolherConversa(abertas, body.citado));
+          if (!citouAberta) {
+            const decisao = lerDecisao(body.texto);
+            const semCitar = !body.citado;
+            if (semCitar && abertas?.length) return json({ tratado: true, resposta: "Segure a mensagem da pessoa, toque em Responder e escreva, para eu saber de qual conversa é." });
+            const e = escolherConversa(perguntas, body.citado);
+            if ("resposta" in e) return json({ tratado: true, resposta: e.resposta });
+            if (!decisao) return json({ tratado: true, resposta: `Você quer responder ${foneBonito(e.conversa.telefone)}? Responda SIM ou NÃO.` });
+            const l = perguntas.find((p) => p.id === e.conversa.id)!;
+            if (decisao === "nao") {
+              await admin.from("whatsapp_atendimento").update({ status: "encerrado", ultima_msg_em: agora }).eq("id", l.id);
+              await admin.from("whatsapp_dono").insert({ message: `A Dara não vai responder *${rotulo(l)}*. A pessoa está sem resposta: responda pelo número da locadora.\n\nO que ela escreveu:\n${(l.guardadas || []).join("\n").slice(0, 1000)}` });
+              return json({ tratado: true, resposta: "Tudo bem, vou avisar o Thiago." });
+            }
+            await admin.from("whatsapp_atendimento").update({ status: "com_dara", ultima_msg_em: agora, guardadas: [] }).eq("id", l.id);
+            return json({ tratado: true, resposta: textoDaraSim(l.telefone, l.guardadas || []), liberar: { telefone: await secret("dara_whatsapp"), lead_id: l.id } });
+          }
+        }
         if (!abertas?.length) return json({ tratado: false });
         const e = escolherConversa(abertas, body.citado);
         if ("resposta" in e) return json({ tratado: true, resposta: e.resposta });
@@ -177,17 +209,17 @@ Deno.serve(async (req) => {
         if (error) return json({ error: error.message }, 500);
         return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome) });
       }
-      await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(["aguardando", "perguntar"].includes(lead.status) && body.texto ? { guardadas: [...(lead.guardadas || []), String(body.texto)] } : {}) }).eq("id", lead.id);
-      if (lead.status === "aguardando") return json({ tratado: true, lead_id: lead.id, guardar: true });
+      await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(["aguardando", "perguntar", "pergunta_dara"].includes(lead.status) && body.texto ? { guardadas: [...(lead.guardadas || []), String(body.texto)] } : {}) }).eq("id", lead.id);
+      if (lead.status === "aguardando" || lead.status === "pergunta_dara") return json({ tratado: true, lead_id: lead.id, guardar: true });
       if (lead.status !== "com_dara") return json({ tratado: true }); // uma pessoa já assumiu ou a conversa foi encerrada
       const dara = await secret("dara_whatsapp");
       return json({ tratado: true, envios: [{ telefone: dara, texto: body.midia ? `*${rotulo(lead)}* enviou:` : `*${rotulo(lead)}:*\n${String(body.texto || "")}` }], ...(body.midia ? { encaminhar: { telefone: dara } } : {}) });
     }
     if (body.acao === "locadora_respondeu") {
       const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", chaveContato(body.telefone) || "-").maybeSingle();
-      if (!lead || !["aguardando", "com_dara"].includes(lead.status) || String(body.em || "") < new Date(lead.saudado_em).toISOString()) return json({ tratado: true });
+      if (!lead || !["aguardando", "pergunta_dara", "com_dara"].includes(lead.status) || String(body.em || "") < new Date(lead.saudado_em).toISOString()) return json({ tratado: true });
       await admin.from("whatsapp_atendimento").update({ status: "humano", ultima_msg_em: new Date().toISOString() }).eq("id", lead.id);
-      return json({ tratado: true, lead_id: lead.id, envios: lead.status === "com_dara" ? [{ telefone: await secret("dara_whatsapp"), texto: `A conversa com ${rotulo(lead)} foi assumida pelo número da locadora. Não vou mais repassar.` }] : [] });
+      return json({ tratado: true, lead_id: lead.id, envios: ["com_dara", "pergunta_dara"].includes(lead.status) ? [{ telefone: await secret("dara_whatsapp"), texto: lead.status === "com_dara" ? `A conversa com ${rotulo(lead)} foi assumida pelo número da locadora. Não vou mais repassar.` : `Não precisa responder ${rotulo(lead)}: já foi atendido pelo número da locadora.` }] : [] });
     }
     if (body.acao === "atendimento_fila") {
       // só é chamada com o WhatsApp conectado (de 20 em 20 s): a checagem do banco usa isto para saber se está tudo certo
@@ -197,13 +229,17 @@ Deno.serve(async (req) => {
       const minDesconhecido = Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3);
       const { data: leads } = await admin.from("whatsapp_atendimento").select("*").in("status", ["saudar", "aguardando"]).order("saudado_em").limit(30);
       const vencidos = (leads ?? []).filter((l) => l.status === "saudar" ? true : l.motorista ? Date.now() >= new Date(l.chamar_em || l.saudado_em).getTime() : Date.now() - new Date(l.saudado_em).getTime() >= minDesconhecido * 60000).slice(0, 5);
-      return json({ chamadas: vencidos.map((l) => l.status === "saudar" ? { id: l.id, telefone: l.telefone, textos: [saudacao(l.nome)] } : ({ id: l.id, telefone: dara, textos: l.motorista ? [textoDaraMotorista(l.nome, l.telefone, l.guardadas || [], Math.max(1, Math.round((Date.now() - new Date(l.saudado_em).getTime()) / 60000)), l.urgencia)] : [textoDara(l.telefone), `*${rotulo(l)}*${(l.guardadas || []).length ? " perguntou:\n" + l.guardadas.join("\n") : ""}\n\nPara encerrar a conversa, responda ENCERRAR.`] })) });
+      return json({ chamadas: await Promise.all(vencidos.map(async (l) => l.status === "saudar" ? { id: l.id, telefone: l.telefone, textos: [saudacao(l.nome)] }
+        : l.motorista ? { id: l.id, telefone: dara, textos: [textoDaraMotorista(l.nome, l.telefone, l.guardadas || [], Math.max(1, Math.round((Date.now() - new Date(l.saudado_em).getTime()) / 60000)), l.urgencia)] }
+        : { id: l.id, telefone: dara, segurar: true, textos: [textoDara(l.telefone, await resumoDe(l.guardadas || []))] })) });
     }
     if (body.acao === "atendimento_ok" && body.id) {
       // conversa iniciada pela locadora (status saudar): a saudação saiu, agora começa a contagem
       const { data: iniciada } = await admin.from("whatsapp_atendimento").update({ status: "aguardando", saudado_em: new Date().toISOString(), ultima_msg_em: new Date().toISOString() }).eq("id", body.id).eq("status", "saudar").select("id");
       if (iniciada?.length) return json({ ok: true });
-      await admin.from("whatsapp_atendimento").update({ status: "com_dara", escalado_em: new Date().toISOString(), guardadas: [] }).eq("id", body.id).eq("status", "aguardando");
+      // motorista: a conversa já abre. Desconhecido: espera a Dara dizer SIM (as mensagens ficam guardadas até lá)
+      const { data: lin } = await admin.from("whatsapp_atendimento").select("motorista").eq("id", body.id).maybeSingle();
+      await admin.from("whatsapp_atendimento").update(lin?.motorista ? { status: "com_dara", escalado_em: new Date().toISOString(), guardadas: [] } : { status: "pergunta_dara", escalado_em: new Date().toISOString() }).eq("id", body.id).eq("status", "aguardando");
       return json({ ok: true });
     }
     if (body.acao === "atendimento_falhou" && body.id) {

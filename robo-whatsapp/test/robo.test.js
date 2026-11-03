@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, chaveContato, textoDara, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, chaveContato, textoDara, lerDecisao, textoDaraSim, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
 import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
@@ -632,7 +632,7 @@ test('atendimento: saudação, número e para quem vai a resposta da Dara', () =
   assert.match(saudacao('', new Date('2026-11-03T18:00:00Z')), /^Boa tarde! /);
   assert.match(saudacao('Ana', new Date('2026-11-03T23:00:00Z')), /^Boa noite, Ana!/);
   assert.equal(foneBonito('5562999998888'), '(62) 99999-8888');
-  assert.match(textoDara('5562999998888'), /ocupado em corrida.*\(62\) 99999-8888/);
+  assert.match(textoDara('5562999998888', 'quer alugar'), /ocupado em corrida[\s\S]*\(62\) 99999-8888[\s\S]*quer alugar[\s\S]*SIM ou NÃO/);
   const a = { id: '1', chave: chaveFone('5562999998888'), nome: 'A', telefone: '5562999998888' };
   const b = { id: '2', chave: chaveFone('5562911112222'), nome: 'B', telefone: '5562911112222' };
   assert.equal(escolherConversa([a], '').conversa.id, '1');
@@ -699,4 +699,22 @@ test('atendimento: conta empresarial e número escondido', async () => {
   t.sockets[0].signalRepository = { lidMapping: { getPNForLID: async () => null } };
   await receber(t, { key: { id: 'E1', remoteJid: lid, fromMe: false }, messageTimestamp: agoraSeg(), pushName: 'Loja', message: { templateMessage: { hydratedTemplate: { hydratedContentText: 'Quero alugar' } } } });
   assert.deepEqual(t.sockets[0].enviadas.at(-1), [lid, 'oi oculto 789012']);
+});
+
+test('atendimento: Dara decide antes de abrir a conversa', async () => {
+  assert.equal(lerDecisao('Sim, pode'), 'sim');
+  assert.equal(lerDecisao('não'), 'nao');
+  assert.equal(lerDecisao('nao posso'), 'nao');
+  assert.equal(lerDecisao('nova conversa'), null);
+  assert.equal(lerDecisao('simples'), null);
+  assert.match(textoDaraSim('5562999998888', ['oi']), /oi[\s\S]*ENCERRAR/);
+  const t = await ligado({
+    atendimento: (r) => r(200, { tratado: true, lead_id: 'L9', guardar: true }),
+    atendimento_fila: (r) => r(200, { chamadas: [{ id: 'L9', telefone: '5562900000000', segurar: true, textos: ['Resumo'] }] }),
+    atendimento_ok: (r) => r(200, { ok: true }),
+  });
+  const audio = { key: { id: 'A1', remoteJid: FONE, fromMe: false }, messageTimestamp: agoraSeg(), message: { audioMessage: {} } };
+  await receber(t, audio);
+  const p = t.robo.cicloAtendimento(); await t.avancar(30000); await p;
+  assert.deepEqual(t.sockets[0].enviadas.map((e) => e[1]), ['Resumo']); // o áudio ainda não foi
 });

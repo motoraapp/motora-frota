@@ -577,6 +577,11 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       const para = await destino(e);
       if (para) await responder(para, e.texto);
     }
+    if (a.liberar) {
+      const para = await destino(a.liberar);
+      for (const m of (para && guardadas.get(a.liberar.lead_id)) || []) await encaminhar(para, m).catch((e) => log('Não consegui encaminhar o arquivo:', e.message));
+      guardadas.delete(a.liberar.lead_id);
+    }
     if (a.encaminhar && msg) {
       try {
         const para = await destino(a.encaminhar);
@@ -609,8 +614,10 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         if (!para) throw new Error('número sem WhatsApp');
         filaEnvios[l.id] = filaEnvios[l.id] || 0; // não repete o que já saiu, se a marcação falhar
         for (; filaEnvios[l.id] < l.textos.length; filaEnvios[l.id]++) await responder(para, l.textos[filaEnvios[l.id]]);
-        for (const m of guardadas.get(l.id) || []) await encaminhar(para, m).catch((e) => log('Não consegui encaminhar o arquivo:', e.message));
-        guardadas.delete(l.id);
+        if (!l.segurar) { // desconhecido: os arquivos só vão depois de a Dara dizer SIM
+          for (const m of guardadas.get(l.id) || []) await encaminhar(para, m).catch((e) => log('Não consegui encaminhar o arquivo:', e.message));
+          guardadas.delete(l.id);
+        }
         await comRepeticao('atendimento_ok', { id: l.id });
         delete filaEnvios[l.id];
         log('Atendimento repassado à Dara.');
