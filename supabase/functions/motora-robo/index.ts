@@ -9,7 +9,7 @@
 //   acao "atendimento": número desconhecido é saudado; sem resposta em 3 min, a Dara é chamada e a conversa passa por ela
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, textoDaraSim, lerDecisao, promptResumo, lerResumo, type Nivel } from "./comandos.ts";
+import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, textoDaraSim, lerDecisao, promptResumo, lerResumo, promptDara, lerMensagemIA, avisoDaraValido, type Nivel } from "./comandos.ts";
 import { tentarGemini } from "./gemini.ts";
 
 function serviceKey() {
@@ -60,6 +60,15 @@ async function resumoDe(mensagens: string[]) {
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptResumo(mensagens) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.1 } });
   const achou = key ? await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerResumo, 12000, 6000) : null;
   return achou?.valor ?? junto.slice(0, 500);
+}
+
+async function avisoDara(reserva: string, d: Parameters<typeof promptDara>[0]) {
+  const key = await secret("gemini_key");
+  if (!key) return reserva;
+  const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptDara(d) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.9 } });
+  const aceita = (j: unknown) => { const t = lerMensagemIA(j); return t && avisoDaraValido(t, d) ? t : null; };
+  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, aceita, 12000, 6000);
+  return achou?.valor ?? reserva;
 }
 
 Deno.serve(async (req) => {
@@ -230,8 +239,14 @@ Deno.serve(async (req) => {
       const { data: leads } = await admin.from("whatsapp_atendimento").select("*").in("status", ["saudar", "aguardando"]).order("saudado_em").limit(30);
       const vencidos = (leads ?? []).filter((l) => l.status === "saudar" ? true : l.motorista ? Date.now() >= new Date(l.chamar_em || l.saudado_em).getTime() : Date.now() - new Date(l.saudado_em).getTime() >= minDesconhecido * 60000).slice(0, 5);
       return json({ chamadas: await Promise.all(vencidos.map(async (l) => l.status === "saudar" ? { id: l.id, telefone: l.telefone, textos: [saudacao(l.nome)] }
-        : l.motorista ? { id: l.id, telefone: dara, textos: [textoDaraMotorista(l.nome, l.telefone, l.guardadas || [], Math.max(1, Math.round((Date.now() - new Date(l.saudado_em).getTime()) / 60000)), l.urgencia)] }
-        : { id: l.id, telefone: dara, segurar: true, textos: [textoDara(l.telefone, await resumoDe(l.guardadas || []))] })) });
+        : l.motorista ? await (async () => {
+          const minutos = Math.max(1, Math.round((Date.now() - new Date(l.saudado_em).getTime()) / 60000)), mensagens = l.guardadas || [];
+          return { id: l.id, telefone: dara, textos: [await avisoDara(textoDaraMotorista(l.nome, l.telefone, mensagens, minutos, l.urgencia), { motorista: true, nome: l.nome, fone: l.telefone, mensagens, minutos, urgente: l.urgencia === "urgente" })] };
+        })()
+        : await (async () => {
+          const resumo = await resumoDe(l.guardadas || []);
+          return { id: l.id, telefone: dara, segurar: true, textos: [await avisoDara(textoDara(l.telefone, resumo), { motorista: false, fone: l.telefone, resumo })] };
+        })())) });
     }
     if (body.acao === "atendimento_ok" && body.id) {
       // conversa iniciada pela locadora (status saudar): a saudação saiu, agora começa a contagem

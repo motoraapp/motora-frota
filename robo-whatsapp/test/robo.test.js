@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, chaveContato, textoDara, lerDecisao, textoDaraSim, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, chaveContato, textoDara, avisoDaraValido, promptDara, lerDecisao, textoDaraSim, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
 import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
@@ -717,4 +717,15 @@ test('atendimento: Dara decide antes de abrir a conversa', async () => {
   await receber(t, audio);
   const p = t.robo.cicloAtendimento(); await t.avancar(30000); await p;
   assert.deepEqual(t.sockets[0].enviadas.map((e) => e[1]), ['Resumo']); // o áudio ainda não foi
+});
+
+test('atendimento: aviso escrito pela IA precisa ter os dados', () => {
+  const d = { fone: '5562999998888', motorista: false };
+  assert.equal(avisoDaraValido('Oi Dara! O (62) 99999-8888 quer alugar. Responde SIM ou NÃO?', d), true);
+  assert.equal(avisoDaraValido('Oi Dara! Alguém quer alugar. SIM ou NÃO?', d), false);
+  assert.equal(avisoDaraValido('Oi Dara! O (62) 99999-8888 quer alugar.', d), false);
+  const m = { fone: '5562999998888', motorista: true, mensagens: ['Bati o carro'] };
+  assert.equal(avisoDaraValido('Dara, (62) 99999-8888 disse: Bati o carro. Para sair, ENCERRAR.', m), true);
+  assert.equal(avisoDaraValido('Dara, (62) 99999-8888 bateu. Para sair, ENCERRAR.', m), false);
+  assert.match(promptDara({ fone: '5562999998888', resumo: 'x', motorista: false }), /suposição/);
 });
