@@ -31,8 +31,8 @@ async function ehDono(telefone: unknown) {
 async function motoristaDoFone(telefone: unknown) {
   const k = chaveFone(telefone);
   if (!k) return null;
-  const { data } = await admin.from("profiles").select("id, name, phone, phone2").eq("role", "driver");
-  const achados = (data ?? []).filter((p) => chaveFone(p.phone) === k || chaveFone(p.phone2) === k);
+  const { data } = await admin.from("profiles").select("id, name, phone, phone2, pix_extra").eq("role", "driver");
+  const achados = (data ?? []).filter((p) => chaveFone(p.phone) === k || chaveFone(p.phone2) === k || chaveFone(p.pix_extra?.motorista2?.whatsapp) === k);
   return achados.length === 1 ? achados[0] : null;
 }
 
@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       const { data: fila } = await admin.from("whatsapp_queue").select("id, driver_id, title, message, created_at, arquivo_path")
         .eq("status", "pendente").gte("created_at", desde).order("created_at").limit(5);
       const ids = [...new Set((fila ?? []).map((m) => m.driver_id))];
-      const { data: pessoas } = ids.length ? await admin.from("profiles").select("id, name, phone, phone2, role").in("id", ids) : { data: [] };
+      const { data: pessoas } = ids.length ? await admin.from("profiles").select("id, name, phone, phone2, role, pix_extra").in("id", ids) : { data: [] };
       // avisos para o dono vão primeiro; mais velhos que 24 h não saem mais
       const dia = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const numeroDono = await secret("dono_whatsapp");
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       const mensagens = (await Promise.all((fila ?? []).map(async (m) => {
         const p = (pessoas ?? []).find((x) => x.id === m.driver_id);
         const pdf = m.arquivo_path ? (await admin.storage.from("docs").createSignedUrl(m.arquivo_path, 3600)).data?.signedUrl : null;
-        return { id: m.id, nome: p?.name || "", telefones: [p?.phone, p?.phone2].filter(Boolean), texto: m.message, excluido: p?.role === "excluido", pdf_url: pdf || null };
+        return { id: m.id, nome: p?.name || "", telefones: [p?.phone, p?.phone2].filter(Boolean), texto: m.message, excluido: p?.role === "excluido", pdf_url: pdf || null, copias: p?.pix_extra?.motorista2?.whatsapp ? [p.pix_extra.motorista2.whatsapp] : [] };
       }))).filter((m) => !m.excluido);
       return json({ ativo: true, mensagens: [...doDono, ...mensagens], reiniciar_em });
     }

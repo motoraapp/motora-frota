@@ -40,6 +40,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - CNH vencida: aviso na tela principal do dono e do motorista e botão para enviar a CNH nova; quando o motorista atualizar, o dono é avisado e o botão some.
 - Botão "Instalar app" no PWA do motorista: aparece só no Android (some no iPhone).
 - **Observação do motorista:** campo na ficha (`pix_extra.observacao`), aparece no cartão dele para o dono; o motorista não vê.
+- **2º motorista:** na ficha, primeiro nome e WhatsApp (`pix_extra.motorista2` = `{nome, whatsapp}`). Pelo robô recebe o mesmo texto do cadastro (`copias`), sem marcar nem repetir a principal; o comprovante enviado por esse número entra no cadastro. O botão Enviar manual da Área IA continua indo só para o titular.
 - **Motorista proprietário (Thiago, BYD/KING):** `pix_extra.sem_cobranca = true`: carro sem aluguel, fora dos lembretes ao dono e do cartão Próximas cobranças.
 - **Excluir motorista** não apaga nada: `master_delete_driver` muda o perfil para `role = 'excluido'` (com `deleted_at` e `deleted_login`), bloqueia o login para sempre, libera o nome de usuário e o carro. Documentos, Pix, comprovantes, termos e arquivos ficam guardados no app e no Drive.
 - Termos de uso: o motorista precisa aceitar se ainda não aceitou ou sempre que os termos mudarem.

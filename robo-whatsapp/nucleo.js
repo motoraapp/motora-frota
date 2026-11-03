@@ -342,6 +342,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
 
   // ---------- fila de envio ----------
+  const conteudoDe = (m) => (m.imagem_url ? { image: { url: m.imagem_url }, caption: m.texto } : m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
   async function enviar(m) {
     for (const tel of m.telefones) {
       const num = numeroBR(tel);
@@ -351,10 +352,29 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       const achado = r.find((x) => x.exists);
       if (!achado) continue;
       // recibo: o PDF vai com o texto na mesma mensagem, para nunca sair duplicado
-      await sock.sendMessage(achado.jid, m.imagem_url ? { image: { url: m.imagem_url }, caption: m.texto } : m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
+      await sock.sendMessage(achado.jid, conteudoDe(m));
       return true;
     }
     return false;
+  }
+
+  // 2º motorista: recebe o mesmo texto; se falhar, não atrapalha nem repete a mensagem principal
+  async function enviarCopias(m) {
+    for (const tel of m.copias || []) {
+      if (!conectado || !sock) return;
+      try {
+        const num = numeroBR(tel);
+        const r = num ? await sock.onWhatsApp(num) : null;
+        const achado = r && r.find((x) => x.exists);
+        if (!achado) { log(`2º motorista de ${m.nome}: número sem WhatsApp.`); continue; }
+        const [a, b] = ESPERA_ENTRE_MENSAGENS;
+        await relogio.dormir(a + Math.floor(aleatorio() * (b - a)));
+        if (!conectado || !sock) return;
+        await sock.sendMessage(achado.jid, conteudoDe(m));
+        enviadasNaHora.push(relogio.agora());
+        log(`Cópia enviada ao 2º motorista de ${m.nome}.`);
+      } catch (e) { log(`Não consegui enviar ao 2º motorista de ${m.nome}:`, e.message); }
+    }
   }
 
   // a mensagem já saiu: uma falha ao marcar nunca pode virar reenvio
@@ -408,6 +428,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
           log(`Enviada para ${m.nome}.`);
           agendarBackup(); // enviar altera as chaves da conversa
           await marcarEnviada(m.id);
+          await enviarCopias(m);
         } else {
           falhas[m.id] = 99;
           await motora('falhou', { id: m.id, erro: 'Número sem WhatsApp ou não cadastrado.' });

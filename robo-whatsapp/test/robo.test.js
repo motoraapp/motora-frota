@@ -590,3 +590,14 @@ test('reinício remoto: função antiga sem o campo não reinicia', async () => 
   const r = criarRobo({ logger: {}, qrcode: {}, chave: 'k', fetchFn: async () => ({ status: 200, ok: true, json: async () => ({ ativo: false, mensagens: [] }) }), pastaBase: t.robo.PASTA + '-s', relogio: t.relogio, aoReiniciar: () => { reinicios++; } });
   await r.sinalDeVida(); await r.sinalDeVida(); assert.equal(reinicios, 0);
 });
+test('2º motorista recebe o mesmo texto; falha nele não repete a principal', async () => {
+  const t = await ligado();
+  t.st.pendentes = { ativo: true, mensagens: [{ id: 'm', nome: 'Ygor', telefones: ['62911112222'], texto: 'oi', copias: ['62933334444'] }] };
+  let p = t.robo.ciclo(); await t.avancar(60000); await p;
+  assert.deepEqual(t.sockets[0].enviadas.map((e) => e[0]), ['5562911112222@s.whatsapp.net', '5562933334444@s.whatsapp.net']);
+  assert.equal(acoes(t, 'enviada').length, 1);
+  const s = t.sockets[0]; s.enviadas.length = 0; s.numeros['5562955556666'] = [];
+  t.st.pendentes = { ativo: true, mensagens: [{ id: 'n', nome: 'Ygor', telefones: ['62911112222'], texto: 'oi', copias: ['62955556666'] }] };
+  p = t.robo.ciclo(); await t.avancar(60000); await p;
+  assert.equal(s.enviadas.length, 1); assert.equal(acoes(t, 'falhou').length, 0);
+});

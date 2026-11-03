@@ -850,6 +850,12 @@
                     <div class="sm:col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Endereço</label><textarea id="dfAddress" rows="2" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
                 </div>
                 <!-- DIA DO PAGAMENTO e COBRANÇA AUTOMÁTICA (Asaas ou PicPay) — profiles.payment_day_of_week / asaas_auto_charge_enabled / picpay_auto_charge_enabled -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><label for="dfM2Nome" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">2º motorista: primeiro nome</label>
+                        <input id="dfM2Nome" type="text" maxlength="40" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label for="dfM2Fone" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">2º motorista: WhatsApp</label>
+                        <input id="dfM2Fone" type="tel" inputmode="tel" placeholder="(62) 99999-9999" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                </div>
                 <div><label for="dfObs" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Observação (só o dono vê)</label>
                     <input id="dfObs" type="text" maxlength="120" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                 <div class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 space-y-3">
@@ -3513,6 +3519,7 @@
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
             dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender();
             document.getElementById('dfObs').value = (d.pix_extra && d.pix_extra.observacao) || '';
+            { const m2 = (d.pix_extra && d.pix_extra.motorista2) || {}; document.getElementById('dfM2Nome').value = m2.nome || ''; document.getElementById('dfM2Fone').value = m2.whatsapp || ''; }
             document.getElementById('dfTitleName').innerText = d.name || '';
             fillAvatar(document.getElementById('dfPhoto'), id, d.name);
             const sel = document.getElementById('dfVehicle');
@@ -3551,6 +3558,11 @@
                 const next = { ...cur }; if (cau) next.caucao = cau; else delete next.caucao;
                 if (fileMultas) next.multas = { ...fileMultas };
                 { const o = document.getElementById('dfObs').value.trim(); if (o) next.observacao = o; else delete next.observacao; }
+                {   // 2º motorista: recebe no WhatsApp as mesmas mensagens do cadastro
+                    const nome = document.getElementById('dfM2Nome').value.trim(), fone = document.getElementById('dfM2Fone').value.trim();
+                    if ((nome || fone) && (!nome || !/^\d{10,13}$/.test(fone.replace(/\D/g, '')))) { showToast('2º motorista: informe o primeiro nome e o WhatsApp com DDD.', 'error'); return; }
+                    if (nome) next.motorista2 = { nome, whatsapp: fone }; else delete next.motorista2;
+                }
                 updates.pix_extra = Object.keys(next).length ? next : null;
             }
             setBusy(form, true);
@@ -4229,7 +4241,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const pago = Math.min(total || Infinity, Number(c.entrada || 0) + pagas * Number(c.valor_parcela || 0));
             return { c, total, pago, falta: Math.max(0, total - pago), pagas };
         }
-        function obsResumoHtml(d) { const o = d.pix_extra && d.pix_extra.observacao; return o ? `<div class="mt-1 text-xs font-bold text-indigo-700 dark:text-indigo-300"><i class="fa-solid fa-note-sticky mr-1"></i>${esc(o)}</div>` : ''; }
+        function obsResumoHtml(d) { const o = d.pix_extra && d.pix_extra.observacao, m2 = d.pix_extra && d.pix_extra.motorista2; return (o ? `<div class="mt-1 text-xs font-bold text-indigo-700 dark:text-indigo-300"><i class="fa-solid fa-note-sticky mr-1"></i>${esc(o)}</div>` : '') + (m2 ? `<div class="mt-1 text-xs font-normal text-gray-600 dark:text-gray-300"><i class="fa-brands fa-whatsapp mr-1"></i>2º motorista: ${esc(m2.nome)} · ${esc(m2.whatsapp)}</div>` : ''); }
         function cauResumoHtml(d) {
             const st = cauStatus(d); if (!st) return '';
             const ok = st.falta <= 0.005;
