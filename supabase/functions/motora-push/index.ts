@@ -206,7 +206,7 @@ function textoBoasVindas(d: any, v: any, login: string, senha: string | null, pr
   const aluguel = v?.rent_amount != null ? Number(v.rent_amount) : null;
   const l = [`Olá, ${first}! 👋 Seja bem-vindo(a) ao MOTORA, o app da locadora.`, "", "*Como entrar no app*", `Link: ${LINK_APP}`, `Usuário: ${login}`,
     senha ? `Senha: ${senha}` : "Senha: os 6 primeiros números do seu CPF", "", "*Seu carro*"];
-  l.push(v ? `${v.model}, placa ${v.plate}` : "Será informado em breve.", "", "*Pagamento*", `Dia: toda ${dia}, até 23:59`, `Próximo vencimento: ${proxima}`);
+  l.push(v ? `${v.model}, placa ${v.plate}` : "Será informado em breve.", "", "*Pagamento*", `Dia: ${(d.payment_day_of_week ?? 1) % 6 === 0 ? "todo" : "toda"} ${dia}, até 23:59`, `Próximo vencimento: ${proxima}`);
   if (aluguel != null) l.push(`Aluguel por semana: ${brl(aluguel)}`);
   if (parcela) l.push(`Parcela da caução: ${brl(parcela)} (${cau.parcelas}x)`);
   if (aluguel != null && parcela) l.push(`Total previsto por semana: ${brl(aluguel + parcela)}`);
