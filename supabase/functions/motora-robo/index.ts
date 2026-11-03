@@ -6,9 +6,10 @@
 //   acao "enviada":   marca a mensagem como enviada
 //   acao "falhou":    avisa o dono que uma mensagem não foi (ela continua no botão Enviar da Área IA)
 //   acao "mensagem":  texto recebido; do dono, CONFIRMAR/RECUSAR decide o comprovante
+//   acao "atendimento": número desconhecido é saudado; sem resposta em 3 min, a Dara é chamada e a conversa passa por ela
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveFone, escolher, extensao, lerComando } from "./comandos.ts";
+import { chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, primeiroNome, saudacao, textoDara } from "./comandos.ts";
 
 function serviceKey() {
   const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -91,7 +92,63 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
     // ---------- mensagens RECEBIDAS: só valem com o envio automático ligado ----------
+    if (["atendimento", "atendimento_fila", "atendimento_ok", "atendimento_falhou", "locadora_respondeu"].includes(body.acao) && !cfg.ativo) return json({ tratado: false });
     if (["mensagem", "comprovante_url", "comprovante_salvar", "comprovante_sem_numero"].includes(body.acao) && !cfg.ativo) return json({ resposta: null });
+    // ---------- número desconhecido: saúda, em 3 min sem resposta chama a Dara e intermedia a conversa ----------
+    const SETE_DIAS = 7 * 24 * 3600 * 1000;
+    const rotulo = (l: { nome?: string | null; telefone: string }) => `${primeiroNome(l.nome) || "Contato"} ${foneBonito(l.telefone)}`;
+    if (body.acao === "atendimento") {
+      const k = chaveFone(body.telefone);
+      if (!k || k === chaveFone(await secret("dono_whatsapp"))) return json({ tratado: false });
+      const agora = new Date().toISOString();
+      if (k === chaveFone(await secret("dara_whatsapp"))) {
+        const { data: abertas } = await admin.from("whatsapp_atendimento").select("id, chave, nome, telefone, jid").eq("status", "com_dara").gte("ultima_msg_em", new Date(Date.now() - SETE_DIAS).toISOString());
+        if (!abertas?.length) return json({ tratado: false });
+        const e = escolherConversa(abertas, body.citado);
+        if ("resposta" in e) return json({ tratado: true, resposta: e.resposta });
+        const c = abertas.find((a) => a.id === e.conversa.id)!;
+        await admin.from("whatsapp_atendimento").update(/^encerrar$/i.test(String(body.texto || "").trim()) ? { status: "encerrado", ultima_msg_em: agora } : { ultima_msg_em: agora }).eq("id", c.id);
+        if (/^encerrar$/i.test(String(body.texto || "").trim())) return json({ tratado: true, resposta: `Conversa com ${rotulo(c)} encerrada.` });
+        return json(body.midia ? { tratado: true, encaminhar: { jid: c.jid } } : { tratado: true, envios: [{ jid: c.jid, texto: String(body.texto || "") }] });
+      }
+      const { data: pessoas } = await admin.from("profiles").select("phone, phone2, pix_extra");
+      if ((pessoas ?? []).some((p) => chaveFone(p.phone) === k || chaveFone(p.phone2) === k || chaveFone(p.pix_extra?.motorista2?.whatsapp) === k)) return json({ tratado: false });
+      const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", k).maybeSingle();
+      const velho = !lead || Date.now() - new Date(lead.ultima_msg_em).getTime() > SETE_DIAS;
+      if (velho) {
+        const { count } = await admin.from("whatsapp_atendimento").select("id", { count: "exact", head: true }).gte("saudado_em", new Date(Date.now() - 3600 * 1000).toISOString());
+        if ((count ?? 0) >= 20) return json({ tratado: true }); // proteção contra bloqueio do WhatsApp
+        const { data: novo, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "aguardando", guardadas: body.texto ? [String(body.texto)] : [], saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
+        if (error) return json({ error: error.message }, 500);
+        return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome) });
+      }
+      await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(lead.status === "aguardando" && body.texto ? { guardadas: [...(lead.guardadas || []), String(body.texto)] } : {}) }).eq("id", lead.id);
+      if (lead.status === "aguardando") return json({ tratado: true, lead_id: lead.id, guardar: true });
+      if (lead.status !== "com_dara") return json({ tratado: true }); // uma pessoa já assumiu ou a conversa foi encerrada
+      const dara = await secret("dara_whatsapp");
+      return json({ tratado: true, envios: [{ telefone: dara, texto: body.midia ? `*${rotulo(lead)}* enviou:` : `*${rotulo(lead)}:*\n${String(body.texto || "")}` }], ...(body.midia ? { encaminhar: { telefone: dara } } : {}) });
+    }
+    if (body.acao === "locadora_respondeu") {
+      const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", chaveFone(body.telefone) || "-").maybeSingle();
+      if (!lead || !["aguardando", "com_dara"].includes(lead.status) || String(body.em || "") < new Date(lead.saudado_em).toISOString()) return json({ tratado: true });
+      await admin.from("whatsapp_atendimento").update({ status: "humano", ultima_msg_em: new Date().toISOString() }).eq("id", lead.id);
+      return json({ tratado: true, lead_id: lead.id, envios: lead.status === "com_dara" ? [{ telefone: await secret("dara_whatsapp"), texto: `A conversa com ${rotulo(lead)} foi assumida pelo número da locadora. Não vou mais repassar.` }] : [] });
+    }
+    if (body.acao === "atendimento_fila") {
+      const dara = await secret("dara_whatsapp");
+      if (!dara) return json({ chamadas: [] });
+      const { data: leads } = await admin.from("whatsapp_atendimento").select("*").eq("status", "aguardando").lte("saudado_em", new Date(Date.now() - 3 * 60000).toISOString()).order("saudado_em").limit(5);
+      return json({ chamadas: (leads ?? []).map((l) => ({ id: l.id, telefone: dara, textos: [textoDara(l.telefone), `*${rotulo(l)}*${(l.guardadas || []).length ? " perguntou:\n" + l.guardadas.join("\n") : ""}\n\nPara encerrar a conversa, responda ENCERRAR.`] })) });
+    }
+    if (body.acao === "atendimento_ok" && body.id) {
+      await admin.from("whatsapp_atendimento").update({ status: "com_dara", escalado_em: new Date().toISOString(), guardadas: [] }).eq("id", body.id).eq("status", "aguardando");
+      return json({ ok: true });
+    }
+    if (body.acao === "atendimento_falhou" && body.id) {
+      const { data: l } = await admin.from("whatsapp_atendimento").update({ status: "encerrado" }).eq("id", body.id).select("nome, telefone").maybeSingle();
+      if (l) await admin.from("whatsapp_dono").insert({ message: `⚠️ Não consegui chamar a Dara. ${rotulo(l)} mandou mensagem para a locadora e está sem resposta.` });
+      return json({ ok: true });
+    }
     if (body.acao === "mensagem") {
       if (!(await ehDono(body.telefone))) return json({ resposta: null }); // só o número do dono dá ordens
       const c = lerComando(body.texto);

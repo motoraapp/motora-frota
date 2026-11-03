@@ -52,3 +52,35 @@ export function extensao(mime: unknown): string | null {
   if (m === "image/webp") return "webp";
   return null;
 }
+
+// ---------- atendimento de número desconhecido ----------
+export function foneBonito(t: unknown): string {
+  let n = String(t ?? "").replace(/\D/g, "");
+  if (n.length >= 12 && n.startsWith("55")) n = n.slice(2);
+  if (n.length === 11) return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
+  if (n.length === 10) return `(${n.slice(0, 2)}) ${n.slice(2, 6)}-${n.slice(6)}`;
+  return n;
+}
+export function primeiroNome(nome: unknown): string {
+  return String(nome ?? "").replace(/[*_~`\n\r]/g, " ").trim().split(/\s+/)[0].slice(0, 30);
+}
+export function saudacao(nome: unknown, agora = new Date()): string {
+  const h = Number(agora.toLocaleString("en-GB", { hour: "2-digit", hourCycle: "h23", timeZone: "America/Sao_Paulo" }));
+  const oi = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+  const n = primeiroNome(nome);
+  return `${oi}${n ? ", " + n : ""}! Sou a assistente virtual da Motora Locadora. Vou chamar o Thiago ou a Dara para atender você.`;
+}
+export function textoDara(fone: unknown): string {
+  return `Dara, aqui é a assistente virtual do Thiago. Ele deve estar ocupado em corrida e não viu a mensagem. Tem um número perguntando sobre aluguel de carro: ${foneBonito(fone)}. O que ele me perguntar vou encaminhar direto para você e sua resposta vou enviar para ele e intermediar a conversa do seu número.`;
+}
+export type Conversa = { id: string; chave: string; nome: string | null; telefone: string };
+// para quem vai a resposta da Dara: pela mensagem citada; sem citar, só se houver uma conversa aberta
+export function escolherConversa(abertas: Conversa[], citado: unknown): { conversa: Conversa } | { resposta: string } {
+  const m = String(citado ?? "").match(/\(\d{2}\) \d{4,5}-\d{4}/);
+  if (m) {
+    const k = chaveFone(m[0]), c = abertas.find((a) => a.chave === k);
+    return c ? { conversa: c } : { resposta: `A conversa com ${m[0]} não está mais aberta.` };
+  }
+  if (abertas.length === 1) return { conversa: abertas[0] };
+  return { resposta: `Há ${abertas.length} conversas abertas: ${abertas.map((a) => foneBonito(a.telefone)).join(", ")}. Segure a mensagem da pessoa, toque em Responder e escreva.` };
+}

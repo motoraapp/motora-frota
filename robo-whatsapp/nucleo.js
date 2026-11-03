@@ -68,6 +68,11 @@ export function abrirConteudo(c) {
   }
   return m || {};
 }
+// mensagens do robô têm este começo no código: assim dá para saber quando foi uma pessoa que respondeu pelo número da locadora
+const PREFIXO_ROBO = '3EB04D4F5241';
+const novoIdRobo = () => PREFIXO_ROBO + crypto.randomBytes(10).toString('hex').toUpperCase();
+export const ehDoRobo = (id) => String(id || '').startsWith(PREFIXO_ROBO);
+const JANELA_ATENDIMENTO = 6 * 60 * MIN; // mensagem mais velha que isso não dispara saudação nem repasse
 const numeroDoJid = (jid) => String(jid).split('@')[0].split(':')[0];
 
 export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn = (...a) => fetch(...a), pastaBase, relogio = relogioReal, aleatorio = Math.random, log: logExterno, aoReiniciar = null }) {
@@ -342,6 +347,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
 
   // ---------- fila de envio ----------
+  const mandar = (jid, conteudo) => sock.sendMessage(jid, conteudo, { messageId: novoIdRobo() });
   const conteudoDe = (m) => (m.imagem_url ? { image: { url: m.imagem_url }, caption: m.texto } : m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
   async function enviar(m) {
     for (const tel of m.telefones) {
@@ -352,7 +358,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       const achado = r.find((x) => x.exists);
       if (!achado) continue;
       // recibo: o PDF vai com o texto na mesma mensagem, para nunca sair duplicado
-      await sock.sendMessage(achado.jid, conteudoDe(m));
+      await mandar(achado.jid, conteudoDe(m));
       m.jidsEnviados = [achado.jid];
       return true;
     }
@@ -374,7 +380,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         const [a, b] = ESPERA_ENTRE_MENSAGENS;
         await relogio.dormir(a + Math.floor(aleatorio() * (b - a)));
         if (!conectado || !sock) return;
-        await sock.sendMessage(achado.jid, conteudoDe(m));
+        await mandar(achado.jid, conteudoDe(m));
         enviadasNaHora.push(relogio.agora());
         log(`Cópia enviada a outro número da ficha de ${m.nome}.`);
       } catch (e) { log(`Não consegui enviar a outro número da ficha de ${m.nome}:`, e.message); }
@@ -478,13 +484,14 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   async function responder(jid, texto) {
     if (!texto || !sock) return;
     await relogio.dormir(2000 + Math.floor(aleatorio() * 3000));
-    if (sock) { await sock.sendMessage(jid, { text: texto }); agendarBackup(); }
+    if (sock) { await mandar(jid, { text: texto }); agendarBackup(); }
   }
   async function tratarRecebida(msg) {
     const key = msg && msg.key;
-    if (!key || key.fromMe || !key.id || vistas.has(key.id)) return;
+    if (!key || !key.id || vistas.has(key.id)) return;
     const jid = String(key.remoteJid || '');
     if (!jid.endsWith('@s.whatsapp.net') && !jid.endsWith('@lid')) return; // grupos, status e canais ficam de fora
+    if (key.fromMe) { await pessoaRespondeu(msg, jid); return; }
     const ts = msg.messageTimestamp, seg = ts && ts.toNumber ? ts.toNumber() : Number(ts);
     if (seg && relogio.agora() - seg * 1000 > JANELA_RECEBER) return;
     vistas.add(key.id);
@@ -493,8 +500,20 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     const c = abrirConteudo(msg.message);
     const texto = c.conversation || (c.extendedTextMessage && c.extendedTextMessage.text) || '';
     const arq = c.imageMessage || c.documentMessage || null;
-    if (!texto && !arq) return;
+    const midia = !!(arq || c.audioMessage || c.videoMessage || c.ptvMessage || c.stickerMessage || c.locationMessage || c.contactMessage);
+    if (!texto && !midia) return;
     const telefone = await telefoneDe(key);
+    if (telefone && !(seg && relogio.agora() - seg * 1000 > JANELA_ATENDIMENTO)) {
+      try {
+        const ctx = Object.values(c).find((v) => v && v.contextInfo)?.contextInfo;
+        const q = ctx && ctx.quotedMessage ? abrirConteudo(ctx.quotedMessage) : null;
+        const citado = q ? q.conversation || q.extendedTextMessage?.text || '' : '';
+        const legenda = texto || arq?.caption || c.videoMessage?.caption || '';
+        const a = await comRepeticao('atendimento', { telefone, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, citado: String(citado).slice(0, 500) });
+        if (a.tratado) { await entregarAtendimento(a, msg, jid); return; }
+      } catch (e) { vistas.delete(key.id); throw e; }
+    }
+    if (!texto && !arq) return;
     if (!telefone) {
       if (!arq) return;
       const ult = semNumeroAvisado.get(jid) || 0; // avisa o dono no máximo 1 vez por hora por conversa
@@ -512,6 +531,80 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       }
     } catch (e) { vistas.delete(key.id); throw e; }
   }
+  // ---------- atendimento de número desconhecido (saudação, aviso à Dara e conversa intermediada) ----------
+  const guardadas = new Map(), filaEnvios = {}, falhasLead = {}; // arquivos recebidos antes de chamar a Dara
+  async function destino({ jid, telefone }) {
+    if (jid) return jid;
+    const num = numeroBR(telefone);
+    const r = num ? await sock.onWhatsApp(num) : null;
+    if (r === undefined) throw new Error('não consegui consultar o número agora');
+    const achado = r && r.find((x) => x.exists);
+    return achado ? achado.jid : null;
+  }
+  async function encaminhar(para, msg) {
+    await relogio.dormir(1000);
+    if (sock) await mandar(para, { forward: msg });
+  }
+  async function entregarAtendimento(a, msg, jid) {
+    if (a.guardar && a.lead_id && msg && msg.message) {
+      const c = abrirConteudo(msg.message);
+      if (!(c.conversation || c.extendedTextMessage)) guardadas.set(a.lead_id, [...(guardadas.get(a.lead_id) || []), msg]);
+    }
+    if (a.resposta) await responder(jid, a.resposta);
+    for (const e of a.envios || []) {
+      const para = await destino(e);
+      if (para) await responder(para, e.texto);
+    }
+    if (a.encaminhar && msg) {
+      try {
+        const para = await destino(a.encaminhar);
+        if (para) await encaminhar(para, msg);
+      } catch (e) {
+        log('Não consegui encaminhar o arquivo:', e.message);
+        await responder(jid, 'Não consegui encaminhar este arquivo. Pode escrever em texto, por favor?');
+      }
+    }
+  }
+  async function pessoaRespondeu(msg, jid) {
+    if (ehDoRobo(msg.key.id)) return; // foi o próprio robô
+    const c = abrirConteudo(msg.message);
+    if (!Object.keys(c).some((k) => /^(conversation|extendedText|image|video|audio|document|sticker|ptv|location|contact)/.test(k))) return; // visto, reação etc.
+    const ts = msg.messageTimestamp, seg = ts && ts.toNumber ? ts.toNumber() : Number(ts);
+    if (!seg || relogio.agora() - seg * 1000 > JANELA_ATENDIMENTO) return;
+    vistas.add(msg.key.id);
+    const telefone = await telefoneDe(msg.key);
+    if (!telefone) return;
+    const a = await comRepeticao('locadora_respondeu', { telefone, em: new Date(seg * 1000).toISOString() });
+    if (a.lead_id) guardadas.delete(a.lead_id);
+    await entregarAtendimento(a, null, jid);
+  }
+  // passados 3 min sem resposta da locadora, chama a Dara. Roda na mesma fila das recebidas, para nada se cruzar
+  async function chamarDara() {
+    if (!conectado || !sock) return;
+    const { chamadas } = await motora('atendimento_fila');
+    for (const l of chamadas || []) {
+      try {
+        const para = await destino(l);
+        if (!para) throw new Error('número sem WhatsApp');
+        filaEnvios[l.id] = filaEnvios[l.id] || 0; // não repete o que já saiu, se a marcação falhar
+        for (; filaEnvios[l.id] < l.textos.length; filaEnvios[l.id]++) await responder(para, l.textos[filaEnvios[l.id]]);
+        for (const m of guardadas.get(l.id) || []) await encaminhar(para, m).catch((e) => log('Não consegui encaminhar o arquivo:', e.message));
+        guardadas.delete(l.id);
+        await comRepeticao('atendimento_ok', { id: l.id });
+        delete filaEnvios[l.id];
+        log('Atendimento repassado à Dara.');
+      } catch (e) {
+        log('Não consegui chamar a Dara:', e.message);
+        falhasLead[l.id] = (falhasLead[l.id] || 0) + 1;
+        if (falhasLead[l.id] >= 3) await motora('atendimento_falhou', { id: l.id }).catch(() => {});
+      }
+    }
+  }
+  function cicloAtendimento() {
+    filaRecebidas = filaRecebidas.then(chamarDara).catch((e) => log('Erro no atendimento:', e.message));
+    return filaRecebidas;
+  }
+
   async function receberArquivo(msg, arq, telefone, jid) {
     const pedido = await comRepeticao('comprovante_url', { telefone, msg_id: msg.key.id, mimetype: arq.mimetype || '' });
     if (!pedido.url) { await responder(jid, pedido.resposta); return; } // não é motorista cadastrado: nem baixa o arquivo
@@ -562,6 +655,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     await restaurar();
     await abrir().catch(falhaAoAbrir);
     repetir(30000, ciclo);
+    repetir(20000, cicloAtendimento);
   }
 
   async function encerrar() {
@@ -575,7 +669,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
 
   return {
-    iniciar, encerrar, ciclo, aoReceber, verificarPareamento, sinalDeVida, guardar, restaurar, abrir,
+    iniciar, encerrar, ciclo, aoReceber, cicloAtendimento, verificarPareamento, sinalDeVida, guardar, restaurar, abrir,
     get situacao() { return situacao; }, get conectado() { return conectado; }, get pareando() { return pareando; },
     get socket() { return sock; }, get senhaPagina() { return SENHA_PAGINA; }, get servidor() { return servidor; }, PASTA,
   };

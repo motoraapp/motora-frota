@@ -4,9 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, escolher, extensao } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, textoDara } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
-import { criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
+import { ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
 const CREDS = '{"account":{},"me":{"id":"x"}}';
 
@@ -625,4 +625,43 @@ test('IA: modelo ocupado passa para o próximo, e chave errada para', async () =
     pedidos.length = 0; globalThis.fetch = async (u) => { if (u.includes('?pageSize')) return ok(500, {}); pedidos.push(u); return ok(401, {}); };
     assert.equal(await tentarGemini('k', 'config', '{}', () => 1), null); assert.equal(pedidos.length, 1);
   } finally { globalThis.fetch = antigo; }
+});
+
+test('atendimento: saudação, número e para quem vai a resposta da Dara', () => {
+  assert.match(saudacao('João Silva', new Date('2026-11-03T12:00:00Z')), /^Bom dia, João! .*Motora Locadora.*Thiago ou a Dara/);
+  assert.match(saudacao('', new Date('2026-11-03T18:00:00Z')), /^Boa tarde! /);
+  assert.match(saudacao('Ana', new Date('2026-11-03T23:00:00Z')), /^Boa noite, Ana!/);
+  assert.equal(foneBonito('5562999998888'), '(62) 99999-8888');
+  assert.match(textoDara('5562999998888'), /ocupado em corrida.*\(62\) 99999-8888/);
+  const a = { id: '1', chave: chaveFone('5562999998888'), nome: 'A', telefone: '5562999998888' };
+  const b = { id: '2', chave: chaveFone('5562911112222'), nome: 'B', telefone: '5562911112222' };
+  assert.equal(escolherConversa([a], '').conversa.id, '1');
+  assert.ok(escolherConversa([a, b], '').resposta);
+  assert.equal(escolherConversa([a, b], '*B (62) 91111-2222:* oi').conversa.id, '2');
+  assert.ok(escolherConversa([a], '*C (62) 93333-4444:* oi').resposta);
+});
+
+test('atendimento: reconhece as mensagens do próprio robô', () => {
+  assert.equal(ehDoRobo('3EB04D4F5241AB'), true);
+  assert.equal(ehDoRobo('3EB0FFFF'), false);
+});
+
+test('atendimento: saúda, chama a Dara e separa pessoa de robô', async () => {
+  const t = await ligado({
+    atendimento: (r, b) => r(200, { tratado: true, lead_id: 'L1', guardar: true, resposta: 'Bom dia, Fulano!' }),
+    atendimento_fila: (r) => r(200, { chamadas: [{ id: 'L1', telefone: '5562900000000', textos: ['Dara, aqui', 'perguntou'] }] }),
+    atendimento_ok: (r) => r(200, { ok: true }),
+    locadora_respondeu: (r) => r(200, { tratado: true, envios: [] }),
+  });
+  await receber(t, texto('quero alugar'));
+  assert.deepEqual(t.sockets[0].enviadas.at(-1), [FONE, 'Bom dia, Fulano!']);
+  assert.equal(acoes(t, 'comprovante_url').length, 0);
+  const p = t.robo.cicloAtendimento(); await t.avancar(30000); await p;
+  assert.deepEqual(t.sockets[0].enviadas.slice(-2).map((e) => e[1]), ['Dara, aqui', 'perguntou']);
+  assert.equal(acoes(t, 'atendimento_ok').length, 1);
+  const eu = (id) => ({ key: { id, remoteJid: FONE, fromMe: true }, messageTimestamp: agoraSeg(), message: { conversation: 'oi' } });
+  await receber(t, eu('3EB04D4F5241AA'));
+  assert.equal(acoes(t, 'locadora_respondeu').length, 0);
+  await receber(t, eu('HUMANO1'));
+  assert.equal(acoes(t, 'locadora_respondeu').length, 1);
 });
