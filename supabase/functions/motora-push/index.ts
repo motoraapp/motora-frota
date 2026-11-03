@@ -39,8 +39,21 @@ async function vapid() {
   return { pub, priv };
 }
 
+// Todo aviso do master também vai para o WhatsApp dele (o robô envia). Fora: "WhatsApp pronto" (só sai com o robô parado)
+// e problema de comprovante (o robô já manda o comprovante com o código para confirmar ou recusar).
+async function copiaWhatsAppDono(userIds: string[], payload: Record<string, string>) {
+  try {
+    const titulo = String(payload.title || "");
+    if (/^WhatsApp para /.test(titulo) || /^Comprovante de .*: confira/.test(titulo)) return;
+    const ms = await masterIds();
+    if (!userIds.some((id) => ms.includes(id))) return;
+    await admin.from("whatsapp_dono").insert({ message: `*${titulo}*\n${String(payload.body || "")}`.trim() });
+  } catch (e) { console.error("copia dono", String(e)); } // nunca pode travar a notificação
+}
+
 async function sendTo(userIds: string[], payload: Record<string, string>) {
   if (!userIds.length) return 0;
+  await copiaWhatsAppDono(userIds, payload);
   const { pub, priv } = await vapid();
   webpush.setVapidDetails("mailto:thiagogb20@gmail.com", pub, priv);
   const { data: subs } = await admin.from("push_subscriptions").select("*").in("user_id", userIds);

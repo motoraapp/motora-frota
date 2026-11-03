@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
+import { chaveFone, lerComando, extensao } from '../../supabase/functions/motora-robo/comandos.ts';
 import { criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
 const CREDS = '{"account":{},"me":{"id":"x"}}';
@@ -51,6 +52,7 @@ function montar({ sessao = null, rotas = {} } = {}) {
     useMultiFileAuthState: async () => ({ state: { creds: estado.creds, keys: {} }, saveCreds: async () => { estado.salvou = (estado.salvou || 0) + 1; } }),
     makeCacheableSignalKeyStore: (k) => k,
     fetchLatestBaileysVersion: async () => ({ version: [2, 3000, 1], isLatest: true }),
+    downloadMediaMessage: async () => { estado.baixou = (estado.baixou || 0) + 1; return estado.arquivo || Buffer.from('arquivo'); },
     makeWASocket: (op) => {
       const s = { ev: new EventEmitter(), op, enviadas: [], pedidos: [], numeros: {}, ended: false,
         end() { this.ended = true; },
@@ -461,4 +463,96 @@ test('erro do código volta depois do próximo QR e some com pedido novo', async
   await t.robo.verificarPareamento();
   assert.equal(t.sockets[0].pedidos.length, 1);
   assert.equal(erros(), 2);
+});
+
+// ---------- mensagens recebidas ----------
+const FONE = '5562911112222@s.whatsapp.net';
+const agoraSeg = () => 1_800_000_000;
+const foto = (id = 'ABC1', jid = FONE, extra = {}) => ({ key: { id, remoteJid: jid, fromMe: false, ...extra.key }, messageTimestamp: extra.ts || agoraSeg(), pushName: 'Fulano', message: extra.message || { imageMessage: { mimetype: 'image/jpeg', fileLength: 100 } } });
+const texto = (t, id = 'T1', jid = FONE) => ({ key: { id, remoteJid: jid, fromMe: false }, messageTimestamp: agoraSeg(), message: { conversation: t } });
+const receber = async (t, ...ms) => { const p = t.robo.aoReceber({ type: 'notify', messages: ms }); await t.avancar(20000); await p; };
+const rotasMotorista = {
+  comprovante_url: (r) => r(200, { url: 'https://guardar/x', path: 'd/receipts/wa-ABC1.jpg' }),
+  comprovante_salvar: (r) => r(200, { resposta: 'Recebemos' }),
+};
+async function ligado(rotas) { const t = montar({ rotas }); await t.robo.abrir(); t.abre(); await t.flush(); return t; }
+
+test('foto de motorista: baixa, guarda, registra e confirma', async () => {
+  const t = await ligado(rotasMotorista);
+  await receber(t, foto());
+  assert.equal(t.estado.baixou, 1); assert.equal(t.puts.length, 1);
+  assert.deepEqual(acoes(t, 'comprovante_url')[0].telefone, '5562911112222');
+  assert.equal(acoes(t, 'comprovante_salvar')[0].path, 'd/receipts/wa-ABC1.jpg');
+  assert.deepEqual(t.sockets[0].enviadas, [[FONE, 'Recebemos']]);
+});
+test('quem não é motorista: nada é baixado e ninguém responde', async () => {
+  const t = await ligado({ comprovante_url: (r) => r(200, { url: null, resposta: null }) });
+  await receber(t, foto());
+  assert.equal(t.estado.baixou, undefined); assert.equal(t.sockets[0].enviadas.length, 0);
+  assert.equal(acoes(t, 'comprovante_salvar').length, 0);
+});
+test('mesma mensagem entregue duas vezes conta uma vez', async () => {
+  const t = await ligado(rotasMotorista);
+  await receber(t, foto(), foto());
+  assert.equal(acoes(t, 'comprovante_url').length, 1);
+});
+test('ignora grupo, status, mensagem própria e mensagem antiga', async () => {
+  const t = await ligado(rotasMotorista);
+  await receber(t, foto('A', '123@g.us'), foto('B', 'status@broadcast'), foto('C', FONE, { key: { fromMe: true } }), foto('D', FONE, { ts: agoraSeg() - 4 * 86400 }));
+  assert.equal(acoes(t, 'comprovante_url').length, 0);
+});
+test('PDF dentro de documento com legenda e mensagem temporária é aberto', async () => {
+  const t = await ligado(rotasMotorista);
+  await receber(t, foto('P', FONE, { message: { ephemeralMessage: { message: { documentWithCaptionMessage: { message: { documentMessage: { mimetype: 'application/pdf', fileName: 'c.pdf' } } } } } } }));
+  assert.equal(acoes(t, 'comprovante_url')[0].mimetype, 'application/pdf');
+  assert.equal(acoes(t, 'comprovante_salvar')[0].file_name, 'c.pdf');
+});
+test('arquivo grande é recusado sem baixar', async () => {
+  const t = await ligado(rotasMotorista);
+  await receber(t, foto('G', FONE, { message: { imageMessage: { mimetype: 'image/jpeg', fileLength: 11 * 1024 * 1024 } } }));
+  assert.equal(t.estado.baixou, undefined); assert.match(t.sockets[0].enviadas[0][1], /muito grande/);
+});
+test('falha ao guardar: avisa o motorista e não registra', async () => {
+  const t = await ligado({ ...rotasMotorista, put: 500 });
+  await receber(t, foto());
+  assert.equal(acoes(t, 'comprovante_salvar').length, 0);
+  assert.match(t.sockets[0].enviadas[0][1], /Não consegui/);
+  assert.ok(!t.logs.join(' ').includes('5562911112222'));
+});
+test('número escondido: usa o alternativo; sem nenhum, avisa o dono uma vez e nada entra', async () => {
+  const t = await ligado(rotasMotorista);
+  await receber(t, foto('L1', '999@lid', { key: { remoteJidAlt: FONE } }));
+  assert.equal(acoes(t, 'comprovante_url')[0].telefone, '5562911112222');
+  await receber(t, foto('L2', '888@lid'), foto('L3', '888@lid'));
+  assert.equal(acoes(t, 'comprovante_sem_numero').length, 1);
+  assert.equal(acoes(t, 'comprovante_url').length, 1);
+});
+test('texto vai para a função e a resposta volta na mesma conversa', async () => {
+  const t = await ligado({ mensagem: (r) => r(200, { resposta: 'ok feito' }) });
+  await receber(t, texto('CONFIRMAR 1234'));
+  assert.equal(acoes(t, 'mensagem')[0].texto, 'CONFIRMAR 1234');
+  assert.deepEqual(t.sockets[0].enviadas, [[FONE, 'ok feito']]);
+});
+test('aviso com imagem sai como imagem', async () => {
+  const t = await ligado();
+  let conteudo; t.sockets[0].sendMessage = async (j, c) => { conteudo = c; };
+  t.st.pendentes = { ativo: true, mensagens: [{ id: 'm', nome: 'dono', telefones: ['62992661879'], texto: 'oi', imagem_url: 'https://x/a.jpg' }] };
+  const p = t.robo.ciclo(); await t.avancar(30000); await p;
+  assert.deepEqual(conteudo, { image: { url: 'https://x/a.jpg' }, caption: 'oi' });
+});
+test('telefone: 9º dígito e 55 não atrapalham', () => {
+  const k = chaveFone('(62) 99266-1879');
+  assert.equal(k, chaveFone('5562992661879')); assert.equal(k, chaveFone('556292661879'));
+  assert.notEqual(k, chaveFone('63992661879')); assert.equal(chaveFone('123'), null); assert.equal(chaveFone(null), null);
+});
+test('comando do dono só com palavra e código', () => {
+  assert.deepEqual(lerComando(' *confirmar 1234* '), { confirmar: true, codigo: '1234', motivo: '' });
+  assert.deepEqual(lerComando('RECUSAR 0042 valor errado'), { confirmar: false, codigo: '0042', motivo: 'valor errado' });
+  assert.equal(lerComando('confirmar'), 'ajuda'); assert.equal(lerComando('Confirmar 12'), 'ajuda');
+  assert.equal(lerComando('ok'), null); assert.equal(lerComando('vou confirmar 1234 depois'), null);
+  assert.equal(lerComando('confirmar 12345'), 'ajuda');
+});
+test('só foto e PDF viram comprovante', () => {
+  assert.equal(extensao('image/jpeg'), 'jpg'); assert.equal(extensao('application/pdf'), 'pdf'); assert.equal(extensao('image/png; x'), 'png');
+  assert.equal(extensao('video/mp4'), null); assert.equal(extensao('application/x-msdownload'), null);
 });

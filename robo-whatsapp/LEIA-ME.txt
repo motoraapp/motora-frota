@@ -1,7 +1,7 @@
 ROBÔ DO WHATSAPP DO MOTORA (no Hostless)
 ========================================
 - Roda no Hostless (hostless.cloud), sem precisar do seu computador ligado e sem navegador (biblioteca Baileys).
-- Só ENVIA as mensagens que a IA do MOTORA escreve (Pix, recibo, avisos). Não lê nem responde.
+- Envia as mensagens do MOTORA (Pix, recibo, avisos, inclusive ao dono) e só lê comprovante de motorista cadastrado e resposta do dono com código.
 - Liga e desliga pelo botão "Envio automático" na Área IA do app.
 - O QR code e a opção de conectar pelo número aparecem na Área IA do app.
 - A conexão fica guardada no Supabase: se o Hostless reiniciar, não precisa conectar de novo.

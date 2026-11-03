@@ -1,10 +1,10 @@
 // ROBÔ DO WHATSAPP DO MOTORA — roda no HOSTLESS (hostless.cloud), sem tela e sem navegador (biblioteca Baileys).
-// Só DISPARA mensagens: não lê, não responde e não conversa com ninguém. A lógica fica em nucleo.js.
+// Envia as mensagens do MOTORA e só lê duas coisas: comprovante de motorista cadastrado e resposta do dono com código. A lógica fica em nucleo.js.
 // Configuração (variáveis do Hostless): CHAVE_ROBO = chave do robô. Opcional: PORT (o Hostless define).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion } from 'baileys';
+import makeWASocket, { useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, downloadMediaMessage } from 'baileys';
 import pino from 'pino';
 import QRCode from 'qrcode';
 import { criarRobo } from './nucleo.js';
@@ -15,7 +15,7 @@ if (!chave && fs.existsSync(CONFIG)) chave = JSON.parse(fs.readFileSync(CONFIG, 
 if (!chave) { console.log('Falta a chave do robô (variável CHAVE_ROBO).'); process.exit(1); }
 
 const robo = criarRobo({
-  baileys: { makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion },
+  baileys: { makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion, downloadMediaMessage },
   logger: pino({ level: 'silent' }), // o registro da biblioteca traz o número da conta; fica desligado
   qrcode: QRCode,
   chave,

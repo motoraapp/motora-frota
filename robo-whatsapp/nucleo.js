@@ -55,6 +55,21 @@ export function abrirPacote(buf) {
   } catch { return null; }
 }
 
+const MAX_ARQUIVO = 10 * 1024 * 1024;
+const JANELA_RECEBER = 3 * 24 * 60 * MIN; // mensagem mais velha que isso é histórico, não comprovante novo
+
+// tira os envelopes do WhatsApp (mensagem temporária, ver uma vez, documento com legenda)
+export function abrirConteudo(c) {
+  let m = c;
+  for (let i = 0; m && i < 5; i++) {
+    const dentro = m.ephemeralMessage || m.viewOnceMessage || m.viewOnceMessageV2 || m.viewOnceMessageV2Extension || m.documentWithCaptionMessage;
+    if (!dentro) break;
+    m = dentro.message;
+  }
+  return m || {};
+}
+const numeroDoJid = (jid) => String(jid).split('@')[0].split(':')[0];
+
 export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn = (...a) => fetch(...a), pastaBase, relogio = relogioReal, aleatorio = Math.random, log: logExterno }) {
   const BASE = pastaBase || path.join(os.tmpdir(), 'motora-robo'); // no Hostless só a pasta temporária aceita gravar
   const PASTA = path.join(BASE, 'sessao');
@@ -177,7 +192,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   function soltarSocket() {
     if (!sock) return;
     const antigo = sock; sock = null;
-    for (const nome of ['connection.update', 'creds.update']) { try { antigo.ev.removeAllListeners(nome); } catch { /* já fechado */ } }
+    for (const nome of ['connection.update', 'creds.update', 'messages.upsert']) { try { antigo.ev.removeAllListeners(nome); } catch { /* já fechado */ } }
     try { antigo.end && antigo.end(undefined); } catch { /* já fechado */ }
   }
 
@@ -207,6 +222,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       agendarBackup();
     });
     s.ev.on('connection.update', (u) => { if (s === sock) aoMudar(u); });
+    s.ev.on('messages.upsert', (u) => { if (s === sock) aoReceber(u); });
   }
 
   function aoMudar(u) {
@@ -335,7 +351,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       const achado = r.find((x) => x.exists);
       if (!achado) continue;
       // recibo: o PDF vai com o texto na mesma mensagem, para nunca sair duplicado
-      await sock.sendMessage(achado.jid, m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
+      await sock.sendMessage(achado.jid, m.imagem_url ? { image: { url: m.imagem_url }, caption: m.texto } : m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
       return true;
     }
     return false;
@@ -393,6 +409,89 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     }
   }
 
+  // ---------- mensagens recebidas (comprovante de motorista e resposta do dono) ----------
+  const vistas = new Set(), semNumeroAvisado = new Map();
+  let filaRecebidas = Promise.resolve();
+  function aoReceber({ messages } = {}) {
+    for (const msg of messages || []) {
+      filaRecebidas = filaRecebidas.then(() => tratarRecebida(msg)).catch((e) => log('Erro ao tratar mensagem recebida:', e.message));
+    }
+    return filaRecebidas;
+  }
+  // o WhatsApp às vezes esconde o número (endereço @lid): tenta os caminhos que a biblioteca oferece
+  async function telefoneDe(key) {
+    if (String(key.remoteJid).endsWith('@s.whatsapp.net')) return numeroDoJid(key.remoteJid);
+    if (String(key.remoteJidAlt || '').endsWith('@s.whatsapp.net')) return numeroDoJid(key.remoteJidAlt);
+    try {
+      const pn = await sock.signalRepository.lidMapping.getPNForLID(key.remoteJid);
+      if (pn) return numeroDoJid(pn);
+    } catch { /* segue sem número */ }
+    return null;
+  }
+  async function comRepeticao(acao, extra) {
+    for (let i = 0; ; i++) {
+      try { return await motora(acao, extra); } catch (e) {
+        if (i >= 2) throw e;
+        await relogio.dormir(3000 * (i + 1));
+      }
+    }
+  }
+  async function responder(jid, texto) {
+    if (!texto || !sock) return;
+    await relogio.dormir(2000 + Math.floor(aleatorio() * 3000));
+    if (sock) { await sock.sendMessage(jid, { text: texto }); agendarBackup(); }
+  }
+  async function tratarRecebida(msg) {
+    const key = msg && msg.key;
+    if (!key || key.fromMe || !key.id || vistas.has(key.id)) return;
+    const jid = String(key.remoteJid || '');
+    if (!jid.endsWith('@s.whatsapp.net') && !jid.endsWith('@lid')) return; // grupos, status e canais ficam de fora
+    const ts = msg.messageTimestamp, seg = ts && ts.toNumber ? ts.toNumber() : Number(ts);
+    if (seg && relogio.agora() - seg * 1000 > JANELA_RECEBER) return;
+    vistas.add(key.id);
+    if (vistas.size > 5000) vistas.clear();
+
+    const c = abrirConteudo(msg.message);
+    const texto = c.conversation || (c.extendedTextMessage && c.extendedTextMessage.text) || '';
+    const arq = c.imageMessage || c.documentMessage || null;
+    if (!texto && !arq) return;
+    const telefone = await telefoneDe(key);
+    if (!telefone) {
+      if (!arq) return;
+      const ult = semNumeroAvisado.get(jid) || 0; // avisa o dono no máximo 1 vez por hora por conversa
+      if (relogio.agora() - ult < 60 * MIN) return;
+      semNumeroAvisado.set(jid, relogio.agora());
+      await comRepeticao('comprovante_sem_numero', { nome: msg.pushName || '' });
+      log('Arquivo recebido sem número visível: dono avisado.');
+      return;
+    }
+    try {
+      if (arq) await receberArquivo(msg, arq, telefone, jid);
+      else {
+        const { resposta } = await comRepeticao('mensagem', { telefone, texto: String(texto).slice(0, 500) });
+        await responder(jid, resposta);
+      }
+    } catch (e) { vistas.delete(key.id); throw e; }
+  }
+  async function receberArquivo(msg, arq, telefone, jid) {
+    const pedido = await comRepeticao('comprovante_url', { telefone, msg_id: msg.key.id, mimetype: arq.mimetype || '' });
+    if (!pedido.url) { await responder(jid, pedido.resposta); return; } // não é motorista cadastrado: nem baixa o arquivo
+    try {
+      const tam = arq.fileLength && arq.fileLength.toNumber ? arq.fileLength.toNumber() : Number(arq.fileLength || 0);
+      if (tam > MAX_ARQUIVO) { await responder(jid, 'Arquivo muito grande (máximo 10 MB). Envie uma foto do comprovante.'); return; }
+      const buf = await baileys.downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
+      if (buf.length > MAX_ARQUIVO) { await responder(jid, 'Arquivo muito grande (máximo 10 MB). Envie uma foto do comprovante.'); return; }
+      const r = await fetchFn(pedido.url, { method: 'PUT', headers: { 'Content-Type': arq.mimetype || 'application/octet-stream' }, body: buf });
+      if (!r.ok) throw new Error('guardar arquivo respondeu ' + r.status);
+      const { resposta } = await comRepeticao('comprovante_salvar', { telefone, path: pedido.path, file_name: arq.fileName || 'Comprovante pelo WhatsApp' });
+      log('Comprovante recebido pelo WhatsApp.');
+      await responder(jid, resposta);
+    } catch (e) {
+      log('Não consegui receber o comprovante:', e.message);
+      await responder(jid, 'Não consegui receber seu comprovante. Envie de novo em alguns minutos ou pelo app.');
+    }
+  }
+
   // ---------- página do QR ----------
   async function pagina(req, res) {
     const u = new URL(req.url, 'http://x');
@@ -437,7 +536,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
 
   return {
-    iniciar, encerrar, ciclo, verificarPareamento, sinalDeVida, guardar, restaurar, abrir,
+    iniciar, encerrar, ciclo, aoReceber, verificarPareamento, sinalDeVida, guardar, restaurar, abrir,
     get situacao() { return situacao; }, get conectado() { return conectado; }, get pareando() { return pareando; },
     get socket() { return sock; }, get senhaPagina() { return SENHA_PAGINA; }, get servidor() { return servidor; }, PASTA,
   };
