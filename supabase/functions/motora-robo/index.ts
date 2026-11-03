@@ -164,7 +164,12 @@ Deno.serve(async (req) => {
       if (k === chaveFone(await secret("dono_whatsapp"))) {
         // depois de 7 dias o robô só volta a atender com a ordem do dono: ATENDER
         const m = String(body.texto || "").trim().match(/^atender(?=\s|$)\s*(.*)$/i);
-        if (!m) return json({ tratado: false });
+        if (!m) {
+          // CONFIRMAR/RECUSAR de comprovante seguem como antes; o resto é pedido para a IA resolver (motora-dono), sempre com o SIM do dono
+          if (!String(body.texto || "").trim() || lerComando(body.texto)) return json({ tratado: false });
+          const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-dono`, { method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" }, body: JSON.stringify({ texto: body.texto }) }).then((x) => x.json()).catch(() => null);
+          return json({ tratado: true, resposta: r?.resposta ?? "Tive um erro e nada foi feito. Tente de novo.", envios: r?.envios || [] });
+        }
         const { data: esperando } = await admin.from("whatsapp_atendimento").select("*").eq("status", "perguntar");
         const alvo = chaveFone(m[1]);
         const lista = (esperando ?? []).filter((l) => !alvo || l.chave === alvo);
