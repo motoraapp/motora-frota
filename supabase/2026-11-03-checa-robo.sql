@@ -17,13 +17,14 @@ begin
       'title', case problema when 'whatsapp' then 'WhatsApp do robô desconectado' else 'Robô do WhatsApp desligado' end,
       'body', case problema when 'whatsapp' then 'O robô está ligado, mas sem conexão com o WhatsApp. As mensagens estão paradas. Toque para ver.'
         else 'O robô parou de responder. Confira se o computador está ligado e com internet. As mensagens estão paradas.' end));
-    insert into app_settings(key, value) values ('robo_checagem', jsonb_build_object('problema', problema))
-      on conflict (key) do update set value = excluded.value, updated_at = now();
   elsif problema is null and estado is not null then
     perform call_edge('motora-push', jsonb_build_object('type', 'master_alert', 'url', '/?abrir=ia',
       'title', 'Robô do WhatsApp funcionando', 'body', 'A conexão voltou. As mensagens paradas serão enviadas.'));
-    delete from app_settings where key = 'robo_checagem';
+  end if;
+  if problema is distinct from estado and (problema is null or estado is null) then
+    insert into app_settings(key, value) values ('robo_checagem', jsonb_build_object('problema', problema))
+      on conflict (key) do update set value = excluded.value, updated_at = now();
   end if;
 end $$;
-revoke all on function public.checa_robo() from public, anon, authenticated;
+revoke execute on function public.checa_robo() from public, anon, authenticated;
 select cron.schedule('motora-checa-robo', '30 seconds', 'select public.checa_robo()');
