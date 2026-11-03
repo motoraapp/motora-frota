@@ -8,7 +8,7 @@ import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 
 const URL_ROBO = 'https://epswrtcwszhbapaxdpzz.supabase.co/functions/v1/motora-robo';
-const ESPERA_ENTRE_MENSAGENS = [8000, 20000]; // pausa aleatória entre mensagens (evita bloqueio)
+const ESPERA_ENTRE_MENSAGENS = [60000, 75000]; // nunca menos de 1 min entre um envio e o próximo (pedido do dono; evita bloqueio)
 const LIMITE_POR_HORA = 30;
 const FORMATO = 'motora-baileys-1';
 const MIN = 60000;
@@ -353,27 +353,31 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       if (!achado) continue;
       // recibo: o PDF vai com o texto na mesma mensagem, para nunca sair duplicado
       await sock.sendMessage(achado.jid, conteudoDe(m));
+      m.jidsEnviados = [achado.jid];
       return true;
     }
     return false;
   }
 
-  // 2º motorista: recebe o mesmo texto; se falhar, não atrapalha nem repete a mensagem principal
+  // os outros números da ficha (telefone 2 e 2º motorista) recebem o mesmo texto; falha neles não repete a principal
   async function enviarCopias(m) {
-    for (const tel of m.copias || []) {
+    const feitos = new Set(m.jidsEnviados || []);
+    for (const tel of [...(m.telefones || []), ...(m.copias || [])]) {
       if (!conectado || !sock) return;
       try {
         const num = numeroBR(tel);
         const r = num ? await sock.onWhatsApp(num) : null;
         const achado = r && r.find((x) => x.exists);
-        if (!achado) { log(`2º motorista de ${m.nome}: número sem WhatsApp.`); continue; }
+        if (!achado) { log(`Outro número da ficha de ${m.nome} sem WhatsApp.`); continue; }
+        if (feitos.has(achado.jid)) continue;
+        feitos.add(achado.jid);
         const [a, b] = ESPERA_ENTRE_MENSAGENS;
         await relogio.dormir(a + Math.floor(aleatorio() * (b - a)));
         if (!conectado || !sock) return;
         await sock.sendMessage(achado.jid, conteudoDe(m));
         enviadasNaHora.push(relogio.agora());
-        log(`Cópia enviada ao 2º motorista de ${m.nome}.`);
-      } catch (e) { log(`Não consegui enviar ao 2º motorista de ${m.nome}:`, e.message); }
+        log(`Cópia enviada a outro número da ficha de ${m.nome}.`);
+      } catch (e) { log(`Não consegui enviar a outro número da ficha de ${m.nome}:`, e.message); }
     }
   }
 

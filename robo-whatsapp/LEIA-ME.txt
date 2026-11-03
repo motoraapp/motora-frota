@@ -5,7 +5,7 @@ ROBÔ DO WHATSAPP DO MOTORA (no Hostless)
 - Liga e desliga pelo botão "Envio automático" na Área IA do app.
 - O QR code e a opção de conectar pelo número aparecem na Área IA do app.
 - A conexão fica guardada no Supabase: se o Hostless reiniciar, não precisa conectar de novo.
-- Pausa de 8 a 20 s entre mensagens e no máximo 30 por hora.
+- Pausa de pelo menos 1 minuto entre mensagens e no máximo 30 por hora.
 
 Configuração no Hostless (o Claude te guia):
 - Novo app a partir do GitHub, repositório motora-frota, pasta robo-whatsapp (usa o Dockerfile).
