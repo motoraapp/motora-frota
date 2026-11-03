@@ -1026,6 +1026,21 @@
                     </div>
                     <div id="roboParearInfo" class="mt-2 text-center"></div>
                 </div>
+                <details id="iaTodosBox" class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/40 dark:bg-teal-900/10">
+                    <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-bullhorn text-teal-600 mr-1"></i> Mensagem para todos os motoristas</summary>
+                    <div class="px-3 pb-3 space-y-2">
+                        <label for="iaTodosTexto" class="block text-xs text-gray-600 dark:text-gray-300">Escreva o que você quer avisar. A IA melhora o texto e mostra para você conferir. Nada é enviado antes da sua confirmação.</label>
+                        <textarea id="iaTodosTexto" rows="3" maxlength="1500" placeholder="Ex.: amanhã a locadora não abre por causa do feriado" class="w-full p-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none" style="font-size:16px"></textarea>
+                        <button type="button" id="iaTodosGerar" onclick="iaTodosGerar()" class="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Reescrever com a IA</button>
+                        <div id="iaTodosPrevia" class="hidden space-y-2">
+                            <label for="iaTodosFinal" id="iaTodosAviso" class="block text-xs font-bold"></label>
+                            <textarea id="iaTodosFinal" rows="5" maxlength="2000" class="w-full p-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none" style="font-size:16px"></textarea>
+                            <p id="iaTodosQuem" class="text-xs text-gray-600 dark:text-gray-300"></p>
+                            <button type="button" id="iaTodosConfirmar" onclick="iaTodosConfirmar()" class="w-full py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-bold"><i class="fa-solid fa-paper-plane mr-1"></i> Confirmar envio</button>
+                            <button type="button" onclick="iaTodosCancelar()" class="w-full py-2 rounded-xl bg-gray-200 dark:bg-gray-600 text-sm font-semibold">Cancelar</button>
+                        </div>
+                    </div>
+                </details>
                 <details id="iaRulesBox" class="rounded-xl border border-gray-200 dark:border-gray-700">
                     <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-list-check text-indigo-500 mr-1"></i> Regras da IA <span id="iaRulesCount" class="text-xs font-normal text-gray-500"></span></summary>
                     <div class="px-3 pb-3 space-y-2">
@@ -1912,6 +1927,8 @@
                         if (name === 'motora-login-as') { const d = DEMO.db.profiles.find(p => p.id === b.driver_id && p.role === 'driver'); return d ? { data: { token_hash: 'demo:' + d.id, name: d.name }, error: null } : { data: { error: 'motorista não encontrado' }, error: null }; }
                         if (name === 'motora-assistente') return { data: demoAssistente(b.contents || []), error: null };
                         if (name === 'motora-push') {
+                            if (b.type === 'todos_rascunho') { const q = DEMO.db.profiles.filter(p => p.role === 'driver'); return { data: { mensagem: `Olá! Aviso da locadora: ${b.texto}`, ia: true, nomes: q.map(p => String(p.name || '').split(' ')[0]) }, error: null }; }
+                            if (b.type === 'todos_enviar') { const q = DEMO.db.profiles.filter(p => p.role === 'driver'); q.forEach(p => (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: p.id, title: 'Aviso para todos', body: '', message: b.mensagem, status: 'pendente', created_at: new Date().toISOString() })); demoSave(); return { data: { enviados: q.length }, error: null }; }
                             if (b.type === 'cobranca') {
                                 const d = DEMO.db.profiles.find(p => p.id === b.driver_id);
                                 if (!d) return { data: { error: 'motorista não encontrado' }, error: null };
@@ -5083,6 +5100,43 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         }
         // REGRAS DA IA (app_settings chave ia_regras = { regras: [texto, ...] })
         let iaRegras = [];
+        // MENSAGEM PARA TODOS: a IA reescreve, o dono confere (pode editar) e só então confirma
+        async function iaTodosGerar() {
+            const t = document.getElementById('iaTodosTexto').value.trim();
+            if (!t) { showToast('Escreva o recado primeiro.', 'error'); return; }
+            const b = document.getElementById('iaTodosGerar'), old = b.innerHTML;
+            b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> A IA está escrevendo...';
+            try {
+                const { data, error } = await sb.functions.invoke('motora-push', { body: { type: 'todos_rascunho', texto: t } });
+                if (error || !data || data.error) throw new Error((data && data.error) || 'Não foi possível preparar a mensagem.');
+                document.getElementById('iaTodosFinal').value = data.mensagem;
+                document.getElementById('iaTodosAviso').textContent = data.ia ? 'Confira a mensagem. Você pode editar:' : 'A IA não respondeu agora. Este é o seu texto; você pode editar:';
+                const nomes = data.nomes || [];
+                document.getElementById('iaTodosQuem').textContent = `Vai para ${nomes.length} motorista(s): ${nomes.join(', ')}. Os outros números da ficha também recebem. Sai 1 mensagem por minuto.`;
+                document.getElementById('iaTodosConfirmar').disabled = !nomes.length;
+                document.getElementById('iaTodosConfirmar').innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Confirmar envio para ${nomes.length} motorista(s)`;
+                document.getElementById('iaTodosPrevia').classList.remove('hidden');
+            } catch (e) { showToast(e.message || 'Não foi possível preparar a mensagem.', 'error'); }
+            finally { b.disabled = false; b.innerHTML = old; }
+        }
+        function iaTodosCancelar() {
+            document.getElementById('iaTodosPrevia').classList.add('hidden');
+            document.getElementById('iaTodosFinal').value = '';
+        }
+        async function iaTodosConfirmar() {
+            const m = document.getElementById('iaTodosFinal').value.trim();
+            if (!m) { showToast('A mensagem está vazia.', 'error'); return; }
+            const b = document.getElementById('iaTodosConfirmar'), old = b.innerHTML;
+            b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando...';
+            try {
+                const { data, error } = await sb.functions.invoke('motora-push', { body: { type: 'todos_enviar', mensagem: m } });
+                if (error || !data || data.error) throw new Error((data && data.error) || 'Não foi possível enviar.');
+                document.getElementById('iaTodosTexto').value = ''; iaTodosCancelar();
+                showToast(`Mensagem na fila para ${data.enviados} motorista(s).`);
+                reload().catch(() => {});
+            } catch (e) { showToast(e.message || 'Não foi possível enviar.', 'error'); }
+            finally { b.disabled = false; b.innerHTML = old; }
+        }
         async function loadIARules() {
             try { const { data } = await sb.from('app_settings').select('value').eq('key', 'ia_regras').maybeSingle(); iaRegras = (data && data.value && Array.isArray(data.value.regras)) ? data.value.regras : []; }
             catch (e) { iaRegras = []; }
