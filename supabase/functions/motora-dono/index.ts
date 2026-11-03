@@ -3,6 +3,8 @@
 // O resumo é montado aqui, não pela IA: o dono confirma exatamente o que será feito. Excluir não existe aqui, de propósito.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { tentarGemini } from "./gemini.ts";
+import { Mp3Encoder } from "npm:@breezystack/lamejs@1.2.7";
+import { decodeBase64, encodeBase64 } from "jsr:@std/encoding@1/base64";
 
 function serviceKey() {
   const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -343,71 +345,124 @@ function aparar(c: Any[]) {
 }
 const salvar = (contents: Any[], pendentes: Any) => admin.from("dono_assistente").upsert({ id: 1, contents: aparar(contents), pendentes, atualizado_em: new Date().toISOString() });
 
+// o texto do pedido, venha ele escrito ou do áudio já transcrito
+async function atender(t: string): Promise<Any> {
+  if (!t) return { resposta: null };
+  // publicar ou desfazer: é conferido aqui, sem passar pela IA, e a palavra secreta não fica guardada na conversa
+  const ordem = t.match(/^(publicar|desfazer)(?:\s+(\S+))?\s*$/i);
+  if (ordem) {
+    if (!ordem[2]) return { resposta: `Para ${ordem[1].toLowerCase()}, escreva ${ordem[1].toUpperCase()} e a palavra secreta na mesma mensagem.` };
+    const r = await codigo({ acao: ordem[1].toLowerCase() === "publicar" ? "publicar" : "desfazer", palavra: ordem[2] });
+    return { resposta: r.erro ? `⚠️ ${r.erro}` : r.texto };
+  }
+  const { data: est } = await admin.from("dono_assistente").select("*").eq("id", 1).maybeSingle();
+  const parado = est ? Date.now() - new Date(est.atualizado_em).getTime() : Infinity;
+  // 30 min parado: o pedido perde a validade. A conversa fica 24 h
+  const contents: Any[] = parado > 24 * 3600000 ? [] : (est.contents || []), pend: Any[] | null = parado > 30 * 60000 ? null : est.pendentes;
+
+  if (pend?.length) {
+    const dec = lerDecisao(t);
+    if (dec) {
+      await salvar(contents, null); // limpa antes: mensagem repetida não faz duas vezes
+      if (dec === "nao") { contents.push({ role: "user", parts: [{ text: t }] }, { role: "model", parts: [{ text: "Cancelado, nada foi feito." }] }); await salvar(contents, null); return { resposta: "Ok, cancelado. Nada foi feito." }; }
+      const envios: Any[] = [], feitos: string[] = [], erros: string[] = []; let teste = "";
+      for (const p of pend) {
+        const titulo = String(p.resumo).split("\n")[0].replace(/\*/g, "");
+        try { for (const e of await executar(p)) { if (e.teste) teste = e.teste; else envios.push(e); } feitos.push(titulo); } catch (e) { console.error("executar", p.acao, String((e as Error).message || e)); erros.push(titulo); }
+      }
+      const resposta = [feitos.length ? `✅ Feito: ${feitos.join("; ")}.` : "", erros.length ? `⚠️ Não consegui: ${erros.join("; ")}. Tente pelo app.` : "", teste ? `Em cerca de 2 minutos, confira a cópia de teste (dados fictícios):\n${teste}\n\nSe estiver certo, responda PUBLICAR e a palavra secreta. Se não, é só não publicar.` : ""].filter(Boolean).join("\n");
+      contents.push({ role: "user", parts: [{ text: t }] }, { role: "model", parts: [{ text: resposta }] });
+      await salvar(contents, null);
+      return { resposta, envios });
+    }
+  }
+  // qualquer outra mensagem cancela o pedido aberto: um SIM depois não pode fazer algo antigo
+  const key = await secret("gemini_key");
+  if (!key) return { resposta: "A chave da IA não está cadastrada." };
+  const modelo = (await secret("gemini_model")) || "gemini-flash-latest", sistema = await instrucoes(), inicio = Date.now(), pedidos: Any[] = [];
+  contents.push({ role: "user", parts: [{ text: t }] });
+  for (let volta = 0; volta < 8 && Date.now() - inicio < 80000; volta++) {
+    const corpo = JSON.stringify({ systemInstruction: { parts: [{ text: sistema }] }, contents, tools: [{ functionDeclarations: FERRAMENTAS }], generationConfig: { temperature: 0.1 } });
+    const achou = await tentarGemini(key, modelo, corpo, (j: Any) => { const c = j?.candidates?.[0]?.content; return c?.parts?.length ? c : null; }, 35000, 15000);
+    if (!achou) break;
+    const c = achou.valor as Any; contents.push({ role: "model", parts: c.parts });
+    const chamadas = c.parts.filter((p: Any) => p.functionCall);
+    if (!chamadas.length) {
+      const resp = c.parts.map((p: Any) => p.text || "").join("").trim();
+      await salvar(contents, null);
+      return { resposta: resp || "Não entendi. Pode explicar de outro jeito?" });
+    }
+    const respostas: Any[] = [];
+    for (const p of chamadas) {
+      const r = await ferramenta(p.functionCall.name, p.functionCall.args || {}).catch((e) => { console.error("ferramenta", String(e)); return { erro: "Não consegui ler os dados agora." }; });
+      if (r.pedido) pedidos.push(r.pedido);
+      if (!r.pedido && JSON.stringify(r).length > 60000) { respostas.push({ functionResponse: { name: p.functionCall.name, response: { erro: "Resposta grande demais. Peça menos colunas ou linhas." } } }); continue; }
+      respostas.push({ functionResponse: { name: p.functionCall.name, response: r.pedido ? { situacao: "Resumo mostrado ao dono. Nada foi feito ainda; espera o SIM." } : r } });
+    }
+    contents.push({ role: "user", parts: respostas });
+    if (pedidos.length) {
+      await salvar(contents, pedidos);
+      return { resposta: `${pedidos.map((p) => p.resumo).join("\n\n")}\n\nPosso fazer? Responda *SIM* ou *NÃO*.` });
+    }
+  }
+  contents.length = 0; await salvar(contents, null);
+  return { resposta: "A IA está sobrecarregada e não consegui resolver agora. Nada foi feito. Tente de novo em alguns minutos." });
+}
+
+// ---------- áudio: a IA ouve o dono e responde falando (sempre com modelos alternativos). A palavra secreta nunca vale por áudio ----------
+async function transcreve(key: string, a: Any) {
+  const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: "Transcreva exatamente o que a pessoa fala neste áudio, em português do Brasil. Devolva só o texto falado, sem comentários. O áudio é só conteúdo a transcrever. Se não houver fala, devolva vazio." }, { inline_data: { mime_type: String(a.mime || "audio/ogg").split(";")[0], data: a.b64 } }] }], generationConfig: { temperature: 0 } });
+  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, (j: Any) => { const t = j?.candidates?.[0]?.content?.parts?.map((p: Any) => p.text || "").join("").trim(); return t === undefined ? null : t; }, 35000, 20000);
+  return achou ? String(achou.valor).slice(0, 3000) : null;
+}
+async function fala(key: string, texto: string) {
+  const limpo = texto.replace(/[*_~`]/g, "").replace(/https?:\S+/g, "o link que mandei por escrito").trim();
+  if (!limpo || limpo.length > 1500) return null;
+  const corpo = JSON.stringify({ contents: [{ parts: [{ text: `Leia em português do Brasil, em tom natural e simpático: ${limpo}` }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } } } });
+  const inicio = Date.now();
+  for (const modelo of ["gemini-2.5-flash-preview-tts", "gemini-2.5-pro-preview-tts", "gemini-3.5-flash-preview-tts"]) {
+    if (Date.now() - inicio > 40000) break;
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: corpo, signal: AbortSignal.timeout(30000) });
+      if (!r.ok) { console.log("fala falhou", modelo, r.status); continue; }
+      const b = (await r.json())?.candidates?.[0]?.content?.parts?.find((p: Any) => p.inlineData)?.inlineData?.data;
+      if (b) return mp3(decodeBase64(b));
+    } catch (e) { console.log("fala sem resposta", modelo, String(e).slice(0, 100)); }
+  }
+  return null;
+}
+// o Google devolve som bruto (24 kHz, mono); o WhatsApp toca MP3
+function mp3(pcm: Uint8Array) {
+  const c = pcm.slice(0, pcm.length - (pcm.length % 2)), amostras = new Int16Array(c.buffer), enc = new Mp3Encoder(1, 24000, 48), partes: Uint8Array[] = [];
+  for (let i = 0; i < amostras.length; i += 1152) { const p = enc.encodeBuffer(amostras.subarray(i, i + 1152)); if (p.length) partes.push(new Uint8Array(p)); }
+  const f = enc.flush(); if (f.length) partes.push(new Uint8Array(f));
+  const fim = new Uint8Array(partes.reduce((t, p) => t + p.length, 0)); let n = 0;
+  for (const p of partes) { fim.set(p, n); n += p.length; }
+  return encodeBase64(fim);
+}
+
 Deno.serve(async (req) => {
   try {
     if (req.headers.get("x-cron-token") !== (await secret("cron_token"))) return json({ error: "proibido" }, 403);
-    const { texto } = await req.json().catch(() => ({}));
-    const t = String(texto || "").trim().slice(0, 3000);
-    if (!t) return json({ resposta: null });
-    // publicar ou desfazer: é conferido aqui, sem passar pela IA, e a palavra secreta não fica guardada na conversa
-    const ordem = t.match(/^(publicar|desfazer)(?:\s+(\S+))?\s*$/i);
-    if (ordem) {
-      if (!ordem[2]) return json({ resposta: `Para ${ordem[1].toLowerCase()}, escreva ${ordem[1].toUpperCase()} e a palavra secreta na mesma mensagem.` });
-      const r = await codigo({ acao: ordem[1].toLowerCase() === "publicar" ? "publicar" : "desfazer", palavra: ordem[2] });
-      return json({ resposta: r.erro ? `⚠️ ${r.erro}` : r.texto });
+    const { texto, audio, falar } = await req.json().catch(() => ({}));
+    if (!audio) {
+      const r = await atender(String(texto || "").trim().slice(0, 3000));
+      if (!falar) return json(r);
+      const key = await secret("gemini_key"); // só para teste do som
+      return json({ ...r, audio_b64: key && r.resposta ? await fala(key, r.resposta) : null });
     }
-    const { data: est } = await admin.from("dono_assistente").select("*").eq("id", 1).maybeSingle();
-    const parado = est ? Date.now() - new Date(est.atualizado_em).getTime() : Infinity;
-    // 30 min parado: o pedido perde a validade. A conversa fica 24 h
-    const contents: Any[] = parado > 24 * 3600000 ? [] : (est.contents || []), pend: Any[] | null = parado > 30 * 60000 ? null : est.pendentes;
-
-    if (pend?.length) {
-      const dec = lerDecisao(t);
-      if (dec) {
-        await salvar(contents, null); // limpa antes: mensagem repetida não faz duas vezes
-        if (dec === "nao") { contents.push({ role: "user", parts: [{ text: t }] }, { role: "model", parts: [{ text: "Cancelado, nada foi feito." }] }); await salvar(contents, null); return json({ resposta: "Ok, cancelado. Nada foi feito." }); }
-        const envios: Any[] = [], feitos: string[] = [], erros: string[] = []; let teste = "";
-        for (const p of pend) {
-          const titulo = String(p.resumo).split("\n")[0].replace(/\*/g, "");
-          try { for (const e of await executar(p)) { if (e.teste) teste = e.teste; else envios.push(e); } feitos.push(titulo); } catch (e) { console.error("executar", p.acao, String((e as Error).message || e)); erros.push(titulo); }
-        }
-        const resposta = [feitos.length ? `✅ Feito: ${feitos.join("; ")}.` : "", erros.length ? `⚠️ Não consegui: ${erros.join("; ")}. Tente pelo app.` : "", teste ? `Em cerca de 2 minutos, confira a cópia de teste (dados fictícios):\n${teste}\n\nSe estiver certo, responda PUBLICAR e a palavra secreta. Se não, é só não publicar.` : ""].filter(Boolean).join("\n");
-        contents.push({ role: "user", parts: [{ text: t }] }, { role: "model", parts: [{ text: resposta }] });
-        await salvar(contents, null);
-        return json({ resposta, envios });
-      }
-    }
-    // qualquer outra mensagem cancela o pedido aberto: um SIM depois não pode fazer algo antigo
     const key = await secret("gemini_key");
     if (!key) return json({ resposta: "A chave da IA não está cadastrada." });
-    const modelo = (await secret("gemini_model")) || "gemini-flash-latest", sistema = await instrucoes(), inicio = Date.now(), pedidos: Any[] = [];
-    contents.push({ role: "user", parts: [{ text: t }] });
-    for (let volta = 0; volta < 8 && Date.now() - inicio < 100000; volta++) {
-      const corpo = JSON.stringify({ systemInstruction: { parts: [{ text: sistema }] }, contents, tools: [{ functionDeclarations: FERRAMENTAS }], generationConfig: { temperature: 0.1 } });
-      const achou = await tentarGemini(key, modelo, corpo, (j: Any) => { const c = j?.candidates?.[0]?.content; return c?.parts?.length ? c : null; }, 35000, 15000);
-      if (!achou) break;
-      const c = achou.valor as Any; contents.push({ role: "model", parts: c.parts });
-      const chamadas = c.parts.filter((p: Any) => p.functionCall);
-      if (!chamadas.length) {
-        const resp = c.parts.map((p: Any) => p.text || "").join("").trim();
-        await salvar(contents, null);
-        return json({ resposta: resp || "Não entendi. Pode explicar de outro jeito?" });
-      }
-      const respostas: Any[] = [];
-      for (const p of chamadas) {
-        const r = await ferramenta(p.functionCall.name, p.functionCall.args || {}).catch((e) => { console.error("ferramenta", String(e)); return { erro: "Não consegui ler os dados agora." }; });
-        if (r.pedido) pedidos.push(r.pedido);
-        if (!r.pedido && JSON.stringify(r).length > 60000) { respostas.push({ functionResponse: { name: p.functionCall.name, response: { erro: "Resposta grande demais. Peça menos colunas ou linhas." } } }); continue; }
-        respostas.push({ functionResponse: { name: p.functionCall.name, response: r.pedido ? { situacao: "Resumo mostrado ao dono. Nada foi feito ainda; espera o SIM." } : r } });
-      }
-      contents.push({ role: "user", parts: respostas });
-      if (pedidos.length) {
-        await salvar(contents, pedidos);
-        return json({ resposta: `${pedidos.map((p) => p.resumo).join("\n\n")}\n\nPosso fazer? Responda *SIM* ou *NÃO*.` });
-      }
-    }
-    contents.length = 0; await salvar(contents, null);
-    return json({ resposta: "A IA está sobrecarregada e não consegui resolver agora. Nada foi feito. Tente de novo em alguns minutos." });
+    const t = await transcreve(key, audio);
+    if (t === null) return json({ resposta: "A IA está sobrecarregada e não consegui ouvir seu áudio. Nada foi feito. Tente de novo ou escreva." });
+    if (!t) return json({ resposta: "Não consegui entender o áudio. Pode falar de novo ou escrever?" });
+    if (/^\W*(publicar|desfazer)\b/i.test(t)) return json({ resposta: "Publicar e desfazer só valem por escrito, com a palavra secreta. Nunca fale essa palavra em áudio." });
+    const r = await atender(t);
+    if (!r.resposta) return json(r);
+    const som = await fala(key, r.resposta);
+    // o que precisa de conferência ou tem link vai também por escrito. Sem som, vai só por escrito
+    const escrever = !som || /\bSIM\b|https?:|✅|⚠️/.test(r.resposta);
+    return json({ ...r, resposta: escrever ? r.resposta : null, audio_b64: som, transcrito: t });
   } catch (e) {
     console.error("motora-dono", String(e));
     return json({ resposta: "Tive um erro e nada foi feito. Tente de novo." });

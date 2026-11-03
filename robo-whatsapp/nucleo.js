@@ -531,7 +531,8 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         const q = ctx && ctx.quotedMessage ? abrirConteudo(ctx.quotedMessage) : null;
         const citado = q ? q.conversation || q.extendedTextMessage?.text || '' : '';
         const legenda = texto || arq?.caption || c.videoMessage?.caption || '';
-        const a = await comRepeticao('atendimento', { telefone: contato, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, arquivo: !!arq, figurinha: !!c.stickerMessage, citado: String(citado).slice(0, 500) });
+        const a = await comRepeticao('atendimento', { telefone: contato, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, arquivo: !!arq, figurinha: !!c.stickerMessage, audio: !!c.audioMessage, citado: String(citado).slice(0, 500) });
+        if (a.pedir_audio) { await ouvirDono(msg, jid, contato); return; }
         if (a.tratado) {
           await entregarAtendimento(a, msg, jid);
           if (!telefone && arq) await avisarArquivoSemNumero(jid, msg); // pode ser comprovante: o dono confere
@@ -566,6 +567,19 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   async function encaminhar(para, msg) {
     await relogio.dormir(1000);
     if (sock) await mandar(para, { forward: msg });
+  }
+  // áudio do dono: baixa, a IA ouve, e a resposta volta em áudio (e por escrito quando precisa de conferência)
+  async function ouvirDono(msg, jid, telefone) {
+    const c = abrirConteudo(msg.message);
+    const buf = await baileys.downloadMediaMessage(msg, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage });
+    if (buf.length > MAX_ARQUIVO) { await responder(jid, 'Áudio muito grande. Mande um mais curto.'); return; }
+    const r = await comRepeticao('audio_dono', { telefone, mime: c.audioMessage.mimetype || 'audio/ogg', b64: Buffer.from(buf).toString('base64') });
+    if (r.resposta) await responder(jid, r.resposta);
+    if (r.audio_b64 && sock) await mandar(jid, { audio: Buffer.from(r.audio_b64, 'base64'), mimetype: 'audio/mpeg' });
+    for (const e of r.envios || []) {
+      const para = await destino(e);
+      if (para) await responder(para, e.texto);
+    }
   }
   async function entregarAtendimento(a, msg, jid) {
     if (a.guardar && a.lead_id && msg && msg.message) {

@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
     // ---------- mensagens RECEBIDAS: só valem com o envio automático ligado ----------
-    if (["atendimento", "atendimento_fila", "atendimento_ok", "atendimento_falhou", "locadora_respondeu"].includes(body.acao) && !cfg.ativo) return json({ tratado: false });
+    if (["audio_dono", "atendimento", "atendimento_fila", "atendimento_ok", "atendimento_falhou", "locadora_respondeu"].includes(body.acao) && !cfg.ativo) return json({ tratado: false });
     if (["mensagem", "comprovante_url", "comprovante_salvar", "comprovante_sem_numero"].includes(body.acao) && !cfg.ativo) return json({ resposta: null });
     // ---------- número desconhecido: saúda, em 3 min sem resposta chama a Dara e intermedia a conversa ----------
     const SETE_DIAS = 7 * 24 * 3600 * 1000;
@@ -166,6 +166,7 @@ Deno.serve(async (req) => {
         const m = String(body.texto || "").trim().match(/^atender(?=\s|$)\s*(.*)$/i);
         if (!m) {
           // CONFIRMAR/RECUSAR de comprovante seguem como antes; o resto é pedido para a IA resolver (motora-dono), sempre com o SIM do dono
+          if (!String(body.texto || "").trim() && body.audio) return json({ tratado: true, pedir_audio: true }); // só o áudio do dono é baixado
           if (!String(body.texto || "").trim() || lerComando(body.texto)) return json({ tratado: false });
           const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-dono`, { method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" }, body: JSON.stringify({ texto: body.texto }) }).then((x) => x.json()).catch(() => null);
           return json({ tratado: true, resposta: r?.resposta ?? "Tive um erro e nada foi feito. Tente de novo.", envios: r?.envios || [] });
@@ -263,6 +264,11 @@ Deno.serve(async (req) => {
       if (lead.status !== "com_dara") return json({ tratado: true }); // uma pessoa já assumiu ou a conversa foi encerrada
       const dara = await secret("dara_whatsapp");
       return json({ tratado: true, envios: [{ telefone: dara, texto: body.midia ? `*${rotulo(lead)}* enviou:` : `*${rotulo(lead)}:*\n${String(body.texto || "")}` }], ...(body.midia ? { encaminhar: { telefone: dara } } : {}) });
+    }
+    if (body.acao === "audio_dono") {
+      if (!(await ehDono(body.telefone))) return json({ resposta: null });
+      const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-dono`, { method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" }, body: JSON.stringify({ audio: { mime: body.mime, b64: body.b64 } }) }).then((x) => x.json()).catch(() => null);
+      return json(r ?? { resposta: "Tive um erro e nada foi feito. Tente de novo." });
     }
     if (body.acao === "locadora_respondeu") {
       const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", chaveContato(body.telefone) || "-").maybeSingle();
