@@ -201,6 +201,11 @@ Deno.serve(async (req) => {
       const motorista = await motoristaDoFone(body.telefone);
       if (motorista) {
         if (body.arquivo) return json({ tratado: false });
+        // devolução informada: o robô e a Dara não falam com ele; o dono recebe a mensagem e decide
+        if (motorista.pix_extra?.devolucao) {
+          await admin.from("whatsapp_dono").insert({ message: `*${primeiroNome(motorista.name)} ${foneBonito(body.telefone)}* (em devolução) escreveu${body.texto ? `:\n${String(body.texto).slice(0, 800)}` : " (áudio ou figurinha): veja no WhatsApp da locadora."}\n\nNinguém respondeu a ele. Responda você.` });
+          return json({ tratado: true });
+        }
         const { data: atual } = await admin.from("whatsapp_atendimento").select("*").eq("chave", k).maybeSingle();
         if (atual?.status === "com_dara" && Date.now() - new Date(atual.ultima_msg_em).getTime() <= SETE_DIAS) {
           await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid) }).eq("id", atual.id);
@@ -323,10 +328,11 @@ Deno.serve(async (req) => {
       const d = await motoristaDoFone(body.telefone);
       if (!d) return json({ url: null, resposta: null }); // quem não é motorista cadastrado é ignorado
       const ext = extensao(body.mimetype);
-      if (!ext) return json({ url: null, resposta: "Envie o comprovante como foto ou PDF." });
+      const calado = !!d.pix_extra?.devolucao; // em devolução o robô não responde nada ao motorista
+      if (!ext) return json({ url: null, resposta: calado ? null : "Envie o comprovante como foto ou PDF." });
       const desde24 = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const { count } = await admin.from("receipts").select("id", { count: "exact", head: true }).eq("driver_id", d.id).gte("created_at", desde24).like("file_path", "%/receipts/wa-%");
-      if ((count ?? 0) >= 10) return json({ url: null, resposta: "Você já enviou muitos arquivos hoje. Se precisar, fale com a locadora." });
+      if ((count ?? 0) >= 10) return json({ url: null, resposta: calado ? null : "Você já enviou muitos arquivos hoje. Se precisar, fale com a locadora." });
       const id = String(body.msg_id || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 60);
       if (!id) return json({ url: null, resposta: null });
       const path = `${d.id}/receipts/wa-${id}.${ext}`;
@@ -344,7 +350,7 @@ Deno.serve(async (req) => {
       if (ja) return json({ resposta: null });
       const { error } = await admin.from("receipts").insert({ driver_id: d.id, file_name: String(body.file_name || "Comprovante pelo WhatsApp").slice(0, 120), file_path: path });
       if (error) return json({ error: error.message }, 500);
-      return json({ resposta: "✅ Recebemos seu comprovante. Ele será conferido e você será avisado." });
+      return json({ resposta: d.pix_extra?.devolucao ? null : "✅ Recebemos seu comprovante. Ele será conferido e você será avisado." });
     }
     if (body.acao === "comprovante_sem_numero") {
       await admin.from("whatsapp_dono").insert({ message: `⚠️ ${String(body.nome || "Alguém").slice(0, 60)} mandou um arquivo para o WhatsApp da locadora, mas o WhatsApp não mostrou o número. Ele NÃO entrou no MOTORA: abra a conversa e confira.` });

@@ -214,9 +214,10 @@ async function gerarPdfRecibo(nome: string, texto: string) {
 
 async function queueWhatsApp(driverId: string, title: string, body: string, opts: { extra?: string; must?: string[]; tom?: string; avisarDono?: boolean } = {}) {
   try {
-    if (!(await iaAtiva())) return null;
-    const { data: d } = await admin.from("profiles").select("id, name, pix_amount, pix_link, pix_code, pix_description").eq("id", driverId).maybeSingle();
+    const { data: d } = await admin.from("profiles").select("id, name, pix_amount, pix_link, pix_code, pix_description, pix_extra").eq("id", driverId).maybeSingle();
     if (!d) return null;
+    const emDevolucao = !!d.pix_extra?.devolucao; // vai para aprovação do dono (gatilho do banco), mesmo com a IA desligada
+    if (!emDevolucao && !(await iaAtiva())) return null;
     const first = String(d.name || "motorista").split(/\s+/)[0];
     const lines: string[] = opts.extra ? [opts.extra] : [];
     const must: string[] = [...(opts.must || [])]; // dados que a mensagem final precisa conter exatamente
@@ -248,7 +249,7 @@ async function queueWhatsApp(driverId: string, title: string, body: string, opts
     }
     const { data: row } = await admin.from("whatsapp_queue").insert({ driver_id: driverId, title, body, message, arquivo_path }).select("id").single();
     // com o robô funcionando a mensagem sai sozinha: não precisa avisar o dono
-    if (opts.avisarDono !== false && !(await roboFuncionando())) {
+    if (!emDevolucao && opts.avisarDono !== false && !(await roboFuncionando())) {
       await sendTo(await masterIds(), {
         title: `WhatsApp para ${first} pronto`,
         body: `${title}. Toque para abrir o WhatsApp com a mensagem pronta.`,
@@ -284,7 +285,9 @@ function textoBoasVindas(d: any, v: any, login: string, senha: string | null, pr
 }
 
 async function sendToDriver(driverId: string, payload: Record<string, string>, opts: { extra?: string; must?: string[]; tom?: string } = {}) {
-  const sent = await sendTo([driverId], payload);
+  // devolução informada: nada vai ao motorista sem o dono aprovar; a notificação sai junto com a aprovação (aprovar_msg)
+  const { data: p } = await admin.from("profiles").select("pix_extra").eq("id", driverId).maybeSingle();
+  const sent = p?.pix_extra?.devolucao ? 0 : await sendTo([driverId], payload);
   await queueWhatsApp(driverId, payload.title, payload.body, opts);
   return sent;
 }
@@ -338,6 +341,17 @@ Deno.serve(async (req) => {
 
     const { data: me } = await admin.from("profiles").select("role").eq("id", u.user.id).maybeSingle();
     if (me?.role !== "master") return json({ error: "apenas o master" }, 403);
+
+    if (body.type === "aprovar_msg") {
+      const mensagem = String(body.mensagem || "").trim();
+      if (!mensagem) return json({ error: "Mensagem vazia." }, 400);
+      const { data: r } = await admin.from("whatsapp_queue").update({ status: "pendente", message: mensagem }).eq("id", body.id).eq("status", "aprovar").select("driver_id, title, body").maybeSingle();
+      if (!r) return json({ error: "Esta mensagem já foi aprovada ou excluída." }, 400);
+      const { data: p } = await admin.from("profiles").select("pix_extra").eq("id", r.driver_id).maybeSingle();
+      if (r.title === "Devolução concluída" && p?.pix_extra?.devolucao) await admin.from("profiles").update({ pix_extra: { ...p.pix_extra, devolucao: { ...p.pix_extra.devolucao, mostrar: true } } }).eq("id", r.driver_id);
+      await sendTo([r.driver_id], { title: String(r.title || "MOTORA"), body: String(r.body || mensagem).slice(0, 300), url: "/" });
+      return json({ ok: true });
+    }
 
     if (body.type === "todos_rascunho") {
       const texto = String(body.texto || "").trim().slice(0, 1500);

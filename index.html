@@ -1665,6 +1665,8 @@
 
             // Área IA: mensagens prontas e regras do dono
             db.whatsapp_queue = [
+                { id: demoId(), driver_id: 'demo-d2', title: 'Novo Pix disponível', body: '', status: 'aprovar', created_at: new Date(ago(0.05)).toISOString(), sent_at: null,
+                  message: 'Olá! Seu aluguel desta semana já está no app. Depois de pagar, envie o comprovante pelo app. Obrigado!' },
                 { id: demoId(), driver_id: 'demo-d1', title: 'Novo Pix disponível', body: '', status: 'pendente', created_at: new Date(ago(0.1)).toISOString(), sent_at: null,
                   message: 'Olá, Marcos! Seu Pix desta semana já está no app: R$ 650,00 (aluguel do FIAT/ARGO). Pagamento até segunda, 23:59. Depois de pagar, envie o comprovante pelo app. Obrigado!' },
                 { id: demoId(), driver_id: 'demo-d3', title: 'Problema no seu comprovante', body: '', status: 'pendente', created_at: new Date(ago(0.3)).toISOString(), sent_at: null,
@@ -1902,6 +1904,7 @@
                 const v = DEMO.db.vehicles.find(x => x.id === d.vehicle_id);
                 d.pix_extra = { ...(d.pix_extra || {}), sem_cobranca: true, devolucao: { ...d.pix_extra.devolucao, recebido_em: new Date().toISOString(), veiculo: v ? `${v.model} (${v.plate})` : '', caucao_pago: p_caucao_pago, descontos: p_descontos, caucao_devolver: Math.max(0, p_caucao_pago - p_descontos), caucao_ate: p_data } };
                 d.vehicle_id = null;
+                (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: d.id, title: 'Devolução concluída', body: '', message: `Olá, ${String(d.name).split(' ')[0]}! Recebemos o carro. Sua devolução foi concluída e você não receberá mais cobranças.`, status: 'aprovar', created_at: new Date().toISOString(), sent_at: null });
             },
             master_create_driver({ p_email, p_name, p_vehicle, p_pix_code }) {
                 const id = demoId();
@@ -1939,6 +1942,7 @@
                         if (name === 'motora-login-as') { const d = DEMO.db.profiles.find(p => p.id === b.driver_id && p.role === 'driver'); return d ? { data: { token_hash: 'demo:' + d.id, name: d.name }, error: null } : { data: { error: 'motorista não encontrado' }, error: null }; }
                         if (name === 'motora-assistente') return { data: demoAssistente(b.contents || []), error: null };
                         if (name === 'motora-push') {
+                            if (b.type === 'aprovar_msg') { const r = (DEMO.db.whatsapp_queue || []).find(x => x.id === b.id); if (r) { r.status = 'pendente'; r.message = b.mensagem; const p = DEMO.db.profiles.find(x => x.id === r.driver_id); if (r.title === 'Devolução concluída' && p && p.pix_extra && p.pix_extra.devolucao) p.pix_extra.devolucao.mostrar = true; demoSave(); } return { data: { ok: true }, error: null }; }
                             if (b.type === 'todos_rascunho') { const q = DEMO.db.profiles.filter(p => p.role === 'driver'); return { data: { mensagem: `Olá! Aviso da locadora: ${b.texto}`, ia: true, nomes: q.map(p => String(p.name || '').split(' ')[0]) }, error: null }; }
                             if (b.type === 'todos_enviar') { const q = DEMO.db.profiles.filter(p => p.role === 'driver'); q.forEach(p => (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: p.id, title: 'Aviso para todos', body: '', message: b.mensagem, status: 'pendente', created_at: new Date().toISOString() })); demoSave(); return { data: { enviados: q.length }, error: null }; }
                             if (b.type === 'cobranca') {
@@ -4263,18 +4267,20 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             box.innerHTML = tit + resumo + `<div class="flex flex-wrap gap-2">${btn('bg-emerald-600 hover:bg-emerald-700 text-white', "dfDevIr('receber')", 'Recebi o carro')}${btn('bg-gray-200 dark:bg-gray-600', 'dfDevDesfazer()', 'Desfazer aviso')}</div>`;
         }
         function dfDevIr(e) { dfDevEtapa = e; dfDevRender(); }
-        async function dfDevSalvar(extra) {
-            const { error } = await sb.from('profiles').update({ pix_extra: extra }).eq('id', fileDriverId);
+        async function dfDevSalvar(extra, cols) {
+            const { error } = await sb.from('profiles').update({ pix_extra: extra, ...(cols || {}) }).eq('id', fileDriverId);
             if (error) { showToast(friendlyError(error), 'error'); return false; }
             await reload(); dfDevEtapa = ''; dfDevRender(); return true;
         }
         async function dfDevAvisar() {
             const d = state.drivers.find(x => x.id === fileDriverId), ate = new Date(); ate.setDate(ate.getDate() + 15);
-            if (await dfDevSalvar({ ...(d.pix_extra || {}), devolucao: { informada_em: new Date().toISOString(), ate: ate.toLocaleDateString('sv-SE') } })) showToast('Devolução registrada.');
+            // cobrança automática para: o Pix só sai quando o dono envia (Novo Pix), e as mensagens esperam a aprovação dele
+            const auto = d.asaas_auto_charge_enabled ? 'asaas' : d.picpay_auto_charge_enabled ? 'picpay' : null;
+            if (await dfDevSalvar({ ...(d.pix_extra || {}), devolucao: { informada_em: new Date().toISOString(), ate: ate.toLocaleDateString('sv-SE'), auto } }, { asaas_auto_charge_enabled: false, picpay_auto_charge_enabled: false })) showToast('Devolução registrada. Mensagens ao motorista agora esperam sua aprovação.');
         }
         async function dfDevDesfazer() {
-            const d = state.drivers.find(x => x.id === fileDriverId), ex = { ...(d.pix_extra || {}) }; delete ex.devolucao;
-            if (await dfDevSalvar(ex)) showToast('Aviso de devolução desfeito.');
+            const d = state.drivers.find(x => x.id === fileDriverId), ex = { ...(d.pix_extra || {}) }, auto = ex.devolucao && ex.devolucao.auto; delete ex.devolucao;
+            if (await dfDevSalvar(ex, auto ? { [auto + '_auto_charge_enabled']: true } : null)) showToast('Aviso de devolução desfeito.');
         }
         async function dfDevReceber(b) {
             const d = state.drivers.find(x => x.id === fileDriverId), data = document.getElementById('dfDevData').value;
@@ -4538,7 +4544,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 </div></div>`);
             }
             const dv = devOf(d);
-            if (dv) {
+            if (dv && dv.mostrar) { // o motorista só vê depois do dono aprovar a mensagem de devolução concluída
                 const pv = devPrevisao(d);
                 cards.push(`<div class="p-4 rounded-2xl border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 space-y-2">
                     ${dobraTopo('drvDobraDevolucao', 'text-orange-700 dark:text-orange-300', 'fa-solid fa-car-side', 'Devolução do carro')}
@@ -5101,7 +5107,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function renderMasterResumo() {
             const box = document.getElementById('masterResumo'); if (!box) return;
             const atraso = state.drivers.filter(d => d.payment_status === 'Em atraso').length;
-            const zap = iaRows.filter(r => r.status === 'pendente').length;
+            const zap = iaRows.filter(r => r.status === 'pendente' || r.status === 'aprovar').length;
             const item = (n, txt, cor, acao) => `<button type="button" onclick="${acao}" class="p-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-center"><span class="block text-lg font-bold ${cor}">${n}</span><span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400">${txt}</span></button>`;
             renderProxCobrancas();
             box.innerHTML = item(state.drivers.length, 'Motoristas', '', "closeAreas();switchMasterTab('drivers');markMasterNav()")
@@ -5119,7 +5125,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             updateIABadge();
         }
         function updateIABadge() {
-            const n = iaRows.filter(r => r.status === 'pendente').length;
+            const n = iaRows.filter(r => r.status === 'pendente' || r.status === 'aprovar').length;
             document.querySelectorAll('.iaBadge').forEach(b => { b.textContent = n > 99 ? '99+' : n; b.classList.toggle('hidden', !n); });
             renderMasterResumo();
         }
@@ -5288,7 +5294,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('iaTabSent').className = 'py-2 rounded-xl text-sm font-semibold ' + (iaTab === 'enviada' ? on : off);
             const box = document.getElementById('iaList');
             if (!iaReady) { box.innerHTML = '<p class="text-sm text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> A Área IA ainda não foi ativada no servidor.</p>'; return; }
-            let list = iaRows.filter(r => r.status === iaTab);
+            let list = iaRows.filter(r => r.status === iaTab || (iaTab === 'pendente' && r.status === 'aprovar'));
             if (iaFocus) list.sort((a, b) => (b.id === iaFocus) - (a.id === iaFocus)); // a mensagem da notificação fica em primeiro
             if (!list.length) {
                 box.innerHTML = `<p class="text-sm text-gray-400 italic text-center py-6">${iaTab === 'pendente' ? 'Nenhuma mensagem para enviar. Quando um motorista receber um aviso, a mensagem pronta aparece aqui.' : 'Nenhuma mensagem enviada ainda.'}</p>`;
@@ -5308,7 +5314,10 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                     </div>
                     <textarea id="iaMsg_${r.id}" rows="6" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">${esc(r.message)}</textarea>
                     ${ph ? '' : '<p class="text-xs text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem telefone na ficha: o WhatsApp vai pedir para escolher o contato.</p>'}
-                    ${r.status === 'pendente'
+                    ${r.status === 'aprovar'
+                        ? `<p class="text-xs font-semibold text-orange-700 dark:text-orange-300"><i class="fa-solid fa-car-side mr-1"></i>Devolução: o motorista só recebe depois da sua aprovação.</p>
+                           <button onclick="iaAprovar('${r.id}', this)" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-check mr-1"></i>Aprovar e enviar</button>`
+                        : r.status === 'pendente'
                         ? `<div class="grid grid-cols-3 gap-2">
                             ${iaPhone2(d) ? `<button onclick="iaSend('${r.id}', false, 1)" class="py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 1</button><button onclick="iaSend('${r.id}', false, 2)" class="py-2.5 bg-green-700 hover:bg-green-800 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 2</button>` : `<button onclick="iaSend('${r.id}')" class="col-span-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar</button>`}
                             ${r.arquivo_path ? `<button onclick="iaAbrirPdf('${r.id}')" class="py-2.5 bg-red-50 text-red-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>` : ''}<button onclick="iaMark('${r.id}')" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold" title="Já enviei por fora">Já enviei</button>
@@ -5320,6 +5329,15 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                            </div>`}
                 </div>`;
             }).join('');
+        }
+        async function iaAprovar(id, btn) {
+            const ta = document.getElementById('iaMsg_' + id), texto = ta ? ta.value.trim() : '';
+            if (!texto) { showToast('Escreva a mensagem ou exclua.', 'error'); return; }
+            if (btn) btn.disabled = true;
+            const { data, error } = await sb.functions.invoke('motora-push', { body: { type: 'aprovar_msg', id, mensagem: texto } });
+            if (error || (data && data.error)) { if (btn) btn.disabled = false; showToast((data && data.error) || 'Não foi possível aprovar.', 'error'); return; }
+            await reload().catch(() => {}); await loadIA().catch(() => {}); renderIA();
+            showToast('Aprovada. Mensagem liberada para o motorista.');
         }
         function iaPhone2(d) { return iaPhone(d ? { phone: d.phone2 } : null); }
         function iaSend(id, again, num) {
