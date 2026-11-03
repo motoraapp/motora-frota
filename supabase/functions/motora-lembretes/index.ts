@@ -53,6 +53,7 @@ async function avisoDono(d: Extra, aluguel: number | null) {
   if (venc.faltam !== 2) return null;
   if (d.pix_due_at && diaBR(d.pix_due_at) === venc.iso) return null; // o Pix desse vencimento já existe
   const valor = previsao(d, aluguel);
+  if (!d.vehicle_id && !(valor > 0)) return null; // sem carro e sem nada a cobrar: não há o que confirmar
   const data = venc.iso.split("-").reverse().slice(0, 2).join("/");
   const auto = formaAuto(d);
   const como = auto
