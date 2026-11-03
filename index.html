@@ -5071,6 +5071,12 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             catch (e) { iaRegras = []; }
             renderIARules();
         }
+        async function iaAbrirPdf(id) {
+            const r = iaRows.find(x => x.id === id); if (!r || !r.arquivo_path) return;
+            const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(r.arquivo_path, 3600);
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            window.open(data.signedUrl, '_blank');
+        }
         function renderIARules() {
             document.getElementById('iaRulesCount').textContent = iaRegras.length ? `(${iaRegras.length})` : '(nenhuma)';
             document.getElementById('iaRulesList').innerHTML = iaRegras.length ? iaRegras.map((t, i) => `<div class="flex items-start gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/50"><span class="text-xs font-bold text-indigo-600 mt-0.5">${i + 1}.</span><span class="flex-1 min-w-0 text-sm break-words">${esc(t)}</span><button onclick="delIARule(${i})" class="text-gray-400 hover:text-red-600 text-sm px-1" title="Excluir regra"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhuma regra ainda.</p>';
@@ -5138,7 +5144,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                     ${r.status === 'pendente'
                         ? `<div class="grid grid-cols-3 gap-2">
                             ${iaPhone2(d) ? `<button onclick="iaSend('${r.id}', false, 1)" class="py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 1</button><button onclick="iaSend('${r.id}', false, 2)" class="py-2.5 bg-green-700 hover:bg-green-800 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 2</button>` : `<button onclick="iaSend('${r.id}')" class="col-span-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar</button>`}
-                            <button onclick="iaMark('${r.id}')" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold" title="Já enviei por fora">Já enviei</button>
+                            ${r.arquivo_path ? `<button onclick="iaAbrirPdf('${r.id}')" class="py-2.5 bg-red-50 text-red-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>` : ''}<button onclick="iaMark('${r.id}')" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold" title="Já enviei por fora">Já enviei</button>
                             <button onclick="emailIA('${r.id}')" class="col-span-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-envelope mr-1"></i> Enviar por e-mail${d && d.email ? '' : ' (digitar e-mail)'}</button>
                            </div>`
                         : `<div class="flex items-center justify-between gap-2">
@@ -6323,7 +6329,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
            ===================================================================== */
 
         // Ao mudar o texto abaixo, troque a versão: todos os motoristas aceitam de novo.
-        const TERMS_VERSION = '2026-10-25';
+        const TERMS_VERSION = '2026-11-03';
         const TERMS_CONTACT = 'pelo WhatsApp ou pelo e-mail do locador que estão no contrato de locação';
 
         // O que o motorista marca, um por um, antes de usar o app
@@ -6390,7 +6396,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
 </ul>
 <p>Seus dados nunca são vendidos nem usados para propaganda.</p>
 
-<p><b>Com quem seus dados são compartilhados.</b> Com os serviços que fazem o app funcionar: Supabase (banco de dados e arquivos), Netlify (onde o app fica hospedado), Google (a inteligência artificial Gemini, que lê documentos e comprovantes, e o Google Drive, onde fica uma cópia de segurança) e o serviço de notificações do seu celular. E, quando for preciso, como diz o contrato: proteção veicular, órgão de trânsito, polícia e Justiça. Alguns desses serviços guardam dados em computadores fora do Brasil; isso é necessário para o app funcionar e cumprir o contrato (LGPD, art. 33, IX).</p>
+<p><b>Com quem seus dados são compartilhados.</b> Com os serviços que fazem o app funcionar: Supabase (banco de dados e arquivos), GitHub (onde o app fica hospedado), Google (a inteligência artificial Gemini, que lê documentos e comprovantes, e o Google Drive, onde fica uma cópia de segurança) e o serviço de notificações do seu celular. E, quando for preciso, como diz o contrato: proteção veicular, órgão de trânsito, polícia e Justiça. Alguns desses serviços guardam dados em computadores fora do Brasil; isso é necessário para o app funcionar e cumprir o contrato (LGPD, art. 33, IX).</p>
 
 <p><b>Por quanto tempo.</b> Enquanto durar o contrato e por até 5 anos depois do fim dele, que é o prazo para cobranças na Justiça (Cláusula 15.3). Os arquivos que a inteligência artificial lê no cadastro são apagados logo depois da leitura.</p>
 

@@ -334,7 +334,8 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       if (r === undefined) throw new Error('não consegui consultar o número agora');
       const achado = r.find((x) => x.exists);
       if (!achado) continue;
-      await sock.sendMessage(achado.jid, { text: m.texto });
+      // recibo: o PDF vai com o texto na mesma mensagem, para nunca sair duplicado
+      await sock.sendMessage(achado.jid, m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
       return true;
     }
     return false;

@@ -34,14 +34,15 @@ Deno.serve(async (req) => {
       await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: { ...cfg, visto_em: new Date().toISOString() }, updated_at: new Date().toISOString() });
       if (!cfg.ativo) return json({ ativo: false, mensagens: [] });
       const desde = cfg.ativado_em || new Date().toISOString();
-      const { data: fila } = await admin.from("whatsapp_queue").select("id, driver_id, title, message, created_at")
+      const { data: fila } = await admin.from("whatsapp_queue").select("id, driver_id, title, message, created_at, arquivo_path")
         .eq("status", "pendente").gte("created_at", desde).order("created_at").limit(5);
       const ids = [...new Set((fila ?? []).map((m) => m.driver_id))];
       const { data: pessoas } = ids.length ? await admin.from("profiles").select("id, name, phone, phone2, role").in("id", ids) : { data: [] };
-      const mensagens = (fila ?? []).map((m) => {
+      const mensagens = (await Promise.all((fila ?? []).map(async (m) => {
         const p = (pessoas ?? []).find((x) => x.id === m.driver_id);
-        return { id: m.id, nome: p?.name || "", telefones: [p?.phone, p?.phone2].filter(Boolean), texto: m.message, excluido: p?.role === "excluido" };
-      }).filter((m) => !m.excluido);
+        const pdf = m.arquivo_path ? (await admin.storage.from("docs").createSignedUrl(m.arquivo_path, 3600)).data?.signedUrl : null;
+        return { id: m.id, nome: p?.name || "", telefones: [p?.phone, p?.phone2].filter(Boolean), texto: m.message, excluido: p?.role === "excluido", pdf_url: pdf || null };
+      }))).filter((m) => !m.excluido);
       return json({ ativo: true, mensagens });
     }
 

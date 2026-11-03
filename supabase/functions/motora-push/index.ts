@@ -5,6 +5,7 @@
 // + "Pagamento confirmado" vira RECIBO no WhatsApp (valor, semana e o que foi pago)
 // + "cobranca": botão Cobrar atraso (a IA escreve a cobrança)
 import webpush from "npm:web-push@3.6.7";
+import { PDFDocument, StandardFonts } from "npm:pdf-lib@1.17.1";
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 function serviceKey() {
@@ -155,6 +156,31 @@ async function reciboDados(driverId: string) {
   return { extra: lines.join("\n"), must };
 }
 
+// Recibo em PDF (vai junto no WhatsApp pelo robô; na Área IA tem o botão PDF)
+async function gerarPdfRecibo(nome: string, texto: string) {
+  const pdf = await PDFDocument.create();
+  let page = pdf.addPage([595, 842]);
+  const fonte = await pdf.embedFont(StandardFonts.Helvetica), negrito = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const limpa = (t: string) => t.replace(/−/g, "-").replace(/[^\x20-\x7E\xA0-\xFF—–•]/g, "");
+  let y = 790;
+  page.drawText("MOTORA - Recibo de pagamento", { x: 50, y, size: 18, font: negrito }); y -= 30;
+  page.drawText(limpa(`Motorista: ${nome}`), { x: 50, y, size: 12, font: fonte }); y -= 28;
+  for (const bruta of limpa(texto).split("\n")) {
+    let linha = "";
+    const quebradas: string[] = [];
+    for (const p of bruta.split(" ")) {
+      const t = linha ? linha + " " + p : p;
+      if (fonte.widthOfTextAtSize(t, 11) > 495 && linha) { quebradas.push(linha); linha = p; } else linha = t;
+    }
+    quebradas.push(linha);
+    for (const q of quebradas) {
+      if (y < 60) { page = pdf.addPage([595, 842]); y = 790; }
+      page.drawText(q, { x: 50, y, size: 11, font: fonte }); y -= 18;
+    }
+  }
+  return await pdf.save();
+}
+
 async function queueWhatsApp(driverId: string, title: string, body: string, opts: { extra?: string; must?: string[]; tom?: string; avisarDono?: boolean } = {}) {
   try {
     if (!(await iaAtiva())) return null;
@@ -170,7 +196,8 @@ async function queueWhatsApp(driverId: string, title: string, body: string, opts
       if (k) { lines.push(`Chave Pix (${k.type}): ${k.key}`); must.push(k.key); }
       else if (d.pix_code) { lines.push(`Pix copia e cola: ${d.pix_code}`); must.push(d.pix_code); }
     }
-    if (/pagamento confirmado/i.test(title) && !opts.extra) {
+    const ehRecibo = /pagamento confirmado|recibo de pagamento/i.test(title);
+    if (ehRecibo && !opts.extra) {
       const rec = await reciboDados(driverId);
       if (rec) { lines.push(rec.extra); must.push(...rec.must); }
     }
@@ -179,7 +206,16 @@ async function queueWhatsApp(driverId: string, title: string, body: string, opts
     // se a IA esquecer ou mudar algum dado importante, usa a mensagem padrão
     const norm = (s: string) => s.replace(/\s/g, ""); // "R$ 650,00" com espaço comum ou especial
     if (!message || must.some((m) => !norm(message!).includes(norm(m)))) message = baseMessage(first, title, body, extra);
-    const { data: row } = await admin.from("whatsapp_queue").insert({ driver_id: driverId, title, body, message }).select("id").single();
+    let arquivo_path: string | null = null;
+    if (ehRecibo) {
+      try {
+        const bytes = await gerarPdfRecibo(String(d.name || ""), extra || body);
+        const path = `${driverId}/recibo-${Date.now()}.pdf`;
+        const up = await admin.storage.from("docs").upload(path, bytes, { contentType: "application/pdf", upsert: true });
+        if (!up.error) arquivo_path = path; else console.error("recibo pdf", up.error.message);
+      } catch (e) { console.error("recibo pdf", String(e)); } // sem PDF, o recibo vai só em texto
+    }
+    const { data: row } = await admin.from("whatsapp_queue").insert({ driver_id: driverId, title, body, message, arquivo_path }).select("id").single();
     // com o robô funcionando a mensagem sai sozinha: não precisa avisar o dono
     if (opts.avisarDono !== false && !(await roboFuncionando())) {
       await sendTo(await masterIds(), {
@@ -243,6 +279,10 @@ Deno.serve(async (req) => {
           url: "/",
         });
         return json({ sent });
+      }
+      if (body.type === "recibo_teste") {
+        const b = await gerarPdfRecibo("Teste Ção", "RECIBO DE PAGAMENTO\nValor pago: R$ 650,00\nPeríodo de 09/11/2026 a 15/11/2026 — Aluguel · − Desconto 🙂");
+        return json({ tamanho: b.length, inicio: new TextDecoder().decode(b.slice(0, 5)) });
       }
       if (body.type === "master_alert") {
         const sent = await sendTo(await masterIds(), { title: String(body.title || "MOTORA"), body: String(body.body || ""), url: safeUrl(body.url) });

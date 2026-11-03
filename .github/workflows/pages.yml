@@ -22,7 +22,7 @@ jobs:
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
-      - name: Montar o site (cópia de todos os arquivos do app, igual ao Netlify)
+      - name: Montar o site (cópia de todos os arquivos do app)
         run: |
           mkdir -p _site
           # copia tudo do repositório, menos o que não faz parte do app

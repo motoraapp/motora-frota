@@ -13,7 +13,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - `apk-version.json` — número da versão do APK; o app mostra o aviso "Nova versão do app" quando ele aumenta. Atualize o APK sempre que o PWA mudar.
 
 ## Onde está publicado
-- **Netlify: NUNCA usar nem tentar usar (ordem do dono, 02/11/2026).** Não publicar, consultar nem colocar links para ele. O endereço oficial é o GitHub Pages.
+- **GitHub Pages é o único endereço do app:** https://motoraapp.github.io/motora-frota/
 - **GitHub Pages:** publicado pelo workflow `pages.yml` a cada push na `main` (copia só os arquivos do app).
 - Manter o nome do repositório como `motora-frota`.
 
@@ -77,6 +77,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - **Cobrar atraso:** botão vermelho no cartão do motorista "Em atraso" (aba Motoristas) e na Área do Pix. O app soma o que está vencido e em aberto (`atrasoDados`) e chama `motora-push` `cobranca`; a IA escreve a cobrança (firme e educada, com valor, vencimentos e chave Pix; se mudar o valor/chave usa texto padrão), grava na `whatsapp_queue` e abre a Área IA com a mensagem em destaque para o dono tocar em Enviar.
 - **Envio automático (robô, pedido pelo dono em 01/11/2026):** chave "Envio automático" na Área IA (`app_settings` `whatsapp_robo` = `{ativo, ativado_em, visto_em}`). Ligado, o robô da pasta `robo-whatsapp/` (Baileys, sem navegador, `robo.js` + `nucleo.js`, testes em `robo-whatsapp/test`; roda no **Hostless** hostless.cloud via Dockerfile; variável CHAVE_ROBO; sessão guardada no Supabase pasta privada `robo`; QR code aparece na Área IA; também dá para conectar pelo número: o app grava `parear_numero`, o robô gera o código com `requestPairingCode` e o app mostra `parear_codigo`) pergunta à função `motora-robo` a cada 30 s e envia as mensagens pendentes criadas depois de ligar (pausa 8–20 s, máx. 30/hora). Só dispara: não lê nem responde. Se falhar, o dono recebe aviso e envia pela Área IA. Com o robô funcionando, o dono não recebe a notificação "WhatsApp pronto". Sem API da Meta.
 - **Boas-vindas (motorista novo):** `handleAddDriver` chama `motora-push` `boas_vindas`: texto fixo (sem IA) com link, usuário, senha, carro, dia e valores e mensagens automáticas; vai para `whatsapp_queue` (robô ou Área IA). Senha padrão é descrita ("6 primeiros números do CPF"), não gravada; senha diferente vai escrita. O cadastro já pede dia do pagamento, forma de cobrança e caução, então a mensagem sai certa.
+- **Recibo em PDF:** ao confirmar pagamento (`Pagamento confirmado` ou `Recibo de pagamento`), `motora-push` gera o PDF (pdf-lib), guarda em `docs/<motorista>/recibo-*.pdf` e `whatsapp_queue.arquivo_path`; o robô envia o documento com o texto; a Área IA tem botão PDF (o link do WhatsApp manual não anexa arquivo).
 - **Recibo no WhatsApp:** o aviso "Pagamento confirmado" leva o recibo (valor pago, data, semana e descrição do que foi quitado) — `reciboDados` em `motora-push`.
 
 - **Perguntar à IA (na Área IA):** conversa do dono sobre os dados do app. A função `motora-assistente` só fala com o Gemini (confere se é master; não lê nem grava dados). As ferramentas rodam no app (`iaFerramenta`), com `allocatePix` e os mesmos números do Financeiro: `consultar_*` respondem; `propor_*` só mostram um cartão, e nada é gravado até o dono tocar em Confirmar (`iaConfirmarCartao`): despesa de veículo, ganho e despesa de aplicativo, despesa do motorista (`pix_extra.multas`, liga a área e entra no próximo Pix). A conversa fica só na memória. O app não tem data de início do contrato: usa a primeira cobrança. Na demonstração, `demoAssistente` simula a IA.
@@ -85,7 +86,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - Função `motora-lembretes` (crons 08:30 dono e 19:00 motorista; SQL em `supabase/2026-11-03-lembretes.sql`). **2 dias antes:** o dono recebe notificação com o valor previsto de cada motorista para confirmar; é só lembrete, o Pix automático sai mesmo sem resposta. **No dia do vencimento, às 19h, se não pago:** o motorista recebe notificação e WhatsApp; no Pix manual pede o comprovante, no Asaas/PicPay não.
 - Asaas e PicPay criam o Pix **1 dia antes** (não mais 3), às 08:00/08:05, e avisam o motorista por notificação e WhatsApp. O Pix manual continua sendo enviado pelo dono.
 
-## Mensagem de atraso (preparada em 03/11/2026; ainda não publicada)
+## Mensagem de atraso (publicada em 03/11/2026)
 - `motora-lembretes` `quem=atraso` (cron `motora-lembretes-atraso`, 09:00; SQL em `supabase/2026-11-03-atraso.sql`): motorista "Em atraso" recebe por dia notificação e WhatsApp com valor em aberto, vencimentos e forma de pagar, até regularizar. Pede comprovante só no Pix manual. Não envia se há comprovante aguardando conferência.
 
 ## Ajustes da próxima cobrança (03/11/2026)
@@ -117,7 +118,6 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - **Envio automático ao Drive:** todo documento novo ou alterado vai sozinho (gatilhos do banco → `drive_notify` → `motora-sync`): CNH, comprovante de endereço, contrato, termo de vistoria, comprovantes, Pix, despesas (também quando alteradas), CRLV-e dos veículos (`vehicle_doc`), fotos da vistoria (`inspection`) e termos aceitos (`terms`, arquivo .html).
 
 ## Pendências
-- Trocar o endereço usado pelo APK para o GitHub Pages (hoje aponta para o Netlify em `android/app/src/main/res/values/strings.xml`). O dono deixou para depois — só fazer quando ele pedir.
 - O dono está testando sozinho antes de liberar para os motoristas.
 - Integrar com o rastreador Tracker (Ikonn) para bloquear automaticamente o carro do motorista inadimplente.
 - Motora 2.0 (monitoramento antifraude): em espera. Só começar com autorização do dono.
