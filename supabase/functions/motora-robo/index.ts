@@ -9,7 +9,7 @@
 //   acao "atendimento": número desconhecido é saudado; sem resposta em 3 min, a Dara é chamada e a conversa passa por ela
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, textoDaraSim, lerDecisao, promptResumo, lerResumo, promptDara, lerMensagemIA, avisoDaraValido, ofertaVeiculo, promptCliente, lerRespostaCliente, valoresConferem, type Nivel } from "./comandos.ts";
+import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, textoDaraSim, lerDecisao, promptResumo, lerResumo, promptDara, lerMensagemIA, avisoDaraValido, ofertaVeiculo, promptCliente, lerRespostaCliente, valoresConferem, TEXTO_ESPERA, type Nivel } from "./comandos.ts";
 import { tentarGemini } from "./gemini.ts";
 
 function serviceKey() {
@@ -74,10 +74,18 @@ async function respostaCliente(conversa: string[], chave = "") {
   const teste = rc?.value?.teste_disponivel;
   const simulados = new Set<string>(teste?.chave === chave ? teste.ids || [] : []);
   const ofertas = (carros ?? []).filter((v) => !presos.has(v.id) || simulados.has(v.id)).map(ofertaVeiculo);
+  if (!ofertas.length) return null; // sem carro disponível a IA não responde perguntas
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptCliente(ofertas, conversa) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.7 } });
   const aceita = (j: unknown) => { const r = lerRespostaCliente(j); return r && (!r.responder || (r.mensagem && valoresConferem(r.mensagem, ofertas))) ? r : null; };
   const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, aceita);
   return achou?.valor.responder ? achou.valor.mensagem : null;
+}
+
+// o que a IA diz ao cliente depois de ninguém responder: a resposta certa; sem certeza, pede para aguardar uma vez e depois fica calada
+async function falaCliente(conversa: string[], chave: string) {
+  const ia = conversa.length ? await respostaCliente(conversa, chave).catch(() => null) : null;
+  if (ia) return ia;
+  return conversa.some((m) => m.includes(TEXTO_ESPERA)) ? null : TEXTO_ESPERA;
 }
 
 async function avisoDara(reserva: string, d: Parameters<typeof promptDara>[0]) {
@@ -238,14 +246,13 @@ Deno.serve(async (req) => {
         const { count } = await admin.from("whatsapp_atendimento").select("id", { count: "exact", head: true }).eq("motorista", false).gte("saudado_em", new Date(Date.now() - 3600 * 1000).toISOString());
         if ((count ?? 0) >= 20) return json({ tratado: true }); // proteção contra bloqueio do WhatsApp
         const inicio = body.texto ? [String(body.texto)] : [];
-        const ia = body.texto ? await respostaCliente(inicio, k).catch(() => null) : null;
-        const { data: novo, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "aguardando", guardadas: ia ? [...inicio, `(Assistente respondeu: ${ia})`] : inicio, ia_respostas: ia ? 1 : 0, saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
+        const { data: novo, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "aguardando", guardadas: inicio, ia_respostas: 0, saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
         if (error) return json({ error: error.message }, 500);
-        return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome), envios: ia ? [{ jid: String(body.jid), texto: ia }] : [] });
+        return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome) });
       }
       const conversa = [...(lead.guardadas || []), ...(body.texto ? [String(body.texto)] : [])];
-      // enquanto ninguém assumiu, a IA tira as dúvidas sobre carros e valores (no máximo 15 respostas por conversa)
-      const ia = body.texto && ["aguardando", "pergunta_dara"].includes(lead.status) && !lead.motorista && (lead.ia_respostas || 0) < 15 ? await respostaCliente(conversa, k).catch(() => null) : null;
+      // ordem: saudação, dono (3 min), Dara (10 min). Só depois disso a IA responde (no máximo 15 respostas por conversa)
+      const ia = body.texto && lead.status === "pergunta_dara" && lead.dono_avisado_em && !lead.motorista && (lead.ia_respostas || 0) < 15 ? await falaCliente(conversa, k) : null;
       await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(["aguardando", "perguntar", "pergunta_dara"].includes(lead.status) && body.texto ? { guardadas: ia ? [...conversa, `(Assistente respondeu: ${ia})`] : conversa } : {}), ...(ia ? { ia_respostas: (lead.ia_respostas || 0) + 1 } : {}) }).eq("id", lead.id);
       if (lead.status === "aguardando" || lead.status === "pergunta_dara") return json({ tratado: true, lead_id: lead.id, guardar: true, resposta: ia });
       if (lead.status !== "com_dara") return json({ tratado: true }); // uma pessoa já assumiu ou a conversa foi encerrada
@@ -265,8 +272,11 @@ Deno.serve(async (req) => {
       if (!dara) return json({ chamadas: [] });
       // a Dara não respondeu à pergunta em 10 min: avisa o dono no app e no WhatsApp, uma vez
       const { data: semResposta } = await admin.from("whatsapp_atendimento").select("*").eq("status", "pergunta_dara").is("dono_avisado_em", null).lte("escalado_em", new Date(Date.now() - 10 * 60000).toISOString());
+      const paraCliente: unknown[] = []; // a Dara não respondeu: agora a IA atende o cliente
       for (const l of semResposta ?? []) {
-        await admin.from("whatsapp_atendimento").update({ dono_avisado_em: new Date().toISOString() }).eq("id", l.id);
+        const fala = await falaCliente(l.guardadas || [], l.chave);
+        await admin.from("whatsapp_atendimento").update({ dono_avisado_em: new Date().toISOString(), ...(fala ? { guardadas: [...(l.guardadas || []), `(Assistente respondeu: ${fala})`], ia_respostas: (l.ia_respostas || 0) + 1 } : {}) }).eq("id", l.id);
+        if (fala) paraCliente.push({ id: l.id, jid: l.jid, telefone: l.telefone, segurar: true, textos: [fala] });
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-push`, {
           method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" },
           body: JSON.stringify({ type: "master_alert", title: `Dara ainda não respondeu ${rotulo(l)}`, body: `Passaram 10 minutos e a pessoa continua sem resposta. O que ela escreveu: ${(l.guardadas || []).join(" ").slice(0, 300) || "só arquivo ou áudio"}` }),
@@ -275,7 +285,7 @@ Deno.serve(async (req) => {
       const minDesconhecido = Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3);
       const { data: leads } = await admin.from("whatsapp_atendimento").select("*").in("status", ["saudar", "aguardando"]).order("saudado_em").limit(30);
       const vencidos = (leads ?? []).filter((l) => l.status === "saudar" ? true : l.motorista ? Date.now() >= new Date(l.chamar_em || l.saudado_em).getTime() : Date.now() - new Date(l.saudado_em).getTime() >= minDesconhecido * 60000).slice(0, 5);
-      return json({ chamadas: await Promise.all(vencidos.map(async (l) => l.status === "saudar" ? { id: l.id, telefone: l.telefone, textos: [saudacao(l.nome)] }
+      return json({ chamadas: [...paraCliente, ...await Promise.all(vencidos.map(async (l) => l.status === "saudar" ? { id: l.id, telefone: l.telefone, textos: [saudacao(l.nome)] }
         : l.motorista ? await (async () => {
           const minutos = Math.max(1, Math.round((Date.now() - new Date(l.saudado_em).getTime()) / 60000)), mensagens = l.guardadas || [];
           return { id: l.id, telefone: dara, textos: [await avisoDara(textoDaraMotorista(l.nome, l.telefone, mensagens, minutos, l.urgencia), { motorista: true, nome: l.nome, fone: l.telefone, mensagens, minutos, urgente: l.urgencia === "urgente" })] };
@@ -283,7 +293,7 @@ Deno.serve(async (req) => {
         : await (async () => {
           const resumo = await resumoDe(l.guardadas || []);
           return { id: l.id, telefone: dara, segurar: true, textos: [await avisoDara(textoDara(l.telefone, resumo), { motorista: false, fone: l.telefone, resumo })] };
-        })())) });
+        })()))] });
     }
     if (body.acao === "atendimento_ok" && body.id) {
       // conversa iniciada pela locadora (status saudar): a saudação saiu, agora começa a contagem
