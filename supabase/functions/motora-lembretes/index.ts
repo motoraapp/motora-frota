@@ -1,4 +1,4 @@
-// MOTORA - lembretes da cobrança semanal (cron "motora-lembretes", todo dia 08:30 de Brasília)
+// MOTORA - lembretes da cobrança semanal (crons "motora-lembretes" 08:30 quem=dono e "motora-lembretes-motorista" 19:00 quem=motorista, Brasília)
 // 1) DONO, 2 dias antes do dia de pagamento: "confirme o valor" (notificação), para cada motorista.
 //    É só um lembrete: se o dono não mudar nada, o Pix automático sai com o valor mostrado.
 // 2) MOTORISTA, no dia do vencimento, se o Pix ainda não foi pago: lembrete por notificação e WhatsApp.
@@ -84,13 +84,13 @@ async function avisoMotorista(d: Extra) {
   return { ...base, title: "Lembrete: seu Pix vence hoje", body: `Pagamento até hoje, 23:59.${d.pix_amount != null ? ` Valor: ${brl(d.pix_amount)}.` : ""}${comprovante}` };
 }
 
-async function lembrar(simular: boolean) {
+async function lembrar(simular: boolean, quem: string) {
   const { data: lista } = await admin.from("profiles").select("*").eq("role", "driver");
   const avisos: Extra[] = [];
   for (const d of lista ?? []) {
     try {
       const { data: v } = d.vehicle_id ? await admin.from("vehicles").select("rent_amount").eq("id", d.vehicle_id).maybeSingle() : { data: null };
-      for (const a of [await avisoDono(d, v?.rent_amount ?? null), await avisoMotorista(d)]) if (a) avisos.push(a);
+      for (const a of [quem !== "motorista" ? await avisoDono(d, v?.rent_amount ?? null) : null, quem !== "dono" ? await avisoMotorista(d) : null]) if (a) avisos.push(a);
     } catch (e) { console.error("lembrete", d.name, e); }
   }
   if (!simular) {
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (req.headers.get("x-cron-token") !== (await secret("cron_token"))) return json({ error: "proibido" }, 403);
     if (body.acao !== "lembrar") return json({ error: "ação desconhecida" }, 400);
-    const avisos = await lembrar(body.simular === true);
+    const avisos = await lembrar(body.simular === true, String(body.quem || ""));
     console.log("lembretes", JSON.stringify(avisos.map((a) => a.title)));
     return json({ ok: true, simulado: body.simular === true, avisos });
   } catch (e) {

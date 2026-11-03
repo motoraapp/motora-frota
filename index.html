@@ -613,6 +613,17 @@
                                 <option value="">Nenhum Veículo</option>
                             </select>
                         </div>
+                        <div class="col-span-full rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Dia do pagamento</label><select id="drvPayDay" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="1">Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option><option value="0">Domingo</option></select></div>
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Forma de cobrança</label><select id="drvPagAuto" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Manual (eu envio o Pix e confiro)</option><option value="asaas">Automático pelo Asaas</option><option value="picpay">Automático pelo PicPay</option></select></div>
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Caução</label><select id="drvCauForma" onchange="drvCauMostra()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Sem caução</option><option value="paga">Já paga (completa)</option><option value="parcelada">Parcelada</option></select></div>
+                            <div id="drvCauCampos" class="hidden col-span-full grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor total da caução (R$)</label><input id="drvCauTotal" type="text" inputmode="decimal" oninput="drvCauMostra()" placeholder="Ex: 1.000,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div class="drvCauParc"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Entrada já paga (R$)</label><input id="drvCauEnt" type="text" inputmode="decimal" oninput="drvCauMostra()" placeholder="0,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div class="drvCauParc"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Em quantas vezes</label><input id="drvCauN" type="text" inputmode="numeric" oninput="drvCauMostra()" placeholder="Ex: 10" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <p id="drvCauInfo" class="drvCauParc col-span-full text-xs text-gray-600 dark:text-gray-300"></p>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CNH (PDF/Img)</label>
                             <input type="file" id="drvCnhFile" accept="image/*,application/pdf" onchange="newDriverDocChosen()" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
@@ -3128,6 +3139,20 @@
             }
         }
 
+        function drvCauMostra() {
+            const f = document.getElementById('drvCauForma').value;
+            document.getElementById('drvCauCampos').classList.toggle('hidden', !f);
+            document.querySelectorAll('.drvCauParc').forEach(x => x.classList.toggle('hidden', f !== 'parcelada'));
+            const c = drvCauLer();
+            document.getElementById('drvCauInfo').textContent = c && c.parcelas && c.valor_parcela > 0 ? `${c.parcelas}x de ${fmtMoney(c.valor_parcela)}, somadas ao aluguel a cada cobrança.` : 'Informe o valor total e em quantas vezes.';
+        }
+        function drvCauLer() {
+            const forma = document.getElementById('drvCauForma').value; if (!forma) return null;
+            const total = parseMoney(document.getElementById('drvCauTotal').value) || 0;
+            if (forma === 'paga') return { forma, total: total || null };
+            const entrada = parseMoney(document.getElementById('drvCauEnt').value) || 0, n = parseInt(document.getElementById('drvCauN').value, 10) || 0;
+            return { forma, total, entrada, parcelas: n, cobradas: 0, valor_parcela: n ? Math.round(Math.max(0, total - entrada) / n * 100) / 100 : 0 };
+        }
         async function handleAddDriver(e) {
             e.preventDefault();
             const form = e.target;
@@ -3137,6 +3162,8 @@
             const vehicleId = document.getElementById('drvVehicleSelect').value || null;
             const pixCode = document.getElementById('drvPixCode').value.trim();
             if (password.length < 6) { showToast("A senha precisa ter pelo menos 6 caracteres.", "error"); return; }
+            const cauNova = drvCauLer();
+            if (cauNova && cauNova.forma === 'parcelada' && !(cauNova.parcelas > 0 && cauNova.valor_parcela > 0)) { showToast('Informe o valor total da caução e em quantas vezes.', 'error'); return; }
 
             const files = {
                 cnh_path: ['drvCnhFile', 'cnh'],
@@ -3155,6 +3182,11 @@
 
                 // dados lidos pela IA (CPF, RG, CNH, endereço...) entram junto com os documentos
                 const updates = { ...newDriverExtra };
+                const pagAuto = document.getElementById('drvPagAuto').value;
+                updates.payment_day_of_week = parseInt(document.getElementById('drvPayDay').value, 10);
+                updates.asaas_auto_charge_enabled = pagAuto === 'asaas';
+                updates.picpay_auto_charge_enabled = pagAuto === 'picpay';
+                if (cauNova) updates.pix_extra = { caucao: cauNova };
                 const cpf = document.getElementById('drvCpf').value.trim();
                 if (cpf) updates.cpf = cpf;
                 const whats = document.getElementById('drvWhats').value.trim();
@@ -5790,6 +5822,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function resetNewDriverForm() {
             clearTmp('cnh', 'endereco');
             newDriverExtra = {}; newDriverPhoto = null; newDriverFiles = {};
+            drvCauMostra();
             ['drvEmail', 'drvPassword'].forEach(i => delete document.getElementById(i).dataset.touched);
             document.getElementById('drvPhotoSlot').innerHTML = '<i class="fa-solid fa-user text-xl mb-1"></i>Foto da CNH';
             document.getElementById('drvAiStatus').innerHTML = '<i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Envie primeiro a <b>CNH</b> e o <b>comprovante de endereço</b>: a IA preenche o nome, o CPF, o usuário (nome + sobrenome) e a senha (6 primeiros números do CPF). A foto da CNH aparece aqui.';
