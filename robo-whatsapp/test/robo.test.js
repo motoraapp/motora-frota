@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
 import { chaveFone, lerComando, escolher, extensao } from '../../supabase/functions/motora-robo/comandos.ts';
+import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
 import { criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
 const CREDS = '{"account":{},"me":{"id":"x"}}';
@@ -608,4 +609,20 @@ test('todos os números da ficha recebem, sem repetir, com 1 min de intervalo', 
   assert.equal(t.sockets[0].enviadas.length, 1);
   await t.avancar(400000); await p;
   assert.deepEqual(t.sockets[0].enviadas.map((e) => e[0].slice(2, 13)), ['62911112222', '62922223333', '62933334444', '62944445555']);
+});
+test('IA: modelo ocupado passa para o próximo, e chave errada para', async () => {
+  const antigo = globalThis.fetch; const pedidos = [];
+  const ok = (st, b) => ({ status: st, ok: st < 400, json: async () => b });
+  globalThis.fetch = async (u) => {
+    if (u.includes('?pageSize')) return ok(200, { models: [{ name: 'models/gemini-nova-flash', supportedGenerationMethods: ['generateContent'] }, { name: 'models/gemini-x-image', supportedGenerationMethods: ['generateContent'] }] });
+    const m = u.match(/models\/(.*):/)[1]; pedidos.push(m);
+    if (m === 'gemini-nova-flash') return ok(200, { r: 'bom' });
+    return ok(503, {});
+  };
+  try {
+    const a = await tentarGemini('k', 'config', '{}', (j) => j.r || null);
+    assert.equal(a.modelo, 'gemini-nova-flash'); assert.equal(pedidos[0], 'config'); assert.ok(!pedidos.includes('gemini-x-image'));
+    pedidos.length = 0; globalThis.fetch = async (u) => { if (u.includes('?pageSize')) return ok(500, {}); pedidos.push(u); return ok(401, {}); };
+    assert.equal(await tentarGemini('k', 'config', '{}', () => 1), null); assert.equal(pedidos.length, 1);
+  } finally { globalThis.fetch = antigo; }
 });

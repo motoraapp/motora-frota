@@ -2,6 +2,7 @@
 // Esta função só conversa com o Gemini. Os dados e as contas ficam no app do dono (index.html: iaFerramenta),
 // com o mesmo cálculo do Financeiro, e nada é gravado aqui: lançamentos só acontecem quando o dono toca em Confirmar.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { tentarGemini } from "./gemini.ts";
 
 function serviceKey() {
   const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -73,23 +74,16 @@ Deno.serve(async (req) => {
     const key = await secret("gemini_key");
     if (!key) return json({ error: "Cadastre a chave do Gemini em Configurações." });
     const model = (await secret("gemini_model")) || "gemini-flash-latest";
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: instrucoes(await regrasDono()) }] },
-        contents,
-        tools: [{ functionDeclarations: FERRAMENTAS }],
-        generationConfig: { temperature: 0.1 },
-      }),
-      signal: AbortSignal.timeout(45000),
+    const corpo = JSON.stringify({
+      systemInstruction: { parts: [{ text: instrucoes(await regrasDono()) }] },
+      contents,
+      tools: [{ functionDeclarations: FERRAMENTAS }],
+      generationConfig: { temperature: 0.1 },
     });
-    if (!r.ok) {
-      console.error("gemini falhou", r.status);
-      return json({ error: r.status === 429 ? "A IA atingiu o limite de uso agora. Tente de novo em alguns minutos." : "A IA não respondeu. Tente de novo." });
-    }
-    const content = (await r.json())?.candidates?.[0]?.content;
-    if (!content?.parts?.length) return json({ error: "A IA não respondeu. Tente de novo." });
+    // deno-lint-ignore no-explicit-any
+    const achou = await tentarGemini(key, model, corpo, (j: any) => { const c = j?.candidates?.[0]?.content; return c?.parts?.length ? c : null; }, 100000, 35000);
+    if (!achou) return json({ error: "A IA não respondeu agora. Tente de novo em alguns minutos." });
+    const content = achou.valor;
     return json({ content: { role: "model", parts: content.parts } });
   } catch (e) {
     console.error("assistente falhou", String(e));
