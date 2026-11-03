@@ -1,4 +1,4 @@
--- MOTORA — 03/11/2026 (AINDA NÃO APLICADO; só aplicar quando o dono pedir a publicação)
+-- MOTORA — 03/11/2026 (APLICADO em 03/11/2026)
 -- Publicar antes a função motora-lembretes SEM exigir login (ela confere o cron_token).
 -- Todo dia às 08:30 de Brasília: lembra o dono 2 dias antes e o motorista no dia do vencimento.
 select cron.schedule('motora-lembretes', '30 11 * * *', $job$
