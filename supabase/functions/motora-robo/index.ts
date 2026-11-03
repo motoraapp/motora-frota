@@ -9,7 +9,7 @@
 //   acao "atendimento": número desconhecido é saudado; sem resposta em 3 min, a Dara é chamada e a conversa passa por ela
 //   acao "comprovante_url" / "comprovante_salvar": foto ou PDF de motorista cadastrado vira comprovante no app
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
-import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, textoDaraSim, lerDecisao, promptResumo, lerResumo, promptDara, lerMensagemIA, avisoDaraValido, type Nivel } from "./comandos.ts";
+import { chaveContato, chaveFone, escolher, escolherConversa, extensao, foneBonito, lerComando, lerNivel, MINUTOS_NIVEL, nivelPorPalavras, primeiroNome, promptNivel, saudacao, textoDara, textoDaraMotorista, textoDaraSim, lerDecisao, promptResumo, lerResumo, promptDara, lerMensagemIA, avisoDaraValido, ofertaVeiculo, promptCliente, lerRespostaCliente, valoresConferem, type Nivel } from "./comandos.ts";
 import { tentarGemini } from "./gemini.ts";
 
 function serviceKey() {
@@ -60,6 +60,20 @@ async function resumoDe(mensagens: string[]) {
   const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptResumo(mensagens) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.1 } });
   const achou = key ? await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, lerResumo, 12000, 6000) : null;
   return achou?.valor ?? junto.slice(0, 500);
+}
+
+// disponível = carro não excluído e sem motorista ativo. Responde só se for sobre carros e com os valores certos; senão fica calada e a Dara atende
+async function respostaCliente(conversa: string[]) {
+  const key = await secret("gemini_key");
+  if (!key) return null;
+  const { data: carros } = await admin.from("vehicles").select("id, model, color, year, rent_amount").is("deleted_at", null);
+  const { data: ocupados } = await admin.from("profiles").select("vehicle_id").eq("role", "driver").not("vehicle_id", "is", null);
+  const presos = new Set((ocupados ?? []).map((p) => p.vehicle_id));
+  const ofertas = (carros ?? []).filter((v) => !presos.has(v.id)).map(ofertaVeiculo);
+  const corpo = JSON.stringify({ contents: [{ role: "user", parts: [{ text: promptCliente(ofertas, conversa) }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.7 } });
+  const aceita = (j: unknown) => { const r = lerRespostaCliente(j); return r && (!r.responder || (r.mensagem && valoresConferem(r.mensagem, ofertas))) ? r : null; };
+  const achou = await tentarGemini(key, (await secret("gemini_model")) || "gemini-flash-latest", corpo, aceita, 15000, 7000);
+  return achou?.valor.responder ? achou.valor.mensagem : null;
 }
 
 async function avisoDara(reserva: string, d: Parameters<typeof promptDara>[0]) {
@@ -214,12 +228,17 @@ Deno.serve(async (req) => {
       if (!lead) {
         const { count } = await admin.from("whatsapp_atendimento").select("id", { count: "exact", head: true }).eq("motorista", false).gte("saudado_em", new Date(Date.now() - 3600 * 1000).toISOString());
         if ((count ?? 0) >= 20) return json({ tratado: true }); // proteção contra bloqueio do WhatsApp
-        const { data: novo, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "aguardando", guardadas: body.texto ? [String(body.texto)] : [], saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
+        const inicio = body.texto ? [String(body.texto)] : [];
+        const ia = body.texto ? await respostaCliente(inicio).catch(() => null) : null;
+        const { data: novo, error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "aguardando", guardadas: ia ? [...inicio, `(Assistente respondeu: ${ia})`] : inicio, ia_respostas: ia ? 1 : 0, saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" }).select("id").single();
         if (error) return json({ error: error.message }, 500);
-        return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome) });
+        return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome), envios: ia ? [{ jid: String(body.jid), texto: ia }] : [] });
       }
-      await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(["aguardando", "perguntar", "pergunta_dara"].includes(lead.status) && body.texto ? { guardadas: [...(lead.guardadas || []), String(body.texto)] } : {}) }).eq("id", lead.id);
-      if (lead.status === "aguardando" || lead.status === "pergunta_dara") return json({ tratado: true, lead_id: lead.id, guardar: true });
+      const conversa = [...(lead.guardadas || []), ...(body.texto ? [String(body.texto)] : [])];
+      // enquanto ninguém assumiu, a IA tira as dúvidas sobre carros e valores (no máximo 15 respostas por conversa)
+      const ia = body.texto && ["aguardando", "pergunta_dara"].includes(lead.status) && !lead.motorista && (lead.ia_respostas || 0) < 15 ? await respostaCliente(conversa).catch(() => null) : null;
+      await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(["aguardando", "perguntar", "pergunta_dara"].includes(lead.status) && body.texto ? { guardadas: ia ? [...conversa, `(Assistente respondeu: ${ia})`] : conversa } : {}), ...(ia ? { ia_respostas: (lead.ia_respostas || 0) + 1 } : {}) }).eq("id", lead.id);
+      if (lead.status === "aguardando" || lead.status === "pergunta_dara") return json({ tratado: true, lead_id: lead.id, guardar: true, resposta: ia });
       if (lead.status !== "com_dara") return json({ tratado: true }); // uma pessoa já assumiu ou a conversa foi encerrada
       const dara = await secret("dara_whatsapp");
       return json({ tratado: true, envios: [{ telefone: dara, texto: body.midia ? `*${rotulo(lead)}* enviou:` : `*${rotulo(lead)}:*\n${String(body.texto || "")}` }], ...(body.midia ? { encaminhar: { telefone: dara } } : {}) });

@@ -523,6 +523,8 @@
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor do aluguel por semana (R$)</label>
                             <input type="text" id="vehRent" inputmode="decimal" placeholder="Ex: 550,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Cor</label><input type="text" id="vehColor" placeholder="Ex: Prata" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ano</label><input type="text" id="vehYear" inputmode="numeric" placeholder="Ex: 2022/2023" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div>
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Arquivo CRLV-e (PDF/Img)</label>
                             <input type="file" id="vehCrlvFile" accept="image/*,application/pdf" onchange="aiReadCrlv(this)" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
@@ -1074,6 +1076,7 @@
                 <div><label for="evPlate" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Placa</label><input type="text" id="evPlate" autocapitalize="characters" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-base uppercase"></div>
                 <div><label for="evRent" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Aluguel por semana (R$)</label><input type="text" id="evRent" inputmode="decimal" placeholder="Ex: 550,00" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-base">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O novo valor vale para as próximas cobranças. As que já foram enviadas não mudam.</p></div>
+                <div class="grid grid-cols-2 gap-3"><div><label for="evColor" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Cor</label><input type="text" id="evColor" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div><div><label for="evYear" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Ano</label><input type="text" id="evYear" inputmode="numeric" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div></div>
                 <div><label for="evCrlv" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Trocar CRLV-e (opcional)</label><input type="file" id="evCrlv" accept="image/*,application/pdf" class="w-full text-xs text-gray-500">
                     <p id="evCrlvInfo" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p></div>
                 <button type="submit" class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl">Salvar alterações</button>
@@ -1556,10 +1559,10 @@
             db.profiles.push(master);
 
             const V = [
-                { id: 'demo-v1', model: 'FIAT/ARGO DRIVE 1.0', plate: 'DMO1A11' },
-                { id: 'demo-v2', model: 'CHEVROLET/ONIX 1.0', plate: 'DMO2B22' },
-                { id: 'demo-v3', model: 'HYUNDAI/HB20 1.0M', plate: 'DMO3C33' },
-                { id: 'demo-v4', model: 'RENAULT/KWID ZEN 1.0', plate: 'DMO4D44' },
+                { id: 'demo-v1', model: 'FIAT/ARGO DRIVE 1.0', plate: 'DMO1A11', color: 'Prata', year: '2022/2023' },
+                { id: 'demo-v2', model: 'CHEVROLET/ONIX 1.0', plate: 'DMO2B22', color: 'Branco', year: '2021/2022' },
+                { id: 'demo-v3', model: 'HYUNDAI/HB20 1.0M', plate: 'DMO3C33', color: 'Preto', year: '2022/2022' },
+                { id: 'demo-v4', model: 'RENAULT/KWID ZEN 1.0', plate: 'DMO4D44', color: 'Vermelho', year: '2023/2023' },
             ];
             const RENT = { 'demo-v1': 650, 'demo-v2': 500, 'demo-v3': 620, 'demo-v4': 550 };
             V.forEach(v => db.vehicles.push({ ...v, rent_amount: RENT[v.id], crlv_path: doc(`demo/${v.id}/crlv-e.svg`), created_at: new Date(ago(130)).toISOString() }));
@@ -3080,7 +3083,8 @@
             setBusy(form, true);
             try {
                 const rentVal = parseMoney(document.getElementById('vehRent').value);
-                const { data: veh, error } = await sb.from('vehicles').insert(rentVal != null ? { model, plate, rent_amount: rentVal } : { model, plate }).select().single();
+                const color = document.getElementById('vehColor').value.trim() || null, year = document.getElementById('vehYear').value.trim() || null;
+                const { data: veh, error } = await sb.from('vehicles').insert(rentVal != null ? { model, plate, color, year, rent_amount: rentVal } : { model, plate, color, year }).select().single();
                 if (error) throw error;
                 if (crlvFile) {
                     const path = await uploadFile(crlvFile, `vehicles/${veh.id}/crlv`);
@@ -3129,7 +3133,16 @@
             document.getElementById('evModel').value = v.model || '';
             document.getElementById('evPlate').value = v.plate || '';
             document.getElementById('evRent').value = v.rent_amount != null ? String(v.rent_amount).replace('.', ',') : '';
+            document.getElementById('evColor').value = v.color || '';
+            document.getElementById('evYear').value = v.year || '';
             document.getElementById('evCrlv').value = '';
+            // carro antigo sem cor ou ano: a IA lê do CRLV-e já guardado
+            if ((!v.color || !v.year) && v.crlv_path && appConfig.gemini && !DEMO) aiReadFiles([v.crlv_path], 'vehicle').then((r) => {
+                if (veiculoEditando !== id) return;
+                const c = document.getElementById('evColor'), a = document.getElementById('evYear');
+                if (!c.value && r.cor) c.value = r.cor;
+                if (!a.value && anoCrlv(r)) a.value = anoCrlv(r);
+            }).catch(() => {});
             document.getElementById('evCrlvInfo').textContent = v.crlv_path ? 'Este carro já tem CRLV-e. Só escolha um arquivo se quiser trocar.' : 'Este carro ainda não tem CRLV-e.';
             document.getElementById('modalEditVeh').classList.remove('hidden');
         }
@@ -3146,7 +3159,7 @@
             if (rentTxt && rent == null) { showToast('Valor inválido. Ex: 550,00', 'error'); return; }
             setBusy(form, true);
             try {
-                const dados = { model, plate, rent_amount: rent };
+                const dados = { model, plate, rent_amount: rent, color: document.getElementById('evColor').value.trim() || null, year: document.getElementById('evYear').value.trim() || null };
                 if (file) {
                     const path = await uploadFile(file, `vehicles/${id}/crlv-${Date.now()}`);
                     if (!path) return; // arquivo grande demais: o aviso já apareceu
@@ -5938,6 +5951,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 st.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> ' + esc(friendlyError(e)) + ' Digite os dados à mão.';
             }
         }
+        const anoCrlv = r => [r.ano_fabricacao, r.ano_modelo].filter(Boolean).filter((a, i, l) => l.indexOf(a) === i).join('/');
         async function aiReadCrlv(input) {
             const f = input.files[0], st = document.getElementById('vehAiStatus');
             if (!f) return;
@@ -5949,6 +5963,8 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 const model = r.marca_modelo || r.modelo;
                 if (model) document.getElementById('vehModel').value = model;
                 if (r.placa) document.getElementById('vehPlate').value = String(r.placa).toUpperCase().replace(/[^A-Z0-9]/g, '');
+                if (r.cor) document.getElementById('vehColor').value = r.cor;
+                if (anoCrlv(r)) document.getElementById('vehYear').value = anoCrlv(r);
                 st.innerHTML = (model || r.placa) ? '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Pronto! Confira modelo e placa e toque em Salvar Veículo.' : 'A IA não encontrou modelo e placa. Digite à mão.';
             } catch (e) { st.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> ' + esc(friendlyError(e)); }
         }

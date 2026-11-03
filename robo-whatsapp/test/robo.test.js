@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
-import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, chaveContato, textoDara, avisoDaraValido, promptDara, lerDecisao, textoDaraSim, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
+import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, ofertaVeiculo, valoresConferem, promptCliente, chaveContato, textoDara, avisoDaraValido, promptDara, lerDecisao, textoDaraSim, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
 import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
 
@@ -728,4 +728,16 @@ test('atendimento: aviso escrito pela IA precisa ter os dados', () => {
   assert.equal(avisoDaraValido('Dara, (62) 99999-8888 disse: Bati o carro. Para sair, ENCERRAR.', m), true);
   assert.equal(avisoDaraValido('Dara, (62) 99999-8888 bateu. Para sair, ENCERRAR.', m), false);
   assert.match(promptDara({ fone: '5562999998888', resumo: 'x', motorista: false }), /suposição/);
+});
+
+test('atendimento: valores de quem quer alugar', () => {
+  const o = ofertaVeiculo({ model: 'HB20S', color: 'Prata', year: '2023', rent_amount: '750' });
+  assert.deepEqual([o.aluguel, o.caucao, o.metade, o.retirada, o.restante], [750, 1500, 750, 1500, 750]);
+  assert.equal(ofertaVeiculo({ model: 'X', rent_amount: null }).caucao, null);
+  assert.equal(valoresConferem('Sai por R$ 750,00 e a caução R$ 1.500,00, mínimo R$ 100,00 por semana.', [o]), true);
+  assert.equal(valoresConferem('Sai por 750 reais.', [o]), true);
+  assert.equal(valoresConferem('Sai por R$ 700,00.', [o]), false);
+  assert.equal(valoresConferem('Parcela de 125 reais.', [o]), false);
+  assert.equal(valoresConferem('Temos um HB20S prata 2023 disponível!', []), true);
+  assert.match(promptCliente([], ['oi']), /Nenhum carro disponível/);
 });
