@@ -235,6 +235,15 @@ Deno.serve(async (req) => {
       await admin.from("app_settings").upsert({ key: "robo_vivo", value: { em: new Date().toISOString() }, updated_at: new Date().toISOString() });
       const dara = await secret("dara_whatsapp");
       if (!dara) return json({ chamadas: [] });
+      // a Dara não respondeu à pergunta em 10 min: avisa o dono no app e no WhatsApp, uma vez
+      const { data: semResposta } = await admin.from("whatsapp_atendimento").select("*").eq("status", "pergunta_dara").is("dono_avisado_em", null).lte("escalado_em", new Date(Date.now() - 10 * 60000).toISOString());
+      for (const l of semResposta ?? []) {
+        await admin.from("whatsapp_atendimento").update({ dono_avisado_em: new Date().toISOString() }).eq("id", l.id);
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-push`, {
+          method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" },
+          body: JSON.stringify({ type: "master_alert", title: `Dara ainda não respondeu ${rotulo(l)}`, body: `Passaram 10 minutos e a pessoa continua sem resposta. O que ela escreveu: ${(l.guardadas || []).join(" ").slice(0, 300) || "só arquivo ou áudio"}` }),
+        }).catch(() => {});
+      }
       const minDesconhecido = Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3);
       const { data: leads } = await admin.from("whatsapp_atendimento").select("*").in("status", ["saudar", "aguardando"]).order("saudado_em").limit(30);
       const vencidos = (leads ?? []).filter((l) => l.status === "saudar" ? true : l.motorista ? Date.now() >= new Date(l.chamar_em || l.saudado_em).getTime() : Date.now() - new Date(l.saudado_em).getTime() >= minDesconhecido * 60000).slice(0, 5);
