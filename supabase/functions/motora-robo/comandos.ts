@@ -20,7 +20,7 @@ export function lerComando(texto: unknown): Comando {
   const m = t.match(/^(confirmar|recusar)(?=\s|$)\s*([\s\S]*)$/i);
   return m ? { confirmar: m[1].toLowerCase() === "confirmar", resto: m[2].trim().slice(0, 300) } : null;
 }
-const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 export type Aberto = { id: string; nome: string };
 export type Escolha = { id: string; nome: string; motivo: string } | { resposta: string };
 // Só decide quando não há dúvida de qual motorista é. Dinheiro: na dúvida, pergunta.
