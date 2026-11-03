@@ -80,9 +80,12 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 
 - **Perguntar à IA (na Área IA):** conversa do dono sobre os dados do app. A função `motora-assistente` só fala com o Gemini (confere se é master; não lê nem grava dados). As ferramentas rodam no app (`iaFerramenta`), com `allocatePix` e os mesmos números do Financeiro: `consultar_*` respondem; `propor_*` só mostram um cartão, e nada é gravado até o dono tocar em Confirmar (`iaConfirmarCartao`): despesa de veículo, ganho e despesa de aplicativo, despesa do motorista (`pix_extra.multas`, liga a área e entra no próximo Pix). A conversa fica só na memória. O app não tem data de início do contrato: usa a primeira cobrança. Na demonstração, `demoAssistente` simula a IA.
 
-## Lembretes da cobrança (preparado em 03/11/2026; ainda não publicado)
+## Lembretes da cobrança (publicado em 03/11/2026)
 - Função `motora-lembretes` (cron 08:30; SQL em `supabase/2026-11-03-lembretes.sql`). **2 dias antes:** o dono recebe notificação com o valor previsto de cada motorista para confirmar; é só lembrete, o Pix automático sai mesmo sem resposta. **No dia do vencimento, se não pago:** o motorista recebe notificação e WhatsApp; no Pix manual pede o comprovante, no Asaas/PicPay não.
 - Asaas e PicPay criam o Pix **1 dia antes** (não mais 3), às 08:00/08:05, e avisam o motorista por notificação e WhatsApp. O Pix manual continua sendo enviado pelo dono.
+
+## Ajustes da próxima cobrança (03/11/2026)
+- Ficha do motorista → "Desconto ou valor extra na próxima cobrança" (`pix_extra.ajustes` = `[{id,tipo,desc,valor}]`). Entram no Novo Pix (marcados), no Asaas/PicPay e na previsão (`previsaoProxima`, também na "Próxima semana" do motorista, que agora inclui multas pendentes). Saem da lista quando o Pix é criado. Motoristas abre primeiro, com o cartão "Próximas cobranças". Excluir um Pix não devolve o ajuste.
 
 ## Dia do pagamento, Asaas e backup (publicado em 02/11/2026)
 - Código das funções do Supabase agora fica em `supabase/functions/` (motora-push, motora-asaas, motora-backup, motora-robo) e o SQL em `supabase/2026-11-01-novidades.sql` (já aplicado).

@@ -98,9 +98,10 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
     const np = ex.ultimo_enviado ? proximaParcela(ex.descricao) : { desc: ex.descricao, done: false };
     if (!np.done) { total += Number(ex.valor); linhas.push(`+ ${np.desc}: ${brl(ex.valor)}`); novoRepetir = { descricao: np.desc }; }
   }
+  for (const a of Array.isArray(ex.ajustes) ? ex.ajustes : []) { const desc = a.tipo === "desconto"; total += (desc ? -1 : 1) * Number(a.valor || 0); linhas.push(`${desc ? "−" : "+"} ${a.desc}: ${brl(a.valor)}`); }
   total = Math.round(total * 100) / 100;
   if (!(total > 0)) {
-    await avisar({ type: "master_alert", title: `Asaas: ${d.name} sem valor`, body: "O carro dele está sem valor de aluguel. A cobrança automática não foi criada.", url: "/" });
+    await avisar({ type: "master_alert", title: `Asaas: ${d.name} sem valor`, body: "Não há valor a cobrar (aluguel vazio ou desconto maior que o total). A cobrança automática não foi criada.", url: "/" });
     return { motorista: d.name, erro: "sem valor de aluguel" };
   }
   linhas.push(`Total: ${brl(total)}`);
@@ -128,6 +129,7 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   }
 
   // ----- atualiza o motorista (o banco cria o histórico e a data de pagamento sozinho) -----
+  delete ex.ajustes;
   delete ex.repetir; delete ex.descricao; delete ex.valor; delete ex.ultimo_enviado;
   if (novoRepetir) Object.assign(ex, { repetir: true, descricao: novoRepetir.descricao, valor: d.pix_extra.valor, ultimo_enviado: true });
   if (cauCobrada) ex.caucao = { ...cau, cobradas: Number(cau.cobradas || 0) + 1 };

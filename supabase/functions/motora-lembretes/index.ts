@@ -42,6 +42,7 @@ function previsao(d: Extra, aluguel: number | null) {
     const m = String(ex.descricao || "").match(/(\d+)\s*\/\s*(\d+)/);
     if (!(ex.ultimo_enviado && m && Number(m[1]) + 1 > Number(m[2]))) total += Number(ex.valor);
   }
+  for (const a of Array.isArray(ex.ajustes) ? ex.ajustes : []) total += (a.tipo === "desconto" ? -1 : 1) * Number(a.valor || 0);
   return Math.round(total * 100) / 100;
 }
 

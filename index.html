@@ -448,16 +448,16 @@
         <section id="secMasterPanel" class="hidden space-y-6">
             <div class="masterTopo flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
-                    <h2 class="text-xl font-bold">Painel de Controle Master</h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Gestão completa de veículos, motoristas e pagamentos</p>
+                    <h2 class="text-xl font-bold">Painel do dono</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Cobranças, motoristas e carros</p>
                 </div>
                 <div id="masterResumo" class="grid grid-cols-4 gap-2 sm:max-w-md w-full"></div>
                 <div class="masterAbas flex gap-2 border-b sm:border-b-0 border-gray-200 dark:border-gray-700 pb-2 sm:pb-0">
-                    <button onclick="closeAreas();switchMasterTab('vehicles')" id="tabMasterVehicles" class="px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm">
-                        <i class="fa-solid fa-car mr-1"></i> Veículos
-                    </button>
-                    <button onclick="closeAreas();switchMasterTab('drivers')" id="tabMasterDrivers" class="px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    <button onclick="closeAreas();switchMasterTab('drivers')" id="tabMasterDrivers" class="px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm">
                         <i class="fa-solid fa-users mr-1"></i> Motoristas
+                    </button>
+                    <button onclick="closeAreas();switchMasterTab('vehicles')" id="tabMasterVehicles" class="px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        <i class="fa-solid fa-car mr-1"></i> Veículos
                     </button>
                     <button onclick="toggleArea('cfg')" data-area="cfg" class="px-3 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title="Configurações">
                         <i class="fa-solid fa-gear"></i>
@@ -482,7 +482,7 @@
             <div id="termsSetupBanner" class="hidden"></div>
 
             <!-- SUB-ABA: GESTÃO DE VEÍCULOS -->
-            <div id="subMasterVehicles" class="space-y-6">
+            <div id="subMasterVehicles" class="hidden space-y-6">
                 <!-- Lista de Veículos -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <button type="button" onclick="toggleDobra('dVehList')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Veículos Cadastrados</h3><i id="dVehListSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
@@ -539,7 +539,11 @@
             </div>
 
             <!-- SUB-ABA: GESTÃO DE MOTORISTAS -->
-            <div id="subMasterDrivers" class="hidden space-y-6">
+            <div id="subMasterDrivers" class="space-y-6">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <button type="button" onclick="toggleDobra('dProxCob')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Próximas cobranças</h3><i id="dProxCobSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
+                    <div id="dProxCob" class="dobraCorpo mt-4"><div id="proxCobList" class="space-y-2"></div></div>
+                </div>
                 <!-- Lista de Motoristas -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <button type="button" onclick="toggleDobra('dDrvList')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Motoristas Cadastrados</h3><i id="dDrvListSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
@@ -650,8 +654,8 @@
 
     <!-- Barra de baixo do dono (só no design novo) -->
     <nav id="masterNav" class="bottomNav" style="grid-template-columns:repeat(6,1fr)">
-        <button type="button" id="mnVeh" onclick="closeAreas();switchMasterTab('vehicles');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-car"></i>Veículos</button>
         <button type="button" id="mnDrv" onclick="closeAreas();switchMasterTab('drivers');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-users"></i>Motoristas</button>
+        <button type="button" id="mnVeh" onclick="closeAreas();switchMasterTab('vehicles');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-car"></i>Veículos</button>
         <button type="button" data-area="pix" onclick="toggleArea('pix')"><i class="fa-brands fa-pix"></i>Pix</button>
         <button type="button" data-area="ia" onclick="toggleArea('ia')" style="position:relative"><i class="fa-solid fa-robot"></i>IA<span class="iaBadge hidden" style="position:absolute;top:2px;right:18%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:18px"></span></button>
         <button type="button" data-area="fin" onclick="toggleArea('fin')"><i class="fa-solid fa-sack-dollar"></i>Financeiro</button>
@@ -834,16 +838,6 @@
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Veículo</label><select id="dfVehicle" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select></div>
                     <div class="sm:col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Endereço</label><textarea id="dfAddress" rows="2" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
                 </div>
-                <div>
-                    <h4 class="font-semibold text-sm mb-2">Atualizar documentos</h4>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CNH</label><input type="file" id="dfCnhFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Comp. endereço</label><input type="file" id="dfAddrFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Contrato de locação</label><input type="file" id="dfContractFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Termo de vistoria</label><input type="file" id="dfInspTermFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
-                    </div>
-                </div>
-                <div id="dfCnhPending"></div>
                 <!-- DIA DO PAGAMENTO e COBRANÇA AUTOMÁTICA (Asaas ou PicPay) — profiles.payment_day_of_week / asaas_auto_charge_enabled / picpay_auto_charge_enabled -->
                 <div class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 space-y-3">
                     <h4 class="font-semibold text-sm"><i class="fa-solid fa-calendar-day text-teal-600 mr-1"></i> Pagamento do motorista</h4>
@@ -856,6 +850,18 @@
                             <option value="">Manual (eu envio o Pix e confiro)</option><option value="asaas">Automático pelo Asaas</option><option value="picpay">Automático pelo PicPay</option>
                         </select></div>
                     <p id="dfCobInfo" class="text-xs text-gray-600 dark:text-gray-300"></p>
+                </div>
+                <!-- DESCONTO OU COBRANÇA NA PRÓXIMA COBRANÇA (profiles.pix_extra.ajustes); sai da lista quando o Pix é criado -->
+                <div id="dfAjBox" class="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-900/10 p-3 space-y-3">
+                    <h4 class="font-semibold text-sm"><i class="fa-solid fa-sliders text-blue-600 mr-1"></i> Desconto ou valor extra na próxima cobrança</h4>
+                    <div id="dfAjList" class="space-y-2"></div>
+                    <div class="grid grid-cols-6 gap-2">
+                        <select id="dfAjTipo" class="col-span-3 sm:col-span-2 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="desconto">Desconto</option><option value="acrescimo">Valor extra</option></select>
+                        <input id="dfAjVal" type="text" inputmode="decimal" placeholder="R$ 0,00" class="col-span-3 sm:col-span-1 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        <input id="dfAjDesc" maxlength="100" placeholder="Motivo (ex: troca de óleo paga por ele)" class="col-span-6 sm:col-span-3 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    </div>
+                    <button type="button" onclick="addAjuste()" class="w-full py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
+                    <div id="dfAjPrev" class="text-sm"></div>
                 </div>
                 <!-- CAUÇÃO do motorista (guardada em profiles.pix_extra.caucao) -->
                 <div class="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10 p-3 space-y-3">
@@ -889,6 +895,16 @@
                         <button type="button" onclick="addMulta()" class="w-full py-2.5 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                     </div>
                 </div>
+                <div>
+                    <h4 class="font-semibold text-sm mb-2">Atualizar documentos</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CNH</label><input type="file" id="dfCnhFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Comp. endereço</label><input type="file" id="dfAddrFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Contrato de locação</label><input type="file" id="dfContractFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Termo de vistoria</label><input type="file" id="dfInspTermFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                    </div>
+                </div>
+                <div id="dfCnhPending"></div>
                 <div>
                     <h4 class="font-semibold text-sm mb-2">Termos do app</h4>
                     <div id="dfTerms" class="text-xs"></div>
@@ -951,7 +967,7 @@
                 <button onclick="closeIA()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-4 overflow-y-auto custom-scrollbar space-y-4">
-                <details id="iaChatBox" open class="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-900/10">
+                <details id="iaChatBox" class="hidden rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/40 dark:bg-indigo-900/10">
                     <summary class="p-3 text-sm font-bold cursor-pointer select-none"><i class="fa-solid fa-comments text-indigo-600 mr-1"></i> Perguntar à IA</summary>
                     <div class="px-3 pb-3 space-y-2">
                         <div id="iaChatDicas" class="space-y-1.5">
@@ -1346,6 +1362,7 @@
                     <input type="text" inputmode="decimal" id="newPixRent" placeholder="Ex: 550,00" oninput="this.dataset.touched='1';calcNewPix()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                     <p id="newPixRentInfo" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p>
                 </div>
+                <div id="newPixAjBox" class="hidden p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-1.5"></div>
                 <div id="newPixMultBox" class="hidden p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 space-y-1.5"></div>
                 <div id="newPixCauBox" class="hidden p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="newPixCauOn" onchange="calcNewPix()" class="w-5 h-5"><span class="text-sm font-semibold"><i class="fa-solid fa-shield-halved text-amber-600 mr-1"></i><span id="newPixCauTxt"></span></span></label>
@@ -1579,7 +1596,7 @@
                 prof.payment_status = late ? 'Em atraso' : 'Em dia';
                 // caução, contatos e multas (para mostrar as funções novas)
                 if (d.caucao) prof.pix_extra = { caucao: { forma: 'parcelada', total: 200 + d.caucao * 100, entrada: 200, parcelas: d.caucao, valor_parcela: 100, cobradas: Math.min(d.caucao, d.weeks) } };
-                if (d.id === 'demo-d1') prof.pix_extra = { caucao: { forma: 'paga', total: 1000 }, multas: { ativo: true, itens: [
+                if (d.id === 'demo-d1') prof.pix_extra = { ajustes: [{ id: 'aj-demo', tipo: 'desconto', desc: 'Troca de óleo paga pelo motorista', valor: 80 }], caucao: { forma: 'paga', total: 1000 }, multas: { ativo: true, itens: [
                     { id: 'm-demo1', desc: 'Multa de trânsito', valor: 130.16, data: demoDay(ago(50)), cobrada: demoDay(now - 7 * 6 * 86400000 - 86400000), paga: true },
                     { id: 'm-demo2', desc: 'Multa de estacionamento', valor: 88.38, data: demoDay(ago(3)), cobrada: null, paga: false } ] } };
                 if (d.id === 'demo-d2') Object.assign(prof, { payment_day_of_week: 1, asaas_auto_charge_enabled: true });
@@ -3452,7 +3469,7 @@
             if (!d) return;
             fileDriverId = id;
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
-            dfCauFill(d); dfMultFill(d); dfCobFill(d);
+            dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender();
             document.getElementById('dfTitleName').innerText = d.name || '';
             fillAvatar(document.getElementById('dfPhoto'), id, d.name);
             const sel = document.getElementById('dfVehicle');
@@ -4211,6 +4228,46 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const c = cobOf(d);
             return `<div class="text-xs font-normal text-teal-700 dark:text-teal-300"><i class="fa-solid fa-calendar-day mr-1"></i>Paga toda ${DIAS_SEMANA[c.dia]}${c.auto ? ` · <i class="fa-solid fa-robot"></i> ${c.nome} automático` : ''}</div>`;
         }
+        function ajustesOf(d) { const a = d && d.pix_extra && d.pix_extra.ajustes; return Array.isArray(a) ? a : []; }
+        // previsão da próxima cobrança: mesma conta do Novo Pix e das cobranças automáticas
+        function previsaoProxima(d) {
+            const v = allVeh().find(x => x.id === d.vehicle_id), linhas = [];
+            if (v && v.rent_amount != null) linhas.push([`Aluguel ${v.model}`, Number(v.rent_amount)]);
+            const cn = cauNext(d); if (cn) linhas.push([`Caução ${cn.k}/${cn.n}`, cn.valor]);
+            multasPendentes(d).forEach(i => linhas.push([i.desc, Number(i.valor || 0)]));
+            const ex = d.pix_extra || {};
+            if (ex.repetir && Number(ex.valor) > 0 && !(cauOf(d) && /cau[çc][ãa]o/i.test(ex.descricao || ''))) {
+                const np = ex.ultimo_enviado ? nextParcel(ex.descricao) : { desc: ex.descricao, done: false };
+                if (!np.done) linhas.push([np.desc || 'Acréscimo', Number(ex.valor)]);
+            }
+            ajustesOf(d).forEach(a => linhas.push([a.tipo === 'desconto' ? 'Desconto: ' + a.desc : a.desc, (a.tipo === 'desconto' ? -1 : 1) * Number(a.valor || 0)]));
+            return { linhas, total: Math.round(linhas.reduce((t, [, x]) => t + x, 0) * 100) / 100 };
+        }
+        function previsaoHtml(d) {
+            const p = previsaoProxima(d);
+            return p.linhas.length ? p.linhas.map(([k, x]) => `<div class="flex justify-between gap-3"><span class="min-w-0 break-words">${esc(k)}</span><b class="whitespace-nowrap ${x < 0 ? 'text-emerald-600' : ''}">${fmtMoney(x)}</b></div>`).join('') + `<div class="flex justify-between gap-3 font-bold border-t border-gray-200 dark:border-gray-600 pt-1 mt-1"><span>Total previsto</span><span>${fmtMoney(p.total)}</span></div>` : '<p class="text-xs text-gray-500">Sem valor previsto.</p>';
+        }
+        function dfAjRender() {
+            const d = state.drivers.find(x => x.id === fileDriverId); if (!d) return;
+            const it = ajustesOf(d);
+            document.getElementById('dfAjList').innerHTML = it.length ? it.map(a => `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600"><p class="flex-1 min-w-0 text-sm font-semibold break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}</p><button type="button" onclick="delAjuste('${a.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum desconto ou valor extra lançado.</p>';
+            document.getElementById('dfAjPrev').innerHTML = `<p class="text-xs font-bold uppercase text-gray-500 mb-1">Prévia que o motorista vê</p>${previsaoHtml(d)}`;
+        }
+        async function addAjuste() {
+            const desc = document.getElementById('dfAjDesc').value.trim(), valor = parseMoney(document.getElementById('dfAjVal').value);
+            if (!desc || !(valor > 0)) { showToast('Escreva o motivo e o valor.', 'error'); return; }
+            const item = { id: 'a' + Date.now().toString(36), tipo: document.getElementById('dfAjTipo').value, desc, valor };
+            if (await savePixExtra(fileDriverId, x => { x.ajustes = [...(Array.isArray(x.ajustes) ? x.ajustes : []), item]; })) { document.getElementById('dfAjDesc').value = ''; document.getElementById('dfAjVal').value = ''; dfAjRender(); renderMasterResumo(); showToast('Lançado na próxima cobrança.'); }
+        }
+        async function delAjuste(aid) {
+            if (await savePixExtra(fileDriverId, x => { x.ajustes = (x.ajustes || []).filter(a => a.id !== aid); if (!x.ajustes.length) delete x.ajustes; })) { dfAjRender(); renderMasterResumo(); }
+        }
+        function abrirAjustes(id) { openDriverFile(id); setTimeout(() => { const b = document.getElementById('dfAjBox'); if (b) b.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 150); }
+        function renderProxCobrancas() {
+            const box = document.getElementById('proxCobList'); if (!box) return;
+            const lin = state.drivers.map(d => ({ d, venc: mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia), p: previsaoProxima(d) })).sort((a, b) => a.venc - b.venc);
+            box.innerHTML = lin.length ? lin.map(({ d, venc, p }) => `<div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center gap-3"><div class="flex-1 min-w-0"><p class="font-semibold text-sm break-words">${esc(d.name)}</p><p class="text-xs text-gray-500">${venc.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })} · <b>${fmtMoney(p.total)}</b>${ajustesOf(d).length ? ' · com ajuste' : ''}</p></div><button type="button" onclick="abrirAjustes('${d.id}')" class="px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white whitespace-nowrap">Editar valor</button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum motorista.</p>';
+        }
         let fileMultas = null; // cópia da lista da ficha aberta
         async function savePixExtra(id, mut) {
             const d = state.drivers.find(x => x.id === id); if (!d) return false;
@@ -4323,14 +4380,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             if (d.payment_status !== 'Em atraso') {
                 const venc = mondayAfter(Math.max(Date.now(), d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia);
                 const v = allVeh().find(x => x.id === d.vehicle_id);
-                const linhas = [];
-                if (v && v.rent_amount != null) linhas.push([`Aluguel ${v.model}`, Number(v.rent_amount)]);
-                const cn = cauNext(d);
-                if (cn) {
-                    // se a parcela atual ainda está no Pix desta semana, a próxima é a seguinte
-                    linhas.push([`Caução ${cn.k}/${cn.n}`, cn.valor]);
-                }
-                const total = linhas.reduce((a, [, x]) => a + x, 0);
+                const { linhas, total } = previsaoProxima(d);
                 cards.push(`<div class="p-4 rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 space-y-2">
                     ${dobraTopo('drvDobraProxima', 'text-blue-700 dark:text-blue-300', 'fa-regular fa-calendar', 'Próxima semana')}
                     <p class="text-sm">Pagamento até <b>${venc.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })}, 23:59</b></p>
@@ -4438,6 +4488,9 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const mp = multasPendentes(d), mbox = document.getElementById('newPixMultBox');
             mbox.classList.toggle('hidden', !mp.length);
             mbox.innerHTML = mp.length ? `<p class="text-xs font-bold uppercase text-red-700 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i>Multas e despesas do motorista</p>` + mp.map(i => `<label class="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" class="w-5 h-5 newPixMult" data-mid="${i.id}" checked onchange="calcNewPix()"><span class="min-w-0 break-words">${esc(i.desc)}: <b>${fmtMoney(i.valor)}</b></span></label>`).join('') + '<p class="text-xs text-gray-500 dark:text-gray-400">Desmarque o que não for cobrar nesta semana.</p>' : '';
+            const aj = ajustesOf(d), ajb = document.getElementById('newPixAjBox');
+            ajb.classList.toggle('hidden', !aj.length);
+            ajb.innerHTML = aj.map(a => `<label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="newPixAj" data-aid="${a.id}" checked onchange="calcNewPix()"><span class="min-w-0 break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}</span></label>`).join('');
             // acréscimo que se repete (se a caução já está na ficha, o acréscimo "caução" antigo não entra de novo)
             const ex = d.pix_extra || {};
             let addDesc = '', addVal = '', repeat = false;
@@ -4467,9 +4520,11 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const cau = cn ? cn.valor : 0;
             const multasSel = editingCau ? [] : [...document.querySelectorAll('.newPixMult:checked')].map(el => multasPendentes(d).find(i => i.id === el.dataset.mid)).filter(Boolean);
             const mult = multasSel.reduce((a, i) => a + Number(i.valor || 0), 0);
+            const ajSel = editingCau ? [] : [...document.querySelectorAll('.newPixAj:checked')].map(el => ajustesOf(d).find(a => a.id === el.dataset.aid)).filter(Boolean);
+            const ajVal = ajSel.reduce((t, a) => t + (a.tipo === 'desconto' ? -1 : 1) * Number(a.valor || 0), 0);
             const addDesc = document.getElementById('newPixAddDesc').value.trim();
             const dias = pixDiasPeriodo();
-            const total = Math.round((rent + cau + mult + add - disc) * 100) / 100;
+            const total = Math.round((rent + cau + mult + ajVal + add - disc) * 100) / 100;
             const editing = document.getElementById('newPixMode').value === 'edit';
             const lines = [];
             const base = editing ? String(document.getElementById('newPixDescription').dataset.base || '').split('\n').map(t => t.trim()).filter(t => t && !/^Total:/i.test(t)) : [];
@@ -4479,8 +4534,9 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             multasSel.forEach(i => lines.push(`+ ${i.desc}: ${fmtMoney(i.valor)}`));
             adds.forEach(i => { if (i.val) lines.push(`+ ${i.desc || 'Acréscimo'}: ${fmtMoney(i.val)}`); });
             discs.forEach(i => { if (i.val) lines.push(`− ${i.desc || 'Desconto'}: ${fmtMoney(i.val)}`); });
-            if (add || disc || cau || mult) lines.push(`Total: ${fmtMoney(total)}`);
-            return { d, v, rent, cau, cn, mult, multasSel, add, add1, adds, disc, discs, addDesc, total, lines };
+            ajSel.forEach(a => lines.push(`${a.tipo === 'desconto' ? '−' : '+'} ${a.desc}: ${fmtMoney(a.valor)}`));
+            if (add || disc || cau || mult || ajSel.length) lines.push(`Total: ${fmtMoney(total)}`);
+            return { d, v, rent, cau, cn, mult, multasSel, ajSel, add, add1, adds, disc, discs, addDesc, total, lines };
         }
         // ===== PERÍODO E VENCIMENTO DA COBRANÇA =====
         function dataISO(x) { return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); }
@@ -4877,8 +4933,9 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const atraso = state.drivers.filter(d => d.payment_status === 'Em atraso').length;
             const zap = iaRows.filter(r => r.status === 'pendente').length;
             const item = (n, txt, cor, acao) => `<button type="button" onclick="${acao}" class="p-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-center"><span class="block text-lg font-bold ${cor}">${n}</span><span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400">${txt}</span></button>`;
-            box.innerHTML = item(state.vehicles.length, 'Veículos', '', "closeAreas();switchMasterTab('vehicles');markMasterNav()")
-                + item(state.drivers.length, 'Motoristas', '', "closeAreas();switchMasterTab('drivers');markMasterNav()")
+            renderProxCobrancas();
+            box.innerHTML = item(state.drivers.length, 'Motoristas', '', "closeAreas();switchMasterTab('drivers');markMasterNav()")
+                + item(state.vehicles.length, 'Veículos', '', "closeAreas();switchMasterTab('vehicles');markMasterNav()")
                 + item(atraso, 'Em atraso', atraso ? 'text-red-600' : 'text-emerald-600', "closeAreas();switchMasterTab('drivers');markMasterNav()")
                 + item(zap, 'WhatsApp a enviar', zap ? 'text-green-600' : '', "toggleArea('ia')");
         }
@@ -5130,7 +5187,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const d = state.drivers.find(x => x.id === id);
             if (!d) return;
             openNewPix(id);
-            document.getElementById('newPixMode').value = 'edit';
+            document.getElementById('newPixMode').value = 'edit'; document.getElementById('newPixAjBox').classList.add('hidden');
             document.getElementById('newPixTitle').innerText = 'Editar Pix enviado';
             document.getElementById('newPixSubmit').innerText = 'Salvar alterações';
             document.getElementById('newPixCode').value = d.pix_code || '';
@@ -5226,6 +5283,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 if (repeat) Object.assign(ex, { repetir: true, descricao: parts.addDesc, valor: parts.add1, ultimo_enviado: true });
                 if (parts.cau && ex.caucao) ex.caucao = { ...ex.caucao, cobradas: (ex.caucao.cobradas || 0) + 1 };
                 if (parts.multasSel.length && ex.multas) { const hoje = todayISO(), ids = new Set(parts.multasSel.map(i => i.id)); ex.multas = { ...ex.multas, itens: (ex.multas.itens || []).map(i => ids.has(i.id) ? { ...i, cobrada: hoje } : i) }; }
+                if (parts.ajSel.length && ex.ajustes) { const ids = new Set(parts.ajSel.map(a => a.id)); ex.ajustes = ex.ajustes.filter(a => !ids.has(a.id)); if (!ex.ajustes.length) delete ex.ajustes; }
                 updates.pix_extra = Object.keys(ex).length ? ex : null;
                 // carro sem valor de aluguel: guarda o valor digitado nele
                 if (parts.v && parts.v.rent_amount == null && parts.rent > 0) sb.from('vehicles').update({ rent_amount: parts.rent }).eq('id', parts.v.id).then(() => {}, () => {});
