@@ -190,6 +190,8 @@ Deno.serve(async (req) => {
       return json({ tratado: true, lead_id: lead.id, envios: lead.status === "com_dara" ? [{ telefone: await secret("dara_whatsapp"), texto: `A conversa com ${rotulo(lead)} foi assumida pelo número da locadora. Não vou mais repassar.` }] : [] });
     }
     if (body.acao === "atendimento_fila") {
+      // só é chamada com o WhatsApp conectado (de 20 em 20 s): a checagem do banco usa isto para saber se está tudo certo
+      await admin.from("app_settings").upsert({ key: "robo_vivo", value: { em: new Date().toISOString() }, updated_at: new Date().toISOString() });
       const dara = await secret("dara_whatsapp");
       if (!dara) return json({ chamadas: [] });
       const minDesconhecido = Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3);
