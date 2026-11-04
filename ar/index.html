@@ -81,7 +81,7 @@ async function send(p){
   pend={p:{...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
   const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
 }
-function matches(st,p){ return Object.keys(p).every(k=>k==='scan'||(st&&JSON.stringify(st[k])===JSON.stringify(p[k]))); }
+function matches(st,p){ return Object.keys(p).every(k=>k==='scan'||k==='ota'||(st&&JSON.stringify(st[k])===JSON.stringify(p[k]))); }
 async function refresh(){
   const {data,error}=await sb.rpc('ar_status'); if(error){ msg(errTxt(error)); return; }
   if(!data||!data.length){ DEV=null; view('vPair'); return; }
@@ -90,7 +90,7 @@ async function refresh(){
   $('online').textContent=DEV.online?'Placa online':(DEV.last_seen?'Sem sinal desde '+new Date(DEV.last_seen).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'A placa ainda não se conectou');
   if(pend){ if(matches(DEV.state,pend.p)){ pend=null; msg('Comando enviado ao ar.'); setTimeout(()=>{ if(!pend) msg(''); },2500); }
     else if(Date.now()-pend.at>60000){ pend=null; msg('A placa não respondeu. Confira se ela está ligada e com internet.'); } }
-  if(!pend && DEV.state){ S={...S,...DEV.state}; ['scan','sala','hora'].forEach(k=>{ if(!(k in DEV.state)) delete S[k]; }); }
+  if(!pend && DEV.state){ S={...S,...DEV.state}; ['scan','sala','hora','fwNova','fwMsg'].forEach(k=>{ if(!(k in DEV.state)) delete S[k]; }); }
   ui();
   const rx=DEV.rx; if(rx&&rx.n!==RXN){ RXN=rx.n; const box=$('rx'); box.replaceChildren();
     const h=document.createElement('div'); h.textContent='Sinal '+rx.n+': '+(rx.proto||'?'); box.append(h);
@@ -196,6 +196,18 @@ window.sugAp=function(j,box){if(!j||!j.ac)return;const nm=nome(j.pid)+(j.pid==24
  if(j.pid==S.proto&&(!(j.model>0)||j.model==S.model)){const p=document.createElement('p');p.textContent='Este é o aparelho em uso: '+nm+'.';box.append(p);return}
  const b=document.createElement('button');b.className='on';b.textContent='Usar este aparelho: '+nm;b.onclick=()=>send(Object.assign({proto:j.pid},j.model>0?{model:j.model}:{}));box.append(b)};
 const u0=ui;ui=function(){u0();renderAp()};
+})();
+
+// Atualização sem fio: versão da placa e botões. Mesmo código nos dois apps (usa S, send, ui).
+(function(){
+const aj=document.getElementById('aj'),box=document.createElement('div');box.id='ota';aj.append(box);
+box.innerHTML='<p><b>Atualização da placa.</b> <span id="otav"></span></p><p id="otam"></p><div class="r"><button id="otac">Procurar atualização</button><button id="otan" class="on" hidden>Atualizar agora</button></div>';
+const $=i=>document.getElementById(i);
+$('otac').onclick=()=>{$('otam').textContent='Procurando…';send({ota:'check'})};
+$('otan').onclick=()=>{$('otam').textContent='Pedido enviado. A placa baixa a versão nova e reinicia sozinha (cerca de 1 minuto).';send({ota:'now'})};
+window.renderOta=function(){$('otav').textContent=S.fw?'Versão '+S.fw+(S.fwNova?' · versão '+S.fwNova+' disponível (instala sozinha de madrugada)':''):'';
+ $('otan').hidden=!S.fwNova;if(S.fwMsg)$('otam').textContent=S.fwMsg};
+const u0=ui;ui=function(){u0();renderOta()};
 })();
 
 ui(); start();
