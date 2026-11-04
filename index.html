@@ -617,7 +617,7 @@
                         </div>
                         <div class="col-span-full rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Dia do pagamento</label><select id="drvPayDay" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="1">Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option><option value="0">Domingo</option></select></div>
-                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Forma de cobrança</label><select id="drvPagAuto" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Manual (eu envio o Pix e confiro)</option><option value="asaas">Automático pelo Asaas</option><option value="picpay">Automático pelo PicPay</option></select></div>
+                            <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Forma de cobrança</label><select id="drvPagAuto" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Manual (eu envio o Pix e confiro)</option><option value="app">Pix automático do MOTORA (sem taxa)</option><option value="asaas">Automático pelo Asaas</option><option value="picpay">Automático pelo PicPay</option></select></div>
                             <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Caução</label><select id="drvCauForma" onchange="drvCauMostra()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="">Sem caução</option><option value="paga">Já paga (completa)</option><option value="parcelada">Parcelada</option></select></div>
                             <div id="drvCauCampos" class="hidden col-span-full grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Valor total da caução (R$)</label><input id="drvCauTotal" type="text" inputmode="decimal" oninput="drvCauMostra()" placeholder="Ex: 1.000,00" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -875,7 +875,7 @@
                         </select></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-solid fa-robot text-teal-600 mr-1"></i> Forma de cobrança</label>
                         <select id="dfPagAuto" onchange="dfCobInfo()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
-                            <option value="">Manual (eu envio o Pix e confiro)</option><option value="asaas">Automático pelo Asaas</option><option value="picpay">Automático pelo PicPay</option>
+                            <option value="">Manual (eu envio o Pix e confiro)</option><option value="app">Pix automático do MOTORA (sem taxa)</option><option value="asaas">Automático pelo Asaas</option><option value="picpay">Automático pelo PicPay</option>
                         </select></div>
                     <p id="dfCobInfo" class="text-xs text-gray-600 dark:text-gray-300"></p>
                 </div>
@@ -3262,7 +3262,7 @@
                 updates.payment_day_of_week = parseInt(document.getElementById('drvPayDay').value, 10);
                 updates.asaas_auto_charge_enabled = pagAuto === 'asaas';
                 updates.picpay_auto_charge_enabled = pagAuto === 'picpay';
-                if (cauNova) updates.pix_extra = { caucao: cauNova };
+                if (cauNova || pagAuto === 'app') updates.pix_extra = { ...(cauNova ? { caucao: cauNova } : {}), ...(pagAuto === 'app' ? { pix_auto: true } : {}) };
                 const cpf = document.getElementById('drvCpf').value.trim();
                 if (cpf) updates.cpf = cpf;
                 const whats = document.getElementById('drvWhats').value.trim();
@@ -3618,7 +3618,8 @@
             for (const [col, el] of Object.entries(DF)) { const v = document.getElementById(el).value.trim(); updates[col] = v || null; }
             if (!updates.name) { showToast("Informe o nome.", "error"); return; }
             updates.vehicle_id = document.getElementById('dfVehicle').value || null;
-            { const c = dfCobRead(); updates.payment_day_of_week = c.dia; updates.asaas_auto_charge_enabled = c.auto === 'asaas'; updates.picpay_auto_charge_enabled = c.auto === 'picpay'; }
+            const cobForma = dfCobRead();
+            { const c = cobForma; updates.payment_day_of_week = c.dia; updates.asaas_auto_charge_enabled = c.auto === 'asaas'; updates.picpay_auto_charge_enabled = c.auto === 'picpay'; }
             {   // caução: guardada junto com o acréscimo repetido, sem apagar o resto
                 const cur = (state.drivers.find(x => x.id === id) || {}).pix_extra || {};
                 const cau = dfCauRead();
@@ -3631,6 +3632,7 @@
                     if ((nome || fone) && (!nome || !/^\d{10,13}$/.test(fone.replace(/\D/g, '')))) { showToast('2º motorista: informe o primeiro nome e o WhatsApp com DDD.', 'error'); return; }
                     if (nome) next.motorista2 = { nome, whatsapp: fone }; else delete next.motorista2;
                 }
+                if (cobForma.auto === 'app') next.pix_auto = true; else delete next.pix_auto; // Pix automático do MOTORA (2 dias antes, 10h)
                 updates.pix_extra = Object.keys(next).length ? next : null;
             }
             setBusy(form, true);
@@ -4407,7 +4409,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function dfCobFill(d) {
             const c = cobOf(d);
             document.getElementById('dfPayDay').value = String(c.dia);
-            document.getElementById('dfPagAuto').value = c.auto;
+            document.getElementById('dfPagAuto').value = c.auto || (d && d.pix_extra && d.pix_extra.pix_auto ? 'app' : '');
             dfCobInfo();
         }
         function dfCobRead() {
@@ -4416,13 +4418,16 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function dfCobInfo() {
             const c = dfCobRead(), dia = DIAS_SEMANA[c.dia];
             const nome = c.auto === 'picpay' ? 'PicPay' : 'Asaas';
-            document.getElementById('dfCobInfo').innerHTML = c.auto
+            let rec = null; try { rec = JSON.parse(localStorage.getItem('motora_pix_recebedor') || 'null'); } catch (e) {}
+            document.getElementById('dfCobInfo').innerHTML = c.auto === 'app'
+                ? `Toda <b>${dia}</b> (até 23:59) vence a cobrança. <b>2 dias antes, às 10h</b>, o MOTORA cria o Pix (QR code e copia e cola) com o valor da semana e manda para o motorista (app e WhatsApp); às 8h30 você recebe o lembrete com o valor. No dia do pagamento, às <b>12h e 19h</b>, ele é lembrado se ainda não enviou o comprovante. Você só confere o comprovante, como hoje. Sem taxa.${rec && rec.chave ? ` Chave usada: <b>${esc(rec.chave)}</b> (a do último Novo Pix com "Gerar sozinho").` : ' <b>Antes, envie um Novo Pix com "Gerar o Pix copia e cola sozinho" ligado</b>: o app guarda a sua chave.'}`
+                : c.auto
                 ? `Toda <b>${dia}</b> (até 23:59) vence a cobrança. 2 dias antes você recebe um lembrete para confirmar o valor. 1 dia antes o ${nome} cria o Pix (QR code e copia e cola) com o valor da semana, o pagamento é conferido sozinho e o motorista recebe o recibo no WhatsApp. Você não precisa enviar Pix nem conferir comprovante. ${c.auto === 'asaas' ? 'Sem taxa até 100 Pix por mês.' : 'O PicPay cobra a taxa do seu contrato por Pix pago, e o motorista precisa ter CPF e e-mail na ficha.'}`
                 : `Toda <b>${dia}</b> (até 23:59) vence a cobrança. 2 dias antes você recebe um lembrete com o valor. Pagamento manual: você envia o Pix e confere o comprovante, como hoje.`;
         }
         function cobResumoHtml(d) {
             const c = cobOf(d);
-            return `<div class="text-xs font-normal text-teal-700 dark:text-teal-300"><i class="fa-solid fa-calendar-day mr-1"></i>Paga toda ${DIAS_SEMANA[c.dia]}${c.auto ? ` · <i class="fa-solid fa-robot"></i> ${c.nome} automático` : ''}</div>`;
+            return `<div class="text-xs font-normal text-teal-700 dark:text-teal-300"><i class="fa-solid fa-calendar-day mr-1"></i>Paga toda ${DIAS_SEMANA[c.dia]}${c.auto ? ` · <i class="fa-solid fa-robot"></i> ${c.nome} automático` : (d && d.pix_extra && d.pix_extra.pix_auto ? ' · <i class="fa-solid fa-robot"></i> Pix automático do MOTORA' : '')}</div>`;
         }
         function ajustesOf(d) { const a = d && d.pix_extra && d.pix_extra.ajustes; return Array.isArray(a) ? a : []; }
         // previsão da próxima cobrança: mesma conta do Novo Pix e das cobranças automáticas
@@ -5884,7 +5889,9 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             }, () => {});
         }
         function pixRecebedorGuardar() {
-            const v = { nome: document.getElementById('newPixRecNome').value.trim(), cidade: document.getElementById('newPixRecCidade').value.trim() };
+            const tipo = document.getElementById('newPixKeyType').value;
+            // a chave também fica guardada: o Pix automático do MOTORA (2 dias antes, 10h) usa esta chave
+            const v = { nome: document.getElementById('newPixRecNome').value.trim(), cidade: document.getElementById('newPixRecCidade').value.trim(), tipo, chave: normalizePixKey(tipo, document.getElementById('newPixKey').value) };
             let old = null; try { old = localStorage.getItem('motora_pix_recebedor'); localStorage.setItem('motora_pix_recebedor', JSON.stringify(v)); } catch (e) {}
             if (old !== JSON.stringify(v)) Promise.resolve(sb.from('app_settings').upsert({ key: 'pix_recebedor', value: v, updated_at: new Date().toISOString() })).then(() => {}, () => {});
         }
