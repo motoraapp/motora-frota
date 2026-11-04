@@ -56,7 +56,7 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 
 ## Robô do WhatsApp (PC do dono)
 
-Código: `robo-whatsapp/nucleo.js` (lógica) + `robo.js` (liga). No PC roda a cópia em `Desktop/Robo-MOTORA` (copiar o `nucleo.js` e pedir o reinício: `app_settings.whatsapp_robo.reiniciar_em`). Testes: `robo-whatsapp/test/robo.test.js` (para rodar, a pasta precisa de `node_modules`: use um link para `Desktop/Robo-MOTORA/node_modules`).
+Código: `robo-whatsapp/nucleo.js` (lógica) + `robo.js` (liga). No PC roda a cópia em `Desktop/Thiago/MOTORA/Robo-MOTORA` (copiar o `nucleo.js` e pedir o reinício: `app_settings.whatsapp_robo.reiniciar_em`). Testes: `robo-whatsapp/test/robo.test.js` (para rodar, a pasta precisa de `node_modules`: use um link para `Desktop/Thiago/MOTORA/Robo-MOTORA/node_modules`).
 
 | Assunto | Onde |
 |---|---|
