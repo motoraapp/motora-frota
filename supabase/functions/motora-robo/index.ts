@@ -242,6 +242,11 @@ Deno.serve(async (req) => {
       const { data: pessoas } = await admin.from("profiles").select("phone, phone2, pix_extra").neq("role", "excluido");
       if ((pessoas ?? []).some((p) => chaveFone(p.phone) === k || chaveFone(p.phone2) === k || chaveFone(p.pix_extra?.motorista2?.whatsapp) === k)) return json({ tratado: false });
       const { data: lead } = await admin.from("whatsapp_atendimento").select("*").eq("chave", k).maybeSingle();
+      // conversa que já existia no WhatsApp da locadora (pedido do dono, 04/11/2026): o robô nunca responde, nem depois de 7 dias
+      if (lead?.status === "antiga") {
+        await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid) }).eq("id", lead.id);
+        return json({ tratado: true });
+      }
       if (lead && lead.status !== "perguntar" && Date.now() - new Date(lead.ultima_msg_em).getTime() > SETE_DIAS) {
         // voltou depois de 7 dias: não responde nada sem o dono mandar
         await admin.from("whatsapp_atendimento").update({ status: "perguntar", jid: String(body.jid), ultima_msg_em: agora, guardadas: body.texto ? [String(body.texto)] : [] }).eq("id", lead.id);
@@ -249,6 +254,13 @@ Deno.serve(async (req) => {
         return json({ tratado: true });
       }
       if (!lead) {
+        // número novo: o robô primeiro vê no WhatsApp se já havia conversa antes (robôs antigos não mandam pode_checar e seguem saudando)
+        if (body.pode_checar && body.conversa_antiga === undefined) return json({ tratado: true, checar_historico: true });
+        if (body.conversa_antiga === true) {
+          const { error } = await admin.from("whatsapp_atendimento").upsert({ chave: k, telefone: String(body.telefone), jid: String(body.jid), nome: primeiroNome(body.nome) || null, status: "antiga", guardadas: [], ia_respostas: 0, saudado_em: agora, ultima_msg_em: agora, escalado_em: null }, { onConflict: "chave" });
+          if (error) return json({ error: error.message }, 500);
+          return json({ tratado: true }); // sem saudação, sem Dara e sem IA
+        }
         const { count } = await admin.from("whatsapp_atendimento").select("id", { count: "exact", head: true }).eq("motorista", false).gte("saudado_em", new Date(Date.now() - 3600 * 1000).toISOString());
         if ((count ?? 0) >= 20) return json({ tratado: true }); // proteção contra bloqueio do WhatsApp
         const inicio = body.texto ? [String(body.texto)] : [];

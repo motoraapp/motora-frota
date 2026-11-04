@@ -666,6 +666,28 @@ test('atendimento: saúda, chama a Dara e separa pessoa de robô', async () => {
   assert.equal(acoes(t, 'locadora_respondeu').length, 1);
 });
 
+test('atendimento: conversa que já existia não recebe saudação', async () => {
+  const pedidos = [];
+  const t = await ligado({
+    atendimento: (r, b) => { pedidos.push(b); return b.conversa_antiga === undefined ? r(200, { tratado: true, checar_historico: true }) : r(200, b.conversa_antiga ? { tratado: true } : { tratado: true, lead_id: 'L1', guardar: true, resposta: 'Bom dia!' }); },
+  });
+  const s = t.sockets[0];
+  s.fetchMessageHistory = async (n, key) => { setImmediate(() => s.ev.emit('messaging-history.set', { peerDataRequestSessionId: 'P1', messages: [{ key: { id: 'VELHA', remoteJid: key.remoteJid } }] })); return 'P1'; };
+  await receber(t, texto('oi, tudo bem?'));
+  assert.equal(pedidos[0].pode_checar, true); assert.equal(pedidos[1].conversa_antiga, true);
+  assert.equal(s.enviadas.length, 0);
+  // conversa nova (sem mensagens antigas): saúda como antes
+  pedidos.length = 0;
+  s.fetchMessageHistory = async () => { setImmediate(() => s.ev.emit('messaging-history.set', { peerDataRequestSessionId: 'P2', messages: [] })); return 'P2'; };
+  await receber(t, texto('quero alugar', 'T2'));
+  assert.equal(pedidos[1].conversa_antiga, false); assert.deepEqual(s.enviadas.at(-1), [FONE, 'Bom dia!']);
+  // o WhatsApp não respondeu: segue o atendimento normal
+  pedidos.length = 0;
+  s.fetchMessageHistory = async () => 'P3';
+  await receber(t, texto('alô', 'T3'));
+  assert.equal(pedidos[1].conversa_antiga, false);
+});
+
 test('atendimento: aviso à Dara sobre motorista traz nome, mensagem e como encerrar', () => {
   const t = textoDaraMotorista('Soyer Marshall', '5562999998888', ['O carro quebrou'], 10);
   assert.match(t, /Soyer Marshall \(62\) 99999-8888/);

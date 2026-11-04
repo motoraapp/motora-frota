@@ -84,6 +84,7 @@ const PREFIXO_ROBO = '3EB04D4F5241';
 const novoIdRobo = () => PREFIXO_ROBO + crypto.randomBytes(10).toString('hex').toUpperCase();
 export const ehDoRobo = (id) => String(id || '').startsWith(PREFIXO_ROBO);
 const JANELA_ATENDIMENTO = 6 * 60 * MIN; // mensagem mais velha que isso não dispara saudação nem repasse
+const HIST_SOB_PEDIDO = 6; // proto.HistorySync.HistorySyncType.ON_DEMAND: histórico pedido pelo robô (fetchMessageHistory)
 const numeroDoJid = (jid) => String(jid).split('@')[0].split(':')[0];
 
 export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn = (...a) => fetch(...a), pastaBase, relogio = relogioReal, aleatorio = Math.random, log: logExterno, aoReiniciar = null }) {
@@ -208,7 +209,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   function soltarSocket() {
     if (!sock) return;
     const antigo = sock; sock = null;
-    for (const nome of ['connection.update', 'creds.update', 'messages.upsert']) { try { antigo.ev.removeAllListeners(nome); } catch { /* já fechado */ } }
+    for (const nome of ['connection.update', 'creds.update', 'messages.upsert', 'messaging-history.set']) { try { antigo.ev.removeAllListeners(nome); } catch { /* já fechado */ } }
     try { antigo.end && antigo.end(undefined); } catch { /* já fechado */ }
   }
 
@@ -230,7 +231,8 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       logger,
       markOnlineOnConnect: false,
       syncFullHistory: false,
-      shouldSyncHistoryMessage: () => false,
+      // só o histórico que o próprio robô pede (para saber se a conversa já existia); nada é baixado ao conectar
+      shouldSyncHistoryMessage: (h) => !!h && h.syncType === HIST_SOB_PEDIDO,
     });
     sock = s;
     s.ev.on('creds.update', async () => {
@@ -239,6 +241,31 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     });
     s.ev.on('connection.update', (u) => { if (s === sock) aoMudar(u); });
     s.ev.on('messages.upsert', (u) => { if (s === sock) aoReceber(u); });
+    s.ev.on('messaging-history.set', (d) => { if (s === sock) aoHistorico(d); });
+  }
+
+  // ---------- conversa que já existia (pedido do dono, 04/11/2026) ----------
+  // Número que não é motorista, mas já conversava com a locadora antes, não recebe saudação nem chama Dara/IA.
+  // O robô pede ao WhatsApp as mensagens anteriores daquela conversa; se houver alguma, a conversa é antiga.
+  const pedidosHist = new Map(), histChegou = new Map();
+  function aoHistorico(d) {
+    const id = d && d.peerDataRequestSessionId;
+    if (!id) return;
+    const msgs = (d && d.messages) || [];
+    if (pedidosHist.has(id)) { const f = pedidosHist.get(id); pedidosHist.delete(id); f(msgs); return; }
+    histChegou.set(id, msgs); // chegou antes de o robô começar a esperar
+    if (histChegou.size > 50) histChegou.delete(histChegou.keys().next().value);
+  }
+  async function conversaAntiga(msg, seg) {
+    if (!sock || typeof sock.fetchMessageHistory !== 'function' || !seg) return false;
+    try {
+      const id = await sock.fetchMessageHistory(5, msg.key, seg);
+      if (!id) return false;
+      const msgs = histChegou.has(id) ? histChegou.get(id) : await Promise.race([new Promise((r) => pedidosHist.set(id, r)), relogio.dormir(15000).then(() => null)]);
+      pedidosHist.delete(id); histChegou.delete(id);
+      if (!msgs) { log('Não consegui ver as mensagens antigas da conversa: segue o atendimento normal.'); return false; }
+      return msgs.some((m) => m && m.key && m.key.id && m.key.id !== msg.key.id);
+    } catch (e) { log('Mensagens antigas indisponíveis:', e.message); return false; }
   }
 
   function aoMudar(u) {
@@ -531,7 +558,14 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         const q = ctx && ctx.quotedMessage ? abrirConteudo(ctx.quotedMessage) : null;
         const citado = q ? q.conversation || q.extendedTextMessage?.text || '' : '';
         const legenda = texto || arq?.caption || c.videoMessage?.caption || '';
-        const a = await comRepeticao('atendimento', { telefone: contato, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, arquivo: !!arq, figurinha: !!c.stickerMessage, audio: !!c.audioMessage, citado: String(citado).slice(0, 500) });
+        const dados = { telefone: contato, jid, nome: msg.pushName || '', texto: String(legenda).slice(0, 3000), midia, arquivo: !!arq, figurinha: !!c.stickerMessage, audio: !!c.audioMessage, citado: String(citado).slice(0, 500), pode_checar: true };
+        let a = await comRepeticao('atendimento', dados);
+        // número novo que não é motorista: antes de saudar, vê se a conversa já existia no WhatsApp da locadora
+        if (a.checar_historico) {
+          const antiga = await conversaAntiga(msg, seg);
+          if (antiga) log('Conversa que já existia antes: o robô não responde.');
+          a = await comRepeticao('atendimento', { ...dados, conversa_antiga: antiga });
+        }
         if (a.pedir_audio) { await ouvirDono(msg, jid, contato); return; }
         if (a.tratado) {
           await entregarAtendimento(a, msg, jid);
