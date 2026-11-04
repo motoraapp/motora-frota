@@ -49,7 +49,7 @@ details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:
  <div class="r" id="m"></div><div class="r" id="f"></div><div class="r" id="x"></div>
  <details id="hor"></details>
  <details id="aj"><summary>Ajustes do controle</summary>
-  <p><b>Modelo do controle.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
+  <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
   <p><b>Último sinal do controle original</b> (lido pela placa em casa):</p><div id="rx">Nenhum sinal lido ainda.</div>
   <div class="r"><button class="link" id="bUnpair">Desligar a placa desta conta</button><button class="link" id="bSair2">Sair</button></div>
  </details>
@@ -81,7 +81,7 @@ async function send(p){
   pend={p:{...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
   const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
 }
-function matches(st,p){ return Object.keys(p).every(k=>st&&JSON.stringify(st[k])===JSON.stringify(p[k])); }
+function matches(st,p){ return Object.keys(p).every(k=>k==='scan'||(st&&JSON.stringify(st[k])===JSON.stringify(p[k]))); }
 async function refresh(){
   const {data,error}=await sb.rpc('ar_status'); if(error){ msg(errTxt(error)); return; }
   if(!data||!data.length){ DEV=null; view('vPair'); return; }
@@ -90,13 +90,13 @@ async function refresh(){
   $('online').textContent=DEV.online?'Placa online':(DEV.last_seen?'Sem sinal desde '+new Date(DEV.last_seen).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'A placa ainda não se conectou');
   if(pend){ if(matches(DEV.state,pend.p)){ pend=null; msg('Comando enviado ao ar.'); setTimeout(()=>{ if(!pend) msg(''); },2500); }
     else if(Date.now()-pend.at>60000){ pend=null; msg('A placa não respondeu. Confira se ela está ligada e com internet.'); } }
-  if(!pend && DEV.state) S={...S,...DEV.state};
+  if(!pend && DEV.state){ S={...S,...DEV.state}; ['scan','sala','hora'].forEach(k=>{ if(!(k in DEV.state)) delete S[k]; }); }
   ui();
   const rx=DEV.rx; if(rx&&rx.n!==RXN){ RXN=rx.n; const box=$('rx'); box.replaceChildren();
     const h=document.createElement('div'); h.textContent='Sinal '+rx.n+': '+(rx.proto||'?'); box.append(h);
     if(rx.hex){ const c=document.createElement('code'); c.textContent=rx.hex; box.append(c); }
     if(rx.text){ const d=document.createElement('div'); d.textContent=rx.text; d.style.marginTop='6px'; box.append(d); }
-    if(rx.model){ const mm=MO.find(m=>m[0]==rx.model); if(mm) box.append(btn('Usar modelo '+mm[1],true,()=>send({model:rx.model}))); } }
+    sugAp(rx,box); }
 }
 function loop(){ clearInterval(timer); refresh(); timer=setInterval(()=>{ if(!document.hidden) refresh(); },3000); }
 async function start(){ const {data}=await sb.auth.getSession(); if(data.session) loop(); else { clearInterval(timer); view('vLogin'); } }
@@ -170,6 +170,32 @@ window.renderAuto=function(){const a=A(),q=S.sala;
  if(document.activeElement!==$('ade'))$('ade').value=hm(a.de);if(document.activeElement!==$('aate'))$('aate').value=hm(a.ate);
  $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?'Liga quando o quarto chegar a '+(a.alvo+1)+' °C, entre '+hm(a.de)+' e '+hm(a.ate)+'.':'')};
 const u0=ui;ui=function(){u0();renderAuto()};
+})();
+
+// Aparelho (controle universal): escolher a marca, busca automática e sugestão pelo controle original. Mesmo código nos dois apps.
+(function(){
+const PN={"24": "Gree", "109": "Airton", "79": "Airwell", "69": "Amcor", "27": "Argo", "120": "Bosch 144", "84": "Carrier 64", "15": "Coolix", "86": "Corona", "16": "Daikin", "68": "Daikin 128", "70": "Daikin 152", "65": "Daikin 160", "67": "Daikin 176", "53": "Daikin 2", "61": "Daikin 216", "78": "Daikin 64", "80": "Delonghi", "98": "Ecoclim", "48": "Electra", "33": "Fujitsu", "63": "Goodweather", "38": "Haier", "115": "Haier 160", "101": "Haier 176", "44": "Haier Yrw 02", "40": "Hithi", "41": "Hithi 1", "111": "Hithi 264", "113": "Hithi 296", "85": "Hithi 344", "73": "Hithi 424", "103": "Kelon", "18": "Kelvinator", "10": "LG", "51": "LG 2", "34": "Midea", "94": "Mirage", "20": "Mitsubishi", "72": "Mitsubishi 112", "71": "Mitsubishi 136", "60": "Mitsubishi Heavy 152", "59": "Mitsubishi Heavy 88", "66": "Neoclima", "49": "Panasonic", "96": "Panasonic 32", "108": "Rhoss", "46": "Samsung", "89": "Sanyo", "105": "Sanyo 88", "62": "Sharp", "57": "TCL", "93": "Technibel", "55": "Teco", "102": "Teknopoint", "32": "Toshiba", "92": "Transcold", "28": "Trotec", "104": "Trotec 3550", "100": "Truma", "54": "Vestel", "90": "Voltas", "45": "Whirlpool", "126": "York"},ORD=[24, 109, 79, 69, 27, 120, 84, 15, 86, 16, 68, 70, 65, 67, 53, 61, 78, 80, 98, 48, 33, 63, 38, 115, 101, 44, 40, 41, 111, 113, 85, 73, 103, 18, 10, 51, 34, 94, 20, 72, 71, 60, 59, 66, 49, 96, 108, 46, 89, 105, 62, 57, 93, 55, 102, 32, 92, 28, 104, 100, 54, 90, 45, 126],nome=p=>PN[p]||('Tipo '+p),$=i=>document.getElementById(i);
+const aj=$('aj'),sec=document.createElement('div');sec.id='apar';aj.querySelector('summary').after(sec);
+const st=document.createElement('style');st.textContent='#apar select{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}[hidden]{display:none!important}#apscan{background:#0b1220;border-radius:12px;padding:12px;margin:8px 0}#apscan .r button{min-width:0;flex:1;padding:14px 8px}#apok{background:#3ecf8e!important;color:#06140d}';document.head.append(st);
+sec.innerHTML='<p><b>Aparelho de ar-condicionado.</b> Funciona como controle universal: escolha a marca ou use a busca automática. Em uso: <b id="apnow"></b></p>'+
+'<div class="r"><select id="apsel" aria-label="Marca do aparelho"></select><button id="apuse">Usar</button></div>'+
+'<p>Não sabe a marca? Fique perto do ar, com ele <b>desligado</b>, e toque em Busca automática. A placa testa um tipo a cada 8 segundos. Quando o ar <b>ligar ou apitar</b>, toque em <b>Funcionou!</b></p>'+
+'<div class="r"><button id="apstart">Busca automática</button></div>'+
+'<div id="apscan" hidden><p id="aptxt"></p><div class="r"><button id="apprev">◀ Anterior</button><button id="apagain">Testar de novo</button><button id="apnext">Próximo ▶</button></div>'+
+'<div class="r"><button id="apok">Funcionou!</button><button id="apstop">Parar</button></div><p>Se passou do ponto, use Anterior e Testar de novo até o ar responder.</p></div>';
+ORD.forEach(p=>$('apsel').add(new Option(nome(p),p)));
+$('apuse').onclick=()=>send({proto:+$('apsel').value});
+const sc=c=>send({scan:c});$('apstart').onclick=()=>sc('start');$('apprev').onclick=()=>sc('prev');$('apnext').onclick=()=>sc('next');
+$('apagain').onclick=()=>sc('again');$('apok').onclick=()=>sc('ok');$('apstop').onclick=()=>sc('stop');
+window.renderAp=function(){const g=S.proto==24;$('apnow').textContent=nome(S.proto)+(g&&S.model>0?' (modelo '+'ABC'[S.model-1]+')':'');
+ if(document.activeElement!==$('apsel')&&S.proto)$('apsel').value=S.proto;
+ const mo=$('mo');if(mo){mo.hidden=!g;if(mo.previousElementSibling)mo.previousElementSibling.hidden=!g}
+ const s=typeof S.scan==='object'&&S.scan?S.scan:null;$('apscan').hidden=!s;$('apstart').hidden=!!s;
+ if(s)$('aptxt').textContent='Testando '+s.i+' de '+s.n+': '+nome(s.p)+(s.auto?' (passa sozinho)':' (parado neste)')};
+window.sugAp=function(j,box){if(!j||!j.ac)return;const nm=nome(j.pid)+(j.pid==24&&j.model>0?' modelo '+'ABC'[j.model-1]:'');
+ if(j.pid==S.proto&&(!(j.model>0)||j.model==S.model)){const p=document.createElement('p');p.textContent='Este é o aparelho em uso: '+nm+'.';box.append(p);return}
+ const b=document.createElement('button');b.className='on';b.textContent='Usar este aparelho: '+nm;b.onclick=()=>send(Object.assign({proto:j.pid},j.model>0?{model:j.model}:{}));box.append(b)};
+const u0=ui;ui=function(){u0();renderAp()};
 })();
 
 ui(); start();
