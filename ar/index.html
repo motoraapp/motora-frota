@@ -47,6 +47,7 @@ details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:
  <button id="p">ON/OFF</button><div class="t"><span id="t">24</span>°</div>
  <div class="r"><button data-d="-1">−</button><button data-d="1">+</button></div>
  <div class="r" id="m"></div><div class="r" id="f"></div><div class="r" id="x"></div>
+ <details id="hor"></details>
  <details id="aj"><summary>Ajustes do controle</summary>
   <p><b>Modelo do controle.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
   <p><b>Último sinal do controle original</b> (lido pela placa em casa):</p><div id="rx">Nenhum sinal lido ainda.</div>
@@ -80,7 +81,7 @@ async function send(p){
   pend={p:{...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
   const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
 }
-function matches(st,p){ return Object.keys(p).every(k=>st&&st[k]===p[k]); }
+function matches(st,p){ return Object.keys(p).every(k=>st&&JSON.stringify(st[k])===JSON.stringify(p[k])); }
 async function refresh(){
   const {data,error}=await sb.rpc('ar_status'); if(error){ msg(errTxt(error)); return; }
   if(!data||!data.length){ DEV=null; view('vPair'); return; }
@@ -111,5 +112,39 @@ $('bUnpair').onclick=async()=>{ if($('bUnpair').dataset.c!=='1'){ $('bUnpair').d
 $('p').onclick=()=>send({power:!S.power});
 document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>send({temp:Math.min(30,Math.max(16,S.temp+ +b.dataset.d))}));
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&DEV) refresh(); });
+// Horários programados: mesma tela no app de casa (src/web.h) e no de fora (motora-frota/ar). Usa S, send() e ui() de cada app.
+(function(){
+const DN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],MN={1:'Frio',4:'Quente',2:'Seco',3:'Vent',0:'Auto'},box=document.getElementById('hor');
+const st=document.createElement('style');st.textContent='#hor select,#hor input{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
+'#hor .dia{min-width:0;flex:1;padding:12px 0;font-size:14px}.hi{display:flex;align-items:center;gap:8px;background:#0b1220;border-radius:12px;padding:10px 12px;margin:8px 0}'+
+'.hi div{flex:1;min-width:0}.hi b{font-size:20px}.hi small{display:block;color:#a9b6d6}.hi button{min-width:0;padding:10px 12px;font-size:14px}.hi.off{opacity:.5}#hmsg{color:#f5a524}#hor [hidden]{display:none}';document.head.append(st);
+box.innerHTML='<summary>Horários programados</summary><p>A placa liga ou desliga o ar sozinha nos dias e horas escolhidos (hora de Brasília), mesmo com o celular desligado. <span id="hclk"></span></p>'+
+'<div id="hlist"></div><p><b>Novo horário</b></p><div class="r" id="hdias"></div>'+
+'<div class="r"><input id="hhora" type="time" value="22:00" aria-label="Hora"><select id="hacao" aria-label="O que fazer"><option value="1">Ligar</option><option value="0">Desligar</option></select></div>'+
+'<div class="r" id="hlig"><select id="htemp" aria-label="Temperatura"></select><select id="hmodo" aria-label="Modo"></select></div>'+
+'<div class="r"><button class="on" id="hadd">Adicionar horário</button></div><p id="hmsg" role="status"></p>';
+const $=i=>document.getElementById(i);let dias=127,last='';
+for(let t=16;t<=30;t++)$('htemp').add(new Option(t+'°',t,false,t==23));
+[1,4,2,3,0].forEach(m=>$('hmodo').add(new Option(MN[m],m)));
+function diasUi(){$('hdias').replaceChildren(...DN.map((n,i)=>{const b=document.createElement('button');b.className='dia'+((dias>>i)&1?' on':'');b.textContent=n;
+ b.onclick=()=>{dias^=1<<i;if(!dias)dias=1<<i;diasUi()};return b}))}
+diasUi();$('hacao').onchange=()=>{$('hlig').hidden=$('hacao').value==='0'};
+function dTxt(d){if(d==127)return'Todos os dias';if(d==62)return'Seg a Sex';if(d==65)return'Sáb e Dom';return DN.filter((n,i)=>(d>>i)&1).join(', ')}
+const p2=n=>String(n).padStart(2,'0'),lista=()=>(S.sched||[]).map(x=>({...x}));
+function salvar(l){l.sort((a,b)=>a.h*60+a.m-(b.h*60+b.m));send({sched:l})}
+window.renderHor=function(){$('hclk').textContent=S.hora?'Hora na placa: '+S.hora+'.':'';const j=JSON.stringify(S.sched||[]);if(j===last)return;last=j;const l=lista();
+ $('hlist').replaceChildren(...(l.length?l.map((x,i)=>{const r=document.createElement('div');r.className='hi'+(x.e?'':' off');
+  const t=document.createElement('div');t.innerHTML='<b></b><small></small>';t.querySelector('b').textContent=p2(x.h)+':'+p2(x.m)+' · '+(x.a?'Ligar':'Desligar');
+  t.querySelector('small').textContent=dTxt(x.d)+(x.a?' · '+x.t+'° '+MN[x.o]:'')+(x.e?'':' · pausado');
+  const pa=document.createElement('button');pa.textContent=x.e?'Pausar':'Ativar';pa.onclick=()=>{const n=lista();n[i].e=n[i].e?0:1;salvar(n)};
+  const ex=document.createElement('button');ex.textContent='Excluir';ex.onclick=()=>{if(ex.dataset.c!=='1'){ex.dataset.c='1';ex.textContent='Confirmar';return}const n=lista();n.splice(i,1);salvar(n)};
+  r.append(t,pa,ex);return r}):[Object.assign(document.createElement('p'),{textContent:'Nenhum horário programado.'})]))};
+$('hadd').onclick=()=>{const l=lista();if(l.length>=8){$('hmsg').textContent='Máximo de 8 horários.';return}
+ const [h,m]=($('hhora').value||'').split(':').map(Number);if(isNaN(h)||isNaN(m)){$('hmsg').textContent='Escolha a hora.';return}
+ const a=+$('hacao').value;l.push({d:dias,h,m,a,t:+$('htemp').value,o:+$('hmodo').value,e:1});salvar(l);
+ $('hmsg').textContent='Horário adicionado: '+p2(h)+':'+p2(m)+' · '+dTxt(dias)+'.';setTimeout(()=>{$('hmsg').textContent=''},4000)};
+const u0=ui;ui=function(){u0();renderHor()};
+})();
+
 ui(); start();
 </script></body></html>
