@@ -146,5 +146,31 @@ $('hadd').onclick=()=>{const l=lista();if(l.length>=8){$('hmsg').textContent='M�
 const u0=ui;ui=function(){u0();renderHor()};
 })();
 
+// Sensor do quarto + modo automático: mesma tela no app de casa e no de fora. Usa S, send() e ui() de cada app.
+(function(){
+const big=document.querySelector('.t'),sala=document.createElement('div');sala.id='sala';sala.style.cssText='color:#a9b6d6;font-size:15px;margin:-4px 0 8px';big.after(sala);
+const box=document.createElement('details');box.id='aut';document.getElementById('hor').before(box);
+const st=document.createElement('style');st.textContent='#aut input{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
+'#atog{width:100%;font-size:17px}#atog.on{background:#3ecf8e;color:#06140d}#aalvo{font-size:34px;font-weight:300;min-width:90px;text-align:center}#aut .r{align-items:center}';document.head.append(st);
+box.innerHTML='<summary>Modo automático (sensor do quarto)</summary>'+
+'<p>Quando o quarto passar 1 °C da temperatura escolhida, a placa liga o ar no <b>Frio</b> nessa temperatura. Se você desligar o ar, ela só liga de novo depois que o quarto esfriar.</p>'+
+'<div class="r"><button id="atog">Automático: desligado</button></div>'+
+'<p><b>Temperatura que eu quero no quarto</b></p><div class="r"><button id="amenos" aria-label="Diminuir">−</button><span id="aalvo">24°</span><button id="amais" aria-label="Aumentar">+</button></div>'+
+'<p><b>Vale só neste horário</b></p><div class="r"><input id="ade" type="time" aria-label="Começa"><span>até</span><input id="aate" type="time" aria-label="Termina"></div>'+
+'<p id="ainfo"></p>';
+const $=i=>document.getElementById(i),p2=n=>String(n).padStart(2,'0'),hm=m=>p2(Math.floor(m/60))+':'+p2(m%60),mn=v=>{const[a,b]=(v||'').split(':').map(Number);return isNaN(a)||isNaN(b)?null:a*60+b};
+const A=()=>({on:false,alvo:24,de:480,ate:1200,...(S.auto||{})}),put=c=>send({auto:{...A(),...c}});
+$('atog').onclick=()=>put({on:!A().on});
+$('amenos').onclick=()=>put({alvo:Math.max(16,A().alvo-1)});$('amais').onclick=()=>put({alvo:Math.min(30,A().alvo+1)});
+$('ade').onchange=()=>{const m=mn($('ade').value);if(m!==null)put({de:m})};$('aate').onchange=()=>{const m=mn($('aate').value);if(m!==null)put({ate:m})};
+const f=n=>String(n).replace('.',',');
+window.renderAuto=function(){const a=A(),q=S.sala;
+ sala.textContent=q?'Quarto agora: '+f(q.t)+' °C · umidade '+q.u+'%':'Sensor do quarto: sem leitura';
+ $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
+ if(document.activeElement!==$('ade'))$('ade').value=hm(a.de);if(document.activeElement!==$('aate'))$('aate').value=hm(a.ate);
+ $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?'Liga quando o quarto chegar a '+(a.alvo+1)+' °C, entre '+hm(a.de)+' e '+hm(a.ate)+'.':'')};
+const u0=ui;ui=function(){u0();renderAuto()};
+})();
+
 ui(); start();
 </script></body></html>
