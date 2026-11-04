@@ -1378,16 +1378,24 @@
                 </label>
                 <div id="newPixKeyFields" class="mt-2">
                 <div class="flex gap-2">
-                    <select id="newPixKeyType" onchange="updatePixKeyPlaceholder()" class="p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <select id="newPixKeyType" onchange="updatePixKeyPlaceholder(); gerarPixAuto()" class="p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         <option value="aleatoria">Aleatória</option>
                         <option value="celular">Celular</option>
                         <option value="cpf">CPF</option>
                         <option value="cnpj">CNPJ</option>
                         <option value="email">E-mail</option>
                     </select>
-                    <input type="text" id="newPixKey" autocapitalize="none" autocomplete="off" class="flex-1 min-w-0 p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <input type="text" id="newPixKey" autocapitalize="none" autocomplete="off" oninput="gerarPixAuto()" class="flex-1 min-w-0 p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O motorista vê a chave e o tipo, com um botão para copiar.</p>
+                <label class="flex items-start gap-2 mt-2 text-xs cursor-pointer select-none">
+                    <input type="checkbox" id="newPixAuto" onchange="pixAutoMudou()" class="mt-0.5 rounded">
+                    <span><b>Gerar o Pix copia e cola sozinho</b> (com a chave e o valor total; não precisa abrir o banco)</span>
+                </label>
+                <div id="newPixAutoFields" class="hidden grid grid-cols-2 gap-2 mt-2">
+                    <div><label for="newPixRecNome" class="block text-[11px] font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nome de quem recebe</label><input type="text" id="newPixRecNome" maxlength="25" oninput="gerarPixAuto()" class="w-full min-w-0 p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label for="newPixRecCidade" class="block text-[11px] font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Cidade</label><input type="text" id="newPixRecCidade" maxlength="15" placeholder="Ex: Goiânia" oninput="gerarPixAuto()" class="w-full min-w-0 p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                </div>
                 </div>
             </div>
             <!-- VALORES DA COBRANÇA: aluguel do carro (automático) + acréscimo − desconto -->
@@ -1635,7 +1643,7 @@
                     if (status === 'ok') h.paid_at = r.created_at;
                 }
                 const cur = db.pix_history.filter(h => h.driver_id === d.id).sort((a, b) => a.sent_at < b.sent_at ? 1 : -1)[0];
-                Object.assign(prof, { pix_sent_at: cur.sent_at, pix_due_at: cur.due_at, pix_amount: cur.amount, pix_description: cur.description, pix_code: null, pix_qr_path: null, pix_link: 'chave:email|pix.demonstracao@exemplo.com' });
+                Object.assign(prof, { pix_sent_at: cur.sent_at, pix_due_at: cur.due_at, pix_amount: cur.amount, pix_description: cur.description, pix_code: pixGerarCodigo({ chave: 'pix.demonstracao@exemplo.com', valor: Number(cur.amount), nome: 'MOTORA DEMONSTRACAO', cidade: 'SAO PAULO', txid: 'MTRDEMO' }), pix_qr_path: null, pix_link: 'chave:email|pix.demonstracao@exemplo.com' });
                 const late = db.pix_history.some(h => h.driver_id === d.id && !h.paid_at && new Date(h.due_at).getTime() < now && !db.receipts.some(r => r.driver_id === d.id && !r.rejected_at && !r.confirmed_at && r.created_at >= h.sent_at));
                 prof.payment_status = late ? 'Em atraso' : 'Em dia';
                 // caução, contatos e multas (para mostrar as funções novas)
@@ -2840,6 +2848,8 @@
         function togglePixKeyFields() {
             const on = document.getElementById('newPixKeyOn').checked;
             document.getElementById('newPixKeyFields').classList.toggle('hidden', !on);
+            if (!on && document.getElementById('newPixCode').readOnly) document.getElementById('newPixCode').value = '';
+            gerarPixAuto();
         }
         function updatePixKeyPlaceholder() {
             const t = document.getElementById('newPixKeyType').value;
@@ -4233,6 +4243,10 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             updatePixKeyPlaceholder();
             let keyOnPref = null; try { keyOnPref = localStorage.getItem('motora_pix_key_on'); } catch (e) {}
             document.getElementById('newPixKeyOn').checked = pk ? true : keyOnPref === '1';
+            let autoPref = null; try { autoPref = localStorage.getItem('motora_pix_auto'); } catch (e) {}
+            document.getElementById('newPixAuto').checked = autoPref !== '0';
+            document.getElementById('newPixCode').readOnly = false;
+            pixRecebedorCarregar();
             togglePixKeyFields();
             previewNewPixQr();
             pixDatasNovo(d);
@@ -4815,6 +4829,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('newPixAmount').value = p.total > 0 ? String(p.total).replace('.', ',') : '';
             const ds = document.getElementById('newPixDescription');
             if (!ds.dataset.touched) ds.value = p.lines.join('\n');
+            if (pixAutoLigado()) gerarPixAuto(); // o código Pix acompanha o total
         }
         // ===== RECIBO DE PAGAMENTO =====
         let reciboLines = [], reciboDriverId = null;
@@ -5453,6 +5468,8 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('newPixTitle').innerText = 'Editar Pix enviado';
             document.getElementById('newPixSubmit').innerText = 'Salvar alterações';
             document.getElementById('newPixCode').value = d.pix_code || '';
+            // código colado do banco (não gerado pelo app): continua o mesmo, sem gerar outro por cima
+            if (d.pix_code && !PIX_AUTO_TXID.test(d.pix_code)) { document.getElementById('newPixAuto').checked = false; gerarPixAuto(); }
             document.getElementById('newPixRent').value = d.pix_amount != null ? String(d.pix_amount).replace('.', ',') : '';
             document.getElementById('newPixRentLabel').textContent = 'Valor da cobrança (R$)';
             document.getElementById('newPixRentInfo').textContent = 'Ajuste o valor ou use acréscimo/desconto.';
@@ -5521,6 +5538,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 if (key && !pixKeyLooksOk(keyType, key) && !confirm(`A chave Pix não parece ser do tipo ${PIX_KEY_TYPES[keyType]}. Enviar mesmo assim?`)) return;
                 const link = key ? `chave:${keyType}|${key}` : null;
                 try { localStorage.setItem('motora_pix_key_type', keyType); } catch (e) {}
+                if (pixAutoLigado()) pixRecebedorGuardar();
                 const desc = document.getElementById('newPixDescription').value.trim();
                 if (editing) {
                     let qrPath = keepQr ? d.pix_qr_path : null;
@@ -5817,6 +5835,58 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 for (let j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
             }
             return crc.toString(16).toUpperCase().padStart(4, '0');
+        }
+        // ===== PIX COPIA E COLA GERADO NO APARELHO (padrão BR Code do Banco Central, sem API de banco) =====
+        // Monta o código com a chave Pix do dono e o valor total; o QR é desenhado a partir dele (renderPixQr).
+        function pixTxt(s, max) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase().slice(0, max); }
+        function pixCampo(id, v) { v = String(v); return id + String(v.length).padStart(2, '0') + v; }
+        function pixGerarCodigo({ chave, valor, nome, cidade, txid }) {
+            const k = String(chave || '').trim();
+            if (!k || k.length > 77) return '';
+            const tx = String(txid || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 25) || '***';
+            let c = pixCampo('00', '01') + pixCampo('26', pixCampo('00', 'br.gov.bcb.pix') + pixCampo('01', k)) + pixCampo('52', '0000') + pixCampo('53', '986');
+            if (valor > 0) c += pixCampo('54', (Math.round(valor * 100) / 100).toFixed(2));
+            c += pixCampo('58', 'BR') + pixCampo('59', pixTxt(nome, 25) || 'RECEBEDOR') + pixCampo('60', pixTxt(cidade, 15) || 'BRASIL') + pixCampo('62', pixCampo('05', tx)) + '6304';
+            return c + crc16(c);
+        }
+        const PIX_AUTO_TXID = /62\d{2}05\d{2}MTR/; // código gerado pelo app (txid começa com MTR)
+        function pixAutoLigado() { const a = document.getElementById('newPixAuto'); return document.getElementById('newPixKeyOn').checked && !!a && a.checked; }
+        function pixAutoMudou() {
+            try { localStorage.setItem('motora_pix_auto', document.getElementById('newPixAuto').checked ? '1' : '0'); } catch (e) {}
+            if (!pixAutoLigado()) document.getElementById('newPixCode').value = '';
+            gerarPixAuto();
+        }
+        function gerarPixAuto() {
+            const on = pixAutoLigado(), ta = document.getElementById('newPixCode');
+            document.getElementById('newPixAutoFields').classList.toggle('hidden', !on);
+            ta.readOnly = on;
+            if (!on) { previewNewPixQr(); return; }
+            const tipo = document.getElementById('newPixKeyType').value, chave = normalizePixKey(tipo, document.getElementById('newPixKey').value);
+            const valor = parseMoney(document.getElementById('newPixAmount').value);
+            const id = document.getElementById('newPixDriverId').value.replace(/[^A-Za-z0-9]/g, '').slice(0, 8);
+            const ok = chave && pixKeyLooksOk(tipo, chave) && valor > 0;
+            ta.value = ok ? pixGerarCodigo({ chave, valor, nome: document.getElementById('newPixRecNome').value, cidade: document.getElementById('newPixRecCidade').value, txid: 'MTR' + todayISO().replace(/-/g, '') + id }) : '';
+            previewNewPixQr();
+            const info = document.getElementById('newPixCodeInfo');
+            if (ok && pixValid(ta.value)) info.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Código Pix gerado sozinho com a chave e o total de ' + fmtMoney(valor) + '. O motorista vai ver o QR code e o copia e cola.';
+            else { info.className = 'text-xs mt-1 text-amber-600'; info.innerHTML = !chave ? 'Digite a chave Pix para o código ser gerado.' : !pixKeyLooksOk(tipo, chave) ? `A chave não parece ser do tipo ${PIX_KEY_TYPES[tipo]}. Confira a chave (ou desligue "Gerar sozinho" e cole o código do banco).` : 'Informe os valores da cobrança para o código ser gerado.'; }
+        }
+        // nome e cidade que aparecem dentro do código (o banco do motorista mostra o nome do titular da chave)
+        function pixRecebedorCarregar() {
+            const n = document.getElementById('newPixRecNome'), c = document.getElementById('newPixRecCidade');
+            let s = null; try { s = JSON.parse(localStorage.getItem('motora_pix_recebedor') || 'null'); } catch (e) {}
+            n.value = (s && s.nome) || (state.profile && state.profile.name) || ''; c.value = (s && s.cidade) || '';
+            if (s) return;
+            Promise.resolve(sb.from('app_settings').select('value').eq('key', 'pix_recebedor').maybeSingle()).then(r => {
+                const v = r && r.data && r.data.value; if (!v) return;
+                if (v.nome) n.value = v.nome; if (v.cidade) c.value = v.cidade;
+                if (pixAutoLigado()) gerarPixAuto();
+            }, () => {});
+        }
+        function pixRecebedorGuardar() {
+            const v = { nome: document.getElementById('newPixRecNome').value.trim(), cidade: document.getElementById('newPixRecCidade').value.trim() };
+            let old = null; try { old = localStorage.getItem('motora_pix_recebedor'); localStorage.setItem('motora_pix_recebedor', JSON.stringify(v)); } catch (e) {}
+            if (old !== JSON.stringify(v)) Promise.resolve(sb.from('app_settings').upsert({ key: 'pix_recebedor', value: v, updated_at: new Date().toISOString() })).then(() => {}, () => {});
         }
         function pixValid(code) {
             const c = String(code || '').trim();
