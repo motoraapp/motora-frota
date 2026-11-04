@@ -1,6 +1,6 @@
 # Mapa de linhas do código (gerado por ferramentas/mapa.mjs, não edite à mão)
 
-Gerado em 04/11/2026, 10:57:03. Procure aqui com Grep e leia só as linhas indicadas.
+Gerado em 04/11/2026, 11:17:39. Procure aqui com Grep e leia só as linhas indicadas.
 Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 ## index.html (7090 linhas)
@@ -596,78 +596,78 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 (sem itens)
 
-## robo-whatsapp/nucleo.js (753 linhas)
+## robo-whatsapp/nucleo.js (767 linhas)
 
-24: mascarar()
-27: numeroBR()
-33: empacotar()
-43: credsValido()
-48: abrirPacote()
-62: abrirConteudo()
-72: textoDe()
-81: contatoOculto()
-84: novoIdRobo()
-85: ehDoRobo()
-88: numeroDoJid()
-90: criarRobo()
-93: hora()
-94: log()
-104: pareado()
-105: limparLocal()
-107: motoraBruto()
-118: motora()
-124: avisarErroPareamento()
-126: *conexão guardada no Supabase*
-127: existeGuardada()
-128: restaurar()
-162: guardar()
-190: agendarBackup()
-196: *conexão com o WhatsApp*
-197: agendarAbrir()
-202: backoff()
-207: falhaAoAbrir()
-209: soltarSocket()
-216: abrir()
-247: *conversa que já existia (pedido do dono, 04/11/2026)*
-251: aoHistorico()
-259: conversaAntiga()
-271: aoMudar()
-300: esquecerConexao()
-306: aoCair()
-322: reabrirQr()
-345: *conectar pelo número*
-346: verificarPareamento()
-387: *fila de envio*
-388: mandar()
-389: conteudoDe()
-390: enviar()
-407: enviarCopias()
-429: marcarEnviada()
-436: verReinicio()
-447: sinalDeVida()
-460: ciclo()
-495: *mensagens recebidas (comprovante de motorista e resposta do dono)*
-498: aoReceber()
-505: telefoneDe()
-514: avisarArquivoSemNumero()
-521: comRepeticao()
-529: responder()
-534: tratarRecebida()
-591: *atendimento de número desconhecido (saudação, aviso à Dara e conversa intermediada)*
-593: destino()
-601: encaminhar()
-606: ouvirDono()
-618: entregarAtendimento()
-643: pessoaRespondeu()
-656: chamarDara()
-679: cicloAtendimento()
-684: receberArquivo()
-703: *página do QR*
-704: pagina()
-718: *laços*
-719: repetir()
-726: iniciar()
-737: encerrar()
+26: mascarar()
+29: numeroBR()
+35: empacotar()
+45: credsValido()
+50: abrirPacote()
+64: abrirConteudo()
+74: textoDe()
+83: contatoOculto()
+86: novoIdRobo()
+87: ehDoRobo()
+90: numeroDoJid()
+92: criarRobo()
+95: hora()
+96: log()
+106: pareado()
+107: limparLocal()
+109: motoraBruto()
+120: motora()
+126: avisarErroPareamento()
+128: *conexão guardada no Supabase*
+129: existeGuardada()
+130: restaurar()
+164: guardar()
+192: agendarBackup()
+198: *conexão com o WhatsApp*
+199: agendarAbrir()
+204: backoff()
+209: falhaAoAbrir()
+211: soltarSocket()
+218: abrir()
+249: *conversa que já existia (pedido do dono, 04/11/2026)*
+253: aoHistorico()
+261: conversaAntiga()
+273: aoMudar()
+302: esquecerConexao()
+308: aoCair()
+324: reabrirQr()
+349: *conectar pelo número*
+350: verificarPareamento()
+391: *fila de envio*
+393: mandar()
+403: conteudoDe()
+404: enviar()
+421: enviarCopias()
+443: marcarEnviada()
+450: verReinicio()
+461: sinalDeVida()
+474: ciclo()
+509: *mensagens recebidas (comprovante de motorista e resposta do dono)*
+512: aoReceber()
+519: telefoneDe()
+528: avisarArquivoSemNumero()
+535: comRepeticao()
+543: responder()
+548: tratarRecebida()
+605: *atendimento de número desconhecido (saudação, aviso à Dara e conversa intermediada)*
+607: destino()
+615: encaminhar()
+620: ouvirDono()
+632: entregarAtendimento()
+657: pessoaRespondeu()
+670: chamarDara()
+693: cicloAtendimento()
+698: receberArquivo()
+717: *página do QR*
+718: pagina()
+732: *laços*
+733: repetir()
+740: iniciar()
+751: encerrar()
 
 ## robo-whatsapp/robo.js (28 linhas)
 
@@ -929,43 +929,45 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 6: modelosGemini()
 
-## supabase/functions/motora-robo/index.ts (435 linhas)
+## supabase/functions/motora-robo/index.ts (461 linhas)
 
 15: serviceKey()
 21: json()
-23: secret()
-28: ehDono()
-33: motoristaDoFone()
-42: nivelDaMensagem()
-55: resumoDe()
-66: respostaCliente()
-79: aceita()
-85: falaCliente()
-91: avisoDara()
-95: aceita()
-109: acao "pendentes"
-136: acao "enviada"
-142: acao "falhou"
-154: *mensagens RECEBIDAS: só valem com o envio automático ligado*
-157: *número desconhecido: saúda, em 3 min sem resposta chama a Dara e intermedia a conversa*
-159: rotulo()
-160: acao "atendimento"
-280: acao "audio_dono"
-285: acao "locadora_respondeu"
-291: acao "atendimento_fila"
-321: acao "atendimento_ok"
-330: acao "atendimento_falhou"
-335: acao "mensagem"
-359: acao "comprovante_url"
-378: acao "comprovante_salvar"
-388: acao "comprovante_sem_numero"
-393: acao "qr"
-400: acao "parear_ver"
-404: acao "parear_codigo"
-411: acao "sessao_existe"
-415: acao "sessao_enviar"
-420: acao "sessao_baixar"
-425: acao "sessao_apagar"
+24: secret()
+29: ehDono()
+34: motoristaDoFone()
+43: nivelDaMensagem()
+56: resumoDe()
+67: respostaCliente()
+80: aceita()
+86: falaCliente()
+92: avisoDara()
+96: aceita()
+110: acao "pendentes"
+121: conta()
+148: acao "freio"
+158: acao "enviada"
+164: acao "falhou"
+176: *mensagens RECEBIDAS: só valem com o envio automático ligado*
+179: *número desconhecido: saúda, em 3 min sem resposta chama a Dara e intermedia a conversa*
+181: rotulo()
+182: acao "atendimento"
+305: acao "audio_dono"
+310: acao "locadora_respondeu"
+316: acao "atendimento_fila"
+347: acao "atendimento_ok"
+356: acao "atendimento_falhou"
+361: acao "mensagem"
+385: acao "comprovante_url"
+404: acao "comprovante_salvar"
+414: acao "comprovante_sem_numero"
+419: acao "qr"
+426: acao "parear_ver"
+430: acao "parear_codigo"
+437: acao "sessao_existe"
+441: acao "sessao_enviar"
+446: acao "sessao_baixar"
+451: acao "sessao_apagar"
 
 ## SQL aplicado no Supabase (supabase/*.sql)
 

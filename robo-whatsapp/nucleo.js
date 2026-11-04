@@ -8,8 +8,10 @@ import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 
 const URL_ROBO = 'https://epswrtcwszhbapaxdpzz.supabase.co/functions/v1/motora-robo';
-const ESPERA_ENTRE_MENSAGENS = [60000, 75000]; // nunca menos de 1 min entre um envio e o próximo (pedido do dono; evita bloqueio)
-const LIMITE_POR_HORA = 30;
+// proteção contra bloqueio (04/11/2026, depois da restrição da Meta): de 1 a 3 min, tempo variado, entre um envio e o próximo
+const ESPERA_ENTRE_MENSAGENS = [60000, 180000];
+const LIMITE_POR_HORA = 20; // o servidor ainda limita mais nos 2 primeiros dias depois de religar (aquecimento)
+const DIGITANDO = [3000, 7000]; // "digitando..." antes de cada mensagem, como uma pessoa
 const FORMATO = 'motora-baileys-1';
 const MIN = 60000;
 
@@ -328,6 +330,8 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       return;
     }
     if (qrAcabou) { agendarAbrir(reabrirQr()); return; }
+    // freio automático: conexão encerrada ou conta recusada pelo WhatsApp (ex.: restrição por spam) desliga o envio automático
+    if ((codigo === 401 || codigo === 403) && estavaPareado) motora('freio', { codigo, motivo: String(motivo || '').slice(0, 200) }).catch(() => {});
     if (codigo === 401) { // só o 401 significa conexão encerrada: 500 e 411 também aparecem em instabilidade passageira
       esquecerConexao(estavaPareado).finally(() => agendarAbrir(30000));
       return;
@@ -385,7 +389,17 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
 
   // ---------- fila de envio ----------
-  const mandar = (jid, conteudo) => sock.sendMessage(jid, conteudo, { messageId: novoIdRobo() });
+  // mostra "digitando..." por alguns segundos antes de enviar, como uma pessoa (proteção contra bloqueio)
+  async function mandar(jid, conteudo) {
+    const s = sock;
+    try { if (s.presenceSubscribe) await s.presenceSubscribe(jid); if (s.sendPresenceUpdate) await s.sendPresenceUpdate('composing', jid); } catch { /* sem "digitando", envia assim mesmo */ }
+    const [a, b] = DIGITANDO;
+    await relogio.dormir(a + Math.floor(aleatorio() * (b - a)));
+    if (!sock) throw new Error('caiu a conexão antes de enviar');
+    const r = await sock.sendMessage(jid, conteudo, { messageId: novoIdRobo() });
+    try { if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate('paused', jid); } catch { /* ok */ }
+    return r;
+  }
   const conteudoDe = (m) => (m.imagem_url ? { image: { url: m.imagem_url }, caption: m.texto } : m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
   async function enviar(m) {
     for (const tel of m.telefones) {

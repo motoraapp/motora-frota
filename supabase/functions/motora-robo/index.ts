@@ -19,6 +19,7 @@ function serviceKey() {
 }
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey() as string, { auth: { persistSession: false } });
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
+const IA_MAX = 3; // respostas da IA por conversa com cliente (era 15; reduzido depois da restrição da Meta em 04/11/2026)
 
 async function secret(key: string) {
   const { data } = await admin.from("app_secrets").select("value").eq("key", key).maybeSingle();
@@ -111,16 +112,25 @@ Deno.serve(async (req) => {
       await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: { ...cfg, visto_em: new Date().toISOString() }, updated_at: new Date().toISOString() });
       const reiniciar_em = (cfg as { reiniciar_em?: string }).reiniciar_em || null; // pedido de reinício do robô
       if (!cfg.ativo) return json({ ativo: false, mensagens: [], reiniciar_em });
-      const desde = cfg.ativado_em || new Date().toISOString();
+      // proteção contra bloqueio (04/11/2026): mensagem com mais de 6 h não sai sozinha (fica na Área IA para o dono decidir)
+      const seisHoras = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+      const desde = [cfg.ativado_em || new Date().toISOString(), seisHoras].sort().at(-1)!;
+      // aquecimento: nos 2 primeiros dias depois de religar, no máximo 10 por hora e 40 por dia; depois 20 por hora e 120 por dia
+      const aquecendo = !!cfg.ativado_em && Date.now() - new Date(cfg.ativado_em).getTime() < 48 * 3600 * 1000;
+      const umaHora = new Date(Date.now() - 3600 * 1000).toISOString(), umDia = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const conta = async (t: string, de: string) => (await admin.from(t).select("id", { count: "exact", head: true }).gte("sent_at", de)).count ?? 0;
+      const naHora = (await conta("whatsapp_queue", umaHora)) + (await conta("whatsapp_dono", umaHora));
+      const noDia = (await conta("whatsapp_queue", umDia)) + (await conta("whatsapp_dono", umDia));
+      const resta = Math.max(0, Math.min((aquecendo ? 10 : 20) - naHora, (aquecendo ? 40 : 120) - noDia));
+      if (!resta) return json({ ativo: true, mensagens: [], reiniciar_em, limite: true });
       const { data: fila } = await admin.from("whatsapp_queue").select("id, driver_id, title, message, created_at, arquivo_path")
         .eq("status", "pendente").gte("created_at", desde).order("created_at").limit(5);
       const ids = [...new Set((fila ?? []).map((m) => m.driver_id))];
       const { data: pessoas } = ids.length ? await admin.from("profiles").select("id, name, phone, phone2, role, pix_extra").in("id", ids) : { data: [] };
-      // avisos para o dono vão primeiro; mais velhos que 24 h não saem mais
-      const dia = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      // avisos para o dono vão primeiro; mais velhos que 6 h não saem mais
       const numeroDono = await secret("dono_whatsapp");
       const { data: filaDono } = numeroDono ? await admin.from("whatsapp_dono").select("id, message, arquivo_path")
-        .eq("status", "pendente").gte("created_at", desde > dia ? desde : dia).order("created_at").limit(5) : { data: [] };
+        .eq("status", "pendente").gte("created_at", desde).order("created_at").limit(5) : { data: [] };
       const doDono = await Promise.all((filaDono ?? []).map(async (m) => {
         const url = m.arquivo_path ? (await admin.storage.from("docs").createSignedUrl(m.arquivo_path, 3600)).data?.signedUrl : null;
         return { id: m.id, nome: "dono", telefones: [numeroDono], texto: m.message, pdf_url: url && /\.pdf$/i.test(m.arquivo_path!) ? url : null, imagem_url: url && !/\.pdf$/i.test(m.arquivo_path!) ? url : null };
@@ -130,7 +140,19 @@ Deno.serve(async (req) => {
         const pdf = m.arquivo_path ? (await admin.storage.from("docs").createSignedUrl(m.arquivo_path, 3600)).data?.signedUrl : null;
         return { id: m.id, nome: p?.name || "", telefones: [p?.phone, p?.phone2].filter(Boolean), texto: m.message, excluido: p?.role === "excluido", pdf_url: pdf || null, copias: p?.pix_extra?.motorista2?.whatsapp ? [p.pix_extra.motorista2.whatsapp] : [] };
       }))).filter((m) => !m.excluido);
-      return json({ ativo: true, mensagens: [...doDono, ...mensagens], reiniciar_em });
+      return json({ ativo: true, mensagens: [...doDono, ...mensagens].slice(0, resta), reiniciar_em });
+    }
+
+    // freio automático: o WhatsApp encerrou a conexão ou recusou a conta (ex.: restrição por spam). Desliga o envio
+    // automático e avisa o dono pelo app (não pelo WhatsApp, que pode estar bloqueado). Religar é só no app.
+    if (body.acao === "freio") {
+      if (!cfg.ativo) return json({ ok: true });
+      await admin.from("app_settings").upsert({ key: "whatsapp_robo", value: { ...cfg, ativo: false, freio_em: new Date().toISOString(), freio_codigo: Number(body.codigo) || null }, updated_at: new Date().toISOString() });
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-push`, {
+        method: "POST", headers: { "Content-Type": "application/json", "x-cron-token": (await secret("cron_token")) || "" },
+        body: JSON.stringify({ type: "master_alert", title: "Robô do WhatsApp pausado", body: "O WhatsApp desconectou o robô (pode ser restrição). O envio automático foi desligado para proteger o número. Espere a restrição acabar, conecte de novo e religue na Área IA.", url: "/?abrir=ia" }),
+      }).catch(() => {});
+      return json({ ok: true, pausado: true });
     }
 
     if (body.acao === "enviada" && body.id) {
@@ -254,6 +276,9 @@ Deno.serve(async (req) => {
         return json({ tratado: true });
       }
       if (!lead) {
+        // proteção contra bloqueio: "ok", "blz", emoji ou figurinha de número novo não recebe nada (quase sempre é resposta de conversa antiga)
+        const trivial = !!body.figurinha || (!body.midia && !body.arquivo && (!String(body.texto || "").trim() || nivelPorPalavras(String(body.texto)) === "agradecimento"));
+        if (trivial) return json({ tratado: true });
         // número novo: o robô primeiro vê no WhatsApp se já havia conversa antes (robôs antigos não mandam pode_checar e seguem saudando)
         if (body.pode_checar && body.conversa_antiga === undefined) return json({ tratado: true, checar_historico: true });
         if (body.conversa_antiga === true) {
@@ -269,8 +294,8 @@ Deno.serve(async (req) => {
         return json({ tratado: true, lead_id: novo.id, guardar: true, resposta: saudacao(body.nome) });
       }
       const conversa = [...(lead.guardadas || []), ...(body.texto ? [String(body.texto)] : [])];
-      // ordem: saudação, dono (3 min), Dara (10 min). Só depois disso a IA responde (no máximo 15 respostas por conversa)
-      const ia = body.texto && lead.status === "pergunta_dara" && lead.dono_avisado_em && !lead.motorista && (lead.ia_respostas || 0) < 15 ? await falaCliente(conversa, k) : null;
+      // ordem: saudação, dono (3 min), Dara (10 min). Só depois disso a IA responde (no máximo 3 respostas por conversa: proteção contra bloqueio)
+      const ia = body.texto && lead.status === "pergunta_dara" && lead.dono_avisado_em && !lead.motorista && (lead.ia_respostas || 0) < IA_MAX ? await falaCliente(conversa, k) : null;
       await admin.from("whatsapp_atendimento").update({ ultima_msg_em: agora, jid: String(body.jid), ...(["aguardando", "perguntar", "pergunta_dara"].includes(lead.status) && body.texto ? { guardadas: ia ? [...conversa, `(Assistente respondeu: ${ia})`] : conversa } : {}), ...(ia ? { ia_respostas: (lead.ia_respostas || 0) + 1 } : {}) }).eq("id", lead.id);
       if (lead.status === "aguardando" || lead.status === "pergunta_dara") return json({ tratado: true, lead_id: lead.id, guardar: true, resposta: ia });
       if (lead.status !== "com_dara") return json({ tratado: true }); // uma pessoa já assumiu ou a conversa foi encerrada
@@ -297,7 +322,7 @@ Deno.serve(async (req) => {
       const { data: semResposta } = await admin.from("whatsapp_atendimento").select("*").eq("status", "pergunta_dara").is("dono_avisado_em", null).lte("escalado_em", new Date(Date.now() - 10 * 60000).toISOString());
       const paraCliente: unknown[] = []; // a Dara não respondeu: agora a IA atende o cliente
       for (const l of semResposta ?? []) {
-        const fala = await falaCliente(l.guardadas || [], l.chave);
+        const fala = (l.ia_respostas || 0) < IA_MAX ? await falaCliente(l.guardadas || [], l.chave) : null;
         await admin.from("whatsapp_atendimento").update({ dono_avisado_em: new Date().toISOString(), ...(fala ? { guardadas: [...(l.guardadas || []), `(Assistente respondeu: ${fala})`], ia_respostas: (l.ia_respostas || 0) + 1 } : {}) }).eq("id", l.id);
         if (fala) paraCliente.push({ id: l.id, jid: l.jid, telefone: l.telefone, segurar: true, textos: [fala] });
         await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-push`, {
@@ -307,7 +332,8 @@ Deno.serve(async (req) => {
       }
       const minDesconhecido = Number((cfg as { atendimento_min?: number }).atendimento_min ?? 3);
       const { data: leads } = await admin.from("whatsapp_atendimento").select("*").in("status", ["saudar", "aguardando"]).order("saudado_em").limit(30);
-      const vencidos = (leads ?? []).filter((l) => l.status === "saudar" ? true : l.motorista ? Date.now() >= new Date(l.chamar_em || l.saudado_em).getTime() : Date.now() - new Date(l.saudado_em).getTime() >= minDesconhecido * 60000).slice(0, 5);
+      // proteção contra bloqueio: o robô nunca escreve primeiro (status "saudar" não sai sozinho)
+      const vencidos = (leads ?? []).filter((l) => l.status === "saudar" ? false : l.motorista ? Date.now() >= new Date(l.chamar_em || l.saudado_em).getTime() : Date.now() - new Date(l.saudado_em).getTime() >= minDesconhecido * 60000).slice(0, 5);
       return json({ chamadas: [...paraCliente, ...await Promise.all(vencidos.map(async (l) => l.status === "saudar" ? { id: l.id, telefone: l.telefone, textos: [saudacao(l.nome)] }
         : l.motorista ? await (async () => {
           const minutos = Math.max(1, Math.round((Date.now() - new Date(l.saudado_em).getTime()) / 60000)), mensagens = l.guardadas || [];

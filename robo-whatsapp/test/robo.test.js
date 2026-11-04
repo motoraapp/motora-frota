@@ -286,10 +286,10 @@ const msg = (id, tel = '62999999999') => ({ id, nome: 'Fulano', telefones: [tel]
 test('envio: manda, marca enviada e espera pelo menos 1 min', async () => {
   const t = montar(); await t.robo.abrir(); t.abre(); await t.flush();
   t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-  const a = t.esperas.length; const p = t.robo.ciclo(); await t.avancar(80000); await p;
+  const a = t.esperas.length; const p = t.robo.ciclo(); await t.avancar(130000); await p;
   assert.deepEqual(t.sockets[0].enviadas, [['5562999999999@s.whatsapp.net', 'oi 1']]);
   assert.equal(acoes(t, 'enviada')[0].id, 1);
-  const pausa = t.esperas.slice(a).at(-1); assert.ok(pausa >= 60000 && pausa < 75000);
+  const pausa = t.esperas.slice(a).at(-1); assert.ok(pausa >= 60000 && pausa <= 180000);
 });
 
 test('envio: falha ao marcar (5xx ou rede) nunca reenvia', async () => {
@@ -298,7 +298,7 @@ test('envio: falha ao marcar (5xx ou rede) nunca reenvia', async () => {
     const t = montar({ rotas: { enviada: (resp) => { if (++n < 3) { if (falha === 'rede') throw new Error('sem rede'); return resp(503, {}); } return resp(200, { ok: true }); } } });
     await t.robo.abrir(); t.abre(); await t.flush();
     t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-    for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(80000); await p; }
+    for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(130000); await p; }
     assert.equal(t.sockets[0].enviadas.length, 1);
     assert.equal(n, 3); assert.equal(acoes(t, 'falhou').length, 0);
   }
@@ -335,30 +335,30 @@ test('envio: 9º dígito vem do onWhatsApp; sem WhatsApp falha definitiva; undef
   const t = montar(); await t.robo.abrir(); t.abre(); await t.flush(); const s = t.sockets[0];
   s.numeros['5562999999999'] = [{ exists: true, jid: '556299999999@s.whatsapp.net' }];
   t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-  let p = t.robo.ciclo(); await t.avancar(80000); await p;
+  let p = t.robo.ciclo(); await t.avancar(130000); await p;
   assert.equal(s.enviadas[0][0], '556299999999@s.whatsapp.net');
   s.numeros['5562988888888'] = [];
   t.st.pendentes = { ativo: true, mensagens: [msg(2, '62988888888')] };
-  p = t.robo.ciclo(); await t.avancar(80000); await p;
+  p = t.robo.ciclo(); await t.avancar(130000); await p;
   assert.equal(acoes(t, 'falhou')[0].id, 2);
   s.numeros['5562977777777'] = undefined;
   t.st.pendentes = { ativo: true, mensagens: [msg(3, '62977777777')] };
-  p = t.robo.ciclo(); await t.avancar(80000); await p;
+  p = t.robo.ciclo(); await t.avancar(130000); await p;
   assert.equal(acoes(t, 'falhou').length, 1);
-  for (let i = 0; i < 2; i++) { p = t.robo.ciclo(); await t.avancar(80000); await p; }
+  for (let i = 0; i < 2; i++) { p = t.robo.ciclo(); await t.avancar(130000); await p; }
   assert.equal(acoes(t, 'falhou').length, 2);
 });
 
-test('envio: limite de 30 por hora', async () => {
+test('envio: limite de 20 por hora', async () => {
   const t = montar(); await t.robo.abrir(); t.abre(); await t.flush();
-  for (let i = 0; i < 31; i++) {
+  for (let i = 0; i < 21; i++) {
     t.st.pendentes = { ativo: true, mensagens: [msg(i)] };
-    const p = t.robo.ciclo(); await t.avancar(80000); await p;
-    if (i === 30) assert.equal(t.sockets[0].enviadas.length, 30);
+    const p = t.robo.ciclo(); await t.avancar(130000); await p;
+    if (i === 20) assert.equal(t.sockets[0].enviadas.length, 20);
   }
   await t.avancar(3600000);
-  const p = t.robo.ciclo(); await t.avancar(80000); await p;
-  assert.equal(t.sockets[0].enviadas.length, 31);
+  const p = t.robo.ciclo(); await t.avancar(130000); await p;
+  assert.equal(t.sockets[0].enviadas.length, 21);
 });
 
 test('logs não mostram telefone, código, chave nem endereço assinado', async () => {
@@ -369,7 +369,7 @@ test('logs não mostram telefone, código, chave nem endereço assinado', async 
   t.abre(); await t.flush();
   t.sockets[0].falharEnvio = true;
   t.st.pendentes = { ativo: true, mensagens: [msg(1)] };
-  for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(80000); await p; }
+  for (let i = 0; i < 3; i++) { const p = t.robo.ciclo(); await t.avancar(130000); await p; }
   const tudo = t.logs.join('\n');
   assert.doesNotMatch(tudo, /\d{8,}|ABCD1234|token=|https:/);
   assert.doesNotMatch(acoes(t, 'falhou')[0].erro, /\d{8,}/);
@@ -538,7 +538,7 @@ test('aviso com imagem sai como imagem', async () => {
   const t = await ligado();
   let conteudo; t.sockets[0].sendMessage = async (j, c) => { conteudo = c; };
   t.st.pendentes = { ativo: true, mensagens: [{ id: 'm', nome: 'dono', telefones: ['62992661879'], texto: 'oi', imagem_url: 'https://x/a.jpg' }] };
-  const p = t.robo.ciclo(); await t.avancar(80000); await p;
+  const p = t.robo.ciclo(); await t.avancar(130000); await p;
   assert.deepEqual(conteudo, { image: { url: 'https://x/a.jpg' }, caption: 'oi' });
 });
 test('telefone: 9º dígito e 55 não atrapalham', () => {
@@ -594,20 +594,20 @@ test('reinício remoto: função antiga sem o campo não reinicia', async () => 
 test('2º motorista recebe o mesmo texto; falha nele não repete a principal', async () => {
   const t = await ligado();
   t.st.pendentes = { ativo: true, mensagens: [{ id: 'm', nome: 'Ygor', telefones: ['62911112222'], texto: 'oi', copias: ['62933334444'] }] };
-  let p = t.robo.ciclo(); await t.avancar(200000); await p;
+  let p = t.robo.ciclo(); await t.avancar(400000); await p;
   assert.deepEqual(t.sockets[0].enviadas.map((e) => e[0]), ['5562911112222@s.whatsapp.net', '5562933334444@s.whatsapp.net']);
   assert.equal(acoes(t, 'enviada').length, 1);
   const s = t.sockets[0]; s.enviadas.length = 0; s.numeros['5562955556666'] = [];
   t.st.pendentes = { ativo: true, mensagens: [{ id: 'n', nome: 'Ygor', telefones: ['62911112222'], texto: 'oi', copias: ['62955556666'] }] };
-  p = t.robo.ciclo(); await t.avancar(200000); await p;
+  p = t.robo.ciclo(); await t.avancar(400000); await p;
   assert.equal(s.enviadas.length, 1); assert.equal(acoes(t, 'falhou').length, 0);
 });
-test('todos os números da ficha recebem, sem repetir, com 1 min de intervalo', async () => {
+test('todos os números da ficha recebem, sem repetir, com 1 a 3 min de intervalo', async () => {
   const t = await ligado();
   t.st.pendentes = { ativo: true, mensagens: [{ id: 'a', nome: 'A', telefones: ['62911112222', '62922223333'], texto: 'oi', copias: ['62922223333', '62933334444'] }, { id: 'b', nome: 'B', telefones: ['62944445555'], texto: 'oi', copias: [] }] };
   const p = t.robo.ciclo(); await t.avancar(59000);
   assert.equal(t.sockets[0].enviadas.length, 1);
-  await t.avancar(400000); await p;
+  await t.avancar(900000); await p;
   assert.deepEqual(t.sockets[0].enviadas.map((e) => e[0].slice(2, 13)), ['62911112222', '62922223333', '62933334444', '62944445555']);
 });
 test('IA: modelo ocupado passa para o próximo, e chave errada para', async () => {
@@ -666,6 +666,17 @@ test('atendimento: saúda, chama a Dara e separa pessoa de robô', async () => {
   assert.equal(acoes(t, 'locadora_respondeu').length, 1);
 });
 
+test('proteção: "digitando..." antes de enviar e freio quando o WhatsApp encerra a conta', async () => {
+  const t = await ligado({ atendimento: (r) => r(200, { tratado: true, resposta: 'Olá' }) });
+  const s = t.sockets[0], presencas = [];
+  s.sendPresenceUpdate = async (p) => { presencas.push([p, s.enviadas.length]); };
+  await receber(t, texto('quero alugar'));
+  assert.deepEqual(presencas, [['composing', 0], ['paused', 1]]);
+  t.estado.creds.me = { id: 'x' }; t.estado.creds.account = {};
+  t.cai(401); await t.flush();
+  assert.equal(acoes(t, 'freio').length, 1);
+});
+
 test('atendimento: conversa que já existia não recebe saudação', async () => {
   const pedidos = [];
   const t = await ligado({
@@ -684,7 +695,7 @@ test('atendimento: conversa que já existia não recebe saudação', async () =>
   // o WhatsApp não respondeu: segue o atendimento normal
   pedidos.length = 0;
   s.fetchMessageHistory = async () => 'P3';
-  await receber(t, texto('alô', 'T3'));
+  { const p = t.robo.aoReceber({ type: 'notify', messages: [texto('alô', 'T3')] }); await t.avancar(40000); await p; }
   assert.equal(pedidos[1].conversa_antiga, false);
 });
 
