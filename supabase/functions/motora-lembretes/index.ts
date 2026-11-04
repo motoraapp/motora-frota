@@ -6,6 +6,7 @@
 //    Pix manual: pede para enviar o comprovante. Asaas/PicPay: não fala de comprovante (a conferência é sozinha).
 // 4) PIX AUTOMÁTICO DO MOTORA (ficha: Forma de cobrança "Pix automático do MOTORA" = pix_extra.pix_auto): 2 dias antes, às 10h,
 //    cria o Pix copia e cola (BR Code do Banco Central, sem API de banco) com a chave do dono (app_settings pix_recebedor) e o valor da semana.
+//    Sem aviso ao motorista nessa hora: ele recebe o Pix (com o código) no dia do pagamento, nos lembretes das 12h e 19h.
 // O aviso de Pix criado (1 dia antes) do Asaas/PicPay sai das funções motora-asaas e motora-picpay.
 // { "acao": "lembrar", "simular": true } só devolve o que seria enviado, sem enviar nada.
 // { "acao": "lembrar", "quem": "pix_auto", "simular": true, "testar": "<id do motorista>" } mostra a conta e o código dele, sem gravar.
@@ -68,7 +69,7 @@ async function avisoDono(d: Extra, aluguel: number | null) {
   const auto = formaAuto(d);
   const como = auto
     ? `Amanhã o ${auto} cria o Pix com esse valor. Se precisar mudar, ajuste a ficha do motorista hoje ou amanhã até as 7h.`
-    : d.pix_extra?.pix_auto && !d.pix_extra?.devolucao ? "Hoje às 10h o MOTORA cria o Pix com esse valor e manda para ele. Se precisar mudar, ajuste a ficha do motorista antes das 10h."
+    : d.pix_extra?.pix_auto && !d.pix_extra?.devolucao ? "Hoje às 10h o MOTORA cria o Pix com esse valor; ele recebe no dia do pagamento, às 12h. Se precisar mudar, ajuste a ficha do motorista antes das 10h."
     : "Pagamento manual: confira o valor e envie o Pix para ele.";
   return {
     type: "master_alert", url: "/",
@@ -90,9 +91,11 @@ async function avisoMotorista(d: Extra) {
   // automático só se o Pix desta semana foi mesmo criado pelo Asaas/PicPay
   const automatico = ex.asaas?.vencimento === hoje || ex.picpay?.vencimento === hoje;
   const comprovante = automatico ? "" : " Depois de pagar, envie o comprovante pelo app ou pelo WhatsApp.";
-  const base = { type: "driver_alert", driver_id: d.id, url: "/?aba=pagamento" };
+  // o Pix copia e cola vai junto no WhatsApp (no Pix automático do MOTORA é o primeiro envio do código ao motorista)
+  const codigo = d.pix_code ? { extra: `${d.pix_description ? d.pix_description + "\n\n" : ""}Pix copia e cola:\n${d.pix_code}`, must: [d.pix_code, ...(d.pix_amount != null && !vivos.length ? [brl(d.pix_amount)] : [])] } : {};
+  const base = { type: "driver_alert", driver_id: d.id, url: "/?aba=pagamento", ...codigo };
   if (vivos.length) return { ...base, title: "Lembrete de pagamento", body: `Ainda falta uma parte do pagamento que vence hoje, até 23:59. Veja o valor no app.${comprovante}` };
-  return { ...base, title: "Lembrete: seu Pix vence hoje", body: `Pagamento até hoje, 23:59.${d.pix_amount != null ? ` Valor: ${brl(d.pix_amount)}.` : ""}${comprovante}` };
+  return { ...base, title: "Seu Pix vence hoje", body: `Pagamento até hoje, 23:59.${d.pix_amount != null ? ` Valor: ${brl(d.pix_amount)}.` : ""}${comprovante}` };
 }
 
 // mesma distribuição do app (allocatePix): pagamentos aceitos quitam as cobranças da mais antiga para a mais nova
@@ -203,11 +206,9 @@ async function pixAutomatico(d: Extra, rec: Extra, simular: boolean, forcar = fa
   if (error) throw new Error("salvar no app: " + error.message);
   const { data: atual } = await admin.from("profiles").select("pix_due_at").eq("id", d.id).maybeSingle();
   const prazo = atual?.pix_due_at ? new Date(atual.pix_due_at).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit" }) : venc.iso.split("-").reverse().join("/");
+  // pedido do dono (04/11/2026): o motorista NÃO é avisado agora; o Pix vai para ele só no dia do pagamento (lembretes das 12h e 19h, com o código)
   const avisos = [
-    { type: "driver_alert", driver_id: d.id, url: "/?aba=pagamento", title: "Novo Pix disponível",
-      body: `Valor: ${brl(total)}. Pagamento até ${prazo}, 23:59. Depois de pagar, envie o comprovante pelo app ou pelo WhatsApp.`,
-      extra: `${linhas.join("\n")}\n\nPix copia e cola:\n${code}`, must: [brl(total), code] },
-    { type: "master_alert", url: "/", title: `Pix criado: ${d.name}, ${brl(total)}`, body: `O MOTORA criou o Pix (vence ${prazo}) e avisou o motorista.` },
+    { type: "master_alert", url: "/", title: `Pix criado: ${d.name}, ${brl(total)}`, body: `O MOTORA criou o Pix (vence ${prazo}). O motorista recebe o Pix no dia do pagamento, às 12h.` },
   ];
   return { motorista: d.name, valor: total, vencimento: venc.iso, avisos };
 }
