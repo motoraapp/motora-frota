@@ -1,0 +1,115 @@
+<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>Ar-condicionado</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+/* Controle do ar-condicionado de fora de casa (mesmo visual do app da placa). */
+:root{--bg:#0b1220;--card:#121b2e;--btn:#1b2740;--ink:#e8eefc;--muted:#a9b6d6;--on:#2f7cf6;--pwr:#e5484d;--ok:#3ecf8e;--warn:#f5a524;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center;
+ padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.wrap{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center}
+.t{font-size:80px;font-weight:200;margin:8px 0}.r{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center;width:100%}
+button{background:var(--btn);color:var(--ink);border:0;border-radius:14px;padding:16px 20px;font-size:16px;min-width:76px;cursor:pointer}
+button.on{background:var(--on)}button:disabled{opacity:.5}#p{width:120px;height:120px;border-radius:60px;font-size:20px}#p.on{background:var(--pwr)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--on);outline-offset:2px}
+.top{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;font-size:14px;color:var(--muted)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--warn);margin-right:6px}.dot.ok{background:var(--ok)}
+.card{width:100%;background:var(--card);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:22px;margin:0}p{margin:0;color:var(--muted);line-height:1.45;font-size:15px}
+label{font-size:14px;color:var(--muted)}input{width:100%;padding:14px;font-size:16px;border-radius:12px;border:0;background:var(--btn);color:var(--ink)}
+.big{font-size:28px;letter-spacing:6px;text-align:center}
+#msg{min-height:20px;font-size:14px;color:var(--warn);text-align:center}
+details{width:100%;margin-top:24px;background:var(--card);border-radius:14px;padding:4px 16px}summary{padding:12px 0;font-size:16px;cursor:pointer}
+details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
+#rx code{color:#8fd3ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:#8fa3d6;padding:8px;min-width:0;text-decoration:underline}
+[hidden]{display:none!important}
+</style></head><body><div class="wrap">
+
+<section id="vLogin" class="card" hidden>
+ <h1>Ar-condicionado</h1><p>Entre com o mesmo usuário e senha do MOTORA (conta do dono).</p>
+ <label for="u">Usuário</label><input id="u" autocapitalize="none" autocomplete="username" spellcheck="false">
+ <label for="s">Senha</label><input id="s" type="password" autocomplete="current-password">
+ <button class="on" id="bEntrar">Entrar</button>
+</section>
+
+<section id="vPair" class="card" hidden>
+ <h1>Ligar a placa à sua conta</h1>
+ <p>Em casa, no Wi-Fi da casa, abra o app da placa (<b>gree.local</b>) → Ajustes do controle → <b>Gerar código</b>. Digite aqui o código de 6 números.</p>
+ <label for="code">Código</label><input id="code" class="big" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+ <button class="on" id="bPair">Ligar</button><button class="link" id="bSair1">Sair</button>
+</section>
+
+<section id="vCtl" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+ <div class="top"><span><span class="dot" id="dot"></span><span id="online">…</span></span><span id="nome"></span></div>
+ <button id="p">ON/OFF</button><div class="t"><span id="t">24</span>°</div>
+ <div class="r"><button data-d="-1">−</button><button data-d="1">+</button></div>
+ <div class="r" id="m"></div><div class="r" id="f"></div><div class="r" id="x"></div>
+ <details id="aj"><summary>Ajustes do controle</summary>
+  <p><b>Modelo do controle.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
+  <p><b>Último sinal do controle original</b> (lido pela placa em casa):</p><div id="rx">Nenhum sinal lido ainda.</div>
+  <div class="r"><button class="link" id="bUnpair">Desligar a placa desta conta</button><button class="link" id="bSair2">Sair</button></div>
+ </details>
+</section>
+<div id="msg" role="status" aria-live="polite"></div>
+</div>
+<script>
+const sb = supabase.createClient('https://epswrtcwszhbapaxdpzz.supabase.co', 'sb_publishable__oIByVcuA-IHdsxR9rgY9Q_Iersnb3R',
+  { auth: { storageKey: 'motora-ar', persistSession: true, autoRefreshToken: true } });
+const $ = id => document.getElementById(id);
+const M=[[1,'Frio'],[4,'Quente'],[2,'Seco'],[3,'Vent'],[0,'Auto']],F=[[0,'Auto'],[1,'1'],[2,'2'],[3,'3']],
+ X=[['swing','Swing'],['turbo','Turbo'],['light','Luz'],['xfan','X-Fan'],['sleep','Sleep']],MO=[[1,'A (YAW1F)'],[2,'B (YBOFB)'],[3,'C (YX1FSF)']];
+let DEV=null, S={power:false,mode:1,temp:24,fan:0,swing:false,light:true,turbo:false,xfan:false,sleep:false,model:1}, pend=null, timer=null, RXN=-1;
+const msg = t => { $('msg').textContent = t || ''; };
+function view(v){ ['vLogin','vPair','vCtl'].forEach(k => $(k).hidden = k !== v); }
+function errTxt(e){ const t=(e&&e.message)||String(e); if(/Invalid login/i.test(t)) return 'Usuário ou senha errados.';
+  if(/codigo errado/i.test(t)) return 'Código errado ou vencido. Gere outro no app de casa.'; if(/sem permissao/i.test(t)) return 'Esta conta não tem permissão (só a conta do dono).';
+  if(/muitos comandos/i.test(t)) return 'Muitos comandos seguidos. Espere um pouco.'; if(/fetch|network/i.test(t)) return 'Sem internet.'; return t; }
+function btn(l,on,fn){ const b=document.createElement('button'); b.textContent=l; if(on) b.className='on'; b.onclick=fn; return b; }
+function ui(){
+  $('t').textContent=S.temp; $('p').className=S.power?'on':'';
+  $('m').replaceChildren(...M.map(([v,l])=>btn(l,S.mode==v,()=>send({mode:v}))));
+  $('f').replaceChildren(...F.map(([v,l])=>btn('Fan '+l,S.fan==v,()=>send({fan:v}))));
+  $('x').replaceChildren(...X.map(([k,l])=>btn(l,S[k],()=>send({[k]:!S[k]}))));
+  $('mo').replaceChildren(...MO.map(([v,l])=>btn(l,S.model==v,()=>send({model:v}))));
+}
+async function send(p){
+  if(!DEV) return; Object.assign(S,p); if(p.temp!==undefined) S.temp=Math.min(30,Math.max(16,S.temp)); ui();
+  pend={p:{...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
+  const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
+}
+function matches(st,p){ return Object.keys(p).every(k=>st&&st[k]===p[k]); }
+async function refresh(){
+  const {data,error}=await sb.rpc('ar_status'); if(error){ msg(errTxt(error)); return; }
+  if(!data||!data.length){ DEV=null; view('vPair'); return; }
+  DEV=data[0]; view('vCtl'); $('nome').textContent=DEV.name;
+  $('dot').className='dot'+(DEV.online?' ok':'');
+  $('online').textContent=DEV.online?'Placa online':(DEV.last_seen?'Sem sinal desde '+new Date(DEV.last_seen).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'A placa ainda não se conectou');
+  if(pend){ if(matches(DEV.state,pend.p)){ pend=null; msg('Comando enviado ao ar.'); setTimeout(()=>{ if(!pend) msg(''); },2500); }
+    else if(Date.now()-pend.at>60000){ pend=null; msg('A placa não respondeu. Confira se ela está ligada e com internet.'); } }
+  if(!pend && DEV.state) S={...S,...DEV.state};
+  ui();
+  const rx=DEV.rx; if(rx&&rx.n!==RXN){ RXN=rx.n; const box=$('rx'); box.replaceChildren();
+    const h=document.createElement('div'); h.textContent='Sinal '+rx.n+': '+(rx.proto||'?'); box.append(h);
+    if(rx.hex){ const c=document.createElement('code'); c.textContent=rx.hex; box.append(c); }
+    if(rx.text){ const d=document.createElement('div'); d.textContent=rx.text; d.style.marginTop='6px'; box.append(d); }
+    if(rx.model){ const mm=MO.find(m=>m[0]==rx.model); if(mm) box.append(btn('Usar modelo '+mm[1],true,()=>send({model:rx.model}))); } }
+}
+function loop(){ clearInterval(timer); refresh(); timer=setInterval(()=>{ if(!document.hidden) refresh(); },3000); }
+async function start(){ const {data}=await sb.auth.getSession(); if(data.session) loop(); else { clearInterval(timer); view('vLogin'); } }
+$('bEntrar').onclick=async()=>{ msg('Entrando…'); let u=$('u').value.trim().toLowerCase(); if(!u.includes('@')) u+='@motora.app';
+  const {error}=await sb.auth.signInWithPassword({email:u,password:$('s').value}); if(error){ msg(errTxt(error)); return; } msg(''); loop(); };
+$('s').addEventListener('keydown',e=>{ if(e.key==='Enter') $('bEntrar').click(); });
+$('bPair').onclick=async()=>{ const c=$('code').value.replace(/\D/g,''); if(c.length!==6){ msg('O código tem 6 números.'); return; }
+  const {error}=await sb.rpc('ar_pair',{p_code:c}); if(error){ msg(errTxt(error)); return; } msg('Placa ligada à sua conta.'); $('code').value=''; loop(); };
+const sair=async()=>{ clearInterval(timer); await sb.auth.signOut(); DEV=null; view('vLogin'); msg(''); };
+$('bSair1').onclick=sair; $('bSair2').onclick=sair;
+$('bUnpair').onclick=async()=>{ if($('bUnpair').dataset.c!=='1'){ $('bUnpair').dataset.c='1'; $('bUnpair').textContent='Toque de novo para confirmar'; return; }
+  await sb.rpc('ar_unpair',{p_id:DEV.id}); $('bUnpair').dataset.c=''; $('bUnpair').textContent='Desligar a placa desta conta'; loop(); };
+$('p').onclick=()=>send({power:!S.power});
+document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>send({temp:Math.min(30,Math.max(16,S.temp+ +b.dataset.d))}));
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&DEV) refresh(); });
+ui(); start();
+</script></body></html>

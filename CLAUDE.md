@@ -17,6 +17,9 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - `android/` — projeto do APK Android (função motorista). O workflow `build-apk.yml` gera o `motora.apk` quando algo em `android/` muda.
 - `apk-version.json` — número da versão do APK; o app mostra o aviso "Nova versão do app" quando ele aumenta. Atualize o APK sempre que o PWA mudar.
 
+## Ar-condicionado (fora do MOTORA)
+- `ar/` = app do ar-condicionado do dono (placa ESP32 do projeto gree-esp32), publicado em https://motoraapp.github.io/motora-frota/ar/. Login = conta master do MOTORA. Banco: esquema isolado `ar` (tabelas `ar.device`, `ar.cmd`) e funções `ar_*` (SQL `supabase/2026-11-04-ar-condicionado.sql`, já aplicado). Não mexe nas tabelas do MOTORA.
+
 ## Onde está publicado
 - **GitHub Pages é o único endereço do app:** https://motoraapp.github.io/motora-frota/
 - **GitHub Pages:** publicado pelo workflow `pages.yml` a cada push na `main` (copia só os arquivos do app).
