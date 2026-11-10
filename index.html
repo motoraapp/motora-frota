@@ -5163,7 +5163,9 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 return (data && data.value) || {};
             } catch (e) { return {}; }
         }
+        var roboAtual = {}; // último estado visto do robô (o botão Enviar precisa decidir na hora do toque)
         function paintRobo(cfg) {
+            roboAtual = cfg || {};
             const on = !!cfg.ativo;
             {   // mesma chave nas Configurações
                 const sw = document.getElementById('roboCfgSwitch'); if (sw) sw.checked = on;
@@ -5349,25 +5351,26 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             showToast('Aprovada. Mensagem liberada para o motorista.');
         }
         function iaPhone2(d) { return iaPhone(d ? { phone: d.phone2 } : null); }
-        async function iaSend(id, again, num) {
+        function iaSend(id, again, num) {
             const r = iaRows.find(x => x.id === id);
             if (!r) return;
             if (!again && r.status !== 'pendente') { showToast('O robô já enviou esta mensagem.'); renderIA(); return; }
             const ta = document.getElementById('iaMsg_' + id);
             const text = ta ? ta.value : r.message;
-            // com o robô conectado, sai pelo número da locadora (com QR ou PDF); o link do WhatsApp usaria o número deste aparelho
-            const robo = await loadRobo();
+            // com o robô conectado, sai pelo número da locadora (com QR ou PDF)
+            const robo = roboAtual;
             if (robo.ativo && robo.conectado !== false && robo.visto_em && Date.now() - new Date(robo.visto_em).getTime() < 300000) {
                 const upd = { status: 'pendente', sent_at: null, message: text, created_at: new Date().toISOString() };
-                const { error } = await sb.from('whatsapp_queue').update(upd).eq('id', id);
-                if (error) { showToast('Não foi possível enviar. Tente de novo.', 'error'); return; }
-                Object.assign(r, upd); showToast('Enviando pelo número da locadora. Pode levar alguns minutos.'); renderIA(); return;
+                Promise.resolve(sb.from('whatsapp_queue').update(upd).eq('id', id)).then(({ error }) => {
+                    if (error) { showToast('Não foi possível enviar. Tente de novo.', 'error'); return; }
+                    Object.assign(r, upd); showToast('Enviando pelo número da locadora. Pode levar alguns minutos.'); renderIA();
+                });
+                return;
             }
-            if (!confirm('O WhatsApp da locadora está desconectado. Quer abrir no WhatsApp deste aparelho? A mensagem sairá pelo seu número, só com o texto.')) return;
+            // sem o robô: abre o WhatsApp Web (a sessão da locadora), não o aplicativo pessoal. Só vai o texto; depois de mandar, o dono toca em "Já enviei"
             const dd = state.drivers.find(x => x.id === r.driver_id);
             const ph = num === 2 ? iaPhone2(dd) : (iaPhone(dd) || iaPhone2(dd));
-            window.open((ph ? 'https://wa.me/' + ph : 'https://wa.me/') + '?text=' + encodeURIComponent(text), '_blank');
-            if (!again) iaMark(id, text);
+            window.open('https://web.whatsapp.com/send?' + (ph ? 'phone=' + ph + '&' : '') + 'text=' + encodeURIComponent(text), '_blank');
         }
         async function iaMark(id, text) {
             const upd = { status: 'enviada', sent_at: new Date().toISOString() };
