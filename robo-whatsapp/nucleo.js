@@ -402,7 +402,15 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     try { if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate('paused', jid); } catch { /* ok */ }
     return r;
   }
-  const conteudoDe = (m) => (m.imagem_url ? { image: { url: m.imagem_url }, caption: m.texto } : m.pdf_url ? { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto } : { text: m.texto });
+  // mensagem com Pix copia e cola: vai junto o QR code, desenhado aqui a partir do próprio código
+  const BR_CODE = /000201.+6304[0-9A-Fa-f]{4}/;
+  async function conteudoDe(m) {
+    if (m.imagem_url) return { image: { url: m.imagem_url }, caption: m.texto };
+    if (m.pdf_url) return { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto };
+    const pix = String(m.texto || '').match(BR_CODE);
+    if (pix && qrcode && qrcode.toBuffer) return { image: await qrcode.toBuffer(pix[0], { width: 500, margin: 3 }), caption: m.texto };
+    return { text: m.texto };
+  }
   async function enviar(m) {
     for (const tel of m.telefones) {
       const num = numeroBR(tel);
@@ -412,7 +420,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       const achado = r.find((x) => x.exists);
       if (!achado) continue;
       // recibo: o PDF vai com o texto na mesma mensagem, para nunca sair duplicado
-      await mandar(achado.jid, conteudoDe(m));
+      await mandar(achado.jid, await conteudoDe(m));
       m.jidsEnviados = [achado.jid];
       return true;
     }
@@ -434,7 +442,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         const [a, b] = ESPERA_ENTRE_MENSAGENS;
         await relogio.dormir(a + Math.floor(aleatorio() * (b - a)));
         if (!conectado || !sock) return;
-        await mandar(achado.jid, conteudoDe(m));
+        await mandar(achado.jid, await conteudoDe(m));
         enviadasNaHora.push(relogio.agora());
         log(`Cópia enviada a outro número da ficha de ${m.nome}.`);
       } catch (e) { log(`Não consegui enviar a outro número da ficha de ${m.nome}:`, e.message); }
@@ -761,7 +769,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
 
   return {
-    iniciar, encerrar, ciclo, aoReceber, cicloAtendimento, verificarPareamento, sinalDeVida, guardar, restaurar, abrir,
+    iniciar, encerrar, ciclo, conteudoDe, aoReceber, cicloAtendimento, verificarPareamento, sinalDeVida, guardar, restaurar, abrir,
     get situacao() { return situacao; }, get conectado() { return conectado; }, get pareando() { return pareando; },
     get socket() { return sock; }, get senhaPagina() { return SENHA_PAGINA; }, get servidor() { return servidor; }, PASTA,
   };

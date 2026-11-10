@@ -41,7 +41,7 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 | Perguntar à IA (assistente do dono) | seção "PERGUNTAR À IA" (`iaFerramenta`, `iaConfirmarCartao`) |
 | Financeiro / relatório / despesas do carro | `#modalFinance`, `openFinance`, `renderFinance`, `switchFinTab`; `#modalReport`; seção "DESPESAS DO VEÍCULO", `#modalExpenses` |
 | Ganhos e despesas de aplicativo | seções "GANHOS APLICATIVO" e "DESPESAS DO APLICATIVO" |
-| Asaas / PicPay (configuração) | seções "ASAAS (Financeiro)" e "PICPAY (Financeiro)" |
+| Asaas (configuração) | seção "ASAAS (Financeiro)" |
 | Configurações (Gemini, Drive) | seção "CONFIGURAÇÕES", `#modalSettings` |
 | Veículos (editar carro, CRLV-e) | `abrirEditarVeiculo`, `#modalEditVeh` |
 | CNH (vencida, nova, foto do perfil) | `verifyCnh`, `renderCnhBanner`, `sendNewCnh`, `applyPendingCnh`, `autoReadNewCnhs`; seções "FOTO DO MOTORISTA" e "FOTO DO PERFIL ACOMPANHA A CNH" |
@@ -75,7 +75,7 @@ Código: `robo-whatsapp/nucleo.js` (lógica) + `robo.js` (liga). No PC roda a c�
 |---|---|
 | `motora-push` | notificações e mensagens de WhatsApp (`sendToDriver`, `textoNovoPix`, recibo PDF `gerarPdfRecibo`, `type` "new_pix", "driver_alert", "master_alert", "cobranca", "boas_vindas", "todos_*") |
 | `motora-lembretes` | lembretes (dono 8h30, motorista 12h e 19h, atraso 9h) e **Pix automático do MOTORA** 10h (`pixAutomatico`, `codigoPix`) |
-| `motora-asaas` / `motora-picpay` | cobrança automática e confirmação pelo banco (`cobrarMotorista`, `pagamentoRecebido`) |
+| `motora-asaas` | cobrança automática e confirmação pelo banco (`cobrarMotorista`, `pagamentoRecebido`) |
 | `motora-robo` | ponte com o robô do WhatsApp (ver acima) |
 | `motora-bb` | pausada (conferência no extrato do BB; código fora do GitHub, ver CLAUDE.md) |
 | `motora-dono` | IA do dono pelo WhatsApp (`propor_*`, `executar`) |
