@@ -283,7 +283,7 @@
 
             <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
             <a id="btnInstallApk" href="motora.apk" download="MOTORA.apk" class="hidden items-center justify-center gap-2 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-sm">
-                <i class="fa-brands fa-android text-xl"></i> Instalar app
+                <i class="fa-brands fa-android text-xl"></i> Baixar app para Android
             </a>
 
             <!-- Aviso: nova versão do app Android -->
@@ -2619,9 +2619,8 @@
                     + '<a href="motora.apk" download="MOTORA.apk" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold whitespace-nowrap">Atualizar</a>';
             }).catch(() => {});
         }
-        // Download do APK escondido enquanto o app Android está em desenvolvimento.
-        // Para liberar para os motoristas, troque para true.
-        var APK_DOWNLOAD_LIBERADO = false;
+        // Download do APK liberado para os motoristas com Android (pedido do dono, 10/11/2026). Para esconder, troque para false.
+        var APK_DOWNLOAD_LIBERADO = true;
         function updateInstallApkButton() {
             const el = document.getElementById('btnInstallApk');
             if (!el) return;
