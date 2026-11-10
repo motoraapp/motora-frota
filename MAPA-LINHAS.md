@@ -1,6 +1,6 @@
 # Mapa de linhas do código (gerado por ferramentas/mapa.mjs, não edite à mão)
 
-Gerado em 10/11/2026, 20:22:35. Procure aqui com Grep e leia só as linhas indicadas.
+Gerado em 10/11/2026, 20:26:56. Procure aqui com Grep e leia só as linhas indicadas.
 Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 ## index.html (7049 linhas)
@@ -593,7 +593,7 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 (sem itens)
 
-## robo-whatsapp/nucleo.js (777 linhas)
+## robo-whatsapp/nucleo.js (775 linhas)
 
 26: mascarar()
 29: numeroBR()
@@ -637,35 +637,35 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 352: verificarPareamento()
 393: *fila de envio*
 395: mandar()
-407: conteudoDe()
-414: enviar()
-431: enviarCopias()
-453: marcarEnviada()
-460: verReinicio()
-471: sinalDeVida()
-484: ciclo()
-519: *mensagens recebidas (comprovante de motorista e resposta do dono)*
-522: aoReceber()
-529: telefoneDe()
-538: avisarArquivoSemNumero()
-545: comRepeticao()
-553: responder()
-558: tratarRecebida()
-615: *atendimento de número desconhecido (saudação, aviso à Dara e conversa intermediada)*
-617: destino()
-625: encaminhar()
-630: ouvirDono()
-642: entregarAtendimento()
-667: pessoaRespondeu()
-680: chamarDara()
-703: cicloAtendimento()
-708: receberArquivo()
-727: *página do QR*
-728: pagina()
-742: *laços*
-743: repetir()
-750: iniciar()
-761: encerrar()
+406: conteudoDe()
+412: enviar()
+429: enviarCopias()
+451: marcarEnviada()
+458: verReinicio()
+469: sinalDeVida()
+482: ciclo()
+517: *mensagens recebidas (comprovante de motorista e resposta do dono)*
+520: aoReceber()
+527: telefoneDe()
+536: avisarArquivoSemNumero()
+543: comRepeticao()
+551: responder()
+556: tratarRecebida()
+613: *atendimento de número desconhecido (saudação, aviso à Dara e conversa intermediada)*
+615: destino()
+623: encaminhar()
+628: ouvirDono()
+640: entregarAtendimento()
+665: pessoaRespondeu()
+678: chamarDara()
+701: cicloAtendimento()
+706: receberArquivo()
+725: *página do QR*
+726: pagina()
+740: *laços*
+741: repetir()
+748: iniciar()
+759: encerrar()
 
 ## robo-whatsapp/robo.js (28 linhas)
 
@@ -817,31 +817,6 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 35: aceita()
 43: norm()
 
-## supabase/functions/motora-picpay/index.ts (267 linhas)
-
-16: serviceKey()
-23: json()
-24: brl()
-27: secret()
-32: hostPicpay()
-37: tokenPicpay()
-51: picpay()
-61: avisar()
-70: hojeBR()
-71: proximoDia()
-78: proximaParcela()
-87: telefone()
-94: cobrarMotorista()
-111: *valores (mesma regra do Novo Pix e do Asaas)*
-137: *cobrança Pix: o QR vale até 23:59 do vencimento*
-156: *atualiza o motorista (o banco cria o histórico e a data de pagamento sozinho)*
-175: *pagamento recebido: sempre confere na API do PicPay antes de dar baixa*
-176: conferirCobranca()
-211: cobrarTodos()
-225: ehMaster()
-241: acao "cobrar"
-245: acao "testar"
-
 ## supabase/functions/motora-push/gemini.ts (49 linhas)
 
 6: modelosGemini()
@@ -976,7 +951,6 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 - supabase/2026-11-01-novidades.sql: MOTORA — novidades de 01/11/2026 (APLICADO em 02/11/2026)
 - supabase/2026-11-02-asaas-config.sql: MOTORA — 02/11/2026 (APLICADO em 02/11/2026)
 - supabase/2026-11-02-periodo-cobranca.sql: MOTORA — período, vencimento e correção de recibo por cobrança (02/11/2026)
-- supabase/2026-11-02-picpay.sql: MOTORA — 02/11/2026: pagamento automático pelo PicPay (conta PJ), como opção ao Asaas na ficha do motorista.
 - supabase/2026-11-03-atendimento.sql: Atendimento de número desconhecido pelo robô (só o robô usa, pela função motora-robo)
 - supabase/2026-11-03-atraso.sql: MOTORA — 03/11/2026 (APLICADO)
 - supabase/2026-11-03-checa-robo.sql: Checagem do robô a cada 30 s: avisa o dono uma vez quando para e outra quando volta
@@ -990,5 +964,6 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 - supabase/2026-11-04-ar-condicionado.sql: Ar-condicionado (Gree ESP32): área isolada "ar" no projeto motora. Não toca nas tabelas do MOTORA.
 - supabase/2026-11-04-conversa-antiga.sql: Conversa que já existia (04/11/2026, já aplicado): número que não é motorista e já conversava com a locadora
 - supabase/2026-11-04-pix-automatico.sql: Pix automático do MOTORA e lembrete do meio-dia (já aplicado em 04/11/2026)
+- supabase/2026-11-10-qr-asaas-whatsapp.sql: Mensagem de Pix de motorista no Asaas leva a imagem do QR code criada pelo Asaas (10/11/2026). Já aplicado no banco.
 - supabase/2026-11-10-remove-picpay.sql: PicPay retirado do MOTORA (10/11/2026). Já aplicado no banco.
 - supabase/2026-11-10-seguranca.sql: Segurança (10/11/2026). Já aplicado no banco.

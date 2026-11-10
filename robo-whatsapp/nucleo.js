@@ -402,13 +402,11 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
     try { if (sock.sendPresenceUpdate) await sock.sendPresenceUpdate('paused', jid); } catch { /* ok */ }
     return r;
   }
-  // mensagem com Pix copia e cola: vai junto o QR code, desenhado aqui a partir do próprio código
-  const BR_CODE = /000201.+6304[0-9A-Fa-f]{4}/;
-  async function conteudoDe(m) {
+  // o arquivo da mensagem pode ser o recibo em PDF ou a imagem do QR code criada pelo Asaas
+  function conteudoDe(m) {
     if (m.imagem_url) return { image: { url: m.imagem_url }, caption: m.texto };
+    if (m.pdf_url && /\.(png|jpe?g)(\?|$)/i.test(m.pdf_url)) return { image: { url: m.pdf_url }, caption: m.texto };
     if (m.pdf_url) return { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: m.texto };
-    const pix = String(m.texto || '').match(BR_CODE);
-    if (pix && qrcode && qrcode.toBuffer) return { image: await qrcode.toBuffer(pix[0], { width: 500, margin: 3 }), caption: m.texto };
     return { text: m.texto };
   }
   async function enviar(m) {

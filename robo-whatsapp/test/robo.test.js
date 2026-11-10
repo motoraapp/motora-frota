@@ -551,15 +551,12 @@ test('número de fora do Brasil não passa pelo do dono', () => {
   assert.equal(soBrasil('62892661879'), null); // +62 (Indonésia) com os mesmos 8 dígitos finais
   assert.equal(soBrasil('14155550123'), null);
 });
-test('mensagem com copia e cola leva o QR code', async () => {
-  const enviados = [];
-  const codigo = '00020126780014br.gov.bcb.pix0136abc0216MOTORA teste R$15204000053039865041.005802BR6304ABCD';
-  const robo = criarRobo({ logger: {}, qrcode: { toBuffer: async (q) => Buffer.from('qr:' + q) }, chave: 'k', fetchFn: async () => ({ status: 200, ok: true, json: async () => ({}) }), pastaBase: path.join(os.tmpdir(), 'qr-' + Date.now()), relogio: { agora: () => 0, setTimeout: () => 0, clearTimeout: () => {}, dormir: async () => {} } });
-  assert.equal(typeof robo.conteudoDe, 'function');
-  const c = await robo.conteudoDe({ texto: `Olá\nPix copia e cola: ${codigo}\nObrigado` });
-  assert.equal(c.image.toString(), 'qr:' + codigo); assert.match(c.caption, /copia e cola/); enviados.push(c);
-  assert.deepEqual(await robo.conteudoDe({ texto: 'sem pix' }), { text: 'sem pix' });
-  const r = await robo.conteudoDe({ texto: codigo, pdf_url: 'http://x/a.pdf' }); assert.ok(r.document);
+test('QR code do Asaas vai como imagem e recibo como PDF', () => {
+  const robo = criarRobo({ logger: {}, qrcode: {}, chave: 'k', fetchFn: async () => ({ status: 200, ok: true, json: async () => ({}) }), pastaBase: path.join(os.tmpdir(), 'qr-' + Date.now()), relogio: { agora: () => 0, setTimeout: () => 0, clearTimeout: () => {}, dormir: async () => {} } });
+  const q = robo.conteudoDe({ texto: 'Pix', pdf_url: 'http://x/docs/a/pix-qr-asaas-1.png?token=abc' });
+  assert.equal(q.image.url, 'http://x/docs/a/pix-qr-asaas-1.png?token=abc'); assert.equal(q.caption, 'Pix');
+  assert.ok(robo.conteudoDe({ texto: 'Recibo', pdf_url: 'http://x/docs/a/recibo-1.pdf?token=abc' }).document);
+  assert.deepEqual(robo.conteudoDe({ texto: 'sem arquivo' }), { text: 'sem arquivo' });
 });
 test('comando do dono começa com a palavra', () => {
   assert.deepEqual(lerComando(' *confirmar* '), { confirmar: true, resto: '' });
