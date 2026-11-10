@@ -5367,10 +5367,11 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 });
                 return;
             }
-            // sem o robô: abre o WhatsApp Web (a sessão da locadora), não o aplicativo pessoal. Só vai o texto; depois de mandar, o dono toca em "Já enviei"
+            if (!confirm('O WhatsApp da locadora está desconectado. Quer abrir no WhatsApp deste aparelho? A mensagem sairá pelo seu número, só com o texto.')) return;
             const dd = state.drivers.find(x => x.id === r.driver_id);
             const ph = num === 2 ? iaPhone2(dd) : (iaPhone(dd) || iaPhone2(dd));
-            window.open('https://web.whatsapp.com/send?' + (ph ? 'phone=' + ph + '&' : '') + 'text=' + encodeURIComponent(text), '_blank');
+            window.open((ph ? 'https://wa.me/' + ph : 'https://wa.me/') + '?text=' + encodeURIComponent(text), '_blank');
+            if (!again) iaMark(id, text);
         }
         async function iaMark(id, text) {
             const upd = { status: 'enviada', sent_at: new Date().toISOString() };
