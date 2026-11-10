@@ -258,7 +258,8 @@ async function preparar() {
   const token = await secret("asaas_webhook_token");
   if (!token) throw new Error("Falta o token do aviso de pagamento.");
   const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-asaas`;
-  const corpo = { name: "MOTORA", url, enabled: true, interrupted: false, apiVersion: 3, authToken: token, sendType: "SEQUENTIALLY", events: ["PAYMENT_RECEIVED"] };
+  const conta = await asaas("GET", "/myAccount/commercialInfo"); // o Asaas exige um e-mail para avisar falhas na fila: usa o da própria conta
+  const corpo = { name: "MOTORA", url, email: conta.email, enabled: true, interrupted: false, apiVersion: 3, authToken: token, sendType: "SEQUENTIALLY", events: ["PAYMENT_RECEIVED"] };
   const hs = await asaas("GET", "/webhooks?limit=100");
   const meu = (hs?.data ?? []).find((h: Extra) => h.url === url);
   if (meu) await asaas("PUT", `/webhooks/${meu.id}`, corpo); else await asaas("POST", "/webhooks", corpo);
