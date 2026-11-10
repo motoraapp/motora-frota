@@ -1186,13 +1186,17 @@
                             <select id="asaasAmb" onchange="saveAsaas('asaas_ambiente', 'asaasAmb')" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                                 <option value="">Conta de verdade (recebe dinheiro)</option><option value="sandbox">Conta de testes (sandbox)</option></select></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">3. Aviso de pagamento (webhook)</label>
-                            <p class="text-xs text-gray-500 mb-1">No Asaas: Integrações → Webhooks → Adicionar. Cole o endereço e o token abaixo, marque os eventos de <b>Cobranças</b> e salve.</p>
+                            <p class="text-xs text-gray-500 mb-1">O botão "Testar e deixar pronto", abaixo, configura isto sozinho.</p>
                             <div class="space-y-1.5">
                                 <div class="flex gap-2"><input id="asaasHookUrl" readonly class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none text-xs"><button type="button" onclick="copiarAsaas('asaasHookUrl')" class="px-3 rounded-xl bg-gray-200 dark:bg-gray-600 text-xs font-semibold">Copiar</button></div>
                                 <div class="flex gap-2"><input id="asaasHookTok" type="password" readonly class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none text-xs"><button type="button" onclick="copiarAsaas('asaasHookTok')" class="px-3 rounded-xl bg-gray-200 dark:bg-gray-600 text-xs font-semibold">Copiar</button></div>
                             </div></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">4. Chave Pix da conta Asaas</label>
-                            <p class="text-xs text-gray-500">Crie uma chave Pix <b>aleatória</b> no Asaas. O MOTORA pega sozinha. Usada: <span id="asaasPix">—</span></p></div>
+                            <p class="text-xs text-gray-500 mb-1">Cole a chave Pix cadastrada na sua conta do Asaas. Usada: <span id="asaasPix">—</span></p>
+                            <input id="asaasChavePix" autocomplete="off" placeholder="Sua chave Pix do Asaas" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <button type="button" onclick="saveAsaas('asaas_chave_pix', 'asaasChavePix')" class="mt-2 w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl text-sm">Salvar chave Pix</button>
+                            <button type="button" onclick="testarAsaas()" class="mt-2 w-full py-2.5 bg-gray-200 dark:bg-gray-600 font-semibold rounded-xl text-sm">Testar e deixar pronto</button>
+                            <p id="asaasTeste" class="text-xs text-gray-500 mt-1"></p></div>
                         <p class="text-xs text-gray-500">5. Depois escolha "Automático pelo Asaas" em Forma de cobrança, na ficha de cada motorista.</p>
                     </div>
                 </details>
@@ -2732,7 +2736,7 @@
             document.getElementById('drvChargeDesc').innerText = descTela;
 
             // Comprovante correto (IA conferiu ou o master confirmou): a chave Pix some sozinha
-            const receiptOk = paidEarlier || (paidThisPix && (lastWeekRec.confirmed_at || lastWeekRec.ai_status === 'ok'));
+            const receiptOk = paidEarlier || (paidThisPix && (lastWeekRec.confirmed_at || lastWeekRec.ai_status === 'ok' || lastWeekRec.ai_status === 'confere'));
             // Só aparecem as formas de pagamento que o dono preencheu; todas somem no prazo (segunda 23:59)
             const pkInfo = parsePixKey(driver.pix_link);
             const hasQr = !!driver.pix_qr_path || (!!driver.pix_code && pixValid(driver.pix_code));
@@ -2881,7 +2885,7 @@
             if (r.confirmed_at) return b('bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', 'fa-circle-check', 'Pix confirmado');
             if (r.rejected_at) return b('bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', 'fa-circle-xmark', 'Recusado');
             if (r.ai_status === 'alerta') return b('bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', 'fa-triangle-exclamation', master ? 'IA: dados não batem' : 'Problema no comprovante');
-            if (r.ai_status === 'ok') return b('bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', 'fa-robot', master ? 'IA: confere' : 'Aguardando confirmação');
+            if (r.ai_status === 'ok' || r.ai_status === 'confere') return b('bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', 'fa-robot', master ? 'IA: confere' : 'Aguardando confirmação');
             if (r.ai_status === 'erro') return b('bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'fa-robot', master ? 'IA não leu: confira' : 'Aguardando confirmação');
             return b('bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'fa-spinner fa-spin', master ? 'IA conferindo...' : 'Aguardando confirmação');
         }
@@ -3409,7 +3413,7 @@
             if (!first) return;
             try {
                 const bytes = new Uint8Array(await blob.arrayBuffer());
-                const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+                const pdf = await pdfjsLib.getDocument({ data: bytes, isEvalSupported: false }).promise; // PDF vem de terceiros: nunca executar código de dentro dele
                 let prev = first;
                 for (let n = 1; n <= pdf.numPages; n++) {
                     const page = await pdf.getPage(n);
@@ -3515,9 +3519,16 @@
             const v = document.getElementById(inputId).value.trim();
             const { error } = await sb.rpc('set_app_config', { p_key: key, p_value: v });
             if (error) { showToast(friendlyError(error), 'error'); return; }
-            if (key === 'asaas_key') document.getElementById(inputId).value = '';
-            showToast(key === 'asaas_key' ? (v ? 'Chave do Asaas salva!' : 'Chave do Asaas removida.') : 'Tipo de conta salvo.');
+            if (key === 'asaas_key' || key === 'asaas_chave_pix') document.getElementById(inputId).value = '';
+            showToast(key === 'asaas_key' ? (v ? 'Chave do Asaas salva!' : 'Chave do Asaas removida.') : key === 'asaas_chave_pix' ? (v ? 'Chave Pix salva!' : 'Chave Pix removida.') : 'Tipo de conta salvo.');
             loadAsaasInfo();
+        }
+        async function testarAsaas() {
+            const el = document.getElementById('asaasTeste');
+            el.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testando...';
+            const { data, error } = await sb.functions.invoke('motora-asaas', { body: { acao: 'preparar' } });
+            if (!error && data && data.ok) el.innerHTML = `<span class="${data.chave_pix_ok ? 'text-emerald-600' : 'text-amber-600'} font-semibold">${esc(data.mensagem || 'Conectado!')}</span>`;
+            else el.innerHTML = `<span class="text-red-500">Não conectou: ${esc((data && data.error) || (error && error.message) || 'erro')}</span>`;
         }
         // ===== PICPAY (Financeiro) — mesmas regras do Asaas; os segredos ficam em app_secrets =====
         async function loadPicpayInfo() {
@@ -5926,7 +5937,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         async function fileToCanvas(file) {
             const c = document.createElement('canvas');
             if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '')) {
-                const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+                const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported: false }).promise;
                 const page = await pdf.getPage(1);
                 const vp = page.getViewport({ scale: 2.5 });
                 c.width = vp.width; c.height = vp.height;

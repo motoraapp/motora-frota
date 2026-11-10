@@ -6,7 +6,7 @@ import path from 'node:path';
 import { EventEmitter } from 'node:events';
 import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, ofertaVeiculo, valoresConferem, promptCliente, chaveContato, textoDara, avisoDaraValido, promptDara, lerDecisao, textoDaraSim, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
-import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar } from '../nucleo.js';
+import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar, soBrasil } from '../nucleo.js';
 
 const CREDS = '{"account":{},"me":{"id":"x"}}';
 
@@ -545,6 +545,11 @@ test('telefone: 9º dígito e 55 não atrapalham', () => {
   const k = chaveFone('(62) 99266-1879');
   assert.equal(k, chaveFone('5562992661879')); assert.equal(k, chaveFone('556292661879'));
   assert.notEqual(k, chaveFone('63992661879')); assert.equal(chaveFone('123'), null); assert.equal(chaveFone(null), null);
+});
+test('número de fora do Brasil não passa pelo do dono', () => {
+  assert.equal(soBrasil('5562992661879'), '5562992661879'); assert.equal(soBrasil('556292661879'), '556292661879');
+  assert.equal(soBrasil('62892661879'), null); // +62 (Indonésia) com os mesmos 8 dígitos finais
+  assert.equal(soBrasil('14155550123'), null);
 });
 test('comando do dono começa com a palavra', () => {
   assert.deepEqual(lerComando(' *confirmar* '), { confirmar: true, resto: '' });

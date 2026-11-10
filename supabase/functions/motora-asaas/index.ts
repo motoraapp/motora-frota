@@ -12,7 +12,9 @@
 //   registra o pagamento como comprovante JÁ CONFERIDO, o app abate a cobrança, o motorista volta para "Em dia"
 //   e o recibo vai para a fila do WhatsApp (o robô envia sozinho).
 //
-// Chaves (tabela app_secrets): asaas_key (colocada pelo dono), asaas_webhook_token (gerada pelo banco),
+// acao "preparar" (botão no Financeiro): confere a conta e cria o aviso de pagamento no Asaas, sem gastar nada.
+// CUSTO MÍNIMO: nunca criar cliente, cobrança comum ou notificação do Asaas aqui; só QR estático, que é o que não tem tarifa.
+// Chaves (tabela app_secrets): asaas_key (colocada pelo dono), asaas_chave_pix (colada pelo dono), asaas_webhook_token (gerada pelo banco),
 // asaas_ambiente = 'sandbox' para testes (sem ela usa a conta de verdade).
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 import { decodeBase64 } from "jsr:@std/encoding@1/base64";
@@ -23,7 +25,9 @@ function serviceKey() {
   try { const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}"); return keys.default || Object.values(keys)[0]; } catch { return ""; }
 }
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey() as string, { auth: { persistSession: false } });
-const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
+const LIMITE_GRATIS = 100; // Pix por chave ou QR estático sem tarifa por mês; passou disso, para e avisa o dono
 const brl = (v: unknown) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const DIAS_ANTES = 1;
 
@@ -155,6 +159,13 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
 
 async function cobrarTodos() {
   const { data: lista } = await admin.from("profiles").select("*").eq("role", "driver").eq("asaas_auto_charge_enabled", true);
+  if (!lista?.length) return []; // ninguém ligado na ficha: nem fala com o Asaas
+  const inicioMes = new Date(hojeBR().slice(0, 8) + "01T00:00:00-03:00").toISOString();
+  const { count } = await admin.from("receipts").select("id", { count: "exact", head: true }).contains("ai_result", { origem: "asaas" }).gte("created_at", inicioMes);
+  if ((count ?? 0) + lista.length > LIMITE_GRATIS) {
+    await avisar({ type: "master_alert", title: "Asaas: limite grátis do mês", body: `Já são ${count} Pix neste mês. Para não pagar tarifa, as cobranças automáticas pararam até o mês que vem. Use o Novo Pix.`, url: "/" });
+    return [{ pulou: "limite de Pix sem tarifa do mês" }];
+  }
   const out: unknown[] = [];
   for (const d of lista ?? []) {
     try { out.push(await cobrarMotorista(d)); } catch (e) {
@@ -189,7 +200,12 @@ async function quemPagou(p: Record<string, any>) { // eslint-disable-line @types
   return null;
 }
 
-async function pagamentoRecebido(p: Record<string, any>) { // eslint-disable-line @typescript-eslint/no-explicit-any
+async function pagamentoRecebido(aviso: Record<string, any>) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  // não confia só no aviso: pergunta ao próprio Asaas se o Pix existe e caiu mesmo
+  if (!/^[\w-]+$/.test(String(aviso.id || ""))) return { ignorado: "código de pagamento inválido" };
+  const real = await asaas("GET", `/payments/${aviso.id}`);
+  if (real.billingType !== "PIX" || !["RECEIVED", "CONFIRMED"].includes(real.status) || !(Number(real.value) > 0)) return { ignorado: "o Asaas não confirma este Pix" };
+  const p = { ...aviso, ...real, pixQrCodeId: real.pixQrCodeId || aviso.pixQrCodeId };
   const quem = await quemPagou(p) as Record<string, any> | null; // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!quem || quem.semDono) {
     await avisar({ type: "master_alert", title: `Pix de ${brl(p.value)} recebido no Asaas`, body: `Não consegui saber de qual motorista é${quem?.pagador ? " (pagou: " + quem.pagador + ")" : ""}. Confira no Asaas.`, url: "/" });
@@ -224,7 +240,38 @@ async function pagamentoRecebido(p: Record<string, any>) { // eslint-disable-lin
   return { ok: true, motorista: d.name, valor: p.value };
 }
 
+async function ehMaster(req: Request) {
+  const tok = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!tok) return false;
+  const { data } = await admin.auth.getUser(tok);
+  if (!data?.user) return false;
+  const { data: p } = await admin.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+  return p?.role === "master";
+}
+
+// confere a conta e deixa o aviso de pagamento (webhook) configurado no Asaas. Não cria cobrança nem gasta nada.
+async function preparar() {
+  const limpa = (s: unknown) => String(s ?? "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const ks = await asaas("GET", "/pix/addressKeys?status=ACTIVE&limit=10");
+  const chaves: string[] = (ks?.data ?? []).map((k: Extra) => limpa(k.key));
+  const salva = await secret("asaas_chave_pix");
+  const token = await secret("asaas_webhook_token");
+  if (!token) throw new Error("Falta o token do aviso de pagamento.");
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/motora-asaas`;
+  const corpo = { name: "MOTORA", url, enabled: true, interrupted: false, apiVersion: 3, authToken: token, sendType: "SEQUENTIALLY", events: ["PAYMENT_RECEIVED"] };
+  const hs = await asaas("GET", "/webhooks?limit=100");
+  const meu = (hs?.data ?? []).find((h: Extra) => h.url === url);
+  if (meu) await asaas("PUT", `/webhooks/${meu.id}`, corpo); else await asaas("POST", "/webhooks", corpo);
+  const chave = salva ? chaves.includes(limpa(salva)) : chaves.length > 0;
+  const ambiente = (await secret("asaas_ambiente")) === "sandbox" ? "conta de testes" : "conta de verdade";
+  const mensagem = chave ? `Asaas pronto (${ambiente}): conexão, aviso de pagamento e chave Pix certos.`
+    : salva ? `Conectado (${ambiente}) e aviso de pagamento pronto, mas essa chave Pix não está cadastrada na sua conta do Asaas.`
+    : `Conectado (${ambiente}) e aviso de pagamento pronto. Falta só a chave Pix.`;
+  return { ok: true, chave_pix_ok: chave, webhook_ok: true, ambiente, mensagem };
+}
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const body = await req.json().catch(() => ({}));
     // 1) o Asaas avisando que o pagamento caiu
@@ -238,7 +285,12 @@ Deno.serve(async (req) => {
       return json({ received: true }); // o Asaas só precisa do "200"
     }
     // 2) o banco pedindo as cobranças do dia
-    if (req.headers.get("x-cron-token") !== (await secret("cron_token"))) return json({ error: "proibido" }, 403);
+    const cronTok = req.headers.get("x-cron-token");
+    const doBanco = !!cronTok && cronTok === (await secret("cron_token"));
+    if (body.acao === "preparar" && (doBanco || await ehMaster(req))) {
+      try { return json(await preparar()); } catch (e) { return json({ ok: false, error: String((e as Error).message || e) }); }
+    }
+    if (!doBanco) return json({ error: "proibido" }, 403);
     if (body.acao === "cobrar") { const out = await cobrarTodos(); console.log("asaas cobrar", JSON.stringify(out)); return json({ ok: true, out }); }
     return json({ error: "ação desconhecida" }, 400);
   } catch (e) {

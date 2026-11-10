@@ -88,6 +88,8 @@ export const ehDoRobo = (id) => String(id || '').startsWith(PREFIXO_ROBO);
 const JANELA_ATENDIMENTO = 6 * 60 * MIN; // mensagem mais velha que isso não dispara saudação nem repasse
 const HIST_SOB_PEDIDO = 6; // proto.HistorySync.HistorySyncType.ON_DEMAND: histórico pedido pelo robô (fetchMessageHistory)
 const numeroDoJid = (jid) => String(jid).split('@')[0].split(':')[0];
+// número de fora do Brasil vira contato sem número: +62 (Indonésia) não pode ser confundido com o DDD 62 do dono
+export const soBrasil = (n) => (/^55\d{10,11}$/.test(String(n)) ? String(n) : null);
 
 export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn = (...a) => fetch(...a), pastaBase, relogio = relogioReal, aleatorio = Math.random, log: logExterno, aoReiniciar = null }) {
   const BASE = pastaBase || path.join(os.tmpdir(), 'motora-robo'); // no Hostless só a pasta temporária aceita gravar
@@ -517,11 +519,11 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
   // o WhatsApp às vezes esconde o número (endereço @lid): tenta os caminhos que a biblioteca oferece
   async function telefoneDe(key) {
-    if (String(key.remoteJid).endsWith('@s.whatsapp.net')) return numeroDoJid(key.remoteJid);
-    if (String(key.remoteJidAlt || '').endsWith('@s.whatsapp.net')) return numeroDoJid(key.remoteJidAlt);
+    if (String(key.remoteJid).endsWith('@s.whatsapp.net')) return soBrasil(numeroDoJid(key.remoteJid));
+    if (String(key.remoteJidAlt || '').endsWith('@s.whatsapp.net')) return soBrasil(numeroDoJid(key.remoteJidAlt));
     try {
       const pn = await sock.signalRepository.lidMapping.getPNForLID(key.remoteJid);
-      if (pn) return numeroDoJid(pn);
+      if (pn) return soBrasil(numeroDoJid(pn));
     } catch { /* segue sem número */ }
     return null;
   }
@@ -738,7 +740,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
 
   async function iniciar() {
-    servidor = http.createServer((q, r) => { pagina(q, r).catch(() => { r.writeHead(500); r.end(); }); }).listen(porta);
+    servidor = http.createServer((q, r) => { pagina(q, r).catch(() => { r.writeHead(500); r.end(); }); }).listen(porta, process.env.HOST || '127.0.0.1'); // só o próprio computador acessa; o QR chega ao dono pelo app
     repetir(5000, verificarPareamento);
     // sinal de vida mesmo antes de conectar (o app mostra se o robô está ligado)
     repetir(MIN, sinalDeVida);
