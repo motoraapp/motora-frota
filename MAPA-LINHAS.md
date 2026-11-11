@@ -1,594 +1,597 @@
 # Mapa de linhas do código (gerado por ferramentas/mapa.mjs, não edite à mão)
 
-Gerado em 10/11/2026, 21:33:21. Procure aqui com Grep e leia só as linhas indicadas.
+Gerado em 11/11/2026, 00:26:23. Procure aqui com Grep e leia só as linhas indicadas.
 Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
-## index.html (7079 linhas)
+## index.html (7120 linhas)
 
 16: <!-- Tailwind CSS CDN -->
 36: <!-- Font Awesome Icons -->
 38: <!-- PDF.js para renderizar PDFs -->
 40: <!-- Gera o QR code do Pix a partir do copia e cola -->
 42: <!-- Supabase (banco de dados online) -->
-160: <!-- Header Principal -->
-174: <!-- Controles do Header -->
-176: <!-- Botão Status Online/Offline (Motorista) -->
-184: <!-- Ativar Notificações -->
-189: <!-- Temas -->
-194: <!-- Logout Button -->
-203: <!-- Conteúdo Principal -->
-206: <!-- TELA DE LOGIN -->
-207: #secLogin
-240: <!-- ESCOLHA DA DEMONSTRAÇÃO (login teste / teste) -->
-241: #secDemoEscolha
-256: <!-- PAINEL DO MOTORISTA -->
-257: #secDriverPanel
-259: <!-- Card do Veículo Vinculado -->
-274: <!-- Renderizado via JS: Status "Em dia" ou "Em atraso" -->
-284: <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
-289: <!-- Aviso: nova versão do app Android -->
-292: <!-- Aviso vermelho: notificações desligadas -->
-295: <!-- Aviso vermelho: CNH vencida (com botão para enviar a nova) -->
-299: <!-- Aviso de Pix / pagamento pendente -->
-302: <!-- Navegação de Abas -->
-320: <!-- Conteúdo das Abas Motorista -->
-323: <!-- Aba CRLV-e -->
-324: #tabDrvCrlv
-329: <!-- Renderizado dinamicamente -->
-333: <!-- Aba Contrato -->
-334: #tabDrvContract
-344: <!-- Renderizado dinamicamente -->
-348: <!-- Aba Vistoria -->
-349: #tabDrvInspection
-356: <!-- Aba Pagamento -->
-357: #tabDrvPayment
-370: <!-- Caução e multas do motorista -->
-372: <!-- Valor e descrição da cobrança -->
-382: <!-- Seção Pix -->
-395: <!-- QR Code Renderizado aqui -->
-420: <!-- Seção Upload de Comprovante -->
-437: <!-- Lista de comprovantes -->
-447: <!-- PAINEL MASTER (ADMINISTRAÇÃO) -->
-448: #secMasterPanel
-481: <!-- Aviso: falta criar a tabela dos termos no banco -->
-484: <!-- SUB-ABA: GESTÃO DE VEÍCULOS -->
-486: <!-- Lista de Veículos -->
-502: <!-- Renderizado via JS -->
-509: <!-- Form de Adicionar Veículo -->
-543: <!-- SUB-ABA: GESTÃO DE MOTORISTAS -->
-549: <!-- Lista de Motoristas -->
-566: <!-- Renderizado via JS -->
-573: <!-- Form de Adicionar Motorista -->
-668: <!-- Barra de baixo do dono (só no design novo) -->
-678: <!-- MODAL PRIMEIRO LOGIN -->
-679: #modalFirstLogin
-713: <!-- MODAL OBRIGATÓRIO: ATIVAR NOTIFICAÇÕES (MOTORISTA) -->
-714: #modalNotif
-727: <!-- MODAL VISTORIA (MASTER) -->
-728: #modalInspection
-741: <!-- MODAL CONFIGURAÇÕES (MASTER) -->
-742: #modalSettings
-801: <!-- MODAL TEMAS -->
-802: #modalThemes
-813: <!-- MODAL DADOS DE ACESSO DO MOTORISTA NOVO -->
-814: #modalCreds
-829: <!-- MODAL FICHA DO MOTORISTA (MASTER) -->
-830: #modalDriverFile
-894: <!-- CAUÇÃO do motorista (guardada em profiles.pix_extra.caucao) -->
-909: <!-- MULTAS E OUTRAS DESPESAS a pagar pelo motorista (profiles.pix_extra.multas) -->
-951: <!-- MODAL CONTROLE FINANCEIRO (MASTER) -->
-952: <!-- RECIBO DE PAGAMENTO (MASTER -> motorista pelo WhatsApp) -->
-953: #modalRecibo
-972: <!-- ÁREA DO PIX (MASTER): escolhe o motorista e envia, edita ou exclui o Pix -->
-973: #modalPixArea
-989: <!-- ÁREA IA (MASTER): mensagens de WhatsApp prontas para cada aviso enviado ao motorista -->
-990: #modalIA
-1072: <!-- MEUS RECIBOS (motorista): todos os recibos pagos, cada um em PDF -->
-1073: <!-- TROCAR MINHA SENHA (motorista e dono) -->
-1074: #modalEditVeh
-1093: #modalSenha
-1115: #modalMeusRecibos
-1133: <!-- E-MAIL: a IA escreve, o dono confere e só então envia (sai pela conta Google do dono) -->
-1134: #modalEmail
-1154: <!-- RELATÓRIO DO FINANCEIRO (segue o período e os filtros escolhidos) -->
-1155: #modalReport
-1170: #modalFinance
-1223: <!-- FILTROS -->
-1271: <!-- DESPESAS DO APLICATIVO (gasolina, alimentação...) -->
-1291: <!-- MODAL DESPESAS DO VEÍCULO (MASTER) -->
-1292: #modalExpenses
-1327: <!-- MODAL NOVO PIX -->
-1328: #modalNewPix
-1380: <!-- VALORES DA COBRANÇA: aluguel do carro (automático) + acréscimo − desconto -->
-1438: <!-- CORRIGIR RECIBO: muda só o texto e o período; valor e comprovante não mudam -->
-1439: #modalCorrigirRecibo
-1453: <!-- MODAL VISUALIZADOR DE DOCUMENTOS/COMPROVANTES -->
-1454: #modalDocViewer
-1462: #modalDocBody
-1463: <!-- Conteúdo pré-visualizado -->
-1469: #modalTerms
-1483: <!-- NOTIFICAÇÕES TOAST -->
-1500: lsGet()
-1501: lsSet()
-1502: lsDel()
-1525: demoLoginRole()
-1529: demoId()
-1530: demoSave()
-1531: demoSaved()
-1533: *datas no horário de Brasília*
-1534: demoLocal()
-1535: demoParts()
-1536: demoDay()
-1537: demoNextDue()
-1542: *dados fictícios (4 meses)*
-1543: demoBuild()
-1686: *documentos fictícios (imagem gerada na hora)*
-1687: *documentos e fotos fictícios (desenhados na hora; campos com AAAA/0000 e tarja "NÃO É REAL")*
-1688: demoDocBlob()
-1766: *"banco de dados" na memória, com a mesma forma de uso do Supabase*
-1767: demoQuery()
-1790: out()
-1796: run()
-1837: demoOnUpdate()
-1847: demoOnInsert()
-1914: demoClient()
-1979: demoStart()
-1987: demoStop()
-1993: abrirDemo()
-2000: trocarDemo()
-2005: demoBanner()
-2020: toEmail()
-2024: showLogin()
-2028: esc()
-2032: friendlyError()
-2042: devicePrefs()
-2045: saveDevicePrefs()
-2048: docRef()
-2049: viewDocIdx()
-2051: setBusy()
-2089: **TEMAS**
-2098: currentTheme()
-2103: applyTheme()
-2110: openThemes()
-2120: pickTheme()
-2126: toggleDarkMode()
-2128: **DESIGN NOVO / ANTIGO (escolhido pelo dono; o dos motoristas fica no banco e vale para todos)**
-2130: loadDesignCfg()
-2137: applyDesign()
-2156: markMasterNav()
-2161: fillDesignCfg()
-2165: saveDesign()
-2179: showToast()
-2188: **TROCAR MINHA SENHA (o motorista troca a senha padrão por uma só dele)**
-2189: senhaErro()
-2190: abrirSenha()
-2199: salvarIaCodigo()
-2209: fecharSenha()
-2210: salvarSenha()
-2231: loginUserInput()
-2236: loginErro()
-2240: verSenha()
-2245: handleLogin()
-2294: logout()
-2313: saveFirstLoginPreferences()
-2335: loadAndRender()
-2389: autoRefresh()
-2428: markUpdated()
-2433: reload()
-2438: renderApp()
-2486: **MASTER ENTRA NA CONTA REAL DO MOTORISTA (sem a senha dele)**
-2489: masterBack()
-2491: viewAsDriver()
-2513: exitViewAs()
-2532: viewOnly()
-2533: renderViewAsBanner()
-2543: showSection()
-2549: toggleDriverStatus()
-2558: isOnline()
-2560: updateStatusToggleUI()
-2573: **BOTÃO "INSTALAR APP" (APK) — só Android; iPhone/iPad e o próprio app não veem**
-2582: checkApkUpdate()
-2597: updateInstallApkButton()
-2617: renderDriverPanel()
-2786: switchDriverTab()
-2801: **CHAVE PIX (guardada no campo pix_link como "chave:tipo|valor")**
-2804: parsePixKey()
-2808: normalizePixKey()
-2816: pixKeyLooksOk()
-2824: togglePixKeyFields()
-2830: updatePixKeyPlaceholder()
-2836: copyPixKey()
-2843: copyPixCode()
-2855: receiptBadge()
-2865: receiptMasterBox()
-2890: receiptAction()
-2897: confirmReceipt()
-2904: rejectReceipt()
-2913: recheckReceipt()
-2922: uploadReceipt()
-2945: switchMasterTab()
-2962: maskPhone()
-2971: waLink()
-2976: allVeh()
-2977: renderMasterPanel()
-3090: handleAddVehicle()
-3123: deleteVehicle()
-3124: cancelDeleteVehicle()
-3126: confirmDeleteVehicle()
-3144: abrirEditarVeiculo()
-3163: fecharEditarVeiculo()
-3164: salvarEditarVeiculo()
-3194: drvCauMostra()
-3201: drvCauLer()
-3208: handleAddDriver()
-3285: updateDriverPaymentStatus()
-3294: deleteDriver()
-3295: cancelDeleteDriver()
-3297: confirmDeleteDriver()
-3314: prepareFile()
-3336: uploadFile()
-3347: fileUrl()
-3358: downloadName()
-3362: renderFilePreview()
-3382: renderPdfToCanvas()
-3409: viewDoc()
-3430: **DINHEIRO**
-3431: parseMoney()
-3438: fmtMoney()
-3439: fmtDate()
-3440: todayISO()
-3442: **CONFIGURAÇÕES (Gemini e Google Drive)**
-3444: loadConfigStatus()
-3449: paintConfig()
-3454: openSettings()
-3464: closeSettings()
-3465: saveConfig()
-3475: **ASAAS (Financeiro) — chaves ficam em app_secrets; master_asaas_info mostra o que já existe**
-3476: loadAsaasInfo()
-3489: saveAsaas()
-3497: testarAsaas()
-3504: copiarAsaas()
-3508: testDrive()
-3515: resyncDrive()
-3523: **FICHA DO MOTORISTA**
-3526: openDriverFile()
-3555: closeDriverFile()
-3557: saveDriverFile()
-3605: aiFillDriver()
-3644: **CONTROLE FINANCEIRO**
-3645: finRange()
-3662: dayBR()
-3663: inRange()
-3665: onFinPeriodChange()
-3671: fillFinFilters()
-3678: clearFinFilters()
-3682: updateFinFilterCount()
-3691: openFinance()
-3696: switchFinTab()
-3706: closeFinance()
-3708: renderFinance()
-3771: **E-MAIL (a IA escreve, o dono confere e confirma; sai pela conta Google do dono)**
-3773: okEmail()
-3775: openEmailCompose()
-3796: closeEmailCompose()
-3797: sendEmailCompose()
-3812: emailRecibo()
-3817: emailIA()
-3825: **RELATÓRIO DO FINANCEIRO**
-3827: finFiltersText()
-3832: finPeriodText()
-3839: buildReportHtml()
-3861: openFinReport()
-3871: closeFinReport()
-3872: printFinReport()
-3876: shareFinReport()
-3886: emailFinReport()
-3892: **DESPESAS DO VEÍCULO**
-3894: openExpenses()
-3906: closeExpenses()
-3907: fillExpenseTypes()
-3912: createExpenseType()
-3927: aiReadExpense()
-3959: renderExpenses()
-3981: saveExpense()
-4008: deleteExpense()
-4029: photoCard()
-4058: inspectionHtml()
-4084: hydrateImages()
-4090: openInspection()
-4098: closeInspection()
-4102: renderInspectionModal()
-4109: uploadInspection()
-4140: deleteInspectionPhoto()
-4156: fmtDue()
-4162: nextDueLocal()
-4173: openNewPix()
-4202: **CAUÇÃO DO MOTORISTA**
-4203: cauOf()
-4204: **DEVOLUÇÃO DO VEÍCULO: aviso com 15 dias, no máximo 2 aluguéis depois do aviso; caução e multas não são mais cobradas**
-4205: devOf()
-4206: devCobrancas()
-4208: devPrevisao()
-4216: dfDevRender()
-4243: dfDevIr()
-4244: dfDevSalvar()
-4249: dfDevAvisar()
-4255: dfDevDesfazer()
-4259: dfDevReceber()
-4268: cauNext()
-4275: dfCauFill()
-4285: dfCauCalc()
-4302: dfCauRead()
-4315: **CAUÇÃO: quanto já foi pago**
-4317: cauStatus()
-4327: obsResumoHtml()
-4328: cauResumoHtml()
-4333: **MULTAS E OUTRAS DESPESAS**
-4334: multasOf()
-4336: multaPagaAuto()
-4341: multasAbertas()
-4342: multasPendentes()
-4343: multasResumoHtml()
-4351: cobOf()
-4352: dfCobFill()
-4358: dfCobRead()
-4361: dfCobInfo()
-4371: cobResumoHtml()
-4375: ajustesOf()
-4377: previsaoProxima()
-4390: previsaoHtml()
-4394: dfAjRender()
-4400: addAjuste()
-4406: delAjuste()
-4409: abrirAjustes()
-4410: renderProxCobrancas()
-4416: savePixExtra()
-4424: dfMultFill()
-4432: fdPaga()
-4433: dfMultRender()
-4442: toggleMultas()
-4449: addMulta()
-4457: delMulta()
-4462: multaPaga()
-4468: renderDriverExtras()
-4495: mondayAfter()
-4503: renderDriverProfileExtras()
-4551: semanaDoPix()
-4557: **MEUS RECIBOS (área do motorista)**
-4559: meusRecibosLista()
-4563: openMeusRecibos()
-4577: closeMeusRecibos()
-4578: reciboPdfHtml()
-4589: verMeuRecibo()
-4596: voltarMeusRecibos()
-4597: pdfMeuRecibo()
-4601: shareMeuRecibo()
-4608: **VALORES DA COBRANÇA: aluguel do carro + acréscimo − desconto**
-4609: editVehicleRent()
-4621: nextParcel()
-4627: fillNewPixValues()
-4663: newPixParts()
-4694: **PERÍODO E VENCIMENTO DA COBRANÇA**
-4695: dataISO()
-4696: dataDe()
-4697: dataMais()
-4698: dataBR()
-4699: diasEntre()
-4700: isoSP()
-4701: pixPeriodo()
-4708: pixDesc()
-4709: pixDiasPeriodo()
-4713: pixDatasNovo()
-4722: pixDatasMudou()
-4733: pixAluguelProporcional()
-4741: pixPeriodoInfo()
-4754: pixAddLinha()
-4761: pixLinhas()
-4763: descSoma()
-4773: calcNewPix()
-4782: **RECIBO DE PAGAMENTO**
-4786: receiptValue()
-4787: **COBRAR ATRASO: a IA escreve a mensagem de cobrança e abre na Área IA, pronta para enviar no WhatsApp**
-4788: atrasoDados()
-4795: cobrarAtraso()
-4811: allocatePix()
-4830: reciboData()
-4853: fmtDateTimeBR()
-4854: reciboTexto()
-4905: openRecibo()
-4922: closeRecibo()
-4923: **CORRIGIR RECIBO**
-4925: corrigirLinhaHtml()
-4935: openCorrigirRecibo()
-4958: closeCorrigirRecibo()
-4959: corrigirLer()
-4965: corrigirSoma()
-4972: salvarCorrigirRecibo()
-4989: copyRecibo()
-4994: reciboCanvas()
-5011: reciboPdfBlob()
-5029: shareReciboPdf()
-5043: rotularTabelas()
-5063: areaAberta()
-5064: markAreas()
-5067: closeAreas()
-5071: toggleArea()
-5081: dobraSalva()
-5082: setDobra()
-5087: toggleDobra()
-5094: dobraTopo()
-5101: renderMasterResumo()
-5115: loadIA()
-5137: updateIABadge()
-5142: loadIASetting()
-5148: paintIASwitch()
-5154: toggleIA()
-5161: loadRobo()
-5170: iaPrepararQr()
-5175: paintRobo()
-5204: pedirCodigoRobo()
-5213: toggleRobo()
-5225: iaTodosGerar()
-5243: iaTodosCancelar()
-5247: iaTodosConfirmar()
-5261: loadIARules()
-5266: iaAbrirPdf()
-5272: renderIARules()
-5276: saveIARules()
-5281: addIARule()
-5286: delIARule()
-5290: openIA()
-5303: closeIA()
-5304: iaShow()
-5305: iaPhone()
-5310: renderIA()
-5352: iaAprovar()
-5361: iaPhone2()
-5362: iaSend()
-5393: iaMark()
-5402: iaDelete()
-5411: openPixArea()
-5420: closePixArea()
-5421: renderPixArea()
-5457: openEditPix()
-5486: deletePix()
-5498: closeNewPix()
-5500: saveNewPix()
-5591: pushSupported()
-5592: isIOS()
-5593: isStandalone()
-5594: b64ToBytes()
-5600: **NOTIFICAÇÕES OBRIGATÓRIAS PARA O MOTORISTA**
-5605: notifStatus()
-5613: stepsList()
-5617: notifHelpHtml()
-5651: renderNotifModal()
-5663: checkDriverNotifications()
-5694: activateFromModal()
-5705: refreshNotifButton()
-5724: subscribePush()
-5739: enableNotifications()
-5757: closeDocViewer()
-5765: **FUNÇÕES DO MOTORISTA (o master liga e desliga em Configurações)**
-5777: allFeaturesOn()
-5778: feat()
-5779: loadDriverFeatures()
-5786: saveDriverFeatures()
-5790: drawFeatureToggles()
-5805: setAllFeatures()
-5810: applyDriverFeatures()
-5824: **PIX: conferência do código e QR code desenhado no aparelho**
-5825: crc16()
-5833: **PIX COPIA E COLA GERADO NO APARELHO (padrão BR Code do Banco Central, sem API de banco)**
-5835: pixTxt()
-5836: pixCampo()
-5837: pixGerarCodigo()
-5847: pixAutoLigado()
-5848: pixAutoMudou()
-5853: gerarPixAuto()
-5869: pixRecebedorCarregar()
-5880: pixRecebedorGuardar()
-5887: pixValid()
-5893: renderPixQr()
-5903: previewNewPixQr()
-5913: **FOTO DO MOTORISTA (recortada da CNH)**
-5914: photoPath()
-5915: fileToCanvas()
-5934: cropPhoto()
-5948: savePhoto()
-5953: photoBoxFrom()
-5959: fillAvatar()
-5970: fillAvatars()
-5983: storedFile()
-5990: photoFromCnh()
-6002: **FOTO DO PERFIL ACOMPANHA A CNH**
-6005: cnhStamp()
-6006: photoFiles()
-6014: avatarPath()
-6019: syncCnhPhotos()
-6042: pickImage()
-6045: changeDriverPhoto()
-6061: **LEITURA AUTOMÁTICA DE DOCUMENTOS (IA)**
-6063: uploadTmp()
-6070: clearTmp()
-6075: aiReadFiles()
-6081: okDateISO()
-6083: noAccents()
-6085: makeUsername()
-6094: titleCase()
-6095: syncNewDriverAccess()
-6101: setNewDriverPhoto()
-6106: pickNewDriverPhoto()
-6110: resetNewDriverForm()
-6118: newDriverDocChosen()
-6152: anoCrlv()
-6153: aiReadCrlv()
-6170: **E-MAIL E TELA COM USUÁRIO E SENHA DO MOTORISTA NOVO**
-6171: sendWelcomeEmail()
-6177: showCredentials()
-6188: demoAssistente()
-6207: **PERGUNTAR À IA (ÁREA IA, só o master)**
-6211: iaChatReset()
-6212: iaNorm()
-6213: iaAcha()
-6219: iaVeicTxt()
-6220: iaCamposVeic()
-6221: iaDataOk()
-6222: iaOpcoes()
-6223: iaTodosMotoristas()
-6227: iaFerramenta()
-6316: renderIAChat()
-6333: iaChatDica()
-6334: iaChatEnviar()
-6369: iaChatNota()
-6370: iaCancelarCartao()
-6371: iaConfirmarCartao()
-6414: **GANHOS APLICATIVO (Uber/99/inDrive) – só o master**
-6415: renderAppEarnings()
-6479: saveAppEarning()
-6504: workDayISO()
-6505: renderDayOff()
-6516: setDayOff()
-6526: aiReadEarning()
-6559: **DESPESAS DO APLICATIVO**
-6561: appExpCustomTypes()
-6562: fillAppExpTypes()
-6569: onAppExpTypeChange()
-6574: saveAppExpense()
-6598: deleteAppExpense()
-6605: deleteAppEarning()
-6700: loadTermsAcceptances()
-6712: termsOf()
-6713: currentAcceptance()
-6714: needsTermsAcceptance()
-6717: fmtDateTime()
-6720: termsPlainText()
-6724: termsHash()
-6732: openTermsGate()
-6755: termsGateCheck()
-6763: acceptTerms()
-6783: acceptanceHtml()
-6794: openTermsViewer()
-6812: closeTerms()
-6818: downloadTermsCopy()
-6839: termsBadgeMaster()
-6846: termsMasterDetail()
-6887: renderTermsSetupBanner()
-6900: copyTermsSql()
-6910: cnhExpired()
-6911: cnhWaiting()
-6912: onlyDigits()
-6913: normName()
-6915: verifyCnh()
-6927: renderCnhBanner()
-6945: sendNewCnh()
-6993: cnhBadgeMaster()
-7001: applyPendingCnh()
-7009: autoReadNewCnhs()
-7027: cnhPendingHtml()
-7041: recheckPendingCnh()
-7051: rejectPendingCnh()
-7061: showContractDoc()
+157: <!-- Sistema de design do MOTORA: cores, tipografia e componentes -->
+162: <!-- Header Principal -->
+176: <!-- Controles do Header -->
+178: <!-- Botão Status Online/Offline (Motorista) -->
+186: <!-- Ativar Notificações -->
+191: <!-- Temas -->
+196: <!-- Logout Button -->
+205: <!-- Conteúdo Principal -->
+208: <!-- TELA DE LOGIN -->
+209: #secLogin
+242: <!-- ESCOLHA DA DEMONSTRAÇÃO (login teste / teste) -->
+243: #secDemoEscolha
+258: <!-- PAINEL DO MOTORISTA -->
+259: #secDriverPanel
+261: <!-- Card do Veículo Vinculado -->
+276: <!-- Renderizado via JS: Status "Em dia" ou "Em atraso" -->
+286: <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
+291: <!-- Aviso: nova versão do app Android -->
+294: <!-- Aviso vermelho: notificações desligadas -->
+297: <!-- Aviso vermelho: CNH vencida (com botão para enviar a nova) -->
+301: <!-- Aviso de Pix / pagamento pendente -->
+304: <!-- Navegação de Abas -->
+322: <!-- Conteúdo das Abas Motorista -->
+325: <!-- Aba CRLV-e -->
+326: #tabDrvCrlv
+331: <!-- Renderizado dinamicamente -->
+335: <!-- Aba Contrato -->
+336: #tabDrvContract
+346: <!-- Renderizado dinamicamente -->
+350: <!-- Aba Vistoria -->
+351: #tabDrvInspection
+358: <!-- Aba Pagamento -->
+359: #tabDrvPayment
+372: <!-- Caução e multas do motorista -->
+374: <!-- Valor e descrição da cobrança -->
+384: <!-- Seção Pix -->
+397: <!-- QR Code Renderizado aqui -->
+422: <!-- Seção Upload de Comprovante -->
+439: <!-- Lista de comprovantes -->
+449: <!-- PAINEL MASTER (ADMINISTRAÇÃO) -->
+450: #secMasterPanel
+484: <!-- Aviso: falta criar a tabela dos termos no banco -->
+487: <!-- SUB-ABA: GESTÃO DE VEÍCULOS -->
+489: <!-- Lista de Veículos -->
+505: <!-- Renderizado via JS -->
+512: <!-- Form de Adicionar Veículo -->
+546: <!-- SUB-ABA: GESTÃO DE MOTORISTAS -->
+552: <!-- Lista de Motoristas -->
+569: <!-- Renderizado via JS -->
+576: <!-- Form de Adicionar Motorista -->
+671: <!-- Barra de baixo do dono (só no design novo) -->
+681: <!-- MODAL PRIMEIRO LOGIN -->
+682: #modalFirstLogin
+716: <!-- MODAL OBRIGATÓRIO: ATIVAR NOTIFICAÇÕES (MOTORISTA) -->
+717: #modalNotif
+730: <!-- MODAL VISTORIA (MASTER) -->
+731: #modalInspection
+744: <!-- MODAL CONFIGURAÇÕES (MASTER) -->
+745: #modalSettings
+804: <!-- MODAL TEMAS -->
+805: #modalThemes
+816: <!-- MODAL DADOS DE ACESSO DO MOTORISTA NOVO -->
+817: #modalCreds
+832: <!-- MODAL FICHA DO MOTORISTA (MASTER) -->
+833: #modalDriverFile
+897: <!-- CAUÇÃO do motorista (guardada em profiles.pix_extra.caucao) -->
+912: <!-- MULTAS E OUTRAS DESPESAS a pagar pelo motorista (profiles.pix_extra.multas) -->
+954: <!-- MODAL CONTROLE FINANCEIRO (MASTER) -->
+955: <!-- RECIBO DE PAGAMENTO (MASTER -> motorista pelo WhatsApp) -->
+956: #modalRecibo
+975: <!-- ÁREA DO PIX (MASTER): escolhe o motorista e envia, edita ou exclui o Pix -->
+976: #modalPixArea
+992: <!-- ÁREA IA (MASTER): mensagens de WhatsApp prontas para cada aviso enviado ao motorista -->
+993: #modalIA
+1075: <!-- MEUS RECIBOS (motorista): todos os recibos pagos, cada um em PDF -->
+1076: <!-- TROCAR MINHA SENHA (motorista e dono) -->
+1077: #modalEditVeh
+1096: #modalSenha
+1118: #modalMeusRecibos
+1136: <!-- E-MAIL: a IA escreve, o dono confere e só então envia (sai pela conta Google do dono) -->
+1137: #modalEmail
+1157: <!-- RELATÓRIO DO FINANCEIRO (segue o período e os filtros escolhidos) -->
+1158: #modalReport
+1173: #modalFinance
+1226: <!-- FILTROS -->
+1275: <!-- DESPESAS DO APLICATIVO (gasolina, alimentação...) -->
+1295: <!-- MODAL DESPESAS DO VEÍCULO (MASTER) -->
+1296: #modalExpenses
+1331: <!-- MODAL NOVO PIX -->
+1332: #modalNewPix
+1384: <!-- VALORES DA COBRANÇA: aluguel do carro (automático) + acréscimo − desconto -->
+1442: <!-- CORRIGIR RECIBO: muda só o texto e o período; valor e comprovante não mudam -->
+1443: #modalCorrigirRecibo
+1457: <!-- MODAL VISUALIZADOR DE DOCUMENTOS/COMPROVANTES -->
+1458: #modalDocViewer
+1466: #modalDocBody
+1467: <!-- Conteúdo pré-visualizado -->
+1473: #modalTerms
+1487: <!-- NOTIFICAÇÕES TOAST -->
+1504: lsGet()
+1505: lsSet()
+1506: lsDel()
+1529: demoLoginRole()
+1533: demoId()
+1534: demoSave()
+1535: demoSaved()
+1537: *datas no horário de Brasília*
+1538: demoLocal()
+1539: demoParts()
+1540: demoDay()
+1541: demoNextDue()
+1546: *dados fictícios (4 meses)*
+1547: demoBuild()
+1690: *documentos fictícios (imagem gerada na hora)*
+1691: *documentos e fotos fictícios (desenhados na hora; campos com AAAA/0000 e tarja "NÃO É REAL")*
+1692: demoDocBlob()
+1770: *"banco de dados" na memória, com a mesma forma de uso do Supabase*
+1771: demoQuery()
+1794: out()
+1800: run()
+1841: demoOnUpdate()
+1851: demoOnInsert()
+1918: demoClient()
+1983: demoStart()
+1991: demoStop()
+1997: abrirDemo()
+2004: trocarDemo()
+2009: demoBanner()
+2024: toEmail()
+2028: showLogin()
+2032: esc()
+2036: friendlyError()
+2046: devicePrefs()
+2049: saveDevicePrefs()
+2052: docRef()
+2053: viewDocIdx()
+2055: setBusy()
+2093: **TEMAS**
+2102: currentTheme()
+2107: applyTheme()
+2108: openThemes()
+2118: pickTheme()
+2124: toggleDarkMode()
+2126: **DESIGN NOVO / ANTIGO (escolhido pelo dono; o dos motoristas fica no banco e vale para todos)**
+2128: loadDesignCfg()
+2135: applyDesign()
+2152: markMasterNav()
+2157: fillDesignCfg()
+2162: saveDesign()
+2176: showToast()
+2185: **TROCAR MINHA SENHA (o motorista troca a senha padrão por uma só dele)**
+2186: senhaErro()
+2187: abrirSenha()
+2196: salvarIaCodigo()
+2206: fecharSenha()
+2207: salvarSenha()
+2228: loginUserInput()
+2233: loginErro()
+2237: verSenha()
+2242: handleLogin()
+2291: logout()
+2310: saveFirstLoginPreferences()
+2332: loadAndRender()
+2386: autoRefresh()
+2425: markUpdated()
+2430: reload()
+2435: renderApp()
+2483: **MASTER ENTRA NA CONTA REAL DO MOTORISTA (sem a senha dele)**
+2486: masterBack()
+2488: viewAsDriver()
+2510: exitViewAs()
+2529: viewOnly()
+2530: renderViewAsBanner()
+2540: showSection()
+2546: toggleDriverStatus()
+2555: isOnline()
+2557: updateStatusToggleUI()
+2570: **BOTÃO "INSTALAR APP" (APK) — só Android; iPhone/iPad e o próprio app não veem**
+2579: checkApkUpdate()
+2594: updateInstallApkButton()
+2614: renderDriverPanel()
+2783: switchDriverTab()
+2798: **CHAVE PIX (guardada no campo pix_link como "chave:tipo|valor")**
+2801: parsePixKey()
+2805: normalizePixKey()
+2813: pixKeyLooksOk()
+2821: togglePixKeyFields()
+2827: updatePixKeyPlaceholder()
+2833: copyPixKey()
+2840: copyPixCode()
+2852: receiptBadge()
+2862: receiptMasterBox()
+2887: receiptAction()
+2894: confirmReceipt()
+2901: rejectReceipt()
+2910: recheckReceipt()
+2919: uploadReceipt()
+2942: switchMasterTab()
+2959: maskPhone()
+2968: waLink()
+2973: allVeh()
+2974: renderMasterPanel()
+3087: handleAddVehicle()
+3120: deleteVehicle()
+3121: cancelDeleteVehicle()
+3123: confirmDeleteVehicle()
+3141: abrirEditarVeiculo()
+3160: fecharEditarVeiculo()
+3161: salvarEditarVeiculo()
+3191: drvCauMostra()
+3198: drvCauLer()
+3205: handleAddDriver()
+3282: updateDriverPaymentStatus()
+3291: deleteDriver()
+3292: cancelDeleteDriver()
+3294: confirmDeleteDriver()
+3311: prepareFile()
+3333: uploadFile()
+3344: fileUrl()
+3355: downloadName()
+3359: renderFilePreview()
+3379: renderPdfToCanvas()
+3406: viewDoc()
+3427: **DINHEIRO**
+3428: parseMoney()
+3435: fmtMoney()
+3436: fmtDate()
+3437: todayISO()
+3439: **CONFIGURAÇÕES (Gemini e Google Drive)**
+3441: loadConfigStatus()
+3446: paintConfig()
+3451: openSettings()
+3461: closeSettings()
+3462: saveConfig()
+3472: **ASAAS (Financeiro) — chaves ficam em app_secrets; master_asaas_info mostra o que já existe**
+3473: loadAsaasInfo()
+3486: saveAsaas()
+3494: testarAsaas()
+3501: copiarAsaas()
+3505: testDrive()
+3512: resyncDrive()
+3520: **FICHA DO MOTORISTA**
+3523: openDriverFile()
+3552: closeDriverFile()
+3554: saveDriverFile()
+3602: aiFillDriver()
+3641: **CONTROLE FINANCEIRO**
+3642: finRange()
+3659: dayBR()
+3660: inRange()
+3662: onFinPeriodChange()
+3668: fillFinFilters()
+3675: clearFinFilters()
+3679: updateFinFilterCount()
+3688: openFinance()
+3693: switchFinTab()
+3703: closeFinance()
+3705: renderFinance()
+3770: renderFinGrafico()
+3790: **E-MAIL (a IA escreve, o dono confere e confirma; sai pela conta Google do dono)**
+3792: okEmail()
+3794: openEmailCompose()
+3815: closeEmailCompose()
+3816: sendEmailCompose()
+3831: emailRecibo()
+3836: emailIA()
+3844: **RELATÓRIO DO FINANCEIRO**
+3846: finFiltersText()
+3851: finPeriodText()
+3858: buildReportHtml()
+3880: openFinReport()
+3890: closeFinReport()
+3891: printFinReport()
+3895: shareFinReport()
+3905: emailFinReport()
+3911: **DESPESAS DO VEÍCULO**
+3913: openExpenses()
+3925: closeExpenses()
+3926: fillExpenseTypes()
+3931: createExpenseType()
+3946: aiReadExpense()
+3978: renderExpenses()
+4000: saveExpense()
+4027: deleteExpense()
+4048: photoCard()
+4077: inspectionHtml()
+4103: hydrateImages()
+4109: openInspection()
+4117: closeInspection()
+4121: renderInspectionModal()
+4128: uploadInspection()
+4159: deleteInspectionPhoto()
+4175: fmtDue()
+4181: nextDueLocal()
+4192: openNewPix()
+4221: **CAUÇÃO DO MOTORISTA**
+4222: cauOf()
+4223: **DEVOLUÇÃO DO VEÍCULO: aviso com 15 dias, no máximo 2 aluguéis depois do aviso; caução e multas não são mais cobradas**
+4224: devOf()
+4225: devCobrancas()
+4227: devPrevisao()
+4235: dfDevRender()
+4262: dfDevIr()
+4263: dfDevSalvar()
+4268: dfDevAvisar()
+4274: dfDevDesfazer()
+4278: dfDevReceber()
+4287: cauNext()
+4294: dfCauFill()
+4304: dfCauCalc()
+4321: dfCauRead()
+4334: **CAUÇÃO: quanto já foi pago**
+4336: cauStatus()
+4346: obsResumoHtml()
+4347: cauResumoHtml()
+4352: **MULTAS E OUTRAS DESPESAS**
+4353: multasOf()
+4355: multaPagaAuto()
+4360: multasAbertas()
+4361: multasPendentes()
+4362: multasResumoHtml()
+4370: cobOf()
+4371: dfCobFill()
+4377: dfCobRead()
+4380: dfCobInfo()
+4390: cobResumoHtml()
+4394: ajustesOf()
+4396: previsaoProxima()
+4409: previsaoHtml()
+4413: dfAjRender()
+4419: addAjuste()
+4425: delAjuste()
+4428: abrirAjustes()
+4429: renderProxCobrancas()
+4435: savePixExtra()
+4443: dfMultFill()
+4451: fdPaga()
+4452: dfMultRender()
+4461: toggleMultas()
+4468: addMulta()
+4476: delMulta()
+4481: multaPaga()
+4487: renderDriverExtras()
+4514: mondayAfter()
+4522: renderDriverProfileExtras()
+4570: semanaDoPix()
+4576: **MEUS RECIBOS (área do motorista)**
+4578: meusRecibosLista()
+4582: openMeusRecibos()
+4596: closeMeusRecibos()
+4597: reciboPdfHtml()
+4608: verMeuRecibo()
+4615: voltarMeusRecibos()
+4616: pdfMeuRecibo()
+4620: shareMeuRecibo()
+4627: **VALORES DA COBRANÇA: aluguel do carro + acréscimo − desconto**
+4628: editVehicleRent()
+4640: nextParcel()
+4646: fillNewPixValues()
+4682: newPixParts()
+4713: **PERÍODO E VENCIMENTO DA COBRANÇA**
+4714: dataISO()
+4715: dataDe()
+4716: dataMais()
+4717: dataBR()
+4718: diasEntre()
+4719: isoSP()
+4720: pixPeriodo()
+4727: pixDesc()
+4728: pixDiasPeriodo()
+4732: pixDatasNovo()
+4741: pixDatasMudou()
+4752: pixAluguelProporcional()
+4760: pixPeriodoInfo()
+4773: pixAddLinha()
+4780: pixLinhas()
+4782: descSoma()
+4792: calcNewPix()
+4801: **RECIBO DE PAGAMENTO**
+4805: receiptValue()
+4806: **COBRAR ATRASO: a IA escreve a mensagem de cobrança e abre na Área IA, pronta para enviar no WhatsApp**
+4807: atrasoDados()
+4814: cobrarAtraso()
+4830: allocatePix()
+4849: reciboData()
+4872: fmtDateTimeBR()
+4873: reciboTexto()
+4924: openRecibo()
+4941: closeRecibo()
+4942: **CORRIGIR RECIBO**
+4944: corrigirLinhaHtml()
+4954: openCorrigirRecibo()
+4977: closeCorrigirRecibo()
+4978: corrigirLer()
+4984: corrigirSoma()
+4991: salvarCorrigirRecibo()
+5008: copyRecibo()
+5013: reciboCanvas()
+5030: reciboPdfBlob()
+5048: shareReciboPdf()
+5062: rotularTabelas()
+5082: areaAberta()
+5083: markAreas()
+5086: closeAreas()
+5090: toggleArea()
+5100: dobraSalva()
+5101: setDobra()
+5106: toggleDobra()
+5113: dobraTopo()
+5120: renderMasterResumo()
+5134: renderMasterTopo()
+5156: loadIA()
+5178: updateIABadge()
+5183: loadIASetting()
+5189: paintIASwitch()
+5195: toggleIA()
+5202: loadRobo()
+5211: iaPrepararQr()
+5216: paintRobo()
+5245: pedirCodigoRobo()
+5254: toggleRobo()
+5266: iaTodosGerar()
+5284: iaTodosCancelar()
+5288: iaTodosConfirmar()
+5302: loadIARules()
+5307: iaAbrirPdf()
+5313: renderIARules()
+5317: saveIARules()
+5322: addIARule()
+5327: delIARule()
+5331: openIA()
+5344: closeIA()
+5345: iaShow()
+5346: iaPhone()
+5351: renderIA()
+5393: iaAprovar()
+5402: iaPhone2()
+5403: iaSend()
+5434: iaMark()
+5443: iaDelete()
+5452: openPixArea()
+5461: closePixArea()
+5462: renderPixArea()
+5498: openEditPix()
+5527: deletePix()
+5539: closeNewPix()
+5541: saveNewPix()
+5632: pushSupported()
+5633: isIOS()
+5634: isStandalone()
+5635: b64ToBytes()
+5641: **NOTIFICAÇÕES OBRIGATÓRIAS PARA O MOTORISTA**
+5646: notifStatus()
+5654: stepsList()
+5658: notifHelpHtml()
+5692: renderNotifModal()
+5704: checkDriverNotifications()
+5735: activateFromModal()
+5746: refreshNotifButton()
+5765: subscribePush()
+5780: enableNotifications()
+5798: closeDocViewer()
+5806: **FUNÇÕES DO MOTORISTA (o master liga e desliga em Configurações)**
+5818: allFeaturesOn()
+5819: feat()
+5820: loadDriverFeatures()
+5827: saveDriverFeatures()
+5831: drawFeatureToggles()
+5846: setAllFeatures()
+5851: applyDriverFeatures()
+5865: **PIX: conferência do código e QR code desenhado no aparelho**
+5866: crc16()
+5874: **PIX COPIA E COLA GERADO NO APARELHO (padrão BR Code do Banco Central, sem API de banco)**
+5876: pixTxt()
+5877: pixCampo()
+5878: pixGerarCodigo()
+5888: pixAutoLigado()
+5889: pixAutoMudou()
+5894: gerarPixAuto()
+5910: pixRecebedorCarregar()
+5921: pixRecebedorGuardar()
+5928: pixValid()
+5934: renderPixQr()
+5944: previewNewPixQr()
+5954: **FOTO DO MOTORISTA (recortada da CNH)**
+5955: photoPath()
+5956: fileToCanvas()
+5975: cropPhoto()
+5989: savePhoto()
+5994: photoBoxFrom()
+6000: fillAvatar()
+6011: fillAvatars()
+6024: storedFile()
+6031: photoFromCnh()
+6043: **FOTO DO PERFIL ACOMPANHA A CNH**
+6046: cnhStamp()
+6047: photoFiles()
+6055: avatarPath()
+6060: syncCnhPhotos()
+6083: pickImage()
+6086: changeDriverPhoto()
+6102: **LEITURA AUTOMÁTICA DE DOCUMENTOS (IA)**
+6104: uploadTmp()
+6111: clearTmp()
+6116: aiReadFiles()
+6122: okDateISO()
+6124: noAccents()
+6126: makeUsername()
+6135: titleCase()
+6136: syncNewDriverAccess()
+6142: setNewDriverPhoto()
+6147: pickNewDriverPhoto()
+6151: resetNewDriverForm()
+6159: newDriverDocChosen()
+6193: anoCrlv()
+6194: aiReadCrlv()
+6211: **E-MAIL E TELA COM USUÁRIO E SENHA DO MOTORISTA NOVO**
+6212: sendWelcomeEmail()
+6218: showCredentials()
+6229: demoAssistente()
+6248: **PERGUNTAR À IA (ÁREA IA, só o master)**
+6252: iaChatReset()
+6253: iaNorm()
+6254: iaAcha()
+6260: iaVeicTxt()
+6261: iaCamposVeic()
+6262: iaDataOk()
+6263: iaOpcoes()
+6264: iaTodosMotoristas()
+6268: iaFerramenta()
+6357: renderIAChat()
+6374: iaChatDica()
+6375: iaChatEnviar()
+6410: iaChatNota()
+6411: iaCancelarCartao()
+6412: iaConfirmarCartao()
+6455: **GANHOS APLICATIVO (Uber/99/inDrive) – só o master**
+6456: renderAppEarnings()
+6520: saveAppEarning()
+6545: workDayISO()
+6546: renderDayOff()
+6557: setDayOff()
+6567: aiReadEarning()
+6600: **DESPESAS DO APLICATIVO**
+6602: appExpCustomTypes()
+6603: fillAppExpTypes()
+6610: onAppExpTypeChange()
+6615: saveAppExpense()
+6639: deleteAppExpense()
+6646: deleteAppEarning()
+6741: loadTermsAcceptances()
+6753: termsOf()
+6754: currentAcceptance()
+6755: needsTermsAcceptance()
+6758: fmtDateTime()
+6761: termsPlainText()
+6765: termsHash()
+6773: openTermsGate()
+6796: termsGateCheck()
+6804: acceptTerms()
+6824: acceptanceHtml()
+6835: openTermsViewer()
+6853: closeTerms()
+6859: downloadTermsCopy()
+6880: termsBadgeMaster()
+6887: termsMasterDetail()
+6928: renderTermsSetupBanner()
+6941: copyTermsSql()
+6951: cnhExpired()
+6952: cnhWaiting()
+6953: onlyDigits()
+6954: normName()
+6956: verifyCnh()
+6968: renderCnhBanner()
+6986: sendNewCnh()
+7034: cnhBadgeMaster()
+7042: applyPendingCnh()
+7050: autoReadNewCnhs()
+7068: cnhPendingHtml()
+7082: recheckPendingCnh()
+7092: rejectPendingCnh()
+7102: showContractDoc()
 
 ## sw.js (61 linhas)
 

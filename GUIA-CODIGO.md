@@ -20,7 +20,7 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 | Trocar minha senha | seção "TROCAR MINHA SENHA", `#modalSenha` |
 | Modo demonstração (dados fictícios) | `demoBuild` (dados), `demoClient` (banco falso), `demoDocBlob` (documentos desenhados), `abrirDemo`, `trocarDemo`, `demoBanner`, `#secDemoEscolha`, `demoAssistente` (IA falsa) |
 | Carregar dados do banco | `reload` |
-| Tema e design novo/antigo | seções "TEMAS" e "DESIGN NOVO / ANTIGO", `#modalThemes` |
+| Visual, temas e aparência | `design-premium.css` (variáveis no topo); `applyDesign`, `fillDesignCfg`, `saveDesign` |
 | Painel do dono (abas, barra de baixo) | `#secMasterPanel`, `switchMasterTab`, `toggleArea` |
 | Painel do motorista (abas CRLV-e, Contrato, Pagamento, Vistoria) | `#secDriverPanel`, `renderDriverPanel`, `switchDriverTab`, `renderDriverExtras`, `renderDriverProfileExtras` (caução/próxima semana) |
 | Funções do motorista ligadas/desligadas | seção "FUNÇÕES DO MOTORISTA" |

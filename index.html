@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark notranslate" translate="no">
+<html lang="pt-BR" class="dark notranslate" translate="no" data-skin="motora" data-design="novo" data-theme="tnd">
 <head>
     <meta charset="UTF-8">
     <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#1f2937">
+    <meta name="theme-color" content="#13171e">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -154,6 +154,8 @@
             body, main { overflow-x: hidden; }
         }
     </style>
+    <!-- Sistema de design do MOTORA: cores, tipografia e componentes -->
+    <link rel="stylesheet" href="design-premium.css">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
 
@@ -448,10 +450,11 @@
         <section id="secMasterPanel" class="hidden space-y-6">
             <div class="masterTopo flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div>
-                    <h2 class="text-xl font-bold">Painel do dono</h2>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Cobranças, motoristas e carros</p>
+                    <h2 id="masterSaudacao" class="text-xl font-bold">Painel do dono</h2>
+                    <p id="masterData" class="text-sm text-gray-500 dark:text-gray-400">Cobranças, motoristas e carros</p>
                 </div>
                 <div id="masterResumo" class="grid grid-cols-4 gap-2 sm:max-w-md w-full"></div>
+                <div id="masterSituacao"></div>
                 <div class="masterAbas flex gap-2 border-b sm:border-b-0 border-gray-200 dark:border-gray-700 pb-2 sm:pb-0">
                     <button onclick="closeAreas();switchMasterTab('drivers')" id="tabMasterDrivers" class="px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm">
                         <i class="fa-solid fa-users mr-1"></i> Motoristas
@@ -753,12 +756,12 @@
             <button type="button" onclick="abrirSenha()" class="w-full py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
             <div class="space-y-2">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-brush text-blue-500 mr-1"></i> Aparência do app</h4>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Escolha o visual de cada um. O dos motoristas vale para todos os motoristas.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Escolha o tema de cada um. O dos motoristas vale para todos os motoristas.</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Painel do dono</label>
-                        <select id="cfgDesignMaster" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="novo">Design novo</option><option value="antigo">Design antigo</option></select></div>
+                        <select id="cfgDesignMaster" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="escuro">Escuro (grafite)</option><option value="claro">Claro</option><option value="auto">Seguir o celular</option></select></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">App dos motoristas</label>
-                        <select id="cfgDesignDriver" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="novo">Design novo</option><option value="antigo">Design antigo</option></select></div>
+                        <select id="cfgDesignDriver" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="escuro">Escuro (grafite)</option><option value="claro">Claro</option><option value="auto">Seguir o celular</option></select></div>
                 </div>
                 <button onclick="saveDesign(this)" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm">Salvar aparência</button>
             </div>
@@ -1239,6 +1242,7 @@
                 <button type="button" onclick="openFinReport()" class="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-file-lines mr-1"></i> Gerar relatório</button>
                 <div id="finRentBox" class="space-y-5">
                 <div id="finCards" class="grid grid-cols-2 gap-3"></div>
+                <div id="finGrafico"></div>
                 <div>
                     <h4 class="font-semibold text-sm mb-2"><i class="fa-solid fa-car mr-1 text-blue-500"></i> Por veículo</h4>
                     <div id="finVehicles"></div>
@@ -2100,13 +2104,7 @@
             if (THEMES.some(x => x.id === t)) return t;
             return lsGet('theme') === 'light' ? 't2' : 't1'; // quem usava o modo claro antigo vai para o Claro Profissional
         }
-        function applyTheme(id) {
-            const t = THEMES.find(x => x.id === id) || THEMES[0];
-            document.documentElement.dataset.theme = t.id;
-            document.documentElement.classList.toggle('dark', t.dark);
-            const meta = document.querySelector('meta[name="theme-color"]');
-            if (meta) meta.content = t.id === 't1' ? '#1f2937' : (getComputedStyle(document.documentElement).getPropertyValue('--bar').trim() || t.c[0]);
-        }
+        function applyTheme() { applyDesign(); }
         function openThemes() {
             const now = currentTheme();
             document.getElementById('themeList').innerHTML = THEMES.map(t => `
@@ -2126,31 +2124,29 @@
         function toggleDarkMode() { openThemes(); }
 
         // ===== DESIGN NOVO / ANTIGO (escolhido pelo dono; o dos motoristas fica no banco e vale para todos) =====
-        let designCfg = { master: 'novo', motorista: 'antigo' };
+        let designCfg = { master: 'escuro', motorista: 'escuro' };
         async function loadDesignCfg() {
             try {
                 const { data } = await sb.from('app_settings').select('value').eq('key', 'design').maybeSingle();
-                designCfg = { master: 'novo', motorista: 'antigo', ...((data && data.value) || {}) };
+                designCfg = { master: 'escuro', motorista: 'escuro', ...((data && data.value) || {}) };
             } catch (e) {}
             return designCfg;
         }
         function applyDesign() {
             const role = state.profile ? state.profile.role : null;
-            const which = !role ? (lsGet('motora_design_last') || 'antigo') : (role === 'master' ? designCfg.master : designCfg.motorista);
-            const novo = which === 'novo';
+            const which = !role ? lsGet('motora_design_last') : (role === 'master' ? designCfg.master : designCfg.motorista);
+            const pref = which === 'claro' || which === 'auto' ? which : 'escuro'; // valores antigos (novo/antigo) viram escuro
             const root = document.documentElement;
-            root.dataset.design = novo ? 'novo' : 'antigo';
-            if (role) lsSet('motora_design_last', novo ? 'novo' : 'antigo');
-            if (novo) {
-                const dark = !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
-                root.dataset.theme = dark ? 'tnd' : 'tn';
-                root.classList.toggle('dark', dark);
-                const meta = document.querySelector('meta[name="theme-color"]');
-                if (meta) meta.content = dark ? '#1f1f23' : '#ffffff';
-            } else applyTheme(currentTheme());
-            const showM = novo && role === 'master';
+            root.dataset.design = 'novo';
+            if (role) lsSet('motora_design_last', pref);
+            const dark = pref === 'escuro' || (pref === 'auto' && !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches));
+            root.dataset.theme = dark ? 'tnd' : 'tn';
+            root.classList.toggle('dark', dark);
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = dark ? '#13171e' : '#ffffff';
+            const showM = role === 'master';
             document.getElementById('masterNav').classList.toggle('ativo', showM);
-            document.body.classList.toggle('com-nav', novo && !!role);
+            document.body.classList.toggle('com-nav', !!role);
             if (showM) markMasterNav();
         }
         function markMasterNav() {
@@ -2159,8 +2155,9 @@
             document.getElementById('mnDrv').classList.toggle('atual', !v);
         }
         function fillDesignCfg() {
-            document.getElementById('cfgDesignMaster').value = designCfg.master === 'antigo' ? 'antigo' : 'novo';
-            document.getElementById('cfgDesignDriver').value = designCfg.motorista === 'novo' ? 'novo' : 'antigo';
+            const v = x => (x === 'claro' || x === 'auto') ? x : 'escuro';
+            document.getElementById('cfgDesignMaster').value = v(designCfg.master);
+            document.getElementById('cfgDesignDriver').value = v(designCfg.motorista);
         }
         async function saveDesign(btn) {
             const value = { master: document.getElementById('cfgDesignMaster').value, motorista: document.getElementById('cfgDesignDriver').value };
@@ -2170,11 +2167,11 @@
                 if (error) throw error;
                 designCfg = value;
                 applyDesign();
-                showToast('Aparência salva! Motoristas: design ' + (value.motorista === 'novo' ? 'novo' : 'antigo') + '.');
+                showToast('Aparência salva!');
             } catch (e) { showToast(friendlyError(e), 'error'); }
             finally { if (btn) btn.disabled = false; }
         }
-        if (window.matchMedia) try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (document.documentElement.dataset.design === 'novo') applyDesign(); }); } catch (e) {}
+        if (window.matchMedia) try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { applyDesign(); }); } catch (e) {}
 
         function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
@@ -3752,6 +3749,7 @@
                 .filter(x => x.rec || x.pen);
             const dRows = dData.map(x => row([esc(x.d.name), fmtMoney(x.rec), x.pen ? `<span class="text-amber-600 font-semibold">${fmtMoney(x.pen)}</span>` : fmtMoney(0)]));
             document.getElementById('finDrivers').innerHTML = table(['Motorista', 'Recebido', 'Em aberto'], dRows);
+            renderFinGrafico(paid, exps, dData);
             // dados guardados para o botão "Gerar relatório"
             const dName = id => (state.drivers.find(d => d.id === id) || {}).name || 'Motorista';
             const vName = id => { const v = allVeh().find(x => x.id === id); return v ? `${v.model} (${v.plate})` : '-'; };
@@ -3766,6 +3764,27 @@
                     { titulo: 'Despesas dos veículos', head: ['Data', 'Veículo / tipo', 'Valor'], rows: exps.slice().sort((a, b) => String(a.expense_date).localeCompare(String(b.expense_date))).map(x => [fmtDate(x.expense_date), `${vName(x.vehicle_id)} · ${tName(x.type_id)}${x.description ? ' · ' + x.description : ''}`, fmtMoney(x.amount)]) },
                 ],
             };
+        }
+
+        // Gráficos do Financeiro: usam os mesmos números dos cartões e tabelas
+        function renderFinGrafico(paid, exps, dData) {
+            const box = document.getElementById('finGrafico'); if (!box) return;
+            const entradas = paid.map(p => ({ day: String(p.day), rec: Number(p.amount) || 0, sp: 0 })).concat(exps.map(x => ({ day: String(dayBR(x.expense_date)), rec: 0, sp: Number(x.amount) || 0 })));
+            if (!entradas.length) { box.innerHTML = ''; return; }
+            const dias = entradas.map(e => e.day).sort(), ms = s => new Date(s + 'T12:00:00').getTime();
+            const porMes = (ms(dias[dias.length - 1]) - ms(dias[0])) / 86400000 > 70, grupos = {};
+            entradas.forEach(e => {
+                let k = e.day.slice(0, 7);
+                if (!porMes) { const t = new Date(e.day + 'T12:00:00'); t.setDate(t.getDate() - ((t.getDay() + 6) % 7)); k = t.toLocaleDateString('sv-SE'); }
+                const g = grupos[k] = grupos[k] || { rec: 0, sp: 0 }; g.rec += e.rec; g.sp += e.sp;
+            });
+            const chaves = Object.keys(grupos).sort().slice(-8);
+            const maior = Math.max(1, ...chaves.map(k => Math.max(grupos[k].rec, grupos[k].sp)));
+            const rotulo = k => porMes ? new Date(k + '-15T12:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '') : k.slice(8) + '/' + k.slice(5, 7);
+            const cols = chaves.map(k => `<div class="graf-col"><div class="graf-par"><i style="height:${grupos[k].rec / maior * 100}%;background:var(--accent)"></i><i style="height:${grupos[k].sp / maior * 100}%;background:var(--faint)"></i></div><span>${rotulo(k)}</span></div>`).join('');
+            const ranking = dData.filter(x => x.rec > 0).sort((a, b) => b.rec - a.rec).slice(0, 6), topo = ranking.length ? ranking[0].rec : 1;
+            box.innerHTML = `<div class="graf"><h4>Entradas e saídas ${porMes ? 'por mês' : 'por semana'}</h4><div class="graf-colunas">${cols}</div><div class="graf-legenda"><span><em style="background:var(--accent)"></em>Recebido</span><span><em style="background:var(--faint)"></em>Despesas</span></div></div>`
+                + (ranking.length ? `<div class="graf"><h4>Recebimentos por motorista</h4>${ranking.map(x => `<div class="graf-linha"><span>${esc(x.d.name)}</span><span>${fmtMoney(x.rec)}</span><div class="graf-trilho"><i style="width:${x.rec / topo * 100}%"></i></div></div>`).join('')}</div>` : '');
         }
 
         // ===== E-MAIL (a IA escreve, o dono confere e confirma; sai pela conta Google do dono) =====
@@ -5102,12 +5121,34 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const box = document.getElementById('masterResumo'); if (!box) return;
             const atraso = state.drivers.filter(d => d.payment_status === 'Em atraso').length;
             const zap = iaRows.filter(r => r.status === 'pendente' || r.status === 'aprovar').length;
-            const item = (n, txt, cor, acao) => `<button type="button" onclick="${acao}" class="p-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-center"><span class="block text-lg font-bold ${cor}">${n}</span><span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400">${txt}</span></button>`;
+            const item = (n, txt, tipo, icone, acao) => `<button type="button" onclick="${acao}" class="kpi ${tipo}"><i class="fa-solid ${icone}"></i><span><b>${n}</b><small>${txt}</small></span></button>`;
             renderProxCobrancas();
-            box.innerHTML = item(state.drivers.length, 'Motoristas', '', "closeAreas();switchMasterTab('drivers');markMasterNav()")
-                + item(state.vehicles.length, 'Veículos', '', "closeAreas();switchMasterTab('vehicles');markMasterNav()")
-                + item(atraso, 'Em atraso', atraso ? 'text-red-600' : 'text-emerald-600', "closeAreas();switchMasterTab('drivers');markMasterNav()")
-                + item(zap, 'WhatsApp a enviar', zap ? 'text-green-600' : '', "toggleArea('ia')");
+            box.innerHTML = item(state.drivers.length, 'Motoristas', '', 'fa-users', "closeAreas();switchMasterTab('drivers');markMasterNav()")
+                + item(state.vehicles.length, 'Veículos', '', 'fa-car', "closeAreas();switchMasterTab('vehicles');markMasterNav()")
+                + item(atraso, 'Em atraso', atraso ? 'alerta' : 'ok', atraso ? 'fa-triangle-exclamation' : 'fa-circle-check', "closeAreas();switchMasterTab('drivers');markMasterNav()")
+                + item(zap, 'WhatsApp a enviar', zap ? 'aviso' : '', 'fa-comment-dots', "toggleArea('ia')");
+            renderMasterTopo(atraso);
+        }
+
+        // Saudação e situação das cobranças no topo do painel do dono (dados reais do app)
+        function renderMasterTopo(atraso) {
+            const agora = new Date(), hora = agora.getHours();
+            const nome = String((state.profile && state.profile.name) || '').trim().split(/\s+/)[0];
+            const s = document.getElementById('masterSaudacao'), dt = document.getElementById('masterData'), sit = document.getElementById('masterSituacao');
+            if (s) s.textContent = (hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite') + (nome ? ', ' + nome : '');
+            if (dt) { const t = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }); dt.textContent = t.charAt(0).toUpperCase() + t.slice(1); }
+            if (!sit) return;
+            const ativos = state.drivers.filter(d => !(d.pix_extra && d.pix_extra.sem_cobranca));
+            const late = ativos.filter(d => d.payment_status === 'Em atraso').length, emDia = ativos.length - late;
+            const aguardando = state.receipts.filter(r => !r.confirmed_at && !r.rejected_at && r.ai_status !== 'ok').length;
+            const hoje = new Date().toLocaleDateString('sv-SE');
+            const cnh = state.drivers.filter(d => d.cnh_expiry && String(d.cnh_expiry) < hoje).length;
+            const alerta = (icone, txt, acao) => `<button type="button" class="sit-alerta" onclick="${acao}"><i class="fa-solid ${icone}"></i><span>${txt}</span><i class="fa-solid fa-chevron-right"></i></button>`;
+            sit.innerHTML = `<div class="sit-titulo">Situação das cobranças<span>${ativos.length} ${ativos.length === 1 ? 'motorista' : 'motoristas'}</span></div>
+                <div class="sit-barra">${emDia ? `<i style="flex-grow:${emDia};background:var(--good)"></i>` : ''}${late ? `<i style="flex-grow:${late};background:var(--bad)"></i>` : ''}${ativos.length ? '' : '<i style="flex-grow:1;background:var(--btn2)"></i>'}</div>
+                <div class="sit-legenda"><span><em style="background:var(--good)"></em>${emDia} em dia</span><span><em style="background:var(--bad)"></em>${late} em atraso</span></div>`
+                + (aguardando ? alerta('fa-receipt', aguardando === 1 ? '1 comprovante aguardando sua confirmação' : aguardando + ' comprovantes aguardando sua confirmação', "closeAreas();switchMasterTab('drivers');markMasterNav()") : '')
+                + (cnh ? alerta('fa-id-card', cnh === 1 ? '1 motorista com CNH vencida' : cnh + ' motoristas com CNH vencida', "closeAreas();switchMasterTab('drivers');markMasterNav()") : '');
         }
 
         // ÁREA IA (MASTER): mensagens de WhatsApp prontas, sem robô (o dono só aperta Enviar)

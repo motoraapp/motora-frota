@@ -1,0 +1,288 @@
+/* ==========================================================================
+   MOTORA — sistema de design
+   Azul e grafite. Só muda aparência: nenhum id, função ou fluxo depende daqui.
+   Para mudar o visual do app inteiro, altere as variáveis abaixo.
+   ========================================================================== */
+
+/* ---------- 1. Variáveis ---------- */
+html[data-skin] {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
+  --fs-caption: 12px; --fs-small: 13px; --fs-body: 15px; --fs-title: 17px; --fs-large: 22px; --fs-hero: 30px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px;
+  --ease: cubic-bezier(.32, .72, 0, 1); --t-fast: .16s; --t-med: .32s;
+  --sidebar: 244px;
+}
+html[data-skin][data-theme="tnd"] {
+  --bg: #0d1015; --bar: rgba(19, 23, 30, .78); --bar-solid: #13171e; --card: #171b23; --card-2: #1f242e;
+  --line: rgba(255, 255, 255, .08); --line-strong: rgba(255, 255, 255, .14);
+  --text: #f3f5f8; --muted: #98a2b3; --faint: #667085;
+  --accent: #2f7bf6; --accent-text: #6ba4ff; --on-accent: #fff; --accent-tint: rgba(47, 123, 246, .15);
+  --pay: #1f9d57; --on-pay: #fff; --good: #3ddc84; --good-tint: rgba(61, 220, 132, .13);
+  --bad: #ff5c52; --bad-solid: #e5392f; --bad-tint: rgba(255, 92, 82, .14);
+  --warn: #f6c453; --warn-solid: #e2a92c; --warn-tint: rgba(246, 196, 83, .14);
+  --btn2: rgba(255, 255, 255, .08); --soft2: rgba(255, 255, 255, .04); --input: rgba(255, 255, 255, .06);
+  --radius: var(--r-lg);
+  --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 8px 24px rgba(0, 0, 0, .22);
+  --shadow-pop: 0 24px 70px rgba(0, 0, 0, .55);
+  --glow: radial-gradient(900px 520px at 50% -160px, rgba(47, 123, 246, .24), transparent 70%);
+  color-scheme: dark;
+}
+html[data-skin][data-theme="tn"] {
+  --bg: #eff1f5; --bar: rgba(255, 255, 255, .8); --bar-solid: #fff; --card: #fff; --card-2: #f5f6f9;
+  --line: rgba(15, 23, 42, .08); --line-strong: rgba(15, 23, 42, .16);
+  --text: #12161d; --muted: #5d6778; --faint: #8a93a3;
+  --accent: #2563eb; --accent-text: #1d55cf; --on-accent: #fff; --accent-tint: rgba(37, 99, 235, .1);
+  --pay: #178a4b; --on-pay: #fff; --good: #137a41; --good-tint: rgba(23, 138, 75, .11);
+  --bad: #cf2c22; --bad-solid: #d9342a; --bad-tint: rgba(217, 52, 42, .1);
+  --warn: #93650a; --warn-solid: #d99a1c; --warn-tint: rgba(217, 154, 28, .15);
+  --btn2: rgba(15, 23, 42, .06); --soft2: rgba(15, 23, 42, .03); --input: #fff;
+  --radius: var(--r-lg);
+  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 8px 24px rgba(15, 23, 42, .05);
+  --shadow-pop: 0 24px 70px rgba(15, 23, 42, .24);
+  --glow: radial-gradient(900px 520px at 50% -160px, rgba(37, 99, 235, .14), transparent 70%);
+  color-scheme: light;
+}
+
+/* ---------- 2. Base e tipografia ---------- */
+html[data-skin] body { font-family: var(--font) !important; font-size: var(--fs-body); letter-spacing: -.005em; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; background: var(--bg) var(--glow) no-repeat fixed !important; color: var(--text) !important; }
+html[data-skin] h1, html[data-skin] h2, html[data-skin] h3, html[data-skin] h4 { letter-spacing: -.02em; font-weight: 650; }
+html[data-skin] h2.text-xl, html[data-skin] h2.text-2xl { font-size: var(--fs-large); }
+html[data-skin] h3.text-lg, html[data-skin] h3.font-bold { font-size: var(--fs-title); }
+html[data-skin] .uppercase { text-transform: none; letter-spacing: 0; }
+html[data-skin] label.font-semibold, html[data-skin] th { font-weight: 500; }
+html[data-skin] label.text-xs, html[data-skin] p.text-xs.font-semibold { font-size: var(--fs-small); color: var(--muted); }
+html[data-skin] .text-gray-800, html[data-skin] .dark\:text-gray-100, html[data-skin] .text-gray-700, html[data-skin] .dark\:text-gray-200, html[data-skin] .dark\:text-gray-300 { color: var(--text); }
+html[data-skin] .text-gray-600 { color: var(--muted); }
+html[data-skin] .text-gray-500, html[data-skin] .text-gray-400, html[data-skin] .dark\:text-gray-400, html[data-skin] .dark\:text-gray-500 { color: var(--muted); }
+html[data-skin] [class*="font-bold"], html[data-skin] .font-extrabold { font-weight: 650; }
+html[data-skin] p, html[data-skin] td, html[data-skin] span { font-variant-numeric: tabular-nums; }
+html[data-skin] a { -webkit-tap-highlight-color: transparent; }
+html[data-skin] button { -webkit-tap-highlight-color: transparent; }
+
+/* ---------- 3. Cor por significado (sem cor gritante) ---------- */
+html[data-skin][data-design] .bg-blue-600, html[data-skin][data-design] .bg-teal-600, html[data-skin][data-design] .bg-indigo-600, html[data-skin][data-design] .bg-sky-600, html[data-skin][data-design] .bg-purple-600 { background: var(--accent) !important; color: var(--on-accent) !important; }
+html[data-skin][data-design] .bg-emerald-600, html[data-skin][data-design] .bg-green-600, html[data-skin][data-design] .bg-emerald-500, html[data-skin][data-design] .bg-green-500 { background: var(--pay) !important; color: var(--on-pay) !important; }
+html[data-skin][data-design] .bg-red-600, html[data-skin][data-design] .bg-red-500 { background: var(--bad-solid) !important; color: #fff !important; }
+html[data-skin][data-design] .bg-amber-600, html[data-skin][data-design] .bg-orange-600, html[data-skin][data-design] .bg-amber-500, html[data-skin][data-design] .bg-orange-500, html[data-skin][data-design] .bg-yellow-500 { background: var(--warn-solid) !important; color: #1b1405 !important; }
+html[data-skin][data-design] .shadow-lg, html[data-skin][data-design] .shadow-xl, html[data-skin][data-design] .shadow-md { box-shadow: var(--shadow) !important; }
+html[data-skin][data-design] [class*="shadow-blue-"] { box-shadow: 0 8px 22px rgba(47, 123, 246, .28) !important; }
+
+html[data-skin][data-design] [class*="bg-emerald-50"], html[data-skin][data-design] [class*="bg-emerald-100"], html[data-skin][data-design] [class*="bg-green-50"], html[data-skin][data-design] [class*="bg-green-100"], html[data-skin][data-design] [class*="dark:bg-emerald-9"], html[data-skin][data-design] [class*="dark:bg-green-9"] { background: var(--good-tint) !important; }
+html[data-skin][data-design] [class*="bg-red-50"], html[data-skin][data-design] [class*="bg-red-100"], html[data-skin][data-design] [class*="dark:bg-red-9"] { background: var(--bad-tint) !important; }
+html[data-skin][data-design] [class*="bg-amber-50"], html[data-skin][data-design] [class*="bg-amber-100"], html[data-skin][data-design] [class*="bg-yellow-50"], html[data-skin][data-design] [class*="bg-yellow-100"], html[data-skin][data-design] [class*="bg-orange-50"], html[data-skin][data-design] [class*="bg-orange-100"], html[data-skin][data-design] [class*="dark:bg-amber-9"], html[data-skin][data-design] [class*="dark:bg-orange-9"] { background: var(--warn-tint) !important; }
+html[data-skin][data-design] [class*="bg-blue-50"], html[data-skin][data-design] [class*="bg-blue-100"], html[data-skin][data-design] [class*="bg-indigo-50"], html[data-skin][data-design] [class*="bg-indigo-100"], html[data-skin][data-design] [class*="bg-teal-50"], html[data-skin][data-design] [class*="bg-teal-100"], html[data-skin][data-design] [class*="bg-sky-50"], html[data-skin][data-design] [class*="dark:bg-blue-9"], html[data-skin][data-design] [class*="dark:bg-indigo-9"], html[data-skin][data-design] [class*="dark:bg-teal-9"] { background: var(--accent-tint) !important; }
+html[data-skin][data-design] [class*="border-emerald-"], html[data-skin][data-design] [class*="border-green-"], html[data-skin][data-design] [class*="border-red-"], html[data-skin][data-design] [class*="border-amber-"], html[data-skin][data-design] [class*="border-orange-"], html[data-skin][data-design] [class*="border-indigo-"], html[data-skin][data-design] [class*="border-teal-"], html[data-skin][data-design] [class*="border-blue-2"], html[data-skin][data-design] [class*="border-blue-8"] { border-color: var(--line) !important; }
+html[data-skin][data-design] [class*="text-emerald-"], html[data-skin][data-design] [class*="text-green-"] { color: var(--good) !important; }
+html[data-skin][data-design] [class*="text-red-"] { color: var(--bad) !important; }
+html[data-skin][data-design] [class*="text-amber-"], html[data-skin][data-design] [class*="text-yellow-"], html[data-skin][data-design] [class*="text-orange-"] { color: var(--warn) !important; }
+html[data-skin][data-design] [class*="text-blue-"], html[data-skin][data-design] [class*="text-indigo-"], html[data-skin][data-design] [class*="text-teal-"], html[data-skin][data-design] [class*="text-sky-"] { color: var(--accent-text) !important; }
+/* texto corrido em caixas de aviso fica neutro; a cor fica só no ícone e no título curto */
+html[data-skin][data-design] [class*="text-amber-9"], html[data-skin][data-design] [class*="text-emerald-9"], html[data-skin][data-design] [class*="text-red-9"], html[data-skin][data-design] [class*="text-blue-9"], html[data-skin][data-design] [class*="text-green-9"] { color: var(--text) !important; }
+html[data-skin][data-design] .text-white { color: #fff; }
+html[data-skin][data-design] .border-blue-600 { border-color: var(--accent) !important; }
+
+/* ---------- 4. Barra do topo ---------- */
+html[data-skin][data-design] header { background: var(--bar) !important; -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border-bottom: 1px solid var(--line) !important; box-shadow: none !important; }
+html[data-skin] header > div { height: 58px; }
+html[data-skin] header h1 { font-size: var(--fs-title) !important; letter-spacing: .04em !important; font-weight: 700; }
+html[data-skin] header .bg-blue-600 { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 11px !important; background: linear-gradient(160deg, #4b90fb, #1f62d8) !important; }
+html[data-skin] header .bg-blue-600 i { font-size: 16px; }
+html[data-skin] #lastUpdated { display: none; }
+html[data-skin] #btnLogout, html[data-skin] #btnNotif { border-radius: 999px !important; min-height: 36px; }
+html[data-skin] #btnStatusToggle { border-radius: 999px; }
+html[data-skin] body:has(#secLogin:not(.hidden)) header, html[data-skin] body:has(#secDemoEscolha:not(.hidden)) header { display: none; }
+
+/* ---------- 5. Login ---------- */
+html[data-skin] #secLogin { max-width: 380px; margin-top: max(7vh, 28px); animation: sobe var(--t-med) var(--ease) both; }
+html[data-skin] #secLogin img { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 18px 46px rgba(47, 123, 246, .32); }
+html[data-skin] #secLogin h2 { font-size: var(--fs-hero); letter-spacing: .02em; font-weight: 700; margin-top: 18px; }
+html[data-skin] #secLogin .rounded-2xl { padding: 24px !important; border-radius: var(--r-xl) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+html[data-skin] #secLogin button[type=submit] { min-height: 52px; border-radius: var(--r-md) !important; font-size: 16px; font-weight: 600; }
+html[data-skin] #loginErro { border-radius: var(--r-md) !important; animation: treme .32s var(--ease); }
+html[data-skin] #secDemoEscolha { animation: sobe var(--t-med) var(--ease) both; }
+
+/* ---------- 6. Cartões ---------- */
+html[data-skin][data-design] main .rounded-2xl, html[data-skin][data-design] .fixed .rounded-2xl { background-color: var(--card); border-radius: var(--r-lg) !important; border-color: var(--line) !important; box-shadow: var(--shadow) !important; }
+html[data-skin][data-design] main .rounded-xl, html[data-skin][data-design] .fixed .rounded-xl { border-radius: var(--r-md) !important; }
+html[data-skin][data-design] main .rounded-lg, html[data-skin][data-design] .fixed .rounded-lg { border-radius: var(--r-sm) !important; }
+html[data-skin][data-design] main .p-6.rounded-2xl, html[data-skin] main .rounded-2xl.p-6 { padding: var(--sp-5); }
+html[data-skin][data-design] .bg-gray-50, html[data-skin][data-design] [class*="dark:bg-gray-700/"], html[data-skin][data-design] .dark\:bg-gray-900 { background: var(--soft2) !important; }
+html[data-skin][data-design] .bg-gray-100, html[data-skin][data-design] .dark\:bg-gray-700, html[data-skin][data-design] .bg-gray-200, html[data-skin][data-design] .dark\:bg-gray-600 { background: var(--btn2) !important; }
+html[data-skin][data-design] .border-gray-100, html[data-skin][data-design] .border-gray-200, html[data-skin][data-design] .border-gray-300, html[data-skin][data-design] .dark\:border-gray-600, html[data-skin][data-design] .dark\:border-gray-700 { border-color: var(--line) !important; }
+html[data-skin] .border-dashed { border-color: var(--line-strong) !important; }
+html[data-skin] .dobraTopo { min-height: 28px !important; }
+html[data-skin] .dobraTopo h3 { font-size: var(--fs-title); }
+html[data-skin] section.space-y-6 > * + *, html[data-skin] #subMasterVehicles > * + *, html[data-skin] #subMasterDrivers > * + * { margin-top: var(--sp-4); }
+
+/* ---------- 7. Botões ---------- */
+html[data-skin] button, html[data-skin] a[class*="py-"], html[data-skin] label.cursor-pointer { transition: transform var(--t-fast) var(--ease), background-color var(--t-fast), opacity var(--t-fast), color var(--t-fast); }
+html[data-skin] button:active:not(:disabled), html[data-skin] a[class*="py-"]:active { transform: scale(.975); opacity: .86; }
+html[data-skin] button:disabled { opacity: .45; }
+html[data-skin][data-design] button.font-bold, html[data-skin][data-design] button.font-semibold, html[data-skin] a.font-bold, html[data-skin] a.font-semibold { font-weight: 600; }
+html[data-skin] button:focus-visible, html[data-skin] a:focus-visible, html[data-skin] summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html[data-skin][data-design] .fixed button:has(> .fa-xmark:only-child) { width: 32px; height: 32px; min-height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; background: var(--btn2); color: var(--muted) !important; font-size: 13px; }
+
+/* ---------- 8. Campos ---------- */
+html[data-skin][data-design] input:not([type=checkbox]):not([type=radio]):not([type=file]), html[data-skin][data-design] select, html[data-skin][data-design] textarea { background-color: var(--input) !important; color: var(--text) !important; border: 1px solid var(--line) !important; border-radius: 12px !important; box-shadow: none; transition: border-color var(--t-fast), box-shadow var(--t-fast); }
+html[data-skin][data-design] input:not([type=checkbox]):not([type=radio]):not([type=file]):focus, html[data-skin][data-design] select:focus, html[data-skin][data-design] textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3.5px var(--accent-tint) !important; outline: none; }
+html[data-skin][data-design][data-theme] input:not([type=checkbox]):not([type=radio]):not([type=file]), html[data-skin][data-design][data-theme] textarea { background: var(--input) !important; }
+html[data-skin][data-design][data-theme] select { background: var(--input) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%2398a2b3' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 13px center !important; }
+html[data-skin] input::placeholder, html[data-skin] textarea::placeholder { color: var(--faint); }
+html[data-skin] select { -webkit-appearance: none; appearance: none; padding-right: 34px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%2398a2b3' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 13px center; }
+html[data-skin] select option { background: var(--bar-solid); color: var(--text); }
+html[data-skin] input[type=checkbox], html[data-skin] input[type=radio] { accent-color: var(--accent); }
+html[data-skin] input[type=file] { color: var(--muted); font-size: var(--fs-small); }
+html[data-skin] input[type=file]::file-selector-button { margin-right: 12px; padding: 9px 14px; border: 0; border-radius: 10px; background: var(--accent-tint); color: var(--accent-text); font-weight: 600; font-family: inherit; cursor: pointer; }
+html[data-skin] .sw { width: 50px; height: 30px; }
+html[data-skin] .sw > span { background: var(--btn2); box-shadow: inset 0 0 0 1px var(--line); transition: background-color .22s var(--ease); }
+html[data-skin] .sw > span::after { width: 26px; height: 26px; left: 2px; top: 2px; box-shadow: 0 2px 6px rgba(0, 0, 0, .3); transition: transform .24s var(--ease); }
+html[data-skin] .sw input:checked + span { background: var(--pay); box-shadow: none; }
+html[data-skin] .sw input:checked + span::after { transform: translateX(20px); }
+
+/* ---------- 9. Tabelas e listas ---------- */
+html[data-skin] table thead { background: none !important; }
+html[data-skin] table th { color: var(--muted); font-size: var(--fs-caption); }
+html[data-skin] tbody tr { transition: background-color var(--t-fast); }
+@media (hover: hover) { html[data-skin] main tbody tr:hover { background: var(--soft2); } }
+@media (max-width: 639px) {
+  html[data-skin] .overflow-x-auto > table > tbody > tr { margin-bottom: 10px; padding: 14px; border: 1px solid var(--line) !important; border-radius: var(--r-md); background: var(--soft2); }
+  html[data-skin] .overflow-x-auto > table > tbody > tr > td[data-label]::before { font-size: var(--fs-caption); font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); }
+  html[data-skin] .overflow-x-auto > table > tbody > tr > td:first-child { font-size: 16px; font-weight: 600; }
+}
+
+/* Ações dentro das listas: discretas e iguais; a cor fica só no que é destrutivo ou principal */
+html[data-skin][data-design][data-theme] main tbody td button, html[data-skin][data-design][data-theme] main tbody td a[class*="py-"], html[data-skin][data-design][data-theme] main tbody td label[class*="py-"] { min-height: 36px; padding: 7px 12px !important; border-radius: 10px !important; background: var(--btn2) !important; color: var(--text) !important; font-size: var(--fs-small) !important; font-weight: 500 !important; box-shadow: none !important; }
+html[data-skin][data-design][data-theme] main tbody td button i, html[data-skin][data-design][data-theme] main tbody td a i { color: var(--muted); }
+html[data-skin][data-design][data-theme] main tbody td button[class*="bg-red-"], html[data-skin][data-design][data-theme] main tbody td button.blink-red { background: var(--bad-tint) !important; color: var(--bad) !important; }
+html[data-skin][data-design][data-theme] main tbody td button[class*="bg-red-"] i { color: var(--bad); }
+html[data-skin][data-design][data-theme] main tbody td button[onclick^="openNewPix"], html[data-skin][data-design][data-theme] main tbody td button[onclick^="confirmReceipt"] { background: var(--accent) !important; color: var(--on-accent) !important; }
+html[data-skin][data-design][data-theme] main tbody td button[onclick^="openNewPix"] i, html[data-skin][data-design][data-theme] main tbody td button[onclick^="confirmReceipt"] i { color: inherit; }
+
+/* ---------- 10. Seções que abrem e fecham ---------- */
+html[data-skin] details { border-radius: var(--r-md) !important; background: var(--soft2) !important; border-color: var(--line) !important; }
+html[data-skin] details > summary { list-style: none; position: relative; padding-right: 36px; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
+html[data-skin] details > summary::-webkit-details-marker { display: none; }
+html[data-skin] details > summary::after { content: ""; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -6px; border-right: 1.8px solid var(--muted); border-bottom: 1.8px solid var(--muted); transform: rotate(45deg); transition: transform var(--t-med) var(--ease); }
+html[data-skin] details[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
+html[data-skin] details[open] > :not(summary) { animation: aparece var(--t-med) var(--ease) both; }
+
+/* ---------- 11. Janelas ---------- */
+html[data-skin] .fixed.inset-0[class*="bg-black"] { background: rgba(6, 8, 12, .52) !important; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: aparece .22s ease both; }
+html[data-skin][data-design] .fixed.inset-0 > .bg-white, html[data-skin][data-design] .fixed.inset-0 > form.bg-white { background: var(--card) !important; border: 1px solid var(--line) !important; border-radius: var(--r-xl) !important; box-shadow: var(--shadow-pop) !important; animation: janela var(--t-med) var(--ease) both; }
+html[data-skin] .fixed.inset-0 > div > .border-b:first-child, html[data-skin] .fixed.inset-0 > form > .border-b:first-child { border-bottom-color: var(--line) !important; }
+html[data-skin] .fixed.inset-0 h3.font-bold { font-size: var(--fs-title); }
+@media (max-width: 639px) {
+  html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > .bg-white, html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > form.bg-white { position: relative; border-radius: var(--r-xl) var(--r-xl) 0 0 !important; border-width: 1px 0 0 !important; padding-top: 10px; animation: folha var(--t-med) var(--ease) both; }
+  html[data-skin] .fixed.inset-0.flex.items-center.justify-center > .bg-white::before, html[data-skin] .fixed.inset-0.flex.items-center.justify-center > form.bg-white::before { content: ""; display: block; flex: none; width: 38px; height: 5px; margin: 0 auto 4px; border-radius: 3px; background: var(--line-strong); }
+}
+html[data-skin] #toast > * , html[data-skin] #toast { border-radius: 999px; }
+html[data-skin] #toast { -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); transition: transform var(--t-med) var(--ease), opacity var(--t-med); }
+
+/* ---------- 12. Navegação ---------- */
+html[data-skin][data-design] .bottomNav.ativo, html[data-skin][data-design] #drvTabs { background: var(--bar) !important; -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border-top: 1px solid var(--line) !important; }
+html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #drvTabs nav button { min-height: 50px; font-size: 10.5px !important; font-weight: 500 !important; letter-spacing: 0; color: var(--faint) !important; border: 0 !important; border-radius: 12px; background: none !important; transition: color var(--t-fast), transform var(--t-fast) var(--ease); }
+html[data-skin][data-design] .bottomNav button i, html[data-skin][data-design] #drvTabs nav button i { font-size: 20px; transition: transform var(--t-med) var(--ease); }
+html[data-skin][data-design] .bottomNav button.atual, html[data-skin][data-design] .bottomNav button.aberto, html[data-skin][data-design] #drvTabs nav button.border-blue-600 { color: var(--accent-text) !important; font-weight: 600 !important; }
+html[data-skin][data-design] .bottomNav button.atual i, html[data-skin][data-design] .bottomNav button.aberto i, html[data-skin][data-design] #drvTabs nav button.border-blue-600 i { transform: translateY(-1px) scale(1.06); }
+html[data-skin] .iaBadge { background: var(--bad-solid) !important; color: #fff !important; }
+
+@media (min-width: 1024px) {
+  html[data-skin][data-design] .bottomNav.ativo, html[data-skin][data-design] body.com-nav #drvTabs { top: 0; right: auto; bottom: 0; left: 0; width: var(--sidebar); display: flex; flex-direction: column; gap: 2px; padding: 22px 12px; border-top: 0 !important; border-right: 1px solid var(--line) !important; z-index: 36; }
+  html[data-skin][data-design] .bottomNav.ativo::before, html[data-skin][data-design] body.com-nav #drvTabs::before { content: "MOTORA"; display: block; padding: 4px 12px 20px; font-size: var(--fs-title); font-weight: 700; letter-spacing: .05em; color: var(--text); }
+  html[data-skin][data-design] #drvTabs nav { display: flex !important; flex-direction: column; gap: 2px !important; overflow: visible; }
+  html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #drvTabs nav button { flex-direction: row; justify-content: flex-start; gap: 12px !important; width: 100%; min-height: 42px; padding: 0 12px !important; font-size: 14px !important; color: var(--muted) !important; }
+  html[data-skin][data-design] .bottomNav button i, html[data-skin][data-design] #drvTabs nav button i { width: 20px; text-align: center; font-size: 16px; }
+  @media (hover: hover) { html[data-skin][data-design] .bottomNav button:hover, html[data-skin][data-design] #drvTabs nav button:hover { background: var(--soft2) !important; color: var(--text) !important; } }
+  html[data-skin][data-design] .bottomNav button.atual, html[data-skin][data-design] .bottomNav button.aberto, html[data-skin][data-design] #drvTabs nav button.border-blue-600 { background: var(--accent-tint) !important; color: var(--accent-text) !important; }
+  html[data-skin][data-design] .bottomNav .iaBadge { position: static !important; margin-left: auto; }
+  html[data-skin][data-design] body.com-nav header, html[data-skin][data-design] body.com-nav main { margin-left: var(--sidebar); width: calc(100% - var(--sidebar)); }
+  html[data-skin][data-design] body.com-nav main { max-width: 1120px; margin-right: auto; padding-bottom: 48px !important; }
+  html[data-skin][data-design] body.com-nav header h1, html[data-skin][data-design] body.com-nav header .bg-blue-600 { display: none; }
+  html[data-skin][data-design] body.com-nav .fixed.inset-0.z-40 { left: var(--sidebar); bottom: 0; }
+  html[data-skin][data-design] body.com-nav .fixed.inset-0.z-40 > div, html[data-skin][data-design] body.com-nav .fixed.inset-0.z-40 > form { max-height: 90vh !important; }
+}
+
+/* ---------- 13. Painel do dono ---------- */
+html[data-skin][data-design] #secMasterPanel > .masterTopo { background: none !important; border: 0 !important; box-shadow: none !important; padding: 6px 2px 0 !important; display: block; }
+html[data-skin] #masterSaudacao { font-size: var(--fs-hero); font-weight: 700; letter-spacing: -.025em; line-height: 1.12; }
+html[data-skin] #masterData { margin-top: 2px; font-size: var(--fs-body); }
+html[data-skin] #masterResumo { max-width: none; margin-top: var(--sp-5); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+html[data-skin] .kpi { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; min-height: 112px; text-align: left; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow); }
+html[data-skin] .kpi i { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: var(--accent-tint); color: var(--accent-text); font-size: 15px; }
+html[data-skin] .kpi.alerta i { background: var(--bad-tint); color: var(--bad); }
+html[data-skin] .kpi.ok i { background: var(--good-tint); color: var(--good); }
+html[data-skin] .kpi.aviso i { background: var(--warn-tint); color: var(--warn); }
+html[data-skin] .kpi b { display: block; font-size: 28px; line-height: 1; font-weight: 700; letter-spacing: -.02em; }
+html[data-skin] .kpi small { display: block; margin-top: 5px; font-size: var(--fs-small); color: var(--muted); }
+html[data-skin] #masterSituacao { margin-top: var(--sp-3); padding: 18px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow); }
+html[data-skin] .sit-titulo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: var(--fs-title); font-weight: 650; }
+html[data-skin] .sit-titulo span { font-size: var(--fs-small); font-weight: 400; color: var(--muted); }
+html[data-skin] .sit-barra { display: flex; gap: 3px; height: 8px; margin: 14px 0 12px; }
+html[data-skin] .sit-barra i { display: block; min-width: 6px; border-radius: 4px; transition: flex-grow var(--t-med) var(--ease); }
+html[data-skin] .sit-legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--fs-small); color: var(--muted); }
+html[data-skin] .sit-legenda em { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; }
+html[data-skin] .sit-alerta { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 11px 13px; border-radius: 12px; background: var(--warn-tint); color: var(--text); font-size: var(--fs-small); text-align: left; }
+html[data-skin] .sit-alerta i:first-child { color: var(--warn); }
+html[data-skin] .sit-alerta .fa-chevron-right { margin-left: auto; font-size: 11px; color: var(--muted); }
+html[data-skin] #secMasterPanel > .masterTopo .masterAbas { display: none !important; }
+html[data-skin][data-design] #secMasterPanel > .masterAtalhos { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+html[data-skin][data-design] #secMasterPanel > .masterAtalhos button { min-height: 76px; flex-direction: column; gap: 7px; background: var(--card) !important; color: var(--text) !important; border: 1px solid var(--line); border-radius: var(--r-lg) !important; font-size: var(--fs-small); font-weight: 500; box-shadow: var(--shadow) !important; }
+html[data-skin][data-design] #secMasterPanel > .masterAtalhos button i { font-size: 20px; color: var(--accent-text); }
+@media (min-width: 640px) { html[data-skin] #masterResumo { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ---------- 14. Painel do motorista ---------- */
+html[data-skin] #secDriverPanel > div:first-of-type + div, html[data-skin] #secDriverPanel .min-h-\[400px\] { border-radius: var(--r-lg); }
+html[data-skin][data-design] #drvProfileExtras { align-items: start; }
+html[data-skin][data-design][data-theme] #drvProfileExtras > div { background: var(--card) !important; border-color: var(--line) !important; border-radius: var(--r-lg) !important; box-shadow: var(--shadow); }
+html[data-skin] #drvVehicleName { font-size: var(--fs-large); letter-spacing: -.02em; }
+html[data-skin][data-design] #drvChargeInfo { padding: 22px; background: linear-gradient(150deg, var(--accent-tint), var(--soft2)) !important; border-radius: var(--r-lg) !important; }
+html[data-skin][data-design] #drvChargeAmount { color: var(--text) !important; font-size: 40px; font-weight: 700; letter-spacing: -.03em; }
+html[data-skin][data-design] #drvChargeInfo > p:first-child { color: var(--muted) !important; }
+html[data-skin] #pixQrContainer { width: 208px; height: 208px; padding: 12px; background: #fff !important; border-radius: var(--r-lg) !important; }
+html[data-skin] #drvPixBox, html[data-skin] #drvReceiptBox { padding: var(--sp-5); border-radius: var(--r-lg) !important; }
+html[data-skin] #btnMeusRecibos, html[data-skin] #btnTrocarSenhaDrv { min-height: 50px; border-radius: var(--r-md) !important; }
+html[data-skin][data-design] #btnMeusRecibos { background: var(--card) !important; color: var(--text) !important; border: 1px solid var(--line); }
+html[data-skin][data-design] #btnMeusRecibos i { color: var(--accent-text); }
+html[data-skin] #meusRecibosCount { background: var(--btn2) !important; color: var(--muted); }
+
+/* ---------- 15. Financeiro ---------- */
+html[data-skin] #finCards > div { padding: 15px; border-radius: var(--r-md) !important; }
+html[data-skin][data-design] #finCards p.text-lg, html[data-skin][data-design] #appTotals p.text-lg { font-size: var(--fs-large); font-weight: 700; letter-spacing: -.02em; color: var(--text); }
+html[data-skin] #finGrafico:empty { display: none; }
+html[data-skin] .graf { padding: 16px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--soft2); }
+html[data-skin] .graf + .graf { margin-top: var(--sp-3); }
+html[data-skin] .graf h4 { font-size: var(--fs-small); font-weight: 600; margin: 0 0 12px; }
+html[data-skin] .graf-colunas { display: flex; align-items: flex-end; gap: 8px; height: 118px; }
+html[data-skin] .graf-col { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 5px; }
+html[data-skin] .graf-par { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+html[data-skin] .graf-par i { display: block; width: 42%; max-width: 16px; min-height: 2px; border-radius: 4px 4px 1px 1px; transform-origin: bottom; animation: cresce .5s var(--ease) both; }
+html[data-skin] .graf-col span { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; max-width: 100%; }
+html[data-skin] .graf-linha { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; margin-top: 11px; font-size: var(--fs-small); }
+html[data-skin] .graf-linha span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-skin] .graf-trilho { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--btn2); overflow: hidden; }
+html[data-skin] .graf-trilho i { display: block; height: 100%; border-radius: 3px; background: var(--accent); transform-origin: left; animation: estica .5s var(--ease) both; }
+html[data-skin] .graf-legenda { display: flex; gap: 14px; margin-top: 10px; font-size: var(--fs-caption); color: var(--muted); }
+html[data-skin] .graf-legenda em { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; }
+
+/* ---------- 16. Assistente ---------- */
+html[data-skin] #iaChatBox { background: linear-gradient(160deg, var(--accent-tint), var(--soft2)) !important; }
+html[data-skin] #iaChatDicas button { padding: 11px 13px; border-radius: 12px !important; background: var(--btn2) !important; border-color: transparent !important; font-size: var(--fs-small); }
+html[data-skin][data-design] #iaChatEnviar { width: 44px; height: 44px; border-radius: 50% !important; }
+html[data-skin] #iaChatTexto { border-radius: 22px !important; padding: 11px 16px !important; }
+
+/* ---------- 17. Movimento ---------- */
+html[data-skin] #secMasterPanel:not(.hidden), html[data-skin] #secDriverPanel:not(.hidden) { animation: aparece var(--t-med) ease both; }
+@keyframes aparece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sobe { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes janela { from { opacity: 0; transform: translateY(10px) scale(.975); } to { opacity: 1; transform: none; } }
+@keyframes folha { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes cresce { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes estica { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes treme { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin] *, html[data-skin] *::before, html[data-skin] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}
+
+/* ---------- 18. Impressão: recibos e relatórios saem em papel branco ---------- */
+@media print { html[data-skin] body { background: #fff !important; color: #000 !important; } }
