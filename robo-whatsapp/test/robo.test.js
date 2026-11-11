@@ -6,7 +6,7 @@ import path from 'node:path';
 import { EventEmitter } from 'node:events';
 import { chaveFone, lerComando, escolher, extensao, saudacao, foneBonito, escolherConversa, ofertaVeiculo, valoresConferem, promptCliente, chaveContato, textoDara, avisoDaraValido, promptDara, lerDecisao, textoDaraSim, textoDaraMotorista, nivelPorPalavras, lerNivel } from '../../supabase/functions/motora-robo/comandos.ts';
 import { tentarGemini } from '../../supabase/functions/motora-push/gemini.ts';
-import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar, soBrasil, separarPix } from '../nucleo.js';
+import { textoDe, contatoOculto, ehDoRobo, criarRobo, empacotar, abrirPacote, numeroBR, mascarar, soBrasil, organizarPix } from '../nucleo.js';
 
 const CREDS = '{"account":{},"me":{"id":"x"}}';
 
@@ -551,11 +551,10 @@ test('número de fora do Brasil não passa pelo do dono', () => {
   assert.equal(soBrasil('62892661879'), null); // +62 (Indonésia) com os mesmos 8 dígitos finais
   assert.equal(soBrasil('14155550123'), null);
 });
-test('copia e cola sai separado da mensagem', () => {
+test('copia e cola fica sozinho no fim da mensagem', () => {
   const codigo = '00020126780014br.gov.bcb.pix0136abc0216MOTORA teste R$15204000053039865041.005802BR6304ABCD';
-  const s = separarPix(`Olá\n\n*Total: R$ 10,00*\n\nPix copia e cola: ${codigo}\n\nObrigado`);
-  assert.equal(s.codigo, codigo); assert.equal(s.texto, 'Olá\n\n*Total: R$ 10,00*\n\nObrigado');
-  assert.deepEqual(separarPix('sem pix'), { texto: 'sem pix', codigo: null });
+  assert.equal(organizarPix(`Olá\n\n*Total: R$ 10,00*\n\nCopia e cola:\n${codigo} Obrigado.`), `Olá\n\n*Total: R$ 10,00*\n\nCopia e cola:\n\n${codigo}`);
+  assert.equal(organizarPix('sem pix'), 'sem pix');
 });
 test('QR code do Asaas vai como imagem e recibo como PDF', () => {
   const robo = criarRobo({ logger: {}, qrcode: {}, chave: 'k', fetchFn: async () => ({ status: 200, ok: true, json: async () => ({}) }), pastaBase: path.join(os.tmpdir(), 'qr-' + Date.now()), relogio: { agora: () => 0, setTimeout: () => 0, clearTimeout: () => {}, dormir: async () => {} } });

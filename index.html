@@ -5375,16 +5375,13 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 });
                 return;
             }
-            // sem o robô: compartilha a imagem do QR com a mensagem (o dono escolhe o WhatsApp) e deixa o copia e cola copiado
+            // sem o robô: compartilha numa mensagem só o QR, o texto e, no fim, o copia e cola sozinho (o dono escolhe o WhatsApp)
             const qr = iaQrArquivos[id];
             if (qr && navigator.canShare && navigator.canShare({ files: [qr] })) {
                 const achou = text.match(/000201.+6304[0-9A-Fa-f]{4}/), codigo = achou ? achou[0] : '';
-                const semCodigo = codigo ? text.split('\n').filter(l => !l.includes(codigo)).join('\n').replace(/\n{3,}/g, '\n\n').trim() : text;
-                if (codigo && navigator.clipboard) navigator.clipboard.writeText(codigo).catch(() => {});
-                navigator.share({ files: [qr], text: semCodigo }).then(() => {
-                    if (!again) iaMark(id, text);
-                    showToast(codigo ? 'Copia e cola copiado: cole em outra mensagem, na mesma conversa.' : 'Enviado.');
-                }).catch(e => { if (e && e.name !== 'AbortError') showToast('Não foi possível compartilhar.', 'error'); });
+                const organizado = codigo ? text.split('\n').filter(l => !l.includes(codigo)).join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n\n' + codigo : text;
+                navigator.share({ files: [qr], text: organizado }).then(() => { if (!again) iaMark(id, text); })
+                    .catch(e => { if (e && e.name !== 'AbortError') showToast('Não foi possível compartilhar.', 'error'); });
                 return;
             }
             if (!confirm('O WhatsApp da locadora está desconectado. Quer abrir no WhatsApp deste aparelho? A mensagem sairá pelo seu número, só com o texto.')) return;

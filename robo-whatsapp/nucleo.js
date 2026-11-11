@@ -90,13 +90,13 @@ const HIST_SOB_PEDIDO = 6; // proto.HistorySync.HistorySyncType.ON_DEMAND: hist�
 const numeroDoJid = (jid) => String(jid).split('@')[0].split(':')[0];
 // número de fora do Brasil vira contato sem número: +62 (Indonésia) não pode ser confundido com o DDD 62 do dono
 export const soBrasil = (n) => (/^55\d{10,11}$/.test(String(n)) ? String(n) : null);
-// copia e cola vai numa mensagem só dele, para o motorista copiar com um toque
+// padrão do dono: uma mensagem só, com o QR em cima, o texto e, no fim, o copia e cola sozinho depois de uma linha em branco
 const BR_CODE = /000201.+6304[0-9A-Fa-f]{4}/;
-export function separarPix(texto) {
+export function organizarPix(texto) {
   const t = String(texto ?? ''), m = t.match(BR_CODE);
-  if (!m) return { texto: t, codigo: null };
+  if (!m) return t;
   const resto = t.split('\n').filter((l) => !l.includes(m[0])).join('\n').replace(/\n{3,}/g, '\n\n').trim();
-  return { texto: resto, codigo: m[0] };
+  return `${resto}\n\n${m[0]}`;
 }
 
 export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn = (...a) => fetch(...a), pastaBase, relogio = relogioReal, aleatorio = Math.random, log: logExterno, aoReiniciar = null }) {
@@ -412,16 +412,11 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
   }
   // o arquivo da mensagem pode ser o recibo em PDF ou a imagem do QR code criada pelo Asaas
   function conteudoDe(m) {
-    const texto = separarPix(m.texto).texto;
+    const texto = organizarPix(m.texto);
     if (m.imagem_url) return { image: { url: m.imagem_url }, caption: texto };
     if (m.pdf_url && /\.(png|jpe?g)(\?|$)/i.test(m.pdf_url)) return { image: { url: m.pdf_url }, caption: texto };
     if (m.pdf_url) return { document: { url: m.pdf_url }, mimetype: 'application/pdf', fileName: 'Recibo MOTORA.pdf', caption: texto };
     return { text: texto };
-  }
-  async function mandarTudo(jid, m) {
-    await mandar(jid, conteudoDe(m));
-    const { codigo } = separarPix(m.texto);
-    if (codigo) await mandar(jid, { text: codigo });
   }
   async function enviar(m) {
     for (const tel of m.telefones) {
@@ -432,7 +427,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
       const achado = r.find((x) => x.exists);
       if (!achado) continue;
       // recibo: o PDF vai com o texto na mesma mensagem, para nunca sair duplicado
-      await mandarTudo(achado.jid, m);
+      await mandar(achado.jid, conteudoDe(m));
       m.jidsEnviados = [achado.jid];
       return true;
     }
@@ -454,7 +449,7 @@ export function criarRobo({ baileys, logger, qrcode, chave, porta = 0, fetchFn =
         const [a, b] = ESPERA_ENTRE_MENSAGENS;
         await relogio.dormir(a + Math.floor(aleatorio() * (b - a)));
         if (!conectado || !sock) return;
-        await mandarTudo(achado.jid, m);
+        await mandar(achado.jid, conteudoDe(m));
         enviadasNaHora.push(relogio.agora());
         log(`Cópia enviada a outro número da ficha de ${m.nome}.`);
       } catch (e) { log(`Não consegui enviar a outro número da ficha de ${m.nome}:`, e.message); }
