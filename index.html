@@ -5116,6 +5116,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const { data, error } = await sb.from('whatsapp_queue').select('*').order('created_at', { ascending: false }).limit(150);
             iaReady = !error;
             iaRows = error ? [] : (data || []);
+            iaPrepararQr();
             updateIABadge();
         }
         // Área IA aberta: o robô pode enviar a qualquer momento. Atualiza a lista para ninguém enviar a mesma mensagem de novo à mão.
@@ -5164,6 +5165,13 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             } catch (e) { return {}; }
         }
         var roboAtual = {}; // último estado visto do robô (o botão Enviar precisa decidir na hora do toque)
+        // imagem do QR baixada antes do toque: o celular só deixa compartilhar arquivo logo depois do toque
+        var iaQrArquivos = {};
+        function iaPrepararQr() {
+            iaRows.filter(r => r.status === 'pendente' && /\.(png|jpe?g)$/i.test(r.arquivo_path || '') && !iaQrArquivos[r.id]).forEach(async r => {
+                try { const { data } = await sb.storage.from(BUCKET).download(r.arquivo_path); if (data) iaQrArquivos[r.id] = new File([data], 'QR-Code-Pix.png', { type: 'image/png' }); } catch (e) {}
+            });
+        }
         function paintRobo(cfg) {
             roboAtual = cfg || {};
             const on = !!cfg.ativo;
@@ -5365,6 +5373,18 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                     if (error) { showToast('Não foi possível enviar. Tente de novo.', 'error'); return; }
                     Object.assign(r, upd); showToast('Enviando pelo número da locadora. Pode levar alguns minutos.'); renderIA();
                 });
+                return;
+            }
+            // sem o robô: compartilha a imagem do QR com a mensagem (o dono escolhe o WhatsApp) e deixa o copia e cola copiado
+            const qr = iaQrArquivos[id];
+            if (qr && navigator.canShare && navigator.canShare({ files: [qr] })) {
+                const achou = text.match(/000201.+6304[0-9A-Fa-f]{4}/), codigo = achou ? achou[0] : '';
+                const semCodigo = codigo ? text.split('\n').filter(l => !l.includes(codigo)).join('\n').replace(/\n{3,}/g, '\n\n').trim() : text;
+                if (codigo && navigator.clipboard) navigator.clipboard.writeText(codigo).catch(() => {});
+                navigator.share({ files: [qr], text: semCodigo }).then(() => {
+                    if (!again) iaMark(id, text);
+                    showToast(codigo ? 'Copia e cola copiado: cole em outra mensagem, na mesma conversa.' : 'Enviado.');
+                }).catch(e => { if (e && e.name !== 'AbortError') showToast('Não foi possível compartilhar.', 'error'); });
                 return;
             }
             if (!confirm('O WhatsApp da locadora está desconectado. Quer abrir no WhatsApp deste aparelho? A mensagem sairá pelo seu número, só com o texto.')) return;
