@@ -50,5 +50,26 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
   }
 }
 
+// 4. Regra do "Cobrar a partir de" (desconto/valor extra): o app e as duas funções do servidor têm que decidir igual.
+{
+  const fontes = {
+    'index.html': [readFileSync(join(raiz, 'index.html'), 'utf8'), /function ajusteVale\(a, vencIso\) \{ return ([^;]+); \}/],
+    'motora-lembretes': [readFileSync(join(raiz, 'supabase/functions/motora-lembretes/index.ts'), 'utf8'), /const ajusteVale = \(a: Extra, vencIso\?: string\) => ([^;]+);/],
+    'motora-asaas': [readFileSync(join(raiz, 'supabase/functions/motora-asaas/index.ts'), 'utf8'), /const ajusteVale = \(a: Extra, vencIso\?: string\) => ([^;]+);/],
+  };
+  const casos = [
+    [{}, '2026-11-16', true], [{ a_partir: '2026-11-16' }, '2026-11-16', true], [{ a_partir: '2026-11-17' }, '2026-11-16', false],
+    [{ a_partir: '2026-11-01' }, '2026-11-16', true], [{ a_partir: '2026-12-07' }, undefined, true], [null, '2026-11-16', true],
+  ];
+  for (const [nome, [texto, re]] of Object.entries(fontes)) {
+    const m = texto.match(re);
+    if (!m) { erros++; console.log(`ERRO ${nome}: função ajusteVale não encontrada`); continue; }
+    const f = new Function('a', 'vencIso', `return ${m[1].replace(/a\?\./g, '(a || {}).')};`); // a?.x -> (a || {}).x (JS puro)
+    const falhou = casos.find(([a, v, esperado]) => Boolean(f(a, v)) !== esperado);
+    if (falhou) { erros++; console.log(`ERRO ${nome}: ajusteVale(${JSON.stringify(falhou[0])}, ${falhou[1]}) deveria ser ${falhou[2]}`); }
+    else console.log(`ok   ${nome}: regra "cobrar a partir de"`);
+  }
+}
+
 console.log(erros ? `\n${erros} problema(s) encontrado(s).` : '\nTudo certo.');
 process.exit(erros ? 1 : 0);

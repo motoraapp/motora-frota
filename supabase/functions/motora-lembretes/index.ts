@@ -23,6 +23,17 @@ const brl = (v: unknown) => Number(v).toLocaleString("pt-BR", { style: "currency
 const NOMES = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 type Extra = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+// Desconto/valor extra com "Cobrar a partir de" (a_partir = AAAA-MM-DD): só entra na cobrança que vence nessa data ou depois.
+// Mesma regra do app (ajusteVale em index.html) e da outra função (motora-asaas).
+const ajusteVale = (a: Extra, vencIso?: string) => !a?.a_partir || !vencIso || vencIso >= String(a.a_partir);
+const ajustesDoVenc = (ex: Extra, vencIso: string): Extra[] => (Array.isArray(ex.ajustes) ? ex.ajustes : []).filter((a: Extra) => ajusteVale(a, vencIso));
+/** Tira da lista só os ajustes usados nesta cobrança; os que ainda não chegaram na data ficam. */
+function tirarAjustes(ex: Extra, usados: Extra[]) {
+  const ids = new Set(usados.map((a) => a.id));
+  const resto = (Array.isArray(ex.ajustes) ? ex.ajustes : []).filter((a: Extra) => !ids.has(a.id));
+  if (resto.length) ex.ajustes = resto; else delete ex.ajustes;
+}
+
 async function secret(key: string) {
   const { data } = await admin.from("app_secrets").select("value").eq("key", key).maybeSingle();
   return data?.value ?? null;
@@ -37,7 +48,7 @@ function proximoDia(dia: number) {
 }
 
 // mesma conta do Novo Pix e das funções motora-asaas e motora-picpay, sem alterar nada
-function previsao(d: Extra, aluguel: number | null) {
+function previsao(d: Extra, aluguel: number | null, vencIso?: string) {
   const ex: Extra = d.pix_extra || {};
   let total = aluguel != null ? Number(aluguel) : 0;
   const cau = ex.devolucao ? null : ex.caucao;
@@ -47,7 +58,7 @@ function previsao(d: Extra, aluguel: number | null) {
     const m = String(ex.descricao || "").match(/(\d+)\s*\/\s*(\d+)/);
     if (!(ex.ultimo_enviado && m && Number(m[1]) + 1 > Number(m[2]))) total += Number(ex.valor);
   }
-  for (const a of Array.isArray(ex.ajustes) ? ex.ajustes : []) total += (a.tipo === "desconto" ? -1 : 1) * Number(a.valor || 0);
+  for (const a of Array.isArray(ex.ajustes) ? ex.ajustes : []) if (ajusteVale(a, vencIso)) total += (a.tipo === "desconto" ? -1 : 1) * Number(a.valor || 0);
   return Math.round(total * 100) / 100;
 }
 
@@ -63,7 +74,7 @@ async function avisoDono(d: Extra, aluguel: number | null) {
     if ((count ?? 0) >= 2 || venc.iso > d.pix_extra.devolucao.ate) return null;
   }
   if (d.pix_due_at && diaBR(d.pix_due_at) === venc.iso) return null; // o Pix desse vencimento já existe
-  const valor = previsao(d, aluguel);
+  const valor = previsao(d, aluguel, venc.iso);
   if (!d.vehicle_id && !(valor > 0)) return null; // sem carro e sem nada a cobrar: não há o que confirmar
   const data = venc.iso.split("-").reverse().slice(0, 2).join("/");
   const auto = formaAuto(d);
@@ -185,7 +196,8 @@ async function pixAutomatico(d: Extra, rec: Extra, simular: boolean, forcar = fa
     const np = ex.ultimo_enviado ? proximaParcela(ex.descricao) : { desc: ex.descricao, done: false };
     if (!np.done) { total += Number(ex.valor); linhas.push(`+ ${np.desc}: ${brl(ex.valor)}`); novoRepetir = { descricao: np.desc }; }
   }
-  for (const a of Array.isArray(ex.ajustes) ? ex.ajustes : []) { const desc = a.tipo === "desconto"; total += (desc ? -1 : 1) * Number(a.valor || 0); linhas.push(`${desc ? "−" : "+"} ${a.desc}: ${brl(a.valor)}`); }
+  const ajustes = ajustesDoVenc(ex, venc.iso);
+  for (const a of ajustes) { const desc = a.tipo === "desconto"; total += (desc ? -1 : 1) * Number(a.valor || 0); linhas.push(`${desc ? "−" : "+"} ${a.desc}: ${brl(a.valor)}`); }
   total = Math.round(total * 100) / 100;
   if (!(total > 0)) return { motorista: d.name, erro: "sem valor a cobrar", aviso: { type: "master_alert", url: "/", title: `Pix automático: ${d.name} sem valor`, body: "Não há valor a cobrar (aluguel vazio ou desconto maior que o total). O Pix não foi criado: envie pelo Novo Pix." } };
   linhas.push(`Total: ${brl(total)}`);
@@ -193,7 +205,7 @@ async function pixAutomatico(d: Extra, rec: Extra, simular: boolean, forcar = fa
   const code = codigoPix(chave, total, String(rec.nome || ""), String(rec.cidade || ""), "MTR" + venc.iso.replace(/-/g, "") + String(d.id).replace(/[^A-Za-z0-9]/g, "").slice(0, 8));
   if (simular) return { motorista: d.name, valor: total, vencimento: venc.iso, itens: linhas, codigo: code };
   // ----- atualiza o motorista (o banco cria o histórico e a data de pagamento sozinho) -----
-  delete ex.ajustes;
+  tirarAjustes(ex, ajustes);
   delete ex.repetir; delete ex.descricao; delete ex.valor; delete ex.ultimo_enviado;
   if (novoRepetir) Object.assign(ex, { repetir: true, descricao: novoRepetir.descricao, valor: d.pix_extra.valor, ultimo_enviado: true });
   if (cauCobrada) ex.caucao = { ...cau, cobradas: Number(cau.cobradas || 0) + 1 };

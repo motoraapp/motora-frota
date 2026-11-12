@@ -890,6 +890,9 @@
                         <select id="dfAjTipo" class="col-span-3 sm:col-span-2 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="desconto">Desconto</option><option value="acrescimo">Valor extra</option></select>
                         <input id="dfAjVal" type="text" inputmode="decimal" placeholder="R$ 0,00" class="col-span-3 sm:col-span-1 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         <input id="dfAjDesc" maxlength="100" placeholder="Motivo (ex: troca de óleo paga por ele)" class="col-span-6 sm:col-span-3 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                        <label for="dfAjData" class="col-span-6 sm:col-span-2 self-center text-xs font-semibold text-gray-500 dark:text-gray-400">Cobrar a partir de (opcional)</label>
+                        <input id="dfAjData" type="date" class="col-span-6 sm:col-span-4 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none" aria-describedby="dfAjDataAjuda">
+                        <p id="dfAjDataAjuda" class="col-span-6 text-xs text-gray-500 dark:text-gray-400">Com data, o valor só entra na cobrança que vence nesse dia ou depois. Sem data, entra na próxima.</p>
                     </div>
                     <button type="button" onclick="addAjuste()" class="w-full py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                     <div id="dfAjPrev" class="text-sm"></div>
@@ -1385,7 +1388,7 @@
             <div class="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-900/10 p-3 space-y-3">
                 <p class="text-xs font-bold uppercase text-emerald-800 dark:text-emerald-300"><i class="fa-solid fa-calculator mr-1"></i> Valores da cobrança</p>
                 <div class="space-y-2">
-                    <div><label for="newPixDue" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Vencimento</label><input type="date" id="newPixDue" onchange="pixDatasMudou('due')" class="w-full min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label for="newPixDue" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Vencimento</label><input type="date" id="newPixDue" onchange="pixDatasMudou('due'); marcarAjustesPorVenc()" class="w-full min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div class="grid grid-cols-2 gap-2">
                         <div><label for="newPixIni" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Vale de</label><input type="date" id="newPixIni" onchange="pixDatasMudou('ini')" class="w-full min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label for="newPixFim" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Até</label><input type="date" id="newPixFim" onchange="pixDatasMudou('fim')" class="w-full min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -4339,6 +4342,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             previewNewPixQr();
             pixDatasNovo(d);
             fillNewPixValues(d);
+            marcarAjustesPorVenc(); // desconto/valor extra com "a partir de" só vem marcado se já vale para este vencimento
             document.getElementById('newPixDueInfo').innerHTML = `<i class="fa-regular fa-bell mr-1"></i> O motorista recebe uma notificação no celular.${cobOf(d).auto ? ` <b>Atenção:</b> este motorista está no pagamento automático pelo ${cobOf(d).nome} — o ${cobOf(d).nome} já envia a cobrança sozinho.` : ''}`;
             document.getElementById('modalNewPix').classList.remove('hidden');
         }
@@ -4517,6 +4521,12 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         }
         function ajustesOf(d) { const a = d && d.pix_extra && d.pix_extra.ajustes; return Array.isArray(a) ? a : []; }
         // previsão da próxima cobrança: mesma conta do Novo Pix e das cobranças automáticas
+        // Desconto/valor extra com "Cobrar a partir de" (a.a_partir = AAAA-MM-DD): só entra na cobrança que vence nesse dia ou depois.
+        // Mesma regra das funções motora-lembretes e motora-asaas (ajusteVale). Sem data: entra na próxima, como sempre.
+        function ajusteVale(a, vencIso) { return !a || !a.a_partir || !vencIso || vencIso >= a.a_partir; }
+        function isoDia(dt) { return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0'); }
+        /** Vencimento da próxima cobrança do motorista (mesma conta das "Próximas cobranças"). */
+        function vencProxima(d) { return isoDia(mondayAfter(Math.max(Date.now(), d && d.pix_due_at ? new Date(d.pix_due_at).getTime() : 0), cobOf(d).dia)); }
         function previsaoProxima(d) {
             const v = allVeh().find(x => x.id === d.vehicle_id), linhas = [];
             if (v && v.rent_amount != null) linhas.push([`Aluguel ${v.model}`, Number(v.rent_amount)]);
@@ -4527,7 +4537,8 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 const np = ex.ultimo_enviado ? nextParcel(ex.descricao) : { desc: ex.descricao, done: false };
                 if (!np.done) linhas.push([np.desc || 'Acréscimo', Number(ex.valor)]);
             }
-            ajustesOf(d).forEach(a => linhas.push([a.tipo === 'desconto' ? 'Desconto: ' + a.desc : a.desc, (a.tipo === 'desconto' ? -1 : 1) * Number(a.valor || 0)]));
+            const vencIso = vencProxima(d);
+            ajustesOf(d).filter(a => ajusteVale(a, vencIso)).forEach(a => linhas.push([a.tipo === 'desconto' ? 'Desconto: ' + a.desc : a.desc, (a.tipo === 'desconto' ? -1 : 1) * Number(a.valor || 0)]));
             return { linhas, total: Math.round(linhas.reduce((t, [, x]) => t + x, 0) * 100) / 100 };
         }
         function previsaoHtml(d) {
@@ -4537,14 +4548,15 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function dfAjRender() {
             const d = state.drivers.find(x => x.id === fileDriverId); if (!d) return;
             const it = ajustesOf(d);
-            document.getElementById('dfAjList').innerHTML = it.length ? it.map(a => `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600"><p class="flex-1 min-w-0 text-sm font-semibold break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}</p><button type="button" onclick="delAjuste('${a.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum desconto ou valor extra lançado.</p>';
+            document.getElementById('dfAjList').innerHTML = it.length ? it.map(a => `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600"><p class="flex-1 min-w-0 text-sm font-semibold break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}${a.a_partir ? `<span class="block text-xs font-normal text-gray-500 dark:text-gray-400"><i class="fa-regular fa-calendar mr-1"></i>Cobrado a partir de ${dataBR(a.a_partir, true)}${ajusteVale(a, vencProxima(state.drivers.find(x => x.id === fileDriverId) || {})) ? ' (entra na próxima cobrança)' : ' (ainda não entra na próxima)'}</span>` : ''}</p><button type="button" onclick="delAjuste('${a.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum desconto ou valor extra lançado.</p>';
             document.getElementById('dfAjPrev').innerHTML = `<p class="text-xs font-bold uppercase text-gray-500 mb-1">Prévia que o motorista vê</p>${previsaoHtml(d)}`;
         }
         async function addAjuste() {
             const desc = document.getElementById('dfAjDesc').value.trim(), valor = parseMoney(document.getElementById('dfAjVal').value);
             if (!desc || !(valor > 0)) { showToast('Escreva o motivo e o valor.', 'error'); return; }
-            const item = { id: 'a' + Date.now().toString(36), tipo: document.getElementById('dfAjTipo').value, desc, valor };
-            if (await savePixExtra(fileDriverId, x => { x.ajustes = [...(Array.isArray(x.ajustes) ? x.ajustes : []), item]; })) { document.getElementById('dfAjDesc').value = ''; document.getElementById('dfAjVal').value = ''; dfAjRender(); renderMasterResumo(); showToast('Lançado na próxima cobrança.'); }
+            const aPartir = document.getElementById('dfAjData').value || null;
+            const item = { id: 'a' + Date.now().toString(36), tipo: document.getElementById('dfAjTipo').value, desc, valor, ...(aPartir ? { a_partir: aPartir } : {}) };
+            if (await savePixExtra(fileDriverId, x => { x.ajustes = [...(Array.isArray(x.ajustes) ? x.ajustes : []), item]; })) { document.getElementById('dfAjDesc').value = ''; document.getElementById('dfAjData').value = ''; document.getElementById('dfAjVal').value = ''; dfAjRender(); renderMasterResumo(); showToast('Lançado na próxima cobrança.'); }
         }
         async function delAjuste(aid) {
             if (await savePixExtra(fileDriverId, x => { x.ajustes = (x.ajustes || []).filter(a => a.id !== aid); if (!x.ajustes.length) delete x.ajustes; })) { dfAjRender(); renderMasterResumo(); }
@@ -4786,7 +4798,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             mbox.innerHTML = mp.length ? `<p class="text-xs font-bold uppercase text-red-700 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i>Multas e despesas do motorista</p>` + mp.map(i => `<label class="flex items-center gap-2 cursor-pointer text-sm"><input type="checkbox" class="w-5 h-5 newPixMult" data-mid="${i.id}" checked onchange="calcNewPix()"><span class="min-w-0 break-words">${esc(i.desc)}: <b>${fmtMoney(i.valor)}</b></span></label>`).join('') + '<p class="text-xs text-gray-500 dark:text-gray-400">Desmarque o que não for cobrar nesta semana.</p>' : '';
             const aj = ajustesOf(d), ajb = document.getElementById('newPixAjBox');
             ajb.classList.toggle('hidden', !aj.length);
-            ajb.innerHTML = aj.map(a => `<label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="newPixAj" data-aid="${a.id}" checked onchange="calcNewPix()"><span class="min-w-0 break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}</span></label>`).join('');
+            ajb.innerHTML = aj.map(a => `<label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="newPixAj" data-aid="${a.id}" data-apartir="${esc(a.a_partir || '')}" checked onchange="this.dataset.mexido = 1; calcNewPix()"><span class="min-w-0 break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}${a.a_partir ? ` <span class="text-xs text-gray-500 dark:text-gray-400">(a partir de ${dataBR(a.a_partir, true)})</span>` : ''}</span></label>`).join('');
             // acréscimo que se repete (se a caução já está na ficha, o acréscimo "caução" antigo não entra de novo)
             const ex = d.pix_extra || {};
             let addDesc = '', addVal = '', repeat = false;
@@ -4852,6 +4864,12 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function pixDiasPeriodo() {
             const ini = document.getElementById('newPixIni').value, fim = document.getElementById('newPixFim').value;
             return ini && fim && fim >= ini ? diasEntre(ini, fim) : 0;
+        }
+        /** Novo Pix: desconto/valor extra com data só vem marcado se o vencimento escolhido for nessa data ou depois (o dono pode mudar). */
+        function marcarAjustesPorVenc() {
+            const venc = document.getElementById('newPixDue').value;
+            document.querySelectorAll('.newPixAj').forEach(el => { if (el.dataset.apartir && !el.dataset.mexido) el.checked = ajusteVale({ a_partir: el.dataset.apartir }, venc); });
+            if (typeof calcNewPix === 'function') calcNewPix();
         }
         function pixDatasNovo(d) {
             const hoje = todayISO(), dia = cobOf(d).dia;

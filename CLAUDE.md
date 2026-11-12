@@ -134,6 +134,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 
 ## Ajustes da próxima cobrança (03/11/2026)
 - Ficha do motorista → "Desconto ou valor extra na próxima cobrança" (`pix_extra.ajustes` = `[{id,tipo,desc,valor}]`). Entram no Novo Pix (marcados), no Asaas e na previsão (`previsaoProxima`, também na "Próxima semana" do motorista, que agora inclui multas pendentes). Saem da lista quando o Pix é criado. Motoristas abre primeiro, com o cartão "Próximas cobranças". Excluir um Pix não devolve o ajuste.
+- **"Cobrar a partir de" (12/11/2026):** cada ajuste pode ter `a_partir` (AAAA-MM-DD). Só entra na cobrança cujo vencimento é nesse dia ou depois; até lá fica na lista. Regra única `ajusteVale(a, vencIso)` no `index.html` (prévia por `vencProxima`, Novo Pix marca/desmarca por `marcarAjustesPorVenc`) e em `motora-lembretes` e `motora-asaas` (`ajustesDoVenc` + `tirarAjustes`: só saem da lista os usados naquela cobrança). O `verificar.mjs` confere que as três decidem igual. **Publicar as duas funções junto com o app**: se a tela for ao ar sem elas, o servidor antigo ignora a data e cobra antes.
 
 ## Dia do pagamento, Asaas e backup (publicado em 02/11/2026)
 - Código das funções do Supabase agora fica em `supabase/functions/` (motora-push, motora-asaas, motora-backup, motora-robo) e o SQL em `supabase/2026-11-01-novidades.sql` (já aplicado).

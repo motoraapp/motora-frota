@@ -76,6 +76,17 @@ function proximaParcela(desc: string) {
 
 type Extra = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+// Desconto/valor extra com "Cobrar a partir de" (a_partir = AAAA-MM-DD): só entra na cobrança que vence nessa data ou depois.
+// Mesma regra do app (ajusteVale em index.html) e da outra função (motora-lembretes).
+const ajusteVale = (a: Extra, vencIso?: string) => !a?.a_partir || !vencIso || vencIso >= String(a.a_partir);
+const ajustesDoVenc = (ex: Extra, vencIso: string): Extra[] => (Array.isArray(ex.ajustes) ? ex.ajustes : []).filter((a: Extra) => ajusteVale(a, vencIso));
+/** Tira da lista só os ajustes usados nesta cobrança; os que ainda não chegaram na data ficam. */
+function tirarAjustes(ex: Extra, usados: Extra[]) {
+  const ids = new Set(usados.map((a) => a.id));
+  const resto = (Array.isArray(ex.ajustes) ? ex.ajustes : []).filter((a: Extra) => !ids.has(a.id));
+  if (resto.length) ex.ajustes = resto; else delete ex.ajustes;
+}
+
 async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line @typescript-eslint/no-explicit-any
   const dia = d.payment_day_of_week ?? 1;
   const venc = proximoDia(dia);
@@ -107,7 +118,8 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
     const np = ex.ultimo_enviado ? proximaParcela(ex.descricao) : { desc: ex.descricao, done: false };
     if (!np.done) { total += Number(ex.valor); linhas.push(`+ ${np.desc}: ${brl(ex.valor)}`); novoRepetir = { descricao: np.desc }; }
   }
-  for (const a of Array.isArray(ex.ajustes) ? ex.ajustes : []) { const desc = a.tipo === "desconto"; total += (desc ? -1 : 1) * Number(a.valor || 0); linhas.push(`${desc ? "−" : "+"} ${a.desc}: ${brl(a.valor)}`); }
+  const ajustes = ajustesDoVenc(ex, venc.iso);
+  for (const a of ajustes) { const desc = a.tipo === "desconto"; total += (desc ? -1 : 1) * Number(a.valor || 0); linhas.push(`${desc ? "−" : "+"} ${a.desc}: ${brl(a.valor)}`); }
   total = Math.round(total * 100) / 100;
   if (!(total > 0)) {
     await avisar({ type: "master_alert", title: `Asaas: ${d.name} sem valor`, body: "Não há valor a cobrar (aluguel vazio ou desconto maior que o total). A cobrança automática não foi criada.", url: "/" });
@@ -138,7 +150,7 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   }
 
   // ----- atualiza o motorista (o banco cria o histórico e a data de pagamento sozinho) -----
-  delete ex.ajustes;
+  tirarAjustes(ex, ajustes);
   delete ex.repetir; delete ex.descricao; delete ex.valor; delete ex.ultimo_enviado;
   if (novoRepetir) Object.assign(ex, { repetir: true, descricao: novoRepetir.descricao, valor: d.pix_extra.valor, ultimo_enviado: true });
   if (cauCobrada) ex.caucao = { ...cau, cobradas: Number(cau.cobradas || 0) + 1 };
