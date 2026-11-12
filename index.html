@@ -1178,6 +1178,19 @@
         </div>
     </div>
 
+    <div id="modalFinCardDetail" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)closeFinCardDetail()">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <div class="min-w-0">
+                    <h3 id="finCardDetailTitle" class="font-bold text-base flex items-center gap-2 truncate"></h3>
+                    <p id="finCardDetailSub" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate"></p>
+                </div>
+                <button type="button" onclick="closeFinCardDetail()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg shrink-0"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="finCardDetailBody" class="p-4 overflow-y-auto flex-1 space-y-3"></div>
+        </div>
+    </div>
+
     <div id="modalFinance" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
@@ -1463,7 +1476,7 @@
     </div>
 
     <!-- MODAL VISUALIZADOR DE DOCUMENTOS/COMPROVANTES -->
-    <div id="modalDocViewer" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div id="modalDocViewer" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
                 <h4 class="font-bold text-sm" id="modalDocTitle">Visualizar Documento</h4>
@@ -4438,7 +4451,17 @@
             document.getElementById('finAppsBox').classList.toggle('hidden', tab !== 'apps');
             renderFinance();
         }
-        function closeFinance() { document.getElementById('modalFinance').classList.add('hidden'); markAreas(); }
+        let finCardSnap = { rent: null, app: null };
+        function finCardBtn(kind, label, value, cls, icon, extra) {
+            return `<button type="button" onclick="openFinCardDetail('${kind}')" class="p-3 rounded-xl border text-left w-full cursor-pointer transition hover:brightness-95 active:scale-[0.99] ${cls}">
+                <div class="flex items-center justify-between gap-1">
+                    <p class="text-xs font-semibold opacity-80 truncate"><i class="fa-solid ${icon} mr-1"></i>${label}</p>
+                    <i class="fa-solid fa-chevron-right text-[10px] opacity-55 shrink-0"></i>
+                </div>
+                <p class="text-lg font-bold mt-1">${fmtMoney(value)}</p>${extra || ''}</button>`;
+        }
+        function closeFinCardDetail() { document.getElementById('modalFinCardDetail').classList.add('hidden'); }
+        function closeFinance() { closeFinCardDetail(); document.getElementById('modalFinance').classList.add('hidden'); markAreas(); }
 
         function renderFinance() {
             fillFinFilters(); updateFinFilterCount();
@@ -4456,14 +4479,28 @@
                     if (!inRange(dayBR(p.r.created_at), r) || !p.val) return;
                     const day = dayBR(p.r.created_at);
                     if (p.alloc.length) {
-                        p.alloc.forEach(a => allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(a.c, d.id), amount: a.amt, day }));
-                        if (p.left > 0.005) allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(p.alloc[p.alloc.length - 1].c, d.id), amount: p.left, day });
+                        p.alloc.forEach(a => allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(a.c, d.id), amount: a.amt, day, desc: (a.c.h && a.c.h.description) || '' }));
+                        if (p.left > 0.005) {
+                            const lastC = p.alloc[p.alloc.length - 1].c;
+                            allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(lastC, d.id), amount: p.left, day, desc: (lastC && lastC.h && lastC.h.description) || '' });
+                        }
                     } else {
                         const lastH = al.charges[al.charges.length - 1];
-                        allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(lastH, d.id), amount: p.val, day });
+                        allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(lastH, d.id), amount: p.val, day, desc: (lastH && lastH.h && lastH.h.description) || '' });
                     }
                 });
-                al.charges.forEach(c => { if (c.remaining > 0.005) allOpen.push({ driver_id: d.id, vehicle_id: chargeVehicleId(c, d.id), amount: c.remaining }); });
+                al.charges.forEach(c => {
+                    if (c.remaining > 0.005) allOpen.push({
+                        driver_id: d.id,
+                        vehicle_id: chargeVehicleId(c, d.id),
+                        amount: c.remaining,
+                        origAmount: Number(c.h.amount || 0),
+                        paidAmount: c.paid,
+                        sent_at: c.h.sent_at || c.h.created_at || '',
+                        due_at: c.h.due_at || '',
+                        desc: c.h.description || ''
+                    });
+                });
             });
             const paid = fVeh ? allPaid.filter(h => h.vehicle_id === fVeh) : allPaid;
             const open = fVeh ? allOpen.filter(h => h.vehicle_id === fVeh) : allOpen;
@@ -4472,14 +4509,11 @@
             const sum = (list, f) => list.reduce((a, x) => a + Number(f(x) || 0), 0);
             const received = sum(paid, h => h.amount), pending = sum(open, h => h.amount), spent = sum(exps, x => x.amount);
             const balance = received - spent;
-            const card = (label, value, cls, icon) => `<div class="p-3 rounded-xl border ${cls}">
-                    <p class="text-xs font-semibold opacity-80"><i class="fa-solid ${icon} mr-1"></i>${label}</p>
-                    <p class="text-lg font-bold mt-1">${fmtMoney(value)}</p></div>`;
             document.getElementById('finCards').innerHTML =
-                card('Recebido', received, 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200', 'fa-arrow-down') +
-                card('Despesas', spent, 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200', 'fa-arrow-up') +
-                card(balance >= 0 ? 'Lucro' : 'Prejuízo', Math.abs(balance), balance >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200', 'fa-scale-balanced') +
-                card('Em aberto (a receber)', pending, 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200', 'fa-hourglass-half');
+                finCardBtn('paid', 'Recebido', received, 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200', 'fa-arrow-down') +
+                finCardBtn('spent', 'Despesas', spent, 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200', 'fa-arrow-up') +
+                finCardBtn('profit', balance >= 0 ? 'Lucro' : 'Prejuízo', Math.abs(balance), balance >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200', 'fa-scale-balanced') +
+                finCardBtn('open', 'Em aberto (a receber)', pending, 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200', 'fa-hourglass-half');
 
             const row = cells => `<tr class="border-t border-gray-100 dark:border-gray-700">${cells.map((c, i) => `<td class="py-1.5 ${i ? 'text-right pl-2 whitespace-nowrap' : 'pr-2'}">${c}</td>`).join('')}</tr>`;
             const table = (head, rows) => rows.length ? `<div class="overflow-x-auto"><table class="w-full text-left text-xs">
@@ -4505,6 +4539,16 @@
             const dName = id => (allDrv().find(d => d.id === id) || {}).name || 'Motorista';
             const vName = id => { const v = allVeh().find(x => x.id === id); return v ? `${v.model} (${v.plate})` : '-'; };
             const tName = id => (state.expenseTypes.find(t => t.id === id) || {}).name || 'Despesa';
+            const periodSel = document.getElementById('finPeriod');
+            const periodLabel = (periodSel.options[periodSel.selectedIndex] || {}).text || '';
+            const fltParts = [];
+            if (fDrv) fltParts.push(dName(fDrv));
+            if (fVeh) fltParts.push(vName(fVeh));
+            finCardSnap.rent = {
+                periodLabel,
+                fltLabel: fltParts.join(' · '),
+                paid, open, exps, received, pending, spent, balance, vData, dData
+            };
             lastFinData = {
                 titulo: 'Relatório de aluguéis',
                 cards: [['Recebido', received], ['Despesas', spent], [balance >= 0 ? 'Lucro' : 'Prejuízo', Math.abs(balance)], ['Em aberto (a receber)', pending]],
@@ -4515,6 +4559,212 @@
                     { titulo: 'Despesas dos veículos', head: ['Data', 'Veículo / tipo', 'Valor'], rows: exps.slice().sort((a, b) => String(a.expense_date).localeCompare(String(b.expense_date))).map(x => [fmtDate(x.expense_date), `${vName(x.vehicle_id)} · ${tName(x.type_id)}${x.description ? ' · ' + x.description : ''}`, fmtMoney(x.amount)]) },
                 ],
             };
+        }
+
+        function openFinCardDetail(kind) {
+            const isApp = kind.startsWith('app_');
+            const s = isApp ? finCardSnap.app : finCardSnap.rent;
+            if (!s) return;
+            const titleEl = document.getElementById('finCardDetailTitle');
+            const subEl = document.getElementById('finCardDetailSub');
+            const bodyEl = document.getElementById('finCardDetailBody');
+            const dObj = id => allDrv().find(d => d.id === id);
+            const dName = id => (dObj(id) || {}).name || 'Motorista';
+            const vName = id => { const v = allVeh().find(x => x.id === id); return v ? `${v.model} (${v.plate})` : 'Sem veículo'; };
+            const tName = id => (state.expenseTypes.find(t => t.id === id) || {}).name || 'Despesa';
+            const banner = (cls, label, val, sub) => `<div class="p-3.5 rounded-xl border ${cls}">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold opacity-85">${label}</span>
+                    <span class="text-xl font-bold">${val}</span>
+                </div>${sub ? `<p class="text-xs opacity-80 mt-1">${sub}</p>` : ''}</div>`;
+            const empty = msg => `<p class="text-xs italic text-gray-400 text-center py-4">${msg}</p>`;
+            const today = todayISO();
+
+            subEl.textContent = `Período: ${s.periodLabel || 'Atual'}${s.fltLabel ? ' · Filtros: ' + s.fltLabel : ''}`;
+
+            if (kind === 'open') {
+                titleEl.innerHTML = `<i class="fa-solid fa-hourglass-half text-amber-500"></i> <span>Em aberto (a receber)</span>`;
+                const items = s.open.slice().sort((a, b) => String(a.due_at || dayBR(a.sent_at) || '').localeCompare(String(b.due_at || dayBR(b.sent_at) || '')));
+                const drvSet = new Set(items.map(c => c.driver_id));
+                let html = banner('bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200',
+                    'Total a receber', fmtMoney(s.pending),
+                    `${items.length} cobrança${items.length === 1 ? '' : 's'} pendente${items.length === 1 ? '' : 's'} de ${drvSet.size} motorista${drvSet.size === 1 ? '' : 's'}.`);
+                if (!items.length) { html += empty('Nenhuma cobrança em aberto para os filtros atuais.'); }
+                else {
+                    html += `<div class="space-y-2">` + items.map(c => {
+                        const d = dObj(c.driver_id) || {};
+                        const dueDay = c.due_at ? String(c.due_at).slice(0, 10) : '';
+                        const sentDay = dayBR(c.sent_at);
+                        const overdue = dueDay && dueDay < today;
+                        const statusBadges = [
+                            overdue ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold">Vencido</span>`
+                                : (dueDay ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-semibold">No prazo</span>` : ''),
+                            d.pix_extra && d.pix_extra.contrato_encerrado ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">Encerrado</span>` : '',
+                            d.role === 'excluido' ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500">Excluído</span>` : ''
+                        ].filter(Boolean).join(' ');
+                        const partial = c.paidAmount > 0.005
+                            ? `<p class="text-[11px] text-emerald-700 dark:text-emerald-300 mt-1">Original ${fmtMoney(c.origAmount)} · Já pago ${fmtMoney(c.paidAmount)} · <b>Falta ${fmtMoney(c.amount)}</b></p>`
+                            : '';
+                        return `<div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-700/30">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-bold text-sm text-gray-900 dark:text-gray-100">${esc(d.name || 'Motorista')}</span>
+                                        ${statusBadges}
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">${esc(vName(c.vehicle_id))}</p>
+                                </div>
+                                <span class="font-bold text-sm text-amber-600 dark:text-amber-400 shrink-0">${fmtMoney(c.amount)}</span>
+                            </div>
+                            ${c.desc ? `<p class="text-xs text-gray-700 dark:text-gray-300 mt-1">${esc(c.desc)}</p>` : ''}
+                            <div class="flex flex-wrap items-center justify-between gap-2 mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                                <span>${sentDay ? 'Enviada ' + fmtDate(sentDay) : 'Cobrança'}${dueDay ? ' · Venc. ' + fmtDate(dueDay) : ''}</span>
+                                ${d.role === 'driver' ? `<button type="button" onclick="closeFinCardDetail(); closeFinance(); openDriverFile('${c.driver_id}')" class="text-blue-600 dark:text-blue-400 font-semibold hover:underline">Abrir ficha <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></button>` : ''}
+                            </div>
+                            ${partial}
+                        </div>`;
+                    }).join('') + `</div>`;
+                }
+                bodyEl.innerHTML = html;
+            } else if (kind === 'paid') {
+                titleEl.innerHTML = `<i class="fa-solid fa-arrow-down text-emerald-500"></i> <span>Recebido</span>`;
+                const items = s.paid.slice().sort((a, b) => String(b.day).localeCompare(String(a.day)));
+                let html = banner('bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200',
+                    'Total recebido no período', fmtMoney(s.received),
+                    `${items.length} pagamento${items.length === 1 ? '' : 's'} confirmado${items.length === 1 ? '' : 's'}.`);
+                if (!items.length) { html += empty('Nenhum recebimento neste período.'); }
+                else {
+                    html += `<div class="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-3">` + items.map(h => `
+                        <div class="py-2.5 flex items-start justify-between gap-2 text-xs">
+                            <div class="min-w-0">
+                                <p class="font-bold text-gray-900 dark:text-gray-100">${esc(dName(h.driver_id))}</p>
+                                <p class="text-gray-500 dark:text-gray-400 mt-0.5">${fmtDate(h.day)} · ${esc(vName(h.vehicle_id))}</p>
+                                ${h.desc ? `<p class="text-gray-600 dark:text-gray-300 mt-0.5">${esc(h.desc)}</p>` : ''}
+                            </div>
+                            <span class="font-bold text-sm text-emerald-600 dark:text-emerald-400 shrink-0">${fmtMoney(h.amount)}</span>
+                        </div>`).join('') + `</div>`;
+                }
+                bodyEl.innerHTML = html;
+            } else if (kind === 'spent') {
+                titleEl.innerHTML = `<i class="fa-solid fa-arrow-up text-red-500"></i> <span>Despesas</span>`;
+                const items = s.exps.slice().sort((a, b) => String(b.expense_date).localeCompare(String(a.expense_date)));
+                const byType = {};
+                items.forEach(x => { const tn = tName(x.type_id); byType[tn] = (byType[tn] || 0) + Number(x.amount || 0); });
+                let html = banner('bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200',
+                    'Total de despesas no período', fmtMoney(s.spent),
+                    `${items.length} lançamento${items.length === 1 ? '' : 's'} registrado${items.length === 1 ? '' : 's'}.`);
+                if (Object.keys(byType).length) {
+                    html += `<div class="flex flex-wrap gap-1.5">` + Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+                        `<span class="text-xs px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 font-semibold">${esc(k)}: ${fmtMoney(v)}</span>`
+                    ).join('') + `</div>`;
+                }
+                if (!items.length) { html += empty('Nenhuma despesa neste período.'); }
+                else {
+                    html += `<div class="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-3">` + items.map(x => {
+                        const ref = x.file_path ? docRef(x.file_path, `Nota · ${tName(x.type_id)} (${fmtDate(x.expense_date)})`) : -1;
+                        return `<div class="py-2.5 flex items-start justify-between gap-2 text-xs">
+                            <div class="min-w-0">
+                                <p class="font-bold text-gray-900 dark:text-gray-100">${esc(tName(x.type_id))} <span class="font-normal text-gray-500">· ${esc(vName(x.vehicle_id))}</span></p>
+                                <p class="text-gray-500 dark:text-gray-400 mt-0.5">${fmtDate(x.expense_date)}${x.description ? ' · ' + esc(x.description) : ''}</p>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="font-bold text-sm text-red-600 dark:text-red-400">${fmtMoney(x.amount)}</div>
+                                ${ref >= 0 ? `<button type="button" onclick="viewDocIdx(${ref})" class="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline mt-0.5"><i class="fa-solid fa-paperclip mr-0.5"></i>Ver nota</button>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('') + `</div>`;
+                }
+                bodyEl.innerHTML = html;
+            } else if (kind === 'profit') {
+                const pos = s.balance >= 0;
+                titleEl.innerHTML = `<i class="fa-solid fa-scale-balanced ${pos ? 'text-blue-500' : 'text-red-500'}"></i> <span>${pos ? 'Lucro' : 'Prejuízo'}</span>`;
+                let html = banner(pos ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200',
+                    pos ? 'Resultado líquido (Lucro)' : 'Resultado líquido (Prejuízo)', fmtMoney(Math.abs(s.balance)),
+                    'Cálculo: Recebido no período menos Despesas dos veículos.');
+                html += `<div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2 text-xs">
+                    <div class="flex justify-between"><span>(+) Recebido no período</span><span class="font-bold text-emerald-600 dark:text-emerald-400">${fmtMoney(s.received)}</span></div>
+                    <div class="flex justify-between"><span>(−) Despesas no período</span><span class="font-bold text-red-600 dark:text-red-400">${fmtMoney(s.spent)}</span></div>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-sm">
+                        <span>(=) ${pos ? 'Lucro' : 'Prejuízo'}</span>
+                        <span class="${pos ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}">${fmtMoney(Math.abs(s.balance))}</span>
+                    </div>
+                    <p class="text-[11px] text-amber-700 dark:text-amber-300 pt-1"><i class="fa-solid fa-circle-info mr-1"></i>Em aberto (a receber, ainda não entrou no saldo): <b>${fmtMoney(s.pending)}</b></p>
+                </div>`;
+                if (s.vData.length) {
+                    html += `<div class="space-y-1.5"><p class="text-xs font-bold text-gray-500 uppercase">Resumo por veículo</p>` + s.vData.map(x => {
+                        const sal = x.rec - x.sp;
+                        return `<div class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2 text-xs">
+                            <div class="min-w-0">
+                                <p class="font-bold text-gray-900 dark:text-gray-100 truncate">${esc(x.v.model)} (${esc(x.v.plate)})</p>
+                                <p class="text-gray-500 dark:text-gray-400">Rec. ${fmtMoney(x.rec)} · Desp. ${fmtMoney(x.sp)}</p>
+                            </div>
+                            <span class="font-bold text-sm ${sal >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'} shrink-0">${fmtMoney(sal)}</span>
+                        </div>`;
+                    }).join('') + `</div>`;
+                }
+                bodyEl.innerHTML = html;
+            } else if (kind === 'app_gains') {
+                titleEl.innerHTML = `<i class="fa-solid fa-mobile-screen text-emerald-500"></i> <span>Ganhos no período</span>`;
+                let html = banner('bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200',
+                    'Total de ganhos (aplicativos)', fmtMoney(s.total),
+                    `${s.data.length} lançamento${s.data.length === 1 ? '' : 's'} no período.`);
+                if (Object.keys(s.by).length) {
+                    html += `<div class="flex flex-wrap gap-1.5">` + Object.entries(s.by).map(([k, v]) =>
+                        `<span class="text-xs px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 font-semibold">${esc(k)}: ${fmtMoney(v)}</span>`
+                    ).join('') + `</div>`;
+                }
+                if (!s.data.length) { html += empty('Nenhum ganho lançado neste período.'); }
+                else {
+                    html += `<div class="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-3">` + s.data.map(x => `
+                        <div class="py-2.5 flex items-start justify-between gap-2 text-xs">
+                            <div class="min-w-0">
+                                <p class="font-bold text-gray-900 dark:text-gray-100">${esc(x.app)}${x.vehicle_id ? ' · ' + esc(vName(x.vehicle_id)) : ''}</p>
+                                <p class="text-gray-500 dark:text-gray-400 mt-0.5">${fmtDate(x.earning_date)}${x.trips ? ` · ${x.trips} corridas` : ''}${x.hours ? ` · ${x.hours}h` : ''}</p>
+                            </div>
+                            <span class="font-bold text-sm text-emerald-600 dark:text-emerald-400 shrink-0">${fmtMoney(x.amount)}</span>
+                        </div>`).join('') + `</div>`;
+                }
+                bodyEl.innerHTML = html;
+            } else if (kind === 'app_spent') {
+                titleEl.innerHTML = `<i class="fa-solid fa-gas-pump text-red-500"></i> <span>Despesas (aplicativos)</span>`;
+                let html = banner('bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200',
+                    'Total de despesas (aplicativos)', fmtMoney(s.spent),
+                    `${s.exps.length} lançamento${s.exps.length === 1 ? '' : 's'} no período.`);
+                if (Object.keys(s.byExp).length) {
+                    html += `<div class="flex flex-wrap gap-1.5">` + Object.entries(s.byExp).map(([k, v]) =>
+                        `<span class="text-xs px-2.5 py-1 rounded-full bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 font-semibold">${esc(k)}: ${fmtMoney(v)}</span>`
+                    ).join('') + `</div>`;
+                }
+                if (!s.exps.length) { html += empty('Nenhuma despesa lançada neste período.'); }
+                else {
+                    html += `<div class="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-3">` + s.exps.map(x => `
+                        <div class="py-2.5 flex items-start justify-between gap-2 text-xs">
+                            <div class="min-w-0">
+                                <p class="font-bold text-gray-900 dark:text-gray-100">${esc(x.category)}</p>
+                                <p class="text-gray-500 dark:text-gray-400 mt-0.5">${fmtDate(x.expense_date)}</p>
+                            </div>
+                            <span class="font-bold text-sm text-red-600 dark:text-red-400 shrink-0">${fmtMoney(x.amount)}</span>
+                        </div>`).join('') + `</div>`;
+                }
+                bodyEl.innerHTML = html;
+            } else if (kind === 'app_net') {
+                const pos = s.net >= 0;
+                titleEl.innerHTML = `<i class="fa-solid fa-scale-balanced ${pos ? 'text-blue-500' : 'text-red-500'}"></i> <span>${pos ? 'Sobrou' : 'Faltou'}</span>`;
+                let html = banner(pos ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200',
+                    pos ? 'Sobrou no período' : 'Faltou no período', fmtMoney(Math.abs(s.net)),
+                    'Cálculo: Ganhos no período menos Despesas de aplicativo.');
+                html += `<div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2 text-xs">
+                    <div class="flex justify-between"><span>(+) Ganhos no período</span><span class="font-bold text-emerald-600 dark:text-emerald-400">${fmtMoney(s.total)}</span></div>
+                    <div class="flex justify-between"><span>(−) Despesas</span><span class="font-bold text-red-600 dark:text-red-400">${fmtMoney(s.spent)}</span></div>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2 flex justify-between font-bold text-sm">
+                        <span>(=) ${pos ? 'Sobrou' : 'Faltou'}</span>
+                        <span class="${pos ? 'text-blue-600 dark:text-blue-400' : 'text-red-600 dark:text-red-400'}">${fmtMoney(Math.abs(s.net))}</span>
+                    </div>
+                </div>`;
+                bodyEl.innerHTML = html;
+            }
+
+            document.getElementById('modalFinCardDetail').classList.remove('hidden');
         }
 
         // Gráficos do Financeiro: usam os mesmos números dos cartões e tabelas
@@ -7366,13 +7616,16 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const spent = exps.reduce((a, x) => a + Number(x.amount || 0), 0);
             const byExp = {}; exps.forEach(x => byExp[x.category] = (byExp[x.category] || 0) + Number(x.amount || 0));
             const net = total - spent;
-            const card = (label, value, cls, icon, extra) => `<div class="p-3 rounded-xl border ${cls}"><p class="text-xs font-semibold opacity-80"><i class="fa-solid ${icon} mr-1"></i>${label}</p><p class="text-lg font-bold mt-1">${fmtMoney(value)}</p>${extra || ''}</div>`;
+            const periodSel = document.getElementById('finPeriod');
+            const periodLabel = (periodSel.options[periodSel.selectedIndex] || {}).text || '';
+            const appFltParts = [fApp, fExp, fAV ? ((allVeh().find(v => v.id === fAV) || {}).model || '') : ''].filter(Boolean);
+            finCardSnap.app = { periodLabel, fltLabel: appFltParts.join(' · '), data, exps, total, by, spent, byExp, net };
             tot.innerHTML = `<div class="grid grid-cols-2 gap-2">` +
-                card('Ganhos no período', total, 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200', 'fa-mobile-screen',
+                finCardBtn('app_gains', 'Ganhos no período', total, 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200', 'fa-mobile-screen',
                     Object.keys(by).length ? `<p class="text-xs mt-1">${Object.entries(by).map(([k, v]) => `${esc(k)}: ${fmtMoney(v)}`).join(' · ')}</p>` : '') +
-                card('Despesas', spent, 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200', 'fa-gas-pump',
+                finCardBtn('app_spent', 'Despesas', spent, 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200', 'fa-gas-pump',
                     Object.keys(byExp).length ? `<p class="text-xs mt-1">${Object.entries(byExp).map(([k, v]) => `${esc(k)}: ${fmtMoney(v)}`).join(' · ')}</p>` : '') +
-                `</div>` + card(net >= 0 ? 'Sobrou (ganhos − despesas)' : 'Faltou (despesas maiores)', Math.abs(net), (net >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200') + ' mt-2', 'fa-scale-balanced');
+                `</div>` + finCardBtn('app_net', net >= 0 ? 'Sobrou (ganhos − despesas)' : 'Faltou (despesas maiores)', Math.abs(net), (net >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200') + ' mt-2', 'fa-scale-balanced');
             fillAppExpTypes(exps);
             if (!document.getElementById('appExpDate').value) document.getElementById('appExpDate').value = todayISO();
             const elist = document.getElementById('appExpList');
