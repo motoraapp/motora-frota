@@ -19,6 +19,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 
 ## Ar-condicionado (fora do MOTORA)
 - `ar/` = app do ar-condicionado do dono (placa ESP32 do projeto gree-esp32), publicado em https://motoraapp.github.io/motora-frota/ar/. Login = conta master do MOTORA. Banco: esquema isolado `ar` (tabelas `ar.device`, `ar.cmd`) e funções `ar_*` (SQL `supabase/2026-11-04-ar-condicionado.sql`, já aplicado). Não mexe nas tabelas do MOTORA.
+- `ar/firmware/`: `gree.bin` (só o programa, para atualização pelo ar, com `versao.json`), `gree-esp32-completo.bin` (imagem inteira para gravar placa nova a partir do endereço 0x0: bootloader, tabela de partições e o mesmo programa do `gree.bin`; a área de Wi-Fi salvo vem vazia, então não leva senha) e `diagram.json` (montagem da placa no simulador Wokwi). Os JSON entram no `verificar.yml`.
 
 ## Onde está publicado
 - **GitHub Pages é o único endereço do app:** https://motoraapp.github.io/motora-frota/

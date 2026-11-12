@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "author": "Motora Ar-Condicionado",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": -20,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht1",
+      "top": -50,
+      "left": -155,
+      "attrs": {
+        "temperature": "26.5",
+        "humidity": "58"
+      }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "irtx",
+      "top": -30,
+      "left": 115,
+      "attrs": {
+        "color": "violet",
+        "label": "IR TX (D4)"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 35,
+      "left": 110,
+      "attrs": {
+        "value": "220"
+      }
+    },
+    {
+      "type": "wokwi-ir-receiver",
+      "id": "irrx",
+      "top": 115,
+      "left": -155,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-ir-remote",
+      "id": "remote1",
+      "top": 80,
+      "left": 115,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    ["esp:TX0", "$serialMonitor:RX", "", []],
+    ["esp:RX0", "$serialMonitor:TX", "", []],
+    ["dht1:VCC", "esp:3V3", "red", ["v0"]],
+    ["dht1:GND", "esp:GND.2", "black", ["v0"]],
+    ["dht1:SDA", "esp:D25", "green", ["v0"]],
+    ["irrx:VCC", "esp:3V3", "red", ["v0"]],
+    ["irrx:GND", "esp:GND.2", "black", ["v0"]],
+    ["irrx:DAT", "esp:D27", "orange", ["v0"]],
+    ["esp:D4", "irtx:A", "purple", ["h0"]],
+    ["irtx:C", "r1:1", "black", ["v0"]],
+    ["r1:2", "esp:GND.1", "black", ["v0"]]
+  ],
+  "dependencies": {}
+}

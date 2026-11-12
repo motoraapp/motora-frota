@@ -39,7 +39,8 @@ if (existsSync(robo)) {
 }
 
 // 3. Arquivos JSON
-for (const f of ['manifest.json', 'apk-version.json']) {
+for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json', 'ar/firmware/diagram.json']) {
+  if (!existsSync(join(raiz, f))) continue;
   try {
     JSON.parse(readFileSync(join(raiz, f), 'utf8').replace(/^﻿/, ''));
     console.log(`ok   ${f}`);
