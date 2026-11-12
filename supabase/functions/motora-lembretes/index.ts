@@ -23,6 +23,15 @@ const brl = (v: unknown) => Number(v).toLocaleString("pt-BR", { style: "currency
 const NOMES = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 type Extra = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+// Caução: todas as parcelas iguais (mínimo R$ 100, regra do app: cauPlano), menos a ÚLTIMA, que leva o que falta para fechar o total.
+// Ex.: R$ 775 em 8x = 7x de R$ 100 + 1x de R$ 75. Mesma conta do app (cauParcela em index.html); o verificar.mjs confere.
+const cauParcela = (c: Extra, k: number) => {
+  const v = Number(c?.valor_parcela || 0), n = Number(c?.parcelas || 0);
+  if (k < n || !(Number(c?.total) > 0)) return v;
+  const resto = Math.round((Number(c.total) - Number(c.entrada || 0) - v * (n - 1)) * 100) / 100;
+  return resto > 0.005 ? resto : v;
+};
+
 // Desconto/valor extra com "Cobrar a partir de" (a_partir = AAAA-MM-DD): só entra na cobrança que vence nessa data ou depois.
 // Mesma regra do app (ajusteVale em index.html) e da outra função (motora-asaas).
 const ajusteVale = (a: Extra, vencIso?: string) => !a?.a_partir || !vencIso || vencIso >= String(a.a_partir);
@@ -52,7 +61,7 @@ function previsao(d: Extra, aluguel: number | null, vencIso?: string) {
   const ex: Extra = d.pix_extra || {};
   let total = aluguel != null ? Number(aluguel) : 0;
   const cau = ex.devolucao ? null : ex.caucao;
-  if (cau?.forma === "parcelada" && Number(cau.cobradas || 0) < Number(cau.parcelas || 0) && Number(cau.valor_parcela) > 0) total += Number(cau.valor_parcela);
+  if (cau?.forma === "parcelada" && Number(cau.cobradas || 0) < Number(cau.parcelas || 0) && Number(cau.valor_parcela) > 0) total += cauParcela(cau, Number(cau.cobradas || 0) + 1);
   if (!ex.devolucao && ex.multas?.ativo) for (const i of ex.multas.itens || []) if (!i.cobrada && !i.paga) total += Number(i.valor || 0);
   if (ex.repetir && Number(ex.valor) > 0 && !(cau?.forma && /cau[çc][ãa]o/i.test(ex.descricao || ""))) {
     const m = String(ex.descricao || "").match(/(\d+)\s*\/\s*(\d+)/);
@@ -186,8 +195,9 @@ async function pixAutomatico(d: Extra, rec: Extra, simular: boolean, forcar = fa
   const cau = ex.caucao;
   let cauCobrada = false;
   if (cau?.forma === "parcelada" && Number(cau.cobradas || 0) < Number(cau.parcelas || 0) && Number(cau.valor_parcela) > 0) {
-    total += Number(cau.valor_parcela); cauCobrada = true;
-    linhas.push(`+ Caução ${Number(cau.cobradas || 0) + 1}/${cau.parcelas}: ${brl(cau.valor_parcela)}`);
+    const parcela = cauParcela(cau, Number(cau.cobradas || 0) + 1);
+    total += parcela; cauCobrada = true;
+    linhas.push(`+ Caução ${Number(cau.cobradas || 0) + 1}/${cau.parcelas}: ${brl(parcela)}`);
   }
   const multas = ex.multas?.ativo ? (ex.multas.itens || []).filter((i: Extra) => !i.cobrada && !i.paga) : [];
   for (const i of multas) { total += Number(i.valor || 0); linhas.push(`+ ${i.desc}: ${brl(i.valor)}`); }

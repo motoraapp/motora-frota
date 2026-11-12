@@ -284,7 +284,12 @@ function textoBoasVindas(d: any, v: any, login: string, senha: string | null, pr
     senha ? `Senha: ${senha}` : "Senha: os 6 primeiros números do seu CPF", "", "*Seu carro*"];
   l.push(v ? `${v.model}, placa ${v.plate}` : "Será informado em breve.", "", "*Pagamento*", `Dia: ${(d.payment_day_of_week ?? 1) % 6 === 0 ? "todo" : "toda"} ${dia}, até 23:59`, `Próximo vencimento: ${proxima}`);
   if (aluguel != null) l.push(`Aluguel por semana: ${brl(aluguel)}`);
-  if (parcela) l.push(`Parcela da caução: ${brl(parcela)} (${cau.parcelas}x)`);
+  // regra da caução (12/11/2026): parcelas de no mínimo R$ 100; a última leva o que falta (mesma conta do app: cauParcela)
+  const nCau = Number(cau?.parcelas || 0);
+  const ultimaCau = parcela && nCau > 1 && Number(cau.total) > 0 ? Math.round((Number(cau.total) - Number(cau.entrada || 0) - parcela * (nCau - 1)) * 100) / 100 : parcela;
+  if (parcela) l.push(ultimaCau > 0.005 && Math.abs(ultimaCau - parcela) > 0.005
+    ? `Parcela da caução: ${brl(parcela)} (${nCau - 1}x) e a última de ${brl(ultimaCau)}`
+    : `Parcela da caução: ${brl(parcela)} (${nCau}x)`);
   if (aluguel != null && parcela) l.push(`Total previsto por semana: ${brl(aluguel + parcela)}`);
   l.push("", "*Mensagens automáticas que você vai receber*", "• Quando o Pix da semana for criado, com o valor e a forma de pagar", "• No dia do pagamento, lembrete se ainda não tiver pago",
     auto ? "• Recibo quando o pagamento for confirmado (a conferência é automática, não precisa enviar comprovante)" : "• Recibo quando o pagamento for confirmado (depois de pagar, envie o comprovante pelo app)",

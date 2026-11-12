@@ -3311,14 +3311,15 @@
             document.getElementById('drvCauCampos').classList.toggle('hidden', !f);
             document.querySelectorAll('.drvCauParc').forEach(x => x.classList.toggle('hidden', f !== 'parcelada'));
             const c = drvCauLer();
-            document.getElementById('drvCauInfo').textContent = c && c.parcelas && c.valor_parcela > 0 ? `${c.parcelas}x de ${fmtMoney(c.valor_parcela)}, somadas ao aluguel a cada cobrança.` : 'Informe o valor total e em quantas vezes.';
+            document.getElementById('drvCauInfo').textContent = c && c.parcelas && c.valor_parcela > 0 ? `${cauParcelasTexto(c)}, somadas ao aluguel a cada cobrança.${c.parcelas < (parseInt(document.getElementById('drvCauN').value, 10) || 0) ? ` (parcela mínima de ${fmtMoney(CAU_MIN)}: cabem ${c.parcelas} vezes)` : ''}` : 'Informe o valor total e em quantas vezes.';
         }
         function drvCauLer() {
             const forma = document.getElementById('drvCauForma').value; if (!forma) return null;
             const total = parseMoney(document.getElementById('drvCauTotal').value) || 0;
             if (forma === 'paga') return { forma, total: total || null };
             const entrada = parseMoney(document.getElementById('drvCauEnt').value) || 0, n = parseInt(document.getElementById('drvCauN').value, 10) || 0;
-            return { forma, total, entrada, parcelas: n, cobradas: 0, valor_parcela: n ? Math.round(Math.max(0, total - entrada) / n * 100) / 100 : 0 };
+            const plano = cauPlano(total, entrada, n);
+            return { forma, total, entrada, parcelas: plano ? plano.parcelas : n, cobradas: 0, valor_parcela: plano ? plano.valor_parcela : 0 };
         }
         async function handleAddDriver(e) {
             e.preventDefault();
@@ -3691,6 +3692,7 @@
                 const cur = (state.drivers.find(x => x.id === id) || {}).pix_extra || {};
                 const cau = dfCauRead();
                 if (cau && cau.forma === 'parcelada' && (!(cau.parcelas > 0) || !(cau.valor_parcela > 0))) { showToast('Caução parcelada: informe as vezes e o valor de cada parcela.', 'error'); return; }
+                if (cau && cau.forma === 'parcelada' && cau.valor_parcela < CAU_MIN && (Number(cau.total) || 0) - (cau.entrada || 0) >= CAU_MIN) { showToast(`A parcela mínima da caução é ${fmtMoney(CAU_MIN)}.`, 'error'); return; }
                 const next = { ...cur }; if (cau) next.caucao = cau; else delete next.caucao;
                 if (fileMultas) next.multas = { ...fileMultas };
                 { const o = document.getElementById('dfObs').value.trim(); if (o) next.observacao = o; else delete next.observacao; }
@@ -4412,12 +4414,35 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             if (error) { b.disabled = false; showToast(friendlyError(error), 'error'); return; }
             await reload(); dfDevEtapa = ''; dfDevRender(); showToast('Carro recebido. O veículo está disponível.');
         }
+        // ===== CAUÇÃO: parcela mínima de R$ 100; o que sobra vai para a última (12/11/2026, pedido do dono) =====
+        // Ex.: R$ 775 em 8x = 7x de R$ 100 + 1x de R$ 75. Se a divisão normal já dá R$ 100 ou mais, divide igual (centavos na última).
+        // Mesma regra nas funções motora-lembretes, motora-asaas e motora-push (cauParcela); o verificar.mjs confere que batem.
+        const CAU_MIN = 100;
+        function cauPlano(total, entrada, n) {
+            const r = Math.round(Math.max(0, (Number(total) || 0) - (Number(entrada) || 0)) * 100) / 100;
+            if (!(r > 0) || !(n > 0)) return null;
+            let p = n, v = Math.round(r / n * 100) / 100;
+            if (v < CAU_MIN) { v = Math.min(CAU_MIN, r); p = Math.max(1, Math.ceil(r / CAU_MIN - 1e-9)); }
+            return { parcelas: p, valor_parcela: v, ultima: Math.round((r - v * (p - 1)) * 100) / 100 };
+        }
+        /** Valor da parcela k (1..parcelas): todas iguais, menos a última, que leva o que falta para fechar o total. */
+        function cauParcela(c, k) {
+            const v = Number(c.valor_parcela || 0), n = Number(c.parcelas || 0);
+            if (k < n || !(Number(c.total) > 0)) return v;
+            const resto = Math.round((Number(c.total) - Number(c.entrada || 0) - v * (n - 1)) * 100) / 100;
+            return resto > 0.005 ? resto : v;
+        }
+        /** "7x de R$ 100,00 + 1x de R$ 75,00" (ou "8x de R$ 100,00" quando a última é igual). */
+        function cauParcelasTexto(c) {
+            const n = Number(c.parcelas || 0), v = Number(c.valor_parcela || 0), u = cauParcela(c, n);
+            return n > 1 && Math.abs(u - v) > 0.005 ? `${n - 1}x de ${fmtMoney(v)} + 1x de ${fmtMoney(u)}` : `${n}x de ${fmtMoney(v)}`;
+        }
         function cauNext(d) { // próxima parcela a cobrar, ou null
             if (devOf(d)) return null;
             const c = cauOf(d);
             if (!c || c.forma !== 'parcelada' || !(c.parcelas > 0) || !(c.valor_parcela > 0)) return null;
             const k = (c.cobradas || 0) + 1;
-            return k > c.parcelas ? null : { k, n: c.parcelas, valor: Number(c.valor_parcela) };
+            return k > c.parcelas ? null : { k, n: c.parcelas, valor: cauParcela(c, k) };
         }
         function dfCauFill(d) {
             const c = cauOf(d) || {};
@@ -4436,14 +4461,25 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const total = parseMoney(document.getElementById('dfCauTotal').value), n = parseInt(document.getElementById('dfCauN').value, 10);
             const valEl = document.getElementById('dfCauVal');
             const ent = parseMoney(document.getElementById('dfCauEnt').value) || 0;
-            if (auto && forma === 'parcelada' && total > 0 && n > 0 && !valEl.dataset.touched) valEl.value = (Math.round(Math.max(0, total - ent) / n * 100) / 100).toFixed(2).replace('.', ',');
+            let ajusteN = '';
+            if (auto && forma === 'parcelada' && total > 0 && n > 0 && !valEl.dataset.touched) {
+                const plano = cauPlano(total, ent, n);
+                if (plano) {
+                    valEl.value = plano.valor_parcela.toFixed(2).replace('.', ',');
+                    if (plano.parcelas !== n) { document.getElementById('dfCauN').value = plano.parcelas; ajusteN = ` Parcela mínima de ${fmtMoney(CAU_MIN)}: cabem ${plano.parcelas} vezes, não ${n}.`; }
+                }
+            }
             const val = parseMoney(valEl.value), cob = parseInt(document.getElementById('dfCauCob').value, 10) || 0;
+            const nAtual = parseInt(document.getElementById('dfCauN').value, 10) || 0;
+            const cAtual = { parcelas: nAtual, valor_parcela: val, total, entrada: ent };
             const info = document.getElementById('dfCauInfo');
             if (!forma) info.textContent = 'Sem caução para este motorista.';
             else if (forma === 'paga') info.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>Caução${total ? ' de ' + fmtMoney(total) : ''} já paga. Não entra no Pix.`;
-            else if (n > 0 && val > 0) {
-                const falta = Math.max(0, n - cob);
-                info.innerHTML = falta ? `<i class="fa-solid fa-circle-info mr-1"></i>${ent ? 'Entrada ' + fmtMoney(ent) + ' + ' : ''}${n}x de ${fmtMoney(val)}. Já cobradas ${cob}. Faltam ${falta} (${fmtMoney(falta * val)}). A próxima (${cob + 1}/${n}) entra sozinha no Novo Pix.` : '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>Todas as parcelas já foram cobradas.';
+            else if (nAtual > 0 && val > 0 && val < CAU_MIN && (total || 0) - ent >= CAU_MIN) info.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-600 mr-1"></i>A parcela mínima da caução é ${fmtMoney(CAU_MIN)}. Diminua as vezes ou apague o valor da parcela para o app calcular.`;
+            else if (nAtual > 0 && val > 0) {
+                const falta = Math.max(0, nAtual - cob);
+                let soma = 0; for (let k = cob + 1; k <= nAtual; k++) soma += cauParcela(cAtual, k);
+                info.innerHTML = falta ? `<i class="fa-solid fa-circle-info mr-1"></i>${ent ? 'Entrada ' + fmtMoney(ent) + ' + ' : ''}${cauParcelasTexto(cAtual)}.${ajusteN} Já cobradas ${cob}. Faltam ${falta} (${fmtMoney(soma)}). A próxima (${cob + 1}/${nAtual}: ${fmtMoney(cauParcela(cAtual, cob + 1))}) entra sozinha no Novo Pix.` : '<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i>Todas as parcelas já foram cobradas.';
             } else info.textContent = 'Informe em quantas vezes e o valor de cada parcela.';
         }
         function dfCauRead() {
@@ -4632,7 +4668,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     ${dobraTopo('drvDobraPagCaucao', 'text-amber-700 dark:text-amber-300', 'fa-solid fa-shield-halved', 'Sua caução')}
                     <p class="text-sm"><b>${fmtMoney(st.pago)}</b> pagos de <b>${fmtMoney(st.total)}</b>${ok ? ' · <span class="text-emerald-600 font-semibold">Quitada</span>' : ''}</p>
                     <div class="h-2 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden"><div class="h-full bg-amber-500" style="width:${pct}%"></div></div>
-                    ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${c.parcelas}x de ${fmtMoney(c.valor_parcela)}${ok ? '' : ` · falta ${fmtMoney(st.falta)}`}</p>` : ''}
+                    ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${cauParcelasTexto(c)}${ok ? '' : ` · falta ${fmtMoney(st.falta)}`}</p>` : ''}
                 </div></div>`;
             }
             const m = multasOf(d), itens = m ? (m.itens || []) : [];
@@ -4672,7 +4708,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                         <div><p class="text-[10px] uppercase text-gray-500">Falta</p><p class="font-bold ${ok ? 'text-emerald-700' : 'text-amber-700 dark:text-amber-300'}">${ok ? 'Quitada' : fmtMoney(st.falta)}</p></div>
                     </div>
                     <div class="h-2 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden"><div class="h-full bg-amber-500" style="width:${pct}%"></div></div>
-                    ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${c.parcelas}x de ${fmtMoney(c.valor_parcela)} · ${st.pagas || 0} parcela(s) paga(s)</p>` : ''}
+                    ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${cauParcelasTexto(c)} · ${st.pagas || 0} parcela(s) paga(s)</p>` : ''}
                 </div></div>`);
             }
             const dv = devOf(d);

@@ -71,5 +71,45 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
   }
 }
 
+// 5. Regra da caução: parcela mínima de R$ 100, o resto vai para a última; app e funções do servidor calculam igual.
+{
+  const pegar = (texto, inicio) => { // corpo entre chaves a partir do primeiro "{" depois de "inicio"
+    const i = texto.indexOf(inicio); if (i < 0) return null;
+    let j = texto.indexOf('{', i + inicio.length), n = 0;
+    for (let k = j; k < texto.length; k++) { if (texto[k] === '{') n++; else if (texto[k] === '}' && --n === 0) return texto.slice(j, k + 1); }
+    return null;
+  };
+  const html = readFileSync(join(raiz, 'index.html'), 'utf8');
+  const fn = (corpo, ...args) => corpo && new Function(...args, corpo.replace(/^\{|\}$/g, ''));
+  const plano = fn(pegar(html, 'function cauPlano(total, entrada, n)'), 'total', 'entrada', 'n');
+  const CAU_MIN = 100;
+  const exemplos = [ // [total, entrada, vezes pedidas] -> parcelas esperadas
+    [[775, 0, 8], [100, 100, 100, 100, 100, 100, 100, 75]],
+    [[750, 0, 8], [100, 100, 100, 100, 100, 100, 100, 50]],
+    [[2000, 0, 20], Array(20).fill(100)],
+    [[1000, 0, 3], [333.33, 333.33, 333.34]],
+    [[500, 0, 8], [100, 100, 100, 100, 100]],
+    [[2200, 200, 20], Array(20).fill(100)],
+    [[60, 0, 3], [60]],
+  ];
+  const implementacoes = {
+    'index.html': fn(pegar(html, 'function cauParcela(c, k)'), 'c', 'k'),
+    'motora-lembretes': fn(pegar(readFileSync(join(raiz, 'supabase/functions/motora-lembretes/index.ts'), 'utf8'), 'const cauParcela = (c: Extra, k: number) =>'), 'c', 'k'),
+    'motora-asaas': fn(pegar(readFileSync(join(raiz, 'supabase/functions/motora-asaas/index.ts'), 'utf8'), 'const cauParcela = (c: Extra, k: number) =>'), 'c', 'k'),
+  };
+  if (!plano) { erros++; console.log('ERRO index.html: cauPlano não encontrada'); }
+  for (const [nome, parcela] of Object.entries(implementacoes)) {
+    if (!parcela || !plano) { erros++; console.log(`ERRO ${nome}: cauParcela não encontrada`); continue; }
+    const falha = exemplos.find(([[total, entrada, n], esperado]) => {
+      const p = new Function('CAU_MIN', `return (${plano.toString()})`)(CAU_MIN)(total, entrada, n);
+      const c = { forma: 'parcelada', total, entrada, parcelas: p.parcelas, valor_parcela: p.valor_parcela };
+      const obtido = Array.from({ length: p.parcelas }, (_, i) => parcela(c, i + 1));
+      return JSON.stringify(obtido) !== JSON.stringify(esperado);
+    });
+    if (falha) { erros++; console.log(`ERRO ${nome}: caução ${falha[0].join('/')} deveria virar ${falha[1].join(' + ')}`); }
+    else console.log(`ok   ${nome}: regra da caução (775 em 8x = 7x de 100 + 1x de 75)`);
+  }
+}
+
 console.log(erros ? `\n${erros} problema(s) encontrado(s).` : '\nTudo certo.');
 process.exit(erros ? 1 : 0);
