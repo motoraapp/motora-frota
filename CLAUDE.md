@@ -23,6 +23,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 ## Onde está publicado
 - **GitHub Pages é o único endereço do app:** https://motoraapp.github.io/motora-frota/
 - **GitHub Pages:** publicado pelo workflow `pages.yml` a cada push na `main` (copia só os arquivos do app).
+- **Verificação (11/11/2026):** o workflow `verificar.yml` roda a cada push na `main` e no `teste-ia` (e em PR) e confere a sintaxe dos scripts do `index.html`, do `sw.js`, do `robo-whatsapp/*.js` e dos JSON (`manifest.json`, `apk-version.json`). Se falhar, aparece um X vermelho no commit no GitHub (a publicação do `pages.yml` não é bloqueada). Rodar na máquina antes de publicar: `node .github/scripts/verificar.mjs`.
 - Manter o nome do repositório como `motora-frota`.
 
 ## Perfis de uso
