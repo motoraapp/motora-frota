@@ -2397,8 +2397,55 @@
         }
 
         // CARREGAR DADOS DO SUPABASE
+        // Busca no banco tudo o que a tela usa para este perfil (tabelas, termos e, do motorista, as funções liberadas). Tudo em paralelo.
+        function carregarDados(profile) {
+            const termos = loadTermsAcceptances(profile); // preenche state.terms
+            if (profile.role === 'master') {
+                return Promise.all([
+                    sb.from('vehicles').select('*').order('created_at'),
+                    sb.from('profiles').select('*').eq('role', 'driver').order('created_at'),
+                    sb.from('receipts').select('*').order('created_at'),
+                    sb.from('inspection_photos').select('*').order('created_at'),
+                    sb.from('vehicle_expenses').select('*').order('expense_date', { ascending: false }),
+                    sb.from('expense_types').select('*').order('name'),
+                    sb.from('pix_history').select('*').order('sent_at', { ascending: false }),
+                    termos
+                ]).then(rs => ({ master: true, rs }));
+            }
+            return Promise.all([
+                profile.vehicle_id ? sb.from('vehicles').select('*').eq('id', profile.vehicle_id) : Promise.resolve({ data: [] }),
+                sb.from('receipts').select('*').eq('driver_id', profile.id).order('created_at'),
+                profile.vehicle_id ? sb.from('inspection_photos').select('*').eq('vehicle_id', profile.vehicle_id).order('created_at') : Promise.resolve({ data: [] }),
+                sb.from('pix_history').select('*').eq('driver_id', profile.id).order('sent_at'),
+                loadDriverFeatures(),
+                termos
+            ]).then(rs => ({ master: false, rs }));
+        }
+        function aplicarDados({ master, rs }) {
+            if (master) {
+                const [veh, drv, rec, insp, exp, tipos, hist] = rs;
+                for (const x of [veh, drv, rec, insp, exp, tipos, hist]) if (x.error) throw x.error;
+                state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.drivers = drv.data; state.receipts = rec.data; state.inspection = insp.data;
+                state.expenses = exp.data; state.expenseTypes = tipos.data; state.pixHistory = hist.data;
+            } else {
+                const [veh, rec, insp, hist, features] = rs;
+                state.pixHistory = (hist && !hist.error && hist.data) || [];
+                if (veh.error) throw veh.error;
+                if (rec.error) throw rec.error;
+                if (insp.error) throw insp.error;
+                state.allVehicles = null; state.vehicles = veh.data; state.receipts = rec.data; state.drivers = []; state.inspection = insp.data;
+                state.features = features;
+            }
+        }
+        // VELOCIDADE (12/11/2026): antes eram 4 rodadas de banco em fila (perfil -> tabelas -> termos -> aparência), 1 a 2,5 s por toque no 4G.
+        // Agora a aparência começa na hora e, quando o perfil já é conhecido (toda recarga depois da primeira), as tabelas e os termos
+        // começam junto com o perfil: 1 rodada só. Se o perfil mudou de papel ou de carro, busca de novo com o perfil certo.
         async function loadAndRender(opts) {
             const silent = opts && opts.silent;
+            const aparencia = loadDesignCfg();
+            const conhecido = state.profile && state.user && state.profile.id === state.user.id ? state.profile : null;
+            const adiantado = conhecido ? carregarDados(conhecido) : null;
+            if (adiantado) adiantado.catch(() => {}); // se for descartado, o erro não fica solto
             let { data: profile, error } = await sb.from('profiles').select('*').eq('id', state.user.id).maybeSingle();
             if (error) throw error;
             if (!profile) throw new Error('Este login não tem cadastro no sistema. Fale com o administrador.');
@@ -2407,40 +2454,9 @@
             state.viewingAs = (profile.role === 'driver' && masterBack()) ? { name: 'master' } : null;
             if (profile.role === 'master' && masterBack() && !switchingAccount) lsDel(MASTER_BACK_KEY);
 
-            let extra = [];
-            if (profile.role === 'master') {
-                const [veh, drv, rec, insp] = await Promise.all([
-                    sb.from('vehicles').select('*').order('created_at'),
-                    sb.from('profiles').select('*').eq('role', 'driver').order('created_at'),
-                    sb.from('receipts').select('*').order('created_at'),
-                    sb.from('inspection_photos').select('*').order('created_at'),
-                    sb.from('vehicle_expenses').select('*').order('expense_date', { ascending: false }),
-                    sb.from('expense_types').select('*').order('name'),
-                    sb.from('pix_history').select('*').order('sent_at', { ascending: false })
-                ]).then(rs => { extra = rs.slice(4); return rs.slice(0, 4); });
-                if (veh.error) throw veh.error;
-                if (drv.error) throw drv.error;
-                if (rec.error) throw rec.error;
-                if (insp.error) throw insp.error;
-                state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.drivers = drv.data; state.receipts = rec.data; state.inspection = insp.data;
-                for (const x of extra) if (x.error) throw x.error;
-                state.expenses = extra[0].data; state.expenseTypes = extra[1].data; state.pixHistory = extra[2].data;
-            } else {
-                const [veh, rec, insp, hist] = await Promise.all([
-                    profile.vehicle_id ? sb.from('vehicles').select('*').eq('id', profile.vehicle_id) : Promise.resolve({ data: [] }),
-                    sb.from('receipts').select('*').eq('driver_id', profile.id).order('created_at'),
-                    profile.vehicle_id ? sb.from('inspection_photos').select('*').eq('vehicle_id', profile.vehicle_id).order('created_at') : Promise.resolve({ data: [] }),
-                    sb.from('pix_history').select('*').eq('driver_id', profile.id).order('sent_at')
-                ]);
-                state.pixHistory = (hist && !hist.error && hist.data) || [];
-                if (veh.error) throw veh.error;
-                if (rec.error) throw rec.error;
-                if (insp.error) throw insp.error;
-                state.allVehicles = null; state.vehicles = veh.data; state.receipts = rec.data; state.drivers = []; state.inspection = insp.data;
-                state.features = await loadDriverFeatures();
-            }
-            await loadTermsAcceptances(profile);
-            await loadDesignCfg();
+            const serve = adiantado && conhecido.role === profile.role && conhecido.vehicle_id === profile.vehicle_id;
+            aplicarDados(await (serve ? adiantado : carregarDados(profile)));
+            await aparencia;
             const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela

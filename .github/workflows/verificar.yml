@@ -19,3 +19,5 @@ jobs:
           node-version: '22'
       - name: Conferir sintaxe do app, robô e arquivos JSON
         run: node .github/scripts/verificar.mjs
+      - name: Teste de regressão da lentidão (recarga sem consultas em fila)
+        run: node .github/scripts/teste-recarga.mjs

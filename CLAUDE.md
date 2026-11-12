@@ -25,6 +25,7 @@ MOTORA é um PWA (página que funciona como app) para gestão de veículos e mot
 - **GitHub Pages é o único endereço do app:** https://motoraapp.github.io/motora-frota/
 - **GitHub Pages:** publicado pelo workflow `pages.yml` a cada push na `main` (copia só os arquivos do app).
 - **Verificação (11/11/2026):** o workflow `verificar.yml` roda a cada push na `main` e no `teste-ia` (e em PR) e confere a sintaxe dos scripts do `index.html`, do `sw.js`, do `robo-whatsapp/*.js` e dos JSON (`manifest.json`, `apk-version.json`). Se falhar, aparece um X vermelho no commit no GitHub (a publicação do `pages.yml` não é bloqueada). Rodar na máquina antes de publicar: `node .github/scripts/verificar.mjs`.
+- **Velocidade (12/11/2026):** a lentidão era o `loadAndRender` (roda depois de quase toda ação e a cada 30 s) fazendo 4 rodadas de banco em fila (perfil → tabelas → termos → aparência): 1 a 2,5 s por toque no 4G. Agora `carregarDados` busca tabelas, termos e (motorista) funções em paralelo, a aparência começa junto e, com o perfil já conhecido, tudo sai junto com o perfil (1 rodada; se o papel ou o carro mudou, busca de novo). Medido: recarga do dono 665 → 182 ms e "Confirmar Pix" 810 → 356 ms com 150 ms por consulta. **Não volte a usar `await` em fila nessa carga:** o teste `node .github/scripts/teste-recarga.mjs` (também no `verificar.yml`) roda as funções reais contra um banco falso e falha se passar de 1 rodada.
 - Manter o nome do repositório como `motora-frota`.
 
 ## Perfis de uso
