@@ -158,6 +158,8 @@ html[data-skin][data-design][data-theme] main tbody td button[class*="bg-red-"],
 html[data-skin][data-design][data-theme] main tbody td button[class*="bg-red-"] i { color: var(--bad); }
 html[data-skin][data-design][data-theme] main tbody td button[onclick^="openNewPix"], html[data-skin][data-design][data-theme] main tbody td button[onclick^="confirmReceipt"] { background: var(--accent) !important; color: var(--on-accent) !important; }
 html[data-skin][data-design][data-theme] main tbody td button[onclick^="openNewPix"] i, html[data-skin][data-design][data-theme] main tbody td button[onclick^="confirmReceipt"] i { color: inherit; }
+html[data-skin][data-design][data-theme] main tbody td button.btn-saldo-pos { background: var(--pay) !important; color: var(--on-pay) !important; }
+html[data-skin][data-design][data-theme] main tbody td button.btn-saldo-pos i { color: inherit !important; }
 
 /* ---------- 10. Seções que abrem e fecham ---------- */
 html[data-skin] details { border-radius: var(--r-md) !important; background: var(--soft2) !important; border-color: var(--line) !important; }
