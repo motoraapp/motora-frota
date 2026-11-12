@@ -57,7 +57,7 @@ html[data-skin] .text-gray-600 { color: var(--muted); }
 html[data-skin] .text-gray-500, html[data-skin] .text-gray-400, html[data-skin] .dark\:text-gray-400, html[data-skin] .dark\:text-gray-500 { color: var(--muted); }
 html[data-skin] [class*="font-bold"], html[data-skin] .font-extrabold { font-weight: 650; }
 html[data-skin] p, html[data-skin] td, html[data-skin] span { font-variant-numeric: tabular-nums; }
-html[data-skin] a, html[data-skin] button, html[data-skin] summary, html[data-skin] select { touch-action: manipulation; }
+html[data-skin] a, html[data-skin] button, html[data-skin] summary, html[data-skin] label, html[data-skin] select, html[data-skin] [onclick], html[data-skin] [role="button"], html[data-skin] .sw, html[data-skin] .kpi, html[data-skin] .sit-alerta, html[data-skin] .dobraTopo, html[data-skin] .motItem { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 html[data-skin] a { -webkit-tap-highlight-color: transparent; }
 html[data-skin] button { -webkit-tap-highlight-color: transparent; }
 
@@ -92,7 +92,7 @@ html[data-skin] header .bg-blue-600 i { font-size: 16px; }
 html[data-skin] #lastUpdated { display: none; }
 html[data-skin] #btnLogout, html[data-skin] #btnNotif { border-radius: 999px !important; min-height: 36px; }
 html[data-skin] #btnStatusToggle { border-radius: 999px; }
-html[data-skin] body:has(#secLogin:not(.hidden)) header, html[data-skin] body:has(#secDemoEscolha:not(.hidden)) header { display: none; }
+html[data-skin] body.no-header header { display: none; }
 
 /* ---------- 5. Login ---------- */
 html[data-skin] #secLogin { max-width: 380px; margin-top: max(7vh, 28px); animation: sobe var(--t-med) var(--ease) both; }
@@ -117,8 +117,7 @@ html[data-skin] .dobraTopo h3 { font-size: var(--fs-title); }
 html[data-skin] section.space-y-6 > * + *, html[data-skin] #subMasterVehicles > * + *, html[data-skin] #subMasterDrivers > * + * { margin-top: var(--sp-4); }
 
 /* ---------- 7. Botões ---------- */
-html[data-skin] button, html[data-skin] a[class*="py-"], html[data-skin] label.cursor-pointer { transition: transform var(--t-fast) var(--ease), background-color var(--t-fast), opacity var(--t-fast), color var(--t-fast); }
-html[data-skin] button:active:not(:disabled), html[data-skin] a[class*="py-"]:active { transform: scale(.975); opacity: .86; }
+html[data-skin] button:active:not(:disabled), html[data-skin] a[class*="py-"]:active, html[data-skin] label.cursor-pointer:active { opacity: .78; }
 html[data-skin] button:disabled { opacity: .45; }
 html[data-skin][data-design] button.font-bold, html[data-skin][data-design] button.font-semibold, html[data-skin] a.font-bold, html[data-skin] a.font-semibold { font-weight: 600; }
 html[data-skin] button:focus-visible, html[data-skin] a:focus-visible, html[data-skin] summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -144,7 +143,7 @@ html[data-skin] .sw input:checked + span::after { transform: translateX(20px); }
 /* ---------- 9. Tabelas e listas ---------- */
 html[data-skin] table thead { background: none !important; }
 html[data-skin] table th { color: var(--muted); font-size: var(--fs-caption); }
-html[data-skin] tbody tr { transition: background-color var(--t-fast); }
+/* hover instantâneo */
 @media (hover: hover) { html[data-skin] main tbody tr:hover { background: var(--soft2); } }
 @media (max-width: 639px) {
   html[data-skin] .overflow-x-auto > table > tbody > tr { margin-bottom: 10px; padding: 14px; border: 1px solid var(--line) !important; border-radius: var(--r-md); background: var(--soft2); }
@@ -164,17 +163,16 @@ html[data-skin][data-design][data-theme] main tbody td button[onclick^="openNewP
 html[data-skin] details { border-radius: var(--r-md) !important; background: var(--soft2) !important; border-color: var(--line) !important; }
 html[data-skin] details > summary { list-style: none; position: relative; padding-right: 36px; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
 html[data-skin] details > summary::-webkit-details-marker { display: none; }
-html[data-skin] details > summary::after { content: ""; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -6px; border-right: 1.8px solid var(--muted); border-bottom: 1.8px solid var(--muted); transform: rotate(45deg); transition: transform var(--t-med) var(--ease); }
+html[data-skin] details > summary::after { content: ""; position: absolute; right: 16px; top: 50%; width: 8px; height: 8px; margin-top: -6px; border-right: 1.8px solid var(--muted); border-bottom: 1.8px solid var(--muted); transform: rotate(45deg); }
 html[data-skin] details[open] > summary::after { transform: rotate(-135deg); margin-top: -2px; }
-html[data-skin] details[open] > :not(summary) { animation: aparece var(--t-med) var(--ease) both; }
 
 /* ---------- 11. Janelas ---------- */
-html[data-skin] .fixed.inset-0[class*="bg-black"] { background: rgba(6, 8, 12, .64) !important; animation: aparece .12s ease both; }
-html[data-skin][data-design] .fixed.inset-0 > .bg-white, html[data-skin][data-design] .fixed.inset-0 > form.bg-white { background: var(--card) !important; border: 1px solid var(--line) !important; border-radius: var(--r-xl) !important; box-shadow: var(--shadow-pop) !important; animation: janela .15s var(--ease) both; }
+html[data-skin] .fixed.inset-0[class*="bg-black"] { background: rgba(6, 8, 12, .64) !important; }
+html[data-skin][data-design] .fixed.inset-0 > .bg-white, html[data-skin][data-design] .fixed.inset-0 > form.bg-white { background: var(--card) !important; border: 1px solid var(--line) !important; border-radius: var(--r-xl) !important; box-shadow: var(--shadow-pop) !important; }
 html[data-skin] .fixed.inset-0 > div > .border-b:first-child, html[data-skin] .fixed.inset-0 > form > .border-b:first-child { border-bottom-color: var(--line) !important; }
 html[data-skin] .fixed.inset-0 h3.font-bold { font-size: var(--fs-title); }
 @media (max-width: 639px) {
-  html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > .bg-white, html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > form.bg-white { position: relative; border-radius: var(--r-xl) var(--r-xl) 0 0 !important; border-width: 1px 0 0 !important; padding-top: 10px; animation: folha .15s var(--ease) both; }
+  html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > .bg-white, html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > form.bg-white { position: relative; border-radius: var(--r-xl) var(--r-xl) 0 0 !important; border-width: 1px 0 0 !important; padding-top: 10px; }
   html[data-skin] .fixed.inset-0.flex.items-center.justify-center > .bg-white::before, html[data-skin] .fixed.inset-0.flex.items-center.justify-center > form.bg-white::before { content: ""; display: block; flex: none; width: 38px; height: 5px; margin: 0 auto 4px; border-radius: 3px; background: var(--line-strong); }
 }
 html[data-skin] #toast > * , html[data-skin] #toast { border-radius: 999px; }
@@ -182,8 +180,8 @@ html[data-skin] #toast { transition: transform var(--t-fast) var(--ease), opacit
 
 /* ---------- 12. Navegação ---------- */
 html[data-skin][data-design] .bottomNav.ativo, html[data-skin][data-design] #drvTabs { background: var(--bar-solid) !important; border-top: 1px solid var(--line) !important; }
-html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #drvTabs nav button { min-height: 50px; font-size: 10.5px !important; font-weight: 500 !important; letter-spacing: 0; color: var(--faint) !important; border: 0 !important; border-radius: 12px; background: none !important; transition: color var(--t-fast), transform var(--t-fast) var(--ease); }
-html[data-skin][data-design] .bottomNav button i, html[data-skin][data-design] #drvTabs nav button i { font-size: 20px; transition: transform var(--t-med) var(--ease); }
+html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #drvTabs nav button { min-height: 50px; font-size: 10.5px !important; font-weight: 500 !important; letter-spacing: 0; color: var(--faint) !important; border: 0 !important; border-radius: 12px; background: none !important; }
+html[data-skin][data-design] .bottomNav button i, html[data-skin][data-design] #drvTabs nav button i { font-size: 20px; }
 html[data-skin][data-design] .bottomNav button.atual, html[data-skin][data-design] .bottomNav button.aberto, html[data-skin][data-design] #drvTabs nav button.border-blue-600 { color: var(--accent-text) !important; font-weight: 600 !important; }
 html[data-skin][data-design] .bottomNav button.atual i, html[data-skin][data-design] .bottomNav button.aberto i, html[data-skin][data-design] #drvTabs nav button.border-blue-600 i { transform: translateY(-1px) scale(1.06); }
 html[data-skin] .iaBadge { background: var(--bad-solid) !important; color: #fff !important; }
@@ -272,8 +270,7 @@ html[data-skin] #iaChatDicas button { padding: 11px 13px; border-radius: 12px !i
 html[data-skin][data-design] #iaChatEnviar { width: 44px; height: 44px; border-radius: 50% !important; }
 html[data-skin] #iaChatTexto { border-radius: 22px !important; padding: 11px 16px !important; }
 
-/* ---------- 17. Movimento ---------- */
-html[data-skin] #secMasterPanel:not(.hidden), html[data-skin] #secDriverPanel:not(.hidden) { animation: aparece var(--t-med) ease both; }
+/* ---------- 17. Movimento (desligado em abas/paineis para toque instantaneo) ---------- */
 @keyframes aparece { from { opacity: 0; } to { opacity: 1; } }
 @keyframes sobe { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes janela { from { opacity: 0; transform: translateY(10px) scale(.975); } to { opacity: 1; transform: none; } }
@@ -316,8 +313,8 @@ html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #dr
 html[data-skin] .graf-col span { font-size: 12px; }
 
 /* Barra de baixo: só um item aceso (o que está aberto vence a aba atual) */
-html[data-skin][data-design] .bottomNav:has(button.aberto) button.atual:not(.aberto) { color: var(--faint) !important; font-weight: 500 !important; background: none !important; }
-html[data-skin][data-design] .bottomNav:has(button.aberto) button.atual:not(.aberto) i { transform: none; }
+html[data-skin][data-design] .bottomNav.com-aberto button.atual:not(.aberto) { color: var(--faint) !important; font-weight: 500 !important; background: none !important; }
+html[data-skin][data-design] .bottomNav.com-aberto button.atual:not(.aberto) i { transform: none; }
 /* Atalhos grandes de Pix/IA/Financeiro repetiam a barra de baixo */
 html[data-skin][data-design] #secMasterPanel > .masterAtalhos { display: none !important; }
 

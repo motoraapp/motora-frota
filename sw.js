@@ -1,5 +1,5 @@
-﻿const CACHE = 'motora-v85';
-const BASE = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-animada.gif', 'design-premium.css'];
+﻿const CACHE = 'motora-v86';
+const BASE = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-animada.gif', 'tailwind.css', 'design-premium.css'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(BASE); }).then(function () { return self.skipWaiting(); }));

@@ -13,26 +13,8 @@
     <meta name="apple-mobile-web-app-title" content="MOTORA">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MOTORA</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            500: '#0284c7',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind CSS compilado (sem observador em tempo real para toque instantâneo) -->
+    <link rel="stylesheet" href="tailwind.css">
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- PDF.js para renderizar PDFs -->
@@ -49,7 +31,7 @@
         @media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
         /* iPhone (app na tela de início): os campos precisam aceitar toque, seleção e teclado */
         input, textarea, select, [contenteditable]:not([contenteditable="false"]) { -webkit-user-select: text !important; user-select: text !important; touch-action: auto !important; pointer-events: auto; -webkit-touch-callout: default; }
-        button, a, summary, select { touch-action: manipulation; }
+        button, a, summary, label, select, [onclick], [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
@@ -185,7 +167,7 @@
                 </div>
 
                 <!-- Ativar Notificações -->
-                <button id="btnNotif" onclick="enableNotifications()" class="hidden p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors text-sm font-semibold flex items-center gap-2" title="Ativar notificações">
+                <button id="btnNotif" onclick="enableNotifications(this)" class="hidden p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 hover:bg-amber-200 transition-colors text-sm font-semibold flex items-center gap-2" title="Ativar notificações">
                     <i class="fa-solid fa-bell"></i><span class="hidden sm:inline">Ativar avisos</span>
                 </button>
 
@@ -357,7 +339,7 @@
 
                 <!-- Aba Pagamento -->
                 <div id="tabDrvPayment" class="hidden space-y-6">
-                    <div class="flex flex-col md:flex-row justify-between gap-6 border-b border-gray-100 dark:border-gray-700 pb-6">
+                    <div id="drvPayHeader" class="flex flex-col md:flex-row justify-between gap-6 border-b border-gray-100 dark:border-gray-700 pb-6">
                         <div>
                             <h3 class="font-bold text-lg mb-1">Pagamento</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Pague pelo QR code ou pelo copia e cola e depois envie o comprovante aqui.</p>
@@ -382,7 +364,7 @@
                     </div>
 
                     <!-- Seção Pix -->
-                    <div class="grid md:grid-cols-2 gap-6">
+                    <div id="drvPayGrid" class="grid md:grid-cols-2 gap-6">
                         <div id="drvPixBox" class="p-4 bg-gray-50 dark:bg-gray-700/40 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center text-center">
                             <h4 class="font-semibold text-sm mb-3 text-gray-700 dark:text-gray-300 flex items-center gap-2">
                                 <i class="fa-brands fa-pix text-emerald-500"></i> Opção Pix
@@ -450,6 +432,8 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Recibos quando o contrato está encerrado -->
+                    <div id="drvEncRecibosBox" class="hidden space-y-3"></div>
                 </div>
 
             </div>
@@ -797,7 +781,7 @@
             <div class="space-y-1 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between gap-2">
                     <h4 class="font-semibold text-sm"><i class="fa-solid fa-sliders text-blue-500 mr-1"></i> Funções do motorista</h4>
-                    <button type="button" onclick="setAllFeatures()" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold">Ligar tudo</button>
+                    <button type="button" onclick="setAllFeatures(this)" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-semibold">Ligar tudo</button>
                 </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Ligue ou desligue o que os motoristas veem no app. Vale para todos.</p>
                 <div id="cfgFeatures"></div>
@@ -915,7 +899,7 @@
                         <input id="dfAjData" type="date" class="col-span-6 sm:col-span-4 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none" aria-describedby="dfAjDataAjuda">
                         <p id="dfAjDataAjuda" class="col-span-6 text-xs text-gray-500 dark:text-gray-400">Com data, o valor só entra na cobrança que vence nesse dia ou depois. Sem data, entra na próxima.</p>
                     </div>
-                    <button type="button" onclick="addAjuste()" class="w-full py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
+                    <button type="button" onclick="addAjuste(this)" class="w-full py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                     <div id="dfAjPrev" class="text-sm"></div>
                 </div>
                 <!-- CAUÇÃO do motorista (guardada em profiles.pix_extra.caucao) -->
@@ -947,7 +931,7 @@
                             <input id="dfMultVal" type="text" inputmode="decimal" placeholder="R$ 0,00" class="col-span-3 sm:col-span-1 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                             <input id="dfMultDate" type="date" class="col-span-3 sm:col-span-2 min-w-0 p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                         </div>
-                        <button type="button" onclick="addMulta()" class="w-full py-2.5 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
+                        <button type="button" onclick="addMulta(this)" class="w-full py-2.5 rounded-xl text-sm font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar</button>
                     </div>
                 </div>
                 <div>
@@ -987,7 +971,7 @@
                 <pre id="reciboText" class="whitespace-pre-wrap text-sm font-sans p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600"></pre>
                 <button id="reciboCorrigirBtn" onclick="openCorrigirRecibo()" class="w-full py-3 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm font-semibold"><i class="fa-solid fa-pen mr-1"></i> Corrigir recibo</button>
                 <p id="reciboPhoneInfo" class="text-xs text-gray-500 dark:text-gray-400"></p>
-                <button onclick="shareReciboPdf()" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Enviar recibo em PDF</button>
+                <button onclick="shareReciboPdf(this)" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i> Enviar recibo em PDF</button>
                 <button onclick="emailRecibo()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"><i class="fa-solid fa-envelope"></i> Enviar por e-mail</button>
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="copyRecibo()" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-copy mr-1"></i> Copiar texto</button>
@@ -1151,7 +1135,7 @@
                 <div class="p-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-3 gap-2">
                     <button onclick="voltarMeusRecibos()" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-arrow-left mr-1"></i> Voltar</button>
                     <button onclick="pdfMeuRecibo()" class="py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-file-pdf mr-1"></i> Salvar PDF</button>
-                    <button onclick="shareMeuRecibo()" class="py-2.5 rounded-xl text-xs font-bold bg-green-600 hover:bg-green-700 text-white"><i class="fa-solid fa-share-nodes mr-1"></i> Enviar</button>
+                    <button onclick="shareMeuRecibo(this)" class="py-2.5 rounded-xl text-xs font-bold bg-green-600 hover:bg-green-700 text-white"><i class="fa-solid fa-share-nodes mr-1"></i> Enviar</button>
                 </div>
             </div>
         </div>
@@ -1924,18 +1908,20 @@
                 d.vehicle_id = null;
                 (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: d.id, title: 'Devolução concluída', body: '', message: `Olá, ${String(d.name).split(' ')[0]}! Recebemos o carro. Sua devolução foi concluída e você não receberá mais cobranças.`, status: 'aprovar', created_at: new Date().toISOString(), sent_at: null });
             },
-            master_encerrar_contrato({ p_driver, p_data }) {
+            master_encerrar_contrato({ p_driver, p_data, p_caucao_pago }) {
                 const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) return;
                 const v = DEMO.db.vehicles.find(x => x.id === d.vehicle_id);
                 const data = p_data || todayISO(), ate = dataMais(data, 30);
+                const cPaid = Number(p_caucao_pago != null ? p_caucao_pago : (cauStatus(d, DEMO.db.pix_history || [])?.pago || 0)) || 0;
                 const next = { ...(d.pix_extra || {}) };
                 ['pix_auto', 'pix_auto_venc', 'devolucao', 'parcial', 'parcial_pendente', 'arquivado', 'arquivado_em'].forEach(k => delete next[k]);
                 next.sem_cobranca = true;
-                next.contrato_encerrado = { data, caucao_ate: ate, encerrado_em: new Date().toISOString(), veiculo_id: d.vehicle_id || null, veiculo: v ? `${v.model} (${v.plate})` : null };
+                next.contrato_encerrado = { data, caucao_ate: ate, encerrado_em: new Date().toISOString(), veiculo_id: d.vehicle_id || null, veiculo: v ? `${v.model} (${v.plate})` : null, ...(cPaid > 0 ? { caucao_pago: cPaid } : {}) };
                 d.vehicle_id = null; d.asaas_auto_charge_enabled = false; d.picpay_auto_charge_enabled = false;
                 d.pix_code = d.pix_qr_path = d.pix_link = d.pix_amount = d.pix_description = d.pix_sent_at = d.pix_due_at = null;
                 d.pix_extra = next;
-                (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: d.id, title: 'Contrato encerrado', body: 'Previsão de pagamento da caução em 30 dias.', message: `Olá, ${String(d.name).split(' ')[0]}! Seu contrato foi encerrado em ${fmtDate(data)}. A caução será paga na data de ${fmtDate(ate)} (após 30 dias do encerramento do contrato).`, status: 'aprovar', created_at: new Date().toISOString(), sent_at: null });
+                const cauTxt = cPaid > 0 ? `A caução de ${fmtMoney(cPaid)} (valor já pago)` : 'A caução';
+                (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: d.id, title: 'Contrato encerrado', body: 'Previsão de pagamento da caução em 30 dias.', message: `Olá, ${String(d.name).split(' ')[0]}! Seu contrato foi encerrado em ${fmtDate(data)}. ${cauTxt} será paga na data de ${fmtDate(ate)} (após 30 dias do encerramento do contrato).`, status: 'aprovar', created_at: new Date().toISOString(), sent_at: null });
             },
             master_caucao_paga_arquivar({ p_driver, p_data_pago }) {
                 const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) return;
@@ -2688,6 +2674,13 @@
         function showSection(id) {
             ['secLogin', 'secDemoEscolha', 'secDriverPanel', 'secMasterPanel'].forEach(s => document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
+            document.body.classList.toggle('no-header', id === 'secLogin' || id === 'secDemoEscolha');
+        }
+        async function withBtn(btn, label, fn) {
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${label}`; }
+            try { return await fn(); }
+            finally { if (btn && document.body.contains(btn)) { btn.disabled = false; btn.innerHTML = old; } }
         }
 
         // PAINEL DO MOTORISTA - STATUS ONLINE (guardado neste aparelho)
@@ -2760,18 +2753,23 @@
         }
 
         function renderDriverPanel() {
+            DOC_REG = [];
             try { renderDriverExtras(); } catch (e) { console.error(e); }
             try { renderDriverProfileExtras(); } catch (e) { console.error(e); }
             try { const n = meusRecibosLista().length; document.getElementById('meusRecibosCount').textContent = n || ''; } catch (e) {}
             updateInstallApkButton();
             checkApkUpdate();
-            DOC_REG = [];
             const driver = state.profile;
+            const contratoEnc = driver.pix_extra && driver.pix_extra.contrato_encerrado ? driver.pix_extra.contrato_encerrado : null;
             const vehicle = allVeh().find(v => v.id === driver.vehicle_id);
             if (vehicle) {
                 document.getElementById('drvVehicleName').innerText = vehicle.model;
                 document.getElementById('drvVehicleDetails').innerText = `Placa: ${vehicle.plate}`;
                 renderFilePreview('crlvViewer', vehicle.crlv_path, "Nenhum documento CRLV-e cadastrado para este veículo.", `CRLV-e ${vehicle.plate}`);
+            } else if (contratoEnc) {
+                document.getElementById('drvVehicleName').innerText = contratoEnc.veiculo ? `Ex: ${contratoEnc.veiculo}` : 'Contrato encerrado';
+                document.getElementById('drvVehicleDetails').innerText = `Encerrado em ${fmtDate(contratoEnc.data)}`;
+                document.getElementById('crlvViewer').innerHTML = '';
             } else {
                 document.getElementById('drvVehicleName').innerText = "Sem Veículo Vinculado";
                 document.getElementById('drvVehicleDetails').innerText = "Solicite a alocação junto ao administrador.";
@@ -2795,7 +2793,10 @@
 
             // Vistoria
             const inspEl = document.getElementById('inspViewer');
-            if (!vehicle) inspEl.innerHTML = `<p class="text-sm text-gray-400 italic">Nenhum veículo vinculado.</p>`;
+            if (contratoEnc) {
+                inspEl.innerHTML = deliveryInspectionHtml(driver, false);
+                hydrateImages(inspEl);
+            } else if (!vehicle) inspEl.innerHTML = `<p class="text-sm text-gray-400 italic">Nenhum veículo vinculado.</p>`;
             else if (!state.inspection.length) inspEl.innerHTML = `<p class="text-sm text-gray-400 italic">Nenhuma foto de vistoria cadastrada para este veículo.</p>`;
             else { inspEl.innerHTML = inspectionHtml(vehicle.id, false); hydrateImages(inspEl); }
 
@@ -2952,6 +2953,15 @@
             document.getElementById('drvPixKeyBox').classList.toggle('hidden', !showKey);
             document.getElementById('txtPixKey').value = showKey ? pk.key : '';
             document.getElementById('drvPixKeyType').innerText = pk ? pk.label : '';
+            document.getElementById('drvPayHeader').classList.toggle('hidden', !!contratoEnc);
+            document.getElementById('drvPayGrid').classList.toggle('hidden', !!contratoEnc);
+            if (contratoEnc) document.getElementById('drvChargeInfo').classList.add('hidden');
+            const encRecBox = document.getElementById('drvEncRecibosBox');
+            if (encRecBox) {
+                encRecBox.classList.toggle('hidden', !contratoEnc);
+                if (contratoEnc) renderEncerradoRecibos(encRecBox);
+                else encRecBox.innerHTML = '';
+            }
             applyDriverFeatures();
 
             const receiptsContainer = document.getElementById('drvReceiptsList');
@@ -3082,7 +3092,7 @@
         }
         async function confirmReceipt(id, btn) {
             const r = state.receipts.find(x => x.id === id) || {};
-            const d = state.drivers.find(x => x.id === r.driver_id);
+            const d = allDrv().find(x => x.id === r.driver_id);
             const valor = r.ai_result && r.ai_result.valor != null ? fmtMoney(r.ai_result.valor) : '';
             const quem = d ? d.name.split(' ')[0] : 'o motorista';
             if (!await uiConfirm('Isso encerra a cobrança e avisa ' + quem + ' que o pagamento foi recebido.' + (r.rejected_at ? '\n\nEste comprovante tinha sido recusado.' : ''),
@@ -3223,7 +3233,7 @@
             if (restante >= 1) await enviarPedidoParcialAsaas(restante, btn);
         }
         async function responderPixParcial(driverId, aprovar, btn) {
-            const d = state.drivers.find(x => x.id === driverId);
+            const d = allDrv().find(x => x.id === driverId);
             const p = d && d.pix_extra && d.pix_extra.parcial_pendente;
             if (!d || !p) return;
             const ok = await uiConfirm(
@@ -3246,7 +3256,7 @@
                 if (btn) { btn.disabled = false; btn.innerHTML = old; }
             }
         }
-        function contrato30Info(enc) {
+        function contrato30Info(enc, d) {
             if (!enc || !enc.data) return null;
             const dataIso = String(enc.data).slice(0, 10);
             const baseMs = dataDe(dataIso).getTime();
@@ -3256,29 +3266,42 @@
             const passados = Math.max(0, Math.floor((hojeMs - baseMs) / 86400000));
             const faltam = Math.max(0, 30 - passados);
             const pagoEm = enc.caucao_pago_em ? String(enc.caucao_pago_em).slice(0, 10) : null;
+            const cauPago = Number(enc.caucao_pago) > 0 ? Number(enc.caucao_pago) : (d ? (cauStatus(d, state.pixHistory)?.pago || 0) : 0);
+            const descList = Array.isArray(enc.descontos_caucao) ? enc.descontos_caucao : [];
+            const descTotal = Math.round(descList.reduce((s, it) => s + Number(it.valor || 0), 0) * 100) / 100;
+            const cauLiquida = Math.max(0, Math.round((cauPago - descTotal) * 100) / 100);
+            let msg;
+            if (pagoEm) {
+                msg = `Caução${cauPago > 0 ? ` de ${fmtMoney(cauLiquida)}` : ''} paga em ${fmtDate(pagoEm)}${descTotal > 0 ? ` (descontados ${fmtMoney(descTotal)} de ${fmtMoney(cauPago)})` : ''}.`;
+            } else if (descTotal > 0) {
+                msg = `Caução paga: ${fmtMoney(cauPago)} · Descontos: -${fmtMoney(descTotal)} · A pagar: ${fmtMoney(cauLiquida)} em ${fmtDate(ateIso)} (após 30 dias do encerramento).`;
+            } else if (cauPago > 0) {
+                msg = `A caução de ${fmtMoney(cauPago)} (valor já pago) será paga em ${fmtDate(ateIso)} (após 30 dias do encerramento do contrato).`;
+            } else {
+                msg = `A caução será paga em ${fmtDate(ateIso)} (após 30 dias do encerramento do contrato).`;
+            }
             return {
-                dataIso, ateIso, passados, faltam, pagoEm, vencido: passados >= 30,
+                dataIso, ateIso, passados, faltam, pagoEm, cauPago, descList, descTotal, cauLiquida, vencido: passados >= 30,
                 contagem: pagoEm ? 'Caução paga' : (faltam === 0 ? '30 de 30 dias concluídos' : `${passados} de 30 dias · falta${faltam === 1 ? '' : 'm'} ${faltam} dia${faltam === 1 ? '' : 's'}`),
-                msg: pagoEm
-                    ? `Caução paga em ${fmtDate(pagoEm)}.`
-                    : `A caução será paga em ${fmtDate(ateIso)} (após 30 dias do encerramento do contrato).`
+                msg
             };
         }
         async function encerrarContrato(driverId, dataIso, btn) {
             if (!driverId || !dataIso) return;
-            const old = btn ? btn.innerHTML : '';
-            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Encerrando...'; }
-            try {
-                const { error } = await sb.rpc('master_encerrar_contrato', { p_driver: driverId, p_data: dataIso });
-                if (error) throw error;
-                await reload();
-                if (fileDriverId === driverId) openDriverFile(driverId);
-                showToast(`Contrato encerrado em ${fmtDate(dataIso)}. A caução será paga em ${fmtDate(dataMais(dataIso, 30))}.`);
-            } catch (e) {
-                showToast(friendlyError(e), 'error');
-            } finally {
-                if (btn) { btn.disabled = false; btn.innerHTML = old; }
-            }
+            const drv = allDrv().find(x => x.id === driverId);
+            const cPaid = drv ? Number(cauStatus(drv, state.pixHistory)?.pago || 0) : 0;
+            return withBtn(btn, 'Encerrando...', async () => {
+                try {
+                    const { error } = await sb.rpc('master_encerrar_contrato', { p_driver: driverId, p_data: dataIso, p_caucao_pago: cPaid });
+                    if (error) throw error;
+                    await reload();
+                    if (fileDriverId === driverId) openDriverFile(driverId);
+                    const cTxt = cPaid > 0 ? ` de ${fmtMoney(cPaid)}` : '';
+                    showToast(`Contrato encerrado em ${fmtDate(dataIso)}. A caução${cTxt} será paga em ${fmtDate(dataMais(dataIso, 30))}.`);
+                } catch (e) {
+                    showToast(friendlyError(e), 'error');
+                }
+            });
         }
         async function encerrarContratoPrompt(driverId) {
             const d = allDrv().find(x => x.id === driverId && x.role === 'driver'); if (!d) return;
@@ -3296,22 +3319,34 @@
         async function reativarContrato(driverId, btn) {
             const d = allDrv().find(x => x.id === driverId && x.role === 'driver'); if (!d) return;
             if (!await uiConfirm(`Reativar contrato de ${d.name}? Você poderá vincular um veículo e voltar a cobrar normalmente.`, { sim: 'Reativar' })) return;
-            const ex = { ...(d.pix_extra || {}) };
-            delete ex.contrato_encerrado;
-            delete ex.sem_cobranca;
-            delete ex.arquivado;
-            delete ex.arquivado_em;
-            const { error } = await sb.from('profiles').update({ pix_extra: Object.keys(ex).length ? ex : null }).eq('id', driverId);
-            if (error) { showToast(friendlyError(error), 'error'); return; }
-            await reload();
-            if (fileDriverId === driverId) openDriverFile(driverId);
-            showToast('Contrato reativado! Escolha o veículo e a forma de cobrança na ficha.');
+            return withBtn(btn, 'Reativando...', async () => {
+                const ex = { ...(d.pix_extra || {}) };
+                const eraArq = !!ex.arquivado;
+                delete ex.contrato_encerrado;
+                delete ex.sem_cobranca;
+                delete ex.arquivado;
+                delete ex.arquivado_em;
+                const val = Object.keys(ex).length ? ex : null;
+                const { error } = await sb.from('profiles').update({ pix_extra: val }).eq('id', driverId);
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                d.pix_extra = val;
+                if (eraArq) {
+                    state.archivedDrivers = (state.archivedDrivers || []).filter(x => x.id !== driverId);
+                    if (!state.drivers.some(x => x.id === driverId)) state.drivers.push(d);
+                }
+                renderMasterPanel();
+                if (fileDriverId === driverId) openDriverFile(driverId);
+                showToast('Contrato reativado! Escolha o veículo e a forma de cobrança na ficha.');
+                loadAndRender().catch(() => {});
+            });
         }
         async function marcarCaucaoPagoArquivar(driverId, btn) {
             const d = allDrv().find(x => x.id === driverId && x.role === 'driver'); if (!d) return;
             const inp = document.getElementById('dfCauPagoData');
             const dataPago = (inp && inp.value) || todayISO();
-            if (!await uiConfirm(`Marcar a caução de ${d.name} como paga em ${fmtDate(dataPago)} e arquivar a ficha em "Fichas Arquivadas"?`, { sim: 'Caução pago e arquivar' })) return;
+            const c30 = contrato30Info(d.pix_extra && d.pix_extra.contrato_encerrado, d);
+            const valTxt = c30 && c30.cauPago > 0 ? ` (${fmtMoney(c30.cauLiquida)})` : '';
+            if (!await uiConfirm(`Marcar a caução de ${d.name}${valTxt} como paga em ${fmtDate(dataPago)} e arquivar a ficha em "Fichas Arquivadas"?`, { sim: 'Caução pago e arquivar' })) return;
             const old = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Arquivando...'; }
             try {
@@ -3343,12 +3378,189 @@
                 if (btn) { btn.disabled = false; btn.innerHTML = old; }
             }
         }
+        const CAU_DESC_TIPOS = { conserto: 'Conserto / Orçamento', multa: 'Multa', outro: 'Outro desconto' };
+        function deliveryInspectionHtml(d, editable) {
+            const enc = (d && d.pix_extra && d.pix_extra.contrato_encerrado) || {};
+            const fotos = Array.isArray(enc.vistoria_entrega) ? enc.vistoria_entrega : [];
+            const cards = fotos.map((f, idx) => {
+                const titulo = f.label || `Entrega ${idx + 1}`;
+                const data = f.added_at ? fmtDate(f.added_at) : '';
+                return `<div class="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-1.5">
+                    <div class="text-xs font-semibold flex justify-between gap-1"><span class="truncate">${esc(titulo)}</span><span class="text-gray-400 font-normal">${data}</span></div>
+                    <img data-path="${esc(f.path)}" onclick="viewDocIdx(${docRef(f.path, esc(titulo + (data ? ' · ' + data : '')))})" class="w-full h-32 object-cover rounded-lg bg-gray-100 dark:bg-gray-700 cursor-pointer" alt="${esc(titulo)}">
+                    ${editable ? `<button type="button" onclick="delDeliveryPhoto('${d.id}', '${f.id}', this)" class="w-full text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>` : ''}
+                </div>`;
+            }).join('');
+            return `<div class="p-3 sm:p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <h4 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-car-side text-amber-600"></i> Vistoria de entrega do veículo</h4>
+                    <span class="text-xs text-gray-500">${fotos.length} foto(s)</span>
+                </div>
+                ${cards ? `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">${cards}</div>` : '<p class="text-xs italic text-gray-500">Nenhuma foto da vistoria de entrega enviada ainda.</p>'}
+                ${editable ? `<div class="grid grid-cols-2 gap-2">
+                    <label class="cursor-pointer py-2.5 px-3 rounded-xl border border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold text-center flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-camera"></i> Tirar foto
+                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="uploadDeliveryPhotos('${d.id}', this)">
+                    </label>
+                    <label class="cursor-pointer py-2.5 px-3 rounded-xl border border-blue-400 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-semibold text-center flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-images"></i> Galeria
+                        <input type="file" accept="image/*" multiple class="hidden" onchange="uploadDeliveryPhotos('${d.id}', this)">
+                    </label>
+                </div>` : ''}
+            </div>`;
+        }
+        async function uploadDeliveryPhotos(driverId, input) {
+            const files = Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
+            if (!files.length) return;
+            const label = input.closest('label'), old = label ? label.innerHTML : '';
+            if (label) label.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Enviando...';
+            try {
+                const uploaded = [];
+                for (let i = 0; i < files.length; i++) {
+                    const p = await uploadFile(files[i], `${driverId}/entrega/${Date.now()}-${i}`);
+                    if (p) uploaded.push({ id: 'e' + Date.now().toString(36) + i, path: p, added_at: new Date().toISOString() });
+                }
+                if (uploaded.length && await savePixExtra(driverId, x => {
+                    const ce = { ...(x.contrato_encerrado || {}) };
+                    ce.vistoria_entrega = [...(Array.isArray(ce.vistoria_entrega) ? ce.vistoria_entrega : []), ...uploaded];
+                    x.contrato_encerrado = ce;
+                })) {
+                    dfContratoRender();
+                    renderMasterPanel();
+                    showToast(uploaded.length > 1 ? `${uploaded.length} fotos da entrega salvas!` : 'Foto da vistoria de entrega salva!');
+                }
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally {
+                if (label && document.body.contains(label)) label.innerHTML = old;
+                input.value = '';
+            }
+        }
+        async function delDeliveryPhoto(driverId, photoId, btn) {
+            const d = allDrv().find(x => x.id === driverId);
+            const fotos = (d && d.pix_extra && d.pix_extra.contrato_encerrado && d.pix_extra.contrato_encerrado.vistoria_entrega) || [];
+            const alvo = fotos.find(f => f.id === photoId);
+            if (!alvo || !await uiConfirm('Excluir esta foto da vistoria de entrega?')) return;
+            return withBtn(btn, '...', async () => {
+                if (await savePixExtra(driverId, x => {
+                    const ce = { ...(x.contrato_encerrado || {}) };
+                    ce.vistoria_entrega = (ce.vistoria_entrega || []).filter(f => f.id !== photoId);
+                    x.contrato_encerrado = ce;
+                })) {
+                    sb.storage.from(BUCKET).remove([alvo.path]).catch(() => {});
+                    dfContratoRender();
+                    renderMasterPanel();
+                    showToast('Foto excluída.');
+                }
+            });
+        }
+        async function addCauDesconto(driverId, btn) {
+            const tipo = document.getElementById('dfCauDescTipo').value || 'conserto';
+            const valor = parseMoney(document.getElementById('dfCauDescVal').value);
+            const desc = document.getElementById('dfCauDescTxt').value.trim();
+            const data = document.getElementById('dfCauDescData').value || todayISO();
+            const f = document.getElementById('dfCauDescFile').files[0];
+            if (!desc || !(valor > 0)) { showToast('Informe o motivo (ex: orçamento ou multa) e o valor.', 'error'); return; }
+            return withBtn(btn, 'Salvando...', async () => {
+                try {
+                    const path = f ? await uploadFile(f, `${driverId}/caucao-descontos/${Date.now()}`) : null;
+                    const item = { id: 'dc' + Date.now().toString(36), tipo, desc, valor, data, ...(path ? { path } : {}) };
+                    if (await savePixExtra(driverId, x => {
+                        const ce = { ...(x.contrato_encerrado || {}) };
+                        ce.descontos_caucao = [...(Array.isArray(ce.descontos_caucao) ? ce.descontos_caucao : []), item];
+                        x.contrato_encerrado = ce;
+                    })) {
+                        dfContratoRender();
+                        renderMasterPanel();
+                        showToast('Desconto lançado na caução.');
+                    }
+                } catch (e) {
+                    showToast(friendlyError(e), 'error');
+                }
+            });
+        }
+        async function puxarMultaCaucao(driverId, multaId, btn) {
+            const d = allDrv().find(x => x.id === driverId);
+            const m = multasAbertas(d).find(i => i.id === multaId);
+            if (!d || !m) return;
+            return withBtn(btn, '...', async () => {
+                const item = { id: 'dc' + Date.now().toString(36), tipo: 'multa', desc: m.desc, valor: Number(m.valor || 0), data: m.data || todayISO(), source_mid: m.id };
+                if (await savePixExtra(driverId, x => {
+                    const ce = { ...(x.contrato_encerrado || {}) };
+                    ce.descontos_caucao = [...(Array.isArray(ce.descontos_caucao) ? ce.descontos_caucao : []), item];
+                    x.contrato_encerrado = ce;
+                    if (x.multas && Array.isArray(x.multas.itens)) {
+                        x.multas = { ...x.multas, itens: x.multas.itens.map(i => i.id === multaId ? { ...i, paga: true } : i) };
+                    }
+                })) {
+                    dfMultFill(d);
+                    dfContratoRender();
+                    renderMasterPanel();
+                    showToast('Multa adicionada ao desconto da caução.');
+                }
+            });
+        }
+        async function delCauDesconto(driverId, descId, btn) {
+            const d = allDrv().find(x => x.id === driverId);
+            const lista = (d && d.pix_extra && d.pix_extra.contrato_encerrado && d.pix_extra.contrato_encerrado.descontos_caucao) || [];
+            const alvo = lista.find(i => i.id === descId);
+            if (!alvo || !await uiConfirm(`Remover desconto "${alvo.desc}" (${fmtMoney(alvo.valor)}) da caução?`)) return;
+            return withBtn(btn, '...', async () => {
+                if (await savePixExtra(driverId, x => {
+                    const ce = { ...(x.contrato_encerrado || {}) };
+                    ce.descontos_caucao = (ce.descontos_caucao || []).filter(i => i.id !== descId);
+                    x.contrato_encerrado = ce;
+                    if (alvo.source_mid && x.multas && Array.isArray(x.multas.itens)) {
+                        x.multas = { ...x.multas, itens: x.multas.itens.map(i => i.id === alvo.source_mid ? { ...i, paga: false } : i) };
+                    }
+                })) {
+                    if (alvo.path) sb.storage.from(BUCKET).remove([alvo.path]).catch(() => {});
+                    dfMultFill(d);
+                    dfContratoRender();
+                    renderMasterPanel();
+                    showToast('Desconto removido.');
+                }
+            });
+        }
+        function dfCauDescontosHtml(d, c30, arq) {
+            const itens = c30.descList || [];
+            const jaPuxados = new Set(itens.map(i => i.source_mid).filter(Boolean));
+            const multasLivres = arq ? [] : multasAbertas(d).filter(m => !jaPuxados.has(m.id));
+            return `<div class="p-3 rounded-xl border border-red-200 dark:border-red-800 bg-white/80 dark:bg-gray-800/70 space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                    <h5 class="font-bold text-xs uppercase text-red-700 dark:text-red-300"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Descontos da caução (multas e orçamentos)</h5>
+                    <span class="text-xs font-bold">${c30.descTotal > 0 ? `- ${fmtMoney(c30.descTotal)}` : 'Nenhum desconto'}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center p-2 rounded-lg bg-gray-50 dark:bg-gray-700/60 text-xs">
+                    <div><span class="block text-[10px] uppercase text-gray-500">Caução paga</span><b>${fmtMoney(c30.cauPago)}</b></div>
+                    <div><span class="block text-[10px] uppercase text-gray-500">Descontos</span><b class="text-red-600">- ${fmtMoney(c30.descTotal)}</b></div>
+                    <div><span class="block text-[10px] uppercase text-gray-500">A pagar</span><b class="${c30.cauLiquida > 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-500'}">${fmtMoney(c30.cauLiquida)}</b></div>
+                </div>
+                ${itens.length ? `<div class="space-y-1.5">${itens.map(it => `<div class="flex items-start gap-2 p-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs">
+                    <div class="flex-1 min-w-0">
+                        <span class="font-bold">${esc(CAU_DESC_TIPOS[it.tipo] || 'Desconto')}: ${esc(it.desc)}</span>
+                        <span class="block text-gray-500">${fmtDate(it.data)} · <b class="text-red-600">${fmtMoney(it.valor)}</b></span>
+                    </div>
+                    ${it.path ? `<button type="button" onclick="viewDocIdx(${docRef(it.path, esc(it.desc))})" class="px-2 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold"><i class="fa-solid fa-eye mr-1"></i>Anexo</button>` : ''}
+                    ${arq ? '' : `<button type="button" onclick="delCauDesconto('${d.id}', '${it.id}', this)" class="px-2 py-1 rounded-lg text-red-500" title="Remover"><i class="fa-solid fa-trash"></i></button>`}
+                </div>`).join('')}</div>` : '<p class="text-xs italic text-gray-400">Nenhuma multa ou orçamento descontado da caução.</p>'}
+                ${multasLivres.length ? `<div class="flex flex-wrap gap-1.5">${multasLivres.map(m => `<button type="button" onclick="puxarMultaCaucao('${d.id}', '${m.id}', this)" class="text-xs px-2.5 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-semibold"><i class="fa-solid fa-plus mr-1"></i>Descontar multa: ${esc(m.desc)} (${fmtMoney(m.valor)})</button>`).join('')}</div>` : ''}
+                ${arq ? '' : `<div class="grid grid-cols-6 gap-2 pt-1 border-t border-gray-200 dark:border-gray-700">
+                    <select id="dfCauDescTipo" class="col-span-3 sm:col-span-2 min-w-0 p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"><option value="conserto">Conserto / Orçamento</option><option value="multa">Multa</option><option value="outro">Outro desconto</option></select>
+                    <input id="dfCauDescVal" type="text" inputmode="decimal" placeholder="Valor R$ 0,00" class="col-span-3 sm:col-span-2 min-w-0 p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <input id="dfCauDescData" type="date" value="${todayISO()}" class="col-span-6 sm:col-span-2 min-w-0 p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <input id="dfCauDescTxt" type="text" maxlength="100" placeholder="Descrição (ex: Orçamento para-choque / Multa)" class="col-span-6 min-w-0 p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <div class="col-span-6"><label for="dfCauDescFile" class="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Foto ou PDF do orçamento/multa (opcional)</label><input id="dfCauDescFile" type="file" accept="image/*,application/pdf" class="block w-full text-xs text-gray-500"></div>
+                    <button type="button" onclick="addCauDesconto('${d.id}', this)" class="col-span-6 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Adicionar desconto na caução</button>
+                </div>`}
+            </div>`;
+        }
         function dfContratoRender() {
             const box = document.getElementById('dfContratoBox'), d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver');
             if (!box || !d) return;
             const enc = d.pix_extra && d.pix_extra.contrato_encerrado;
             const arq = !!(d.pix_extra && d.pix_extra.arquivado);
-            const c30 = contrato30Info(enc);
+            const c30 = contrato30Info(enc, d);
             const tit = '<h4 class="font-semibold text-sm"><i class="fa-solid fa-file-circle-xmark text-red-600 mr-1"></i> Encerrar contrato e caução</h4>';
             if (enc && c30) {
                 box.innerHTML = tit + `
@@ -3357,6 +3569,8 @@
                         <div class="flex items-center justify-between gap-2 font-bold"><span><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</span><span>Previsão: ${fmtDate(c30.ateIso)}</span></div>
                         <p class="text-sm font-medium">${esc(c30.msg)}</p>
                     </div>
+                    ${dfCauDescontosHtml(d, c30, arq)}
+                    ${deliveryInspectionHtml(d, !arq)}
                     ${arq ? `
                         <p class="text-xs font-semibold text-amber-700 dark:text-amber-300"><i class="fa-solid fa-box-archive mr-1"></i> Ficha arquivada${d.pix_extra.arquivado_em ? ` em ${fmtDate(d.pix_extra.arquivado_em)}` : ''}.</p>
                         <div class="flex flex-wrap gap-2">
@@ -3371,6 +3585,7 @@
                         </div>
                         <button type="button" onclick="reativarContrato('${d.id}', this)" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg"><i class="fa-solid fa-rotate-left mr-1"></i> Reativar contrato</button>
                     `}`;
+                hydrateImages(box);
                 return;
             }
             box.innerHTML = tit + `<p class="text-xs text-gray-600 dark:text-gray-300">Libera o veículo atual, para novas cobranças, inicia a contagem de 30 dias da caução e mantém todo o histórico financeiro guardado.</p>
@@ -3402,7 +3617,7 @@
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td class="p-3 font-semibold">${esc(v.model)}${state.drivers.some(d => d.vehicle_id === v.id) ? '' : ' <span class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 whitespace-nowrap">Disponível</span>'}</td>
                         <td class="p-3">${esc(v.plate)}</td>
-                        <td class="p-3"><button onclick="editVehicleRent('${v.id}')" class="text-sm font-semibold ${v.rent_amount != null ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600'}"><i class="fa-solid fa-pen-to-square mr-1 text-xs"></i>${v.rent_amount != null ? fmtMoney(v.rent_amount) : 'Definir valor'}</button></td>
+                        <td class="p-3"><button onclick="editVehicleRent('${v.id}', this)" class="text-sm font-semibold ${v.rent_amount != null ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-600'}"><i class="fa-solid fa-pen-to-square mr-1 text-xs"></i>${v.rent_amount != null ? fmtMoney(v.rent_amount) : 'Definir valor'}</button></td>
                         <td class="p-3">
                             ${v.crlv_path ? `<button onclick="viewDocIdx(${docRef(v.crlv_path, `CRLV-e - ${esc(v.plate)}`)})" class="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 rounded-lg font-semibold"><i class="fa-solid fa-eye mr-1"></i> Visualizar</button>` : `<span class="text-xs text-gray-400">Sem arquivo</span>`}
                         </td>
@@ -3410,7 +3625,7 @@
                             ${vehicleToDelete === v.id ? `
                                 <div class="flex flex-wrap items-center justify-end gap-2">
                                     <span class="text-xs text-red-500">Excluir? Os motoristas dele ficam sem veículo. CRLV-e, vistoria e despesas continuam guardados.</span>
-                                    <button onclick="confirmDeleteVehicle('${v.id}')" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg">Sim, excluir</button>
+                                    <button onclick="confirmDeleteVehicle('${v.id}', this)" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg">Sim, excluir</button>
                                     <button onclick="cancelDeleteVehicle()" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-3 py-1.5 rounded-lg">Cancelar</button>
                                 </div>
                             ` : `
@@ -3449,7 +3664,7 @@
                     const pend = pendDe(d);
                     const pendParc = parcPendDe(d);
                     const contratoEnc = d.pix_extra && d.pix_extra.contrato_encerrado ? d.pix_extra.contrato_encerrado : null;
-                    const c30 = contrato30Info(contratoEnc);
+                    const c30 = contrato30Info(contratoEnc, d);
                     const atraso = d.payment_status === 'Em atraso';
                     const temPix = !!(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link));
                     const sit = contratoEnc ? ['aviso', 'Encerrado'] : atraso ? ['ruim', 'Em atraso'] : pend ? ['aviso', 'Pix a conferir'] : ['bom', 'Em dia'];
@@ -3499,7 +3714,7 @@
                                     <p class="text-sm">Excluir ${esc(d.name)}? Ele não vai mais conseguir entrar no app. Documentos, Pix e comprovantes continuam guardados no app e no Drive.</p>
                                     <div class="grid grid-cols-2 gap-2 mt-3">
                                         <button onclick="cancelDeleteDriver()" class="motItem justify-center">Cancelar</button>
-                                        <button onclick="confirmDeleteDriver('${d.id}')" class="motItem perigo justify-center">Sim, excluir</button>
+                                        <button onclick="confirmDeleteDriver('${d.id}', this)" class="motItem perigo justify-center">Sim, excluir</button>
                                     </div>
                                 </div>` : ''}
                             <details class="motMais">
@@ -3509,7 +3724,7 @@
                                     ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="motItem"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-brands fa-whatsapp"></i> Adicionar WhatsApp</button>`}
                                     ${!contratoEnc && (temPix || atraso || pend) ? `<button onclick="openNewPix('${d.id}')" class="motItem"><i class="fa-brands fa-pix"></i> Novo Pix</button>` : ''}
                                     ${temPix ? `<button onclick="openEditPix('${d.id}')" class="motItem"><i class="fa-solid fa-pen"></i> Editar Pix enviado</button>` : ''}
-                                    <button onclick="marcarSituacao('${d.id}', '${atraso ? 'Em dia' : 'Em atraso'}')" class="motItem"><i class="fa-solid ${atraso ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${atraso ? 'Marcar como em dia' : 'Marcar em atraso'}</button>
+                                    <button onclick="marcarSituacao('${d.id}', '${atraso ? 'Em dia' : 'Em atraso'}', this)" class="motItem"><i class="fa-solid ${atraso ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${atraso ? 'Marcar como em dia' : 'Marcar em atraso'}</button>
                                     <button onclick="viewAsDriver('${d.id}')" class="motItem"><i class="fa-solid fa-right-to-bracket"></i> Entrar na conta dele</button>
                                     ${last && last !== pend ? `<button onclick="viewDocIdx(${docRef(last.file_path, `Comprovante - ${esc(d.name)} (${new Date(last.created_at).toLocaleDateString('pt-BR')})`)})" class="motItem"><i class="fa-solid fa-file-invoice"></i> Último comprovante (${recs.length})</button>` : ''}
                                     ${last && last.confirmed_at ? `<button onclick="openRecibo('${last.id}')" class="motItem"><i class="fa-solid fa-receipt"></i> Recibo</button>` : ''}
@@ -3542,7 +3757,7 @@
             if (!list.length) { box.innerHTML = `<p class="p-4 text-center text-gray-400 italic">Nenhuma ficha arquivada ainda.</p>`; return; }
             box.innerHTML = list.map(d => {
                 const enc = d.pix_extra && d.pix_extra.contrato_encerrado;
-                const c30 = contrato30Info(enc);
+                const c30 = contrato30Info(enc, d);
                 const recs = state.receipts.filter(r => r.driver_id === d.id);
                 const last = recs[recs.length - 1];
                 const docs = [
@@ -3615,20 +3830,26 @@
         function deleteVehicle(id) { vehicleToDelete = id; renderMasterPanel(); }
         function cancelDeleteVehicle() { vehicleToDelete = null; renderMasterPanel(); }
 
-        async function confirmDeleteVehicle(id) {
-            vehicleToDelete = null;
-            try {
-                // Só tira o carro da lista: CRLV-e, vistoria, despesas e ganhos ficam guardados (no app e no Drive)
-                const { error } = await sb.from('vehicles').update({ deleted_at: new Date().toISOString() }).eq('id', id);
-                if (error) throw error;
-                const up = await sb.from('profiles').update({ vehicle_id: null }).eq('vehicle_id', id);
-                if (up.error) throw up.error;
-                await reload();
-                showToast("Veículo excluído. CRLV-e, vistoria e despesas continuam guardados.");
-            } catch (err) {
-                renderMasterPanel();
-                showToast(friendlyError(err), 'error');
-            }
+        async function confirmDeleteVehicle(id, btn) {
+            return withBtn(btn, 'Excluindo...', async () => {
+                vehicleToDelete = null;
+                try {
+                    // Só tira o carro da lista: CRLV-e, vistoria, despesas e ganhos ficam guardados (no app e no Drive)
+                    const now = new Date().toISOString();
+                    const { error } = await sb.from('vehicles').update({ deleted_at: now }).eq('id', id);
+                    if (error) throw error;
+                    const up = await sb.from('profiles').update({ vehicle_id: null }).eq('vehicle_id', id);
+                    if (up.error) throw up.error;
+                    state.vehicles = state.vehicles.filter(x => x.id !== id);
+                    allDrv().forEach(d => { if (d.vehicle_id === id) d.vehicle_id = null; });
+                    renderMasterPanel();
+                    showToast("Veículo excluído. CRLV-e, vistoria e despesas continuam guardados.");
+                    loadAndRender().catch(() => {});
+                } catch (err) {
+                    renderMasterPanel();
+                    showToast(friendlyError(err), 'error');
+                }
+            });
         }
 
         // EDITAR VEÍCULO: modelo, placa, aluguel e CRLV-e (o arquivo antigo fica guardado)
@@ -3776,18 +3997,20 @@
         }
 
         // "Mais ações" > Marcar como em dia / em atraso (antes era um seletor que mudava sem perguntar)
-        async function marcarSituacao(id, novo) {
-            const d = state.drivers.find(x => x.id === id); if (!d) return;
+        async function marcarSituacao(id, novo, btn) {
+            const d = allDrv().find(x => x.id === id); if (!d) return;
             const emDia = novo === 'Em dia';
             if (!await uiConfirm(emDia ? 'Use quando ele já pagou e o app não registrou sozinho.' : 'Ele passa a aparecer no topo da lista, com o botão Cobrar atraso.',
                 { titulo: emDia ? `Marcar ${d.name.split(' ')[0]} como em dia?` : `Marcar ${d.name.split(' ')[0]} em atraso?`, sim: emDia ? 'Marcar em dia' : 'Marcar em atraso' })) return;
-            await updateDriverPaymentStatus(id, novo);
-            renderMasterPanel();
+            await withBtn(btn, 'Salvando...', async () => {
+                await updateDriverPaymentStatus(id, novo);
+                renderMasterPanel();
+            });
         }
         async function updateDriverPaymentStatus(id, newStatus) {
             const { error } = await sb.from('profiles').update({ payment_status: newStatus }).eq('id', id);
             if (error) { showToast(friendlyError(error), 'error'); await reload(); return; }
-            const d = state.drivers.find(x => x.id === id);
+            const d = allDrv().find(x => x.id === id);
             if (d) d.payment_status = newStatus;
             showToast(`Status de pagamento atualizado para "${newStatus}".`);
         }
@@ -3796,18 +4019,24 @@
         function deleteDriver(id) { driverToDelete = id; renderMasterPanel(); }
         function cancelDeleteDriver() { driverToDelete = null; renderMasterPanel(); }
 
-        async function confirmDeleteDriver(id) {
-            driverToDelete = null;
-            try {
-                // Só bloqueia o acesso do motorista: documentos, Pix, comprovantes e histórico ficam guardados
-                const { error } = await sb.rpc('master_delete_driver', { p_id: id });
-                if (error) throw error;
-                await reload();
-                showToast("Motorista excluído. Ele não entra mais no app; os documentos continuam guardados.");
-            } catch (err) {
-                renderMasterPanel();
-                showToast(friendlyError(err), 'error');
-            }
+        async function confirmDeleteDriver(id, btn) {
+            return withBtn(btn, 'Excluindo...', async () => {
+                driverToDelete = null;
+                try {
+                    // Só bloqueia o acesso do motorista: documentos, Pix, comprovantes e histórico ficam guardados
+                    const { error } = await sb.rpc('master_delete_driver', { p_id: id });
+                    if (error) throw error;
+                    state.drivers = state.drivers.filter(x => x.id !== id);
+                    state.archivedDrivers = (state.archivedDrivers || []).filter(x => x.id !== id);
+                    if (state.allDrivers) state.allDrivers = state.allDrivers.filter(x => x.id !== id);
+                    renderMasterPanel();
+                    showToast("Motorista excluído. Ele não entra mais no app; os documentos continuam guardados.");
+                    loadAndRender().catch(() => {});
+                } catch (err) {
+                    renderMasterPanel();
+                    showToast(friendlyError(err), 'error');
+                }
+            });
         }
 
         // ARQUIVOS: ENVIO E VISUALIZAÇÃO (Supabase Storage)
@@ -3963,7 +4192,7 @@
             document.getElementById('modalSettings').classList.remove('hidden');
             Promise.all([loadConfigStatus().then(paintConfig), loadRobo().then(paintRobo)]).catch(() => {});
         }
-        function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); }
+        function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); markAreas(); }
         async function saveConfig(key, inputId) {
             const v = document.getElementById(inputId).value.trim();
             if (key === 'drive_url' && v && !/^https:\/\/script\.google\.com\//.test(v)) { showToast("O endereço precisa começar com https://script.google.com/", "error"); return; }
@@ -4051,8 +4280,8 @@
                     return `<tr class="border-t border-gray-100 dark:border-gray-700"><td class="py-1 pr-2">${fmtDate(h.sent_at)}</td><td class="pr-2">${fmtDate(h.due_at)}</td><td class="pr-2">${h.amount != null ? fmtMoney(h.amount) : '-'}${h.description ? `<div class="text-[11px] text-gray-400 whitespace-pre-line">${esc(h.description)}</div>` : ''}</td><td class="pr-2">${h.paid_at ? fmtDate(h.paid_at) : '-'}</td><td>${sit}</td></tr>`;
                 }).join('')}</tbody></table></div>
                 <p class="mt-2 font-semibold">Total recebido: ${fmtMoney(hist.filter(h => h.paid_at).reduce((a, h) => a + Number(h.amount || 0), 0))}</p>` : '<p class="italic text-gray-400">Nenhum Pix enviado ainda.</p>';
-            rotularTabelas(document.getElementById('modalDriverFile'));
             document.getElementById('modalDriverFile').classList.remove('hidden');
+            rotularTabelas(document.getElementById('dfHistory'));
             loadConfigStatus().catch(() => {});
         }
         function closeDriverFile() { fileDriverId = null; document.getElementById('modalDriverFile').classList.add('hidden'); }
@@ -4196,8 +4425,8 @@
         let finTab = 'rent';
         function openFinance() {
             document.getElementById('finPeriod').value = 'month';
-            switchFinTab('rent');
             document.getElementById('modalFinance').classList.remove('hidden');
+            switchFinTab('rent');
         }
         function switchFinTab(tab) {
             finTab = tab;
@@ -4209,7 +4438,7 @@
             document.getElementById('finAppsBox').classList.toggle('hidden', tab !== 'apps');
             renderFinance();
         }
-        function closeFinance() { document.getElementById('modalFinance').classList.add('hidden'); }
+        function closeFinance() { document.getElementById('modalFinance').classList.add('hidden'); markAreas(); }
 
         function renderFinance() {
             fillFinFilters(); updateFinFilterCount();
@@ -4351,13 +4580,13 @@
             finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane mr-1"></i> Confirmar e enviar'; }
         }
         function emailRecibo() {
-            const d = state.drivers.find(x => x.id === reciboDriverId) || {};
+            const d = allDrv().find(x => x.id === reciboDriverId) || {};
             const text = reciboLines.join('\n');
             openEmailCompose({ to: d.email || '', subject: 'Recibo de pagamento - MOTORA', body: `Olá, ${String(d.name || '').split(' ')[0] || 'motorista'}!\n\nSegue o seu recibo de pagamento:\n\n${text}`, driverName: d.name || '', kind: 'recibo', content: text });
         }
         function emailIA(id) {
             const r = iaRows.find(x => x.id === id); if (!r) return;
-            const d = state.drivers.find(x => x.id === r.driver_id) || {};
+            const d = allDrv().find(x => x.id === r.driver_id) || {};
             const ta = document.getElementById('iaMsg_' + id);
             const text = ta ? ta.value : r.message;
             openEmailCompose({ to: d.email || '', subject: (r.title || 'Aviso') + ' - MOTORA', body: text, driverName: d.name || '', kind: 'aviso', content: text, onSent: () => iaMark(id, text) });
@@ -4515,7 +4744,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     </div>
                     <div class="flex gap-1 shrink-0">
                         ${x.file_path ? `<button data-path="${esc(x.file_path)}" data-title="${esc(typeName(x.type_id))}" onclick="viewDoc(this.dataset.path, this.dataset.title)" class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-eye"></i></button>` : ''}
-                        <button onclick="deleteExpense('${x.id}')" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="deleteExpense('${x.id}', this)" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>`).join('')}</div>` : '';
         }
@@ -4546,15 +4775,19 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             } catch (err) { showToast(friendlyError(err), 'error'); }
             finally { setBusy(form, false); }
         }
-        async function deleteExpense(id) {
+        async function deleteExpense(id, btn) {
             const x = state.expenses.find(e => e.id === id);
             if (!x || !await uiConfirm('Excluir esta despesa?')) return;
-            const { error } = await sb.from('vehicle_expenses').delete().eq('id', id);
-            if (error) { showToast(friendlyError(error), 'error'); return; }
-            if (x.file_path) sb.storage.from(BUCKET).remove([x.file_path]).catch(() => {});
-            await loadAndRender();
-            renderExpenses();
-            showToast("Despesa excluída.");
+            return withBtn(btn, '...', async () => {
+                const { error } = await sb.from('vehicle_expenses').delete().eq('id', id);
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                if (x.file_path) sb.storage.from(BUCKET).remove([x.file_path]).catch(() => {});
+                state.expenses = state.expenses.filter(e => e.id !== id);
+                renderExpenses();
+                renderMasterPanel();
+                showToast("Despesa excluída.");
+                loadAndRender().catch(() => {});
+            });
         }
 
         // VISTORIA DO VEÍCULO
@@ -4585,10 +4818,10 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                         <i class="fa-solid fa-image mr-1"></i>${p ? 'Trocar' : 'Galeria'}
                         <input type="file" accept="image/*" class="hidden" onchange="uploadInspection('${slotKey}', this)">
                     </label>
-                    ${p ? `<button type="button" onclick="deleteInspectionPhoto('${p.id}')" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg" title="Excluir foto"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    ${p ? `<button type="button" onclick="deleteInspectionPhoto('${p.id}', this)" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg" title="Excluir foto"><i class="fa-solid fa-trash"></i></button>` : ''}
                 </div>`;
             } else if (editable && p) {
-                actions = `<button type="button" onclick="deleteInspectionPhoto('${p.id}')" class="mt-2 w-full text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>`;
+                actions = `<button type="button" onclick="deleteInspectionPhoto('${p.id}', this)" class="mt-2 w-full text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>`;
             }
             return `<div class="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                 <div class="text-xs font-semibold mb-1.5 flex justify-between gap-1"><span class="truncate">${esc(title)}</span><span class="text-gray-400 font-normal">${date}</span></div>
@@ -4678,19 +4911,23 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             }
         }
 
-        async function deleteInspectionPhoto(id) {
+        async function deleteInspectionPhoto(id, btn) {
             const p = state.inspection.find(x => x.id === id);
             if (!p || !await uiConfirm('Excluir esta foto da vistoria?')) return;
-            try {
-                const { error } = await sb.from('inspection_photos').delete().eq('id', id);
-                if (error) throw error;
-                await sb.storage.from(BUCKET).remove([p.file_path]);
-                await loadAndRender();
-                renderInspectionModal();
-                showToast("Foto excluída.");
-            } catch (err) {
-                showToast(friendlyError(err), 'error');
-            }
+            return withBtn(btn, '...', async () => {
+                try {
+                    const { error } = await sb.from('inspection_photos').delete().eq('id', id);
+                    if (error) throw error;
+                    sb.storage.from(BUCKET).remove([p.file_path]).catch(() => {});
+                    state.inspection = state.inspection.filter(x => x.id !== id);
+                    renderInspectionModal();
+                    renderMasterPanel();
+                    showToast("Foto excluída.");
+                    loadAndRender().catch(() => {});
+                } catch (err) {
+                    showToast(friendlyError(err), 'error');
+                }
+            });
         }
 
         // DATAS
@@ -4977,18 +5214,22 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         function dfAjRender() {
             const d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver'); if (!d) return;
             const it = ajustesOf(d);
-            document.getElementById('dfAjList').innerHTML = it.length ? it.map(a => `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600"><p class="flex-1 min-w-0 text-sm font-semibold break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}${a.a_partir ? `<span class="block text-xs font-normal text-gray-500 dark:text-gray-400"><i class="fa-regular fa-calendar mr-1"></i>Cobrado a partir de ${dataBR(a.a_partir, true)}${ajusteVale(a, vencProxima(d)) ? ' (entra na próxima cobrança)' : ' (ainda não entra na próxima)'}</span>` : ''}</p><button type="button" onclick="delAjuste('${a.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum desconto ou valor extra lançado.</p>';
+            document.getElementById('dfAjList').innerHTML = it.length ? it.map(a => `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600"><p class="flex-1 min-w-0 text-sm font-semibold break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}${a.a_partir ? `<span class="block text-xs font-normal text-gray-500 dark:text-gray-400"><i class="fa-regular fa-calendar mr-1"></i>Cobrado a partir de ${dataBR(a.a_partir, true)}${ajusteVale(a, vencProxima(d)) ? ' (entra na próxima cobrança)' : ' (ainda não entra na próxima)'}</span>` : ''}</p><button type="button" onclick="delAjuste('${a.id}', this)" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum desconto ou valor extra lançado.</p>';
             document.getElementById('dfAjPrev').innerHTML = `<p class="text-xs font-bold uppercase text-gray-500 mb-1">Prévia que o motorista vê</p>${previsaoHtml(d)}`;
         }
-        async function addAjuste() {
+        async function addAjuste(btn) {
             const desc = document.getElementById('dfAjDesc').value.trim(), valor = parseMoney(document.getElementById('dfAjVal').value);
             if (!desc || !(valor > 0)) { showToast('Escreva o motivo e o valor.', 'error'); return; }
             const aPartir = document.getElementById('dfAjData').value || null;
             const item = { id: 'a' + Date.now().toString(36), tipo: document.getElementById('dfAjTipo').value, desc, valor, ...(aPartir ? { a_partir: aPartir } : {}) };
-            if (await savePixExtra(fileDriverId, x => { x.ajustes = [...(Array.isArray(x.ajustes) ? x.ajustes : []), item]; })) { document.getElementById('dfAjDesc').value = ''; document.getElementById('dfAjData').value = ''; document.getElementById('dfAjVal').value = ''; dfAjRender(); renderMasterResumo(); showToast('Lançado na próxima cobrança.'); }
+            return withBtn(btn, 'Salvando...', async () => {
+                if (await savePixExtra(fileDriverId, x => { x.ajustes = [...(Array.isArray(x.ajustes) ? x.ajustes : []), item]; })) { document.getElementById('dfAjDesc').value = ''; document.getElementById('dfAjData').value = ''; document.getElementById('dfAjVal').value = ''; dfAjRender(); renderMasterResumo(); showToast('Lançado na próxima cobrança.'); }
+            });
         }
-        async function delAjuste(aid) {
-            if (await savePixExtra(fileDriverId, x => { x.ajustes = (x.ajustes || []).filter(a => a.id !== aid); if (!x.ajustes.length) delete x.ajustes; })) { dfAjRender(); renderMasterResumo(); }
+        async function delAjuste(aid, btn) {
+            return withBtn(btn, '...', async () => {
+                if (await savePixExtra(fileDriverId, x => { x.ajustes = (x.ajustes || []).filter(a => a.id !== aid); if (!x.ajustes.length) delete x.ajustes; })) { dfAjRender(); renderMasterResumo(); }
+            });
         }
         function abrirAjustes(id) { openDriverFile(id); setTimeout(() => { const b = document.getElementById('dfAjBox'); if (b) b.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 150); }
         function renderProxCobrancas() {
@@ -5019,8 +5260,8 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             box.innerHTML = it.length ? it.map(i => `<div class="flex items-start gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
                 <div class="flex-1 min-w-0"><p class="text-sm font-semibold break-words">${esc(i.desc)} · ${fmtMoney(i.valor)}</p>
                 <p class="text-xs ${fdPaga(i) ? 'text-emerald-600' : (i.cobrada ? 'text-amber-600' : 'text-gray-500')}">${fmtDate(i.data)} · ${fdPaga(i) ? 'Paga' : (i.cobrada ? 'Cobrada no Pix de ' + fmtDate(i.cobrada) : 'Pendente (entra no próximo Pix)')}</p></div>
-                ${fdPaga(i) ? '' : `<button type="button" onclick="multaPaga('${i.id}')" class="text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700" title="Marcar como paga"><i class="fa-solid fa-check"></i></button>`}
-                <button type="button" onclick="delMulta('${i.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('')
+                ${fdPaga(i) ? '' : `<button type="button" onclick="multaPaga('${i.id}', this)" class="text-xs font-semibold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700" title="Marcar como paga"><i class="fa-solid fa-check"></i></button>`}
+                <button type="button" onclick="delMulta('${i.id}', this)" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('')
                 : '<p class="text-xs italic text-gray-400">Nenhuma multa ou despesa lançada.</p>';
         }
         async function toggleMultas(on) {
@@ -5030,23 +5271,31 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) showToast(on ? 'Multas e despesas ligadas para este motorista.' : 'Multas e despesas desligadas (não aparecem para ele).');
             renderMasterPanel();
         }
-        async function addMulta() {
+        async function addMulta(btn) {
             const desc = document.getElementById('dfMultDesc').value.trim(), valor = parseMoney(document.getElementById('dfMultVal').value);
             if (!desc || !(valor > 0)) { showToast('Escreva o que é e o valor (ex: Multa de velocidade, 195,23).', 'error'); return; }
             const item = { id: 'm' + Date.now().toString(36), desc, valor, data: document.getElementById('dfMultDate').value || todayISO(), cobrada: null, paga: false };
             fileMultas.itens.push(item);
-            if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { document.getElementById('dfMultDesc').value = ''; document.getElementById('dfMultVal').value = ''; dfMultRender(); renderMasterPanel(); showToast('Lançado. Entra no próximo Pix deste motorista.'); }
-            else fileMultas.itens.pop();
+            return withBtn(btn, 'Salvando...', async () => {
+                if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { document.getElementById('dfMultDesc').value = ''; document.getElementById('dfMultVal').value = ''; dfMultRender(); renderMasterPanel(); showToast('Lançado. Entra no próximo Pix deste motorista.'); }
+                else fileMultas.itens.pop();
+            });
         }
-        async function delMulta(mid) {
+        async function delMulta(mid, btn) {
             const it = fileMultas.itens.find(i => i.id === mid); if (!it || !await uiConfirm(`Excluir "${it.desc}" (${fmtMoney(it.valor)})?`)) return;
             fileMultas.itens = fileMultas.itens.filter(i => i.id !== mid);
-            if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { dfMultRender(); renderMasterPanel(); }
+            return withBtn(btn, '...', async () => {
+                if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { dfMultRender(); renderMasterPanel(); }
+                else fileMultas.itens.push(it);
+            });
         }
-        async function multaPaga(mid) {
+        async function multaPaga(mid, btn) {
             const it = fileMultas.itens.find(i => i.id === mid); if (!it) return;
-            it.paga = true;
-            if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { dfMultRender(); renderMasterPanel(); showToast('Marcada como paga.'); }
+            return withBtn(btn, '...', async () => {
+                it.paga = true;
+                if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { dfMultRender(); renderMasterPanel(); showToast('Marcada como paga.'); }
+                else it.paga = false;
+            });
         }
         // tela do motorista: caução e multas (só se o dono ligou)
         function renderDriverExtras() {
@@ -5064,9 +5313,10 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${cauParcelasTexto(c)}${ok ? '' : ` · falta ${fmtMoney(st.falta)}`}</p>` : ''}
                 </div></div>`;
             }
+            const enc = d && d.pix_extra && d.pix_extra.contrato_encerrado;
             const m = multasOf(d), itens = m ? (m.itens || []) : [];
-            mb.classList.toggle('hidden', !m);
-            if (m) {
+            mb.classList.toggle('hidden', !m || !!enc);
+            if (m && !enc) {
                 const abertos = itens.filter(i => !multaPagaAuto(d, i, state.pixHistory)), tot = abertos.reduce((a, i) => a + Number(i.valor || 0), 0);
                 mb.innerHTML = `<div class="p-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 space-y-2">
                     ${dobraTopo('drvDobraMultas', 'text-red-700 dark:text-red-300', 'fa-solid fa-file-invoice-dollar', 'Multas e outras despesas')}
@@ -5105,11 +5355,22 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 </div></div>`);
             }
             const enc = d.pix_extra && d.pix_extra.contrato_encerrado;
-            const c30 = contrato30Info(enc);
+            const c30 = contrato30Info(enc, d);
             if (enc && c30) {
-                boxes.push(dobraCard('drvDobraContrato', 'fa-file-circle-xmark text-amber-600', `Contrato encerrado em ${fmtDate(enc.data)}`,
-                    `<p class="text-sm font-semibold ${c30.pagoEm ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}"><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</p>
-                    <p class="text-sm">${esc(c30.msg)}</p>${enc.veiculo ? `<p class="text-xs text-gray-500">Veículo: ${esc(enc.veiculo)}</p>` : ''}`));
+                const descHtml = c30.descList.length ? `<div class="pt-2 border-t border-amber-200 dark:border-amber-800 space-y-1.5">
+                    <p class="text-xs font-bold uppercase text-red-700 dark:text-red-300">Descontos aplicados na caução</p>
+                    ${c30.descList.map(it => `<div class="flex items-center justify-between gap-2 text-xs">
+                        <span class="min-w-0 break-words"><b>${esc(CAU_DESC_TIPOS[it.tipo] || 'Desconto')}:</b> ${esc(it.desc)} (${fmtDate(it.data)})</span>
+                        <span class="flex items-center gap-2 shrink-0"><b class="text-red-600">- ${fmtMoney(it.valor)}</b>${it.path ? `<button type="button" onclick="viewDocIdx(${docRef(it.path, esc(it.desc))})" class="px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold">Anexo</button>` : ''}</span>
+                    </div>`).join('')}
+                </div>` : '';
+                cards.push(`<div class="p-4 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 space-y-2">
+                    ${dobraTopo('drvDobraContrato', 'text-amber-700 dark:text-amber-300', 'fa-file-circle-xmark', `Contrato encerrado em ${fmtDate(enc.data)}`)}
+                    <p class="text-sm font-semibold ${c30.pagoEm ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}"><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</p>
+                    <p class="text-sm">${esc(c30.msg)}</p>
+                    ${descHtml}
+                    ${enc.veiculo ? `<p class="text-xs text-gray-500">Veículo: ${esc(enc.veiculo)}</p>` : ''}
+                </div></div>`);
             }
             const dv = devOf(d);
             if (dv && dv.mostrar) { // o motorista só vê depois do dono aprovar a mensagem de devolução concluída
@@ -5151,18 +5412,25 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             return state.receipts.filter(r => r.driver_id === state.profile.id && !r.rejected_at && (r.confirmed_at || r.ai_status === 'ok'))
                 .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         }
+        function reciboRowHtml(r, fnName) {
+            const x = reciboData(r.id); const sem = x && x.charges.length ? semanaDoPix(x.charges[0].h) : '';
+            return `<button onclick="${fnName}('${r.id}')" class="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 flex items-center gap-3">
+                <i class="fa-solid fa-file-pdf text-red-500 text-2xl"></i>
+                <span class="flex-1 min-w-0"><span class="block text-sm font-bold">${fmtDate(r.created_at)} · ${fmtMoney(x ? x.valor : receiptValue(r))}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 break-words">${sem ? 'Válido de ' + esc(sem) : 'Pagamento confirmado'}</span></span>
+                <i class="fa-solid fa-chevron-right text-gray-400"></i></button>`;
+        }
+        function renderEncerradoRecibos(box) {
+            const list = meusRecibosLista();
+            box.innerHTML = `<div class="space-y-1"><h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-receipt text-emerald-600"></i> Recibos de Pagamento</h3><p class="text-sm text-gray-500 dark:text-gray-400">Toque em um recibo para visualizar, baixar ou compartilhar em PDF.</p></div>`
+                + (list.length ? `<div class="space-y-2">${list.map(r => reciboRowHtml(r, 'openMeuReciboDireto')).join('')}</div>` : '<p class="text-sm text-gray-400 italic py-4">Nenhum recibo confirmado ainda.</p>');
+        }
+        function openMeuReciboDireto(id) { openMeusRecibos(); verMeuRecibo(id); }
         function openMeusRecibos() {
             const list = meusRecibosLista(), box = document.getElementById('meusRecibosList');
             document.getElementById('meuReciboView').classList.add('hidden');
             box.classList.remove('hidden');
-            box.innerHTML = list.length ? list.map(r => {
-                const x = reciboData(r.id); const sem = x && x.charges.length ? semanaDoPix(x.charges[0].h) : '';
-                return `<button onclick="verMeuRecibo('${r.id}')" class="w-full text-left p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/40 flex items-center gap-3">
-                    <i class="fa-solid fa-file-pdf text-red-500 text-2xl"></i>
-                    <span class="flex-1 min-w-0"><span class="block text-sm font-bold">${fmtDate(r.created_at)} · ${fmtMoney(x ? x.valor : receiptValue(r))}</span>
-                    <span class="block text-xs text-gray-500 dark:text-gray-400 break-words">${sem ? 'Válido de ' + esc(sem) : 'Pagamento confirmado'}</span></span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i></button>`;
-            }).join('') : '<p class="text-sm text-gray-400 italic text-center py-6">Nenhum recibo ainda. Ele aparece aqui quando o seu pagamento for confirmado.</p>';
+            box.innerHTML = list.length ? list.map(r => reciboRowHtml(r, 'verMeuRecibo')).join('') : '<p class="text-sm text-gray-400 italic text-center py-6">Nenhum recibo ainda. Ele aparece aqui quando o seu pagamento for confirmado.</p>';
             document.getElementById('modalMeusRecibos').classList.remove('hidden');
         }
         function closeMeusRecibos() { document.getElementById('modalMeusRecibos').classList.add('hidden'); }
@@ -5189,24 +5457,31 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             try { const w = document.getElementById('meuReciboFrame').contentWindow; w.focus(); w.print(); }
             catch (e) { showToast('Não foi possível abrir. Use Compartilhar.', 'error'); }
         }
-        async function shareMeuRecibo() {
+        async function shareMeuRecibo(btn) {
             if (!meuReciboAtual) return;
-            const file = new File([meuReciboAtual.html], meuReciboAtual.nome + '.html', { type: 'text/html' });
-            try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: meuReciboAtual.nome }); return; } }
-            catch (e) { if (e && e.name === 'AbortError') return; }
-            const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+            return withBtn(btn, 'Abrindo...', async () => {
+                const file = new File([meuReciboAtual.html], meuReciboAtual.nome + '.html', { type: 'text/html' });
+                try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: meuReciboAtual.nome }); return; } }
+                catch (e) { if (e && e.name === 'AbortError') return; }
+                const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+            });
         }
         // ===== VALORES DA COBRANÇA: aluguel do carro + acréscimo − desconto =====
-        async function editVehicleRent(id) {
+        async function editVehicleRent(id, btn) {
             const v = state.vehicles.find(x => x.id === id); if (!v) return;
             const cur = v.rent_amount != null ? String(v.rent_amount).replace('.', ',') : '';
             const txt = await uiPrompt(`Valor do aluguel por semana do ${v.model} (${v.plate}).\nEle entra sozinho no Pix do motorista deste carro.`, cur);
             if (txt === null) return;
             const val = txt.trim() ? parseMoney(txt) : null;
             if (txt.trim() && val == null) { showToast('Valor inválido. Ex: 550,00', 'error'); return; }
-            const { error } = await sb.from('vehicles').update({ rent_amount: val }).eq('id', id);
-            if (error) { showToast(friendlyError(error), 'error'); return; }
-            await reload(); showToast(val != null ? `Aluguel do ${v.model}: ${fmtMoney(val)} por semana.` : 'Valor do aluguel removido.');
+            return withBtn(btn, 'Salvando...', async () => {
+                const { error } = await sb.from('vehicles').update({ rent_amount: val }).eq('id', id);
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                v.rent_amount = val;
+                renderMasterPanel();
+                showToast(val != null ? `Aluguel do ${v.model}: ${fmtMoney(val)} por semana.` : 'Valor do aluguel removido.');
+                loadAndRender().catch(() => {});
+            });
         }
         // "Caução 1/10" vira "Caução 2/10" na cobrança seguinte (para quando passar de 10/10)
         function nextParcel(desc) {
@@ -5427,7 +5702,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function reciboData(id) {
             const r = state.receipts.find(x => x.id === id);
             if (!r) return null;
-            const d = state.drivers.find(x => x.id === r.driver_id) || (state.profile && state.profile.id === r.driver_id ? state.profile : {});
+            const d = allDrv().find(x => x.id === r.driver_id) || (state.profile && state.profile.id === r.driver_id ? state.profile : {});
             const v = allVeh().find(x => x.id === d.vehicle_id);
             const { pays } = allocatePix(r.driver_id);
             // grupo: as cobranças quitadas por este comprovante e todos os pagamentos que também entraram nelas
@@ -5623,17 +5898,19 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             add('xref\n0 6\n0000000000 65535 f \n' + [1, 2, 3, 4, 5].map(n => String(off[n]).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF`);
             return new Blob(parts, { type: 'application/pdf' });
         }
-        async function shareReciboPdf() {
-            try {
-                const blob = reciboPdfBlob();
-                const file = new File([blob], 'Recibo MOTORA.pdf', { type: 'application/pdf' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: 'Recibo de pagamento' });
-                } else {
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Recibo MOTORA.pdf'; a.click();
-                    showToast('PDF do recibo baixado. Envie pelo WhatsApp.');
-                }
-            } catch (e) { if (e && e.name !== 'AbortError') showToast('Não foi possível gerar o PDF.', 'error'); }
+        async function shareReciboPdf(btn) {
+            return withBtn(btn, 'Gerando PDF...', async () => {
+                try {
+                    const blob = reciboPdfBlob();
+                    const file = new File([blob], 'Recibo MOTORA.pdf', { type: 'application/pdf' });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: 'Recibo de pagamento' });
+                    } else {
+                        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Recibo MOTORA.pdf'; a.click();
+                        showToast('PDF do recibo baixado. Envie pelo WhatsApp.');
+                    }
+                } catch (e) { if (e && e.name !== 'AbortError') showToast('Não foi possível gerar o PDF.', 'error'); }
+            });
         }
 
         // Celular: cada célula das tabelas ganha o nome da coluna (vira cartão, sem arrastar para o lado)
@@ -5657,7 +5934,14 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         };
         const areaAberta = k => !document.getElementById(AREAS[k].modal).classList.contains('hidden');
         function markAreas() {
-            document.querySelectorAll('[data-area]').forEach(b => b.classList.toggle('aberto', areaAberta(b.dataset.area)));
+            let alguma = false;
+            document.querySelectorAll('[data-area]').forEach(b => {
+                const on = areaAberta(b.dataset.area);
+                if (on) alguma = true;
+                b.classList.toggle('aberto', on);
+            });
+            const nav = document.querySelector('.bottomNav');
+            if (nav) nav.classList.toggle('com-aberto', alguma);
         }
         function closeAreas(except) {
             Object.keys(AREAS).forEach(k => { if (k !== except && areaAberta(k)) AREAS[k].close(); });
@@ -5669,8 +5953,6 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             Promise.resolve(AREAS[k].open()).finally(markAreas);
             markAreas();
         }
-        // qualquer jeito de fechar a janela (X, fora dela) atualiza os botões
-        document.addEventListener('click', () => setTimeout(markAreas, 0), true);
 
         // CARTÕES QUE ABREM E FECHAM (tela principal do dono). O aparelho lembra a escolha.
         function dobraSalva() { try { return JSON.parse(localStorage.getItem('motora_dobras') || '{}'); } catch (e) { return {}; } }
@@ -5828,12 +6110,15 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             paintRobo(value);
         }
         async function toggleRobo(on) {
-            const cur = await loadRobo();
+            const prev = { ...(roboAtual || {}) };
             // ao ligar, o robô só envia mensagens criadas daqui para frente (as antigas continuam no botão Enviar)
-            const value = { ...cur, ativo: on, ...(on ? { ativado_em: new Date().toISOString() } : {}) };
+            const value = { ...prev, ativo: on, ...(on ? { ativado_em: new Date().toISOString() } : {}) };
             paintRobo(value);
-            const { error } = await sb.from('app_settings').upsert({ key: 'whatsapp_robo', value, updated_at: new Date().toISOString() });
-            if (error) { paintRobo(cur); showToast('Não foi possível mudar o envio automático. Tente de novo.', 'error'); return; }
+            const cur = await loadRobo();
+            const next = { ...cur, ativo: on, ...(on ? { ativado_em: value.ativado_em } : {}) };
+            const { error } = await sb.from('app_settings').upsert({ key: 'whatsapp_robo', value: next, updated_at: new Date().toISOString() });
+            if (error) { paintRobo(cur || prev); showToast('Não foi possível mudar o envio automático. Tente de novo.', 'error'); return; }
+            paintRobo(next);
             showToast(on ? 'Envio automático ligado: o robô envia as mensagens sozinho.' : 'Envio automático desligado: você envia pelo botão Enviar, como antes.');
         }
         // REGRAS DA IA (app_settings chave ia_regras = { regras: [texto, ...] })
@@ -5919,7 +6204,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 loadIA().then(() => renderIA()).catch(() => renderIA())
             ]);
         }
-        function closeIA() { document.getElementById('modalIA').classList.add('hidden'); iaFocus = null; }
+        function closeIA() { document.getElementById('modalIA').classList.add('hidden'); iaFocus = null; markAreas(); }
         function iaShow(tab) { iaTab = tab; iaFocus = null; renderIA(); }
         function iaPhone(d) {
             let ph = String((d && d.phone) || '').replace(/\D/g, '');
@@ -5939,7 +6224,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 return;
             }
             box.innerHTML = list.map(r => {
-                const d = state.drivers.find(x => x.id === r.driver_id);
+                const d = allDrv().find(x => x.id === r.driver_id);
                 const ph = iaPhone(d) || iaPhone2(d);
                 const focus = r.id === iaFocus;
                 return `<div class="p-3 rounded-xl border ${focus ? 'border-green-500 ring-2 ring-green-500/40' : 'border-gray-200 dark:border-gray-700'} space-y-2">
@@ -5948,7 +6233,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                             <p class="text-sm font-bold truncate"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i>${esc(d ? d.name : 'Motorista excluído')}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">${esc(r.title || 'Aviso')} · ${fmtDateTimeBR(r.created_at)}</p>
                         </div>
-                        <button onclick="iaDelete('${r.id}')" class="text-gray-400 hover:text-red-600 text-sm" title="Excluir"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="iaDelete('${r.id}', this)" class="text-gray-400 hover:text-red-600 text-sm" title="Excluir"><i class="fa-solid fa-trash"></i></button>
                     </div>
                     <textarea id="iaMsg_${r.id}" rows="6" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">${esc(r.message)}</textarea>
                     ${ph ? '' : '<p class="text-xs text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem telefone na ficha: o WhatsApp vai pedir para escolher o contato.</p>'}
@@ -5958,7 +6243,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                         : r.status === 'pendente'
                         ? `<div class="grid grid-cols-3 gap-2">
                             ${iaPhone2(d) ? `<button onclick="iaSend('${r.id}', false, 1)" class="py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 1</button><button onclick="iaSend('${r.id}', false, 2)" class="py-2.5 bg-green-700 hover:bg-green-800 text-white rounded-xl text-xs font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp 2</button>` : `<button onclick="iaSend('${r.id}')" class="col-span-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar</button>`}
-                            ${r.arquivo_path ? `<button onclick="iaAbrirPdf('${r.id}')" class="py-2.5 bg-red-50 text-red-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>` : ''}<button onclick="iaMark('${r.id}')" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold" title="Já enviei por fora">Já enviei</button>
+                            ${r.arquivo_path ? `<button onclick="iaAbrirPdf('${r.id}')" class="py-2.5 bg-red-50 text-red-700 rounded-xl text-xs font-semibold"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>` : ''}<button onclick="iaMark('${r.id}', null, this)" class="py-2.5 bg-gray-100 dark:bg-gray-700 rounded-xl text-xs font-semibold" title="Já enviei por fora">Já enviei</button>
                             <button onclick="emailIA('${r.id}')" class="col-span-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-envelope mr-1"></i> Enviar por e-mail${d && d.email ? '' : ' (digitar e-mail)'}</button>
                            </div>`
                         : `<div class="flex items-center justify-between gap-2">
@@ -6004,26 +6289,30 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 return;
             }
             if (!await uiConfirm('O WhatsApp da locadora está desconectado. Quer abrir no WhatsApp deste aparelho? A mensagem sairá pelo seu número, só com o texto.')) return;
-            const dd = state.drivers.find(x => x.id === r.driver_id);
+            const dd = allDrv().find(x => x.id === r.driver_id);
             const ph = num === 2 ? iaPhone2(dd) : (iaPhone(dd) || iaPhone2(dd));
             window.open((ph ? 'https://wa.me/' + ph : 'https://wa.me/') + '?text=' + encodeURIComponent(text), '_blank');
             if (!again) iaMark(id, text);
         }
-        async function iaMark(id, text) {
-            const upd = { status: 'enviada', sent_at: new Date().toISOString() };
-            if (text) upd.message = text;
-            const { error } = await sb.from('whatsapp_queue').update(upd).eq('id', id);
-            if (error) { showToast('Não foi possível marcar como enviada.', 'error'); return; }
-            const r = iaRows.find(x => x.id === id); if (r) Object.assign(r, upd);
-            if (iaFocus === id) iaFocus = null;
-            updateIABadge(); renderIA();
+        async function iaMark(id, text, btn) {
+            return withBtn(btn, '...', async () => {
+                const upd = { status: 'enviada', sent_at: new Date().toISOString() };
+                if (text) upd.message = text;
+                const { error } = await sb.from('whatsapp_queue').update(upd).eq('id', id);
+                if (error) { showToast('Não foi possível marcar como enviada.', 'error'); return; }
+                const r = iaRows.find(x => x.id === id); if (r) Object.assign(r, upd);
+                if (iaFocus === id) iaFocus = null;
+                updateIABadge(); renderIA();
+            });
         }
-        async function iaDelete(id) {
+        async function iaDelete(id, btn) {
             if (!await uiConfirm('Excluir esta mensagem?')) return;
-            const { error } = await sb.from('whatsapp_queue').delete().eq('id', id);
-            if (error) { showToast('Não foi possível excluir.', 'error'); return; }
-            iaRows = iaRows.filter(x => x.id !== id);
-            updateIABadge(); renderIA();
+            return withBtn(btn, '...', async () => {
+                const { error } = await sb.from('whatsapp_queue').delete().eq('id', id);
+                if (error) { showToast('Não foi possível excluir.', 'error'); return; }
+                iaRows = iaRows.filter(x => x.id !== id);
+                updateIABadge(); renderIA();
+            });
         }
 
         // ÁREA DO PIX (MASTER)
@@ -6036,7 +6325,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             renderPixArea();
             document.getElementById('modalPixArea').classList.remove('hidden');
         }
-        function closePixArea() { document.getElementById('modalPixArea').classList.add('hidden'); }
+        function closePixArea() { document.getElementById('modalPixArea').classList.add('hidden'); markAreas(); }
         function renderPixArea() {
             const box = document.getElementById('pixAreaBody');
             const d = state.drivers.find(x => x.id === document.getElementById('pixAreaDriver').value);
@@ -6273,47 +6562,51 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             document.getElementById('notifModalBody').innerHTML = `
                 <div class="space-y-4">
                     <div class="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-200">${notifHelpHtml(st)}</div>
-                    ${canActivate ? `<button onclick="activateFromModal()" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm"><i class="fa-solid fa-bell mr-1"></i> Ativar notificações</button>` : ''}
-                    ${!canActivate ? `<button onclick="checkDriverNotifications(true)" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-rotate mr-1"></i> Já fiz isso, verificar</button>` : ''}
+                    ${canActivate ? `<button onclick="activateFromModal(this)" class="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm"><i class="fa-solid fa-bell mr-1"></i> Ativar notificações</button>` : ''}
+                    ${!canActivate ? `<button onclick="checkDriverNotifications(true, this)" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-rotate mr-1"></i> Já fiz isso, verificar</button>` : ''}
                     ${canClose ? `<button onclick="document.getElementById('modalNotif').classList.add('hidden')" class="w-full py-2 text-xs text-gray-500 dark:text-gray-400 underline">Fazer depois (o aviso vermelho continua na tela)</button>` : ''}
                 </div>`;
         }
 
-        async function checkDriverNotifications(showModal) {
-            const banner = document.getElementById('notifBanner');
-            const modal = document.getElementById('modalNotif');
-            if (!state.profile || state.profile.role !== 'driver' || !feat('notif')) { banner.className = 'hidden'; modal.classList.add('hidden'); return; }
-            document.getElementById('btnNotif').classList.add('hidden');
-            if (pushSupported() && Notification.permission === 'granted' && !notifSubOk && !(isIOS() && !isStandalone())) {
-                try { await subscribePush(false); notifSubOk = true; } catch (e) { notifSubOk = false; }
-            }
-            const st = notifStatus();
-            if (st === 'ok') {
-                banner.className = 'hidden'; banner.innerHTML = '';
-                modal.classList.add('hidden');
-                return;
-            }
-            banner.className = 'blink-red text-white rounded-2xl p-4 shadow-lg';
-            banner.innerHTML = `<div class="flex items-start gap-3">
-                    <i class="fa-solid fa-bell-slash text-2xl mt-0.5"></i>
-                    <div class="flex-1">
-                        <p class="font-bold text-base">NOTIFICAÇÕES DESLIGADAS!</p>
-                        <p class="text-sm opacity-95">Você não vai receber o aviso do novo Pix e da data de pagamento. Ative agora:</p>
+        async function checkDriverNotifications(showModal, btn) {
+            return withBtn(btn, 'Verificando...', async () => {
+                const banner = document.getElementById('notifBanner');
+                const modal = document.getElementById('modalNotif');
+                if (!state.profile || state.profile.role !== 'driver' || !feat('notif')) { banner.className = 'hidden'; modal.classList.add('hidden'); return; }
+                document.getElementById('btnNotif').classList.add('hidden');
+                if (pushSupported() && Notification.permission === 'granted' && !notifSubOk && !(isIOS() && !isStandalone())) {
+                    try { await subscribePush(false); notifSubOk = true; } catch (e) { notifSubOk = false; }
+                }
+                const st = notifStatus();
+                if (st === 'ok') {
+                    banner.className = 'hidden'; banner.innerHTML = '';
+                    modal.classList.add('hidden');
+                    return;
+                }
+                banner.className = 'blink-red text-white rounded-2xl p-4 shadow-lg';
+                banner.innerHTML = `<div class="flex items-start gap-3">
+                        <i class="fa-solid fa-bell-slash text-2xl mt-0.5"></i>
+                        <div class="flex-1">
+                            <p class="font-bold text-base">NOTIFICAÇÕES DESLIGADAS!</p>
+                            <p class="text-sm opacity-95">Você não vai receber o aviso do novo Pix e da data de pagamento. Ative agora:</p>
+                        </div>
                     </div>
-                </div>
-                <div class="mt-3 bg-white/95 text-red-900 rounded-xl p-3">${notifHelpHtml(st)}
-                    ${(st === 'ask' || st === 'granted') ? `<button onclick="activateFromModal()" class="mt-3 w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm"><i class="fa-solid fa-bell mr-1"></i> Ativar notificações</button>` : `<button onclick="checkDriverNotifications(false)" class="mt-3 w-full py-2.5 bg-blue-600 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-rotate mr-1"></i> Já fiz isso, verificar</button>`}
-                </div>`;
-            if (showModal || !modal.classList.contains('hidden')) {
-                renderNotifModal(st);
-                modal.classList.remove('hidden');
-            }
+                    <div class="mt-3 bg-white/95 text-red-900 rounded-xl p-3">${notifHelpHtml(st)}
+                        ${(st === 'ask' || st === 'granted') ? `<button onclick="activateFromModal(this)" class="mt-3 w-full py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-sm"><i class="fa-solid fa-bell mr-1"></i> Ativar notificações</button>` : `<button onclick="checkDriverNotifications(false, this)" class="mt-3 w-full py-2.5 bg-blue-600 text-white font-semibold rounded-xl text-sm"><i class="fa-solid fa-rotate mr-1"></i> Já fiz isso, verificar</button>`}
+                    </div>`;
+                if (showModal || !modal.classList.contains('hidden')) {
+                    renderNotifModal(st);
+                    modal.classList.remove('hidden');
+                }
+            });
         }
 
-        async function activateFromModal() {
-            notifTried = true;
-            await enableNotifications();
-            await checkDriverNotifications(false);
+        async function activateFromModal(btn) {
+            return withBtn(btn, 'Ativando...', async () => {
+                notifTried = true;
+                await enableNotifications();
+                await checkDriverNotifications(false);
+            });
         }
 
         // quando o motorista volta das configurações do celular, confere de novo
@@ -6355,22 +6648,24 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             if (test) await sb.functions.invoke('motora-push', { body: { type: 'test' } });
         }
 
-        async function enableNotifications() {
+        async function enableNotifications(btn) {
             if (!pushSupported()) {
                 if (isIOS()) showToast("No iPhone: toque em Compartilhar → 'Adicionar à Tela de Início', abra o MOTORA por lá e ative os avisos.", "error");
                 else showToast("Este navegador não aceita notificações.", "error");
                 return;
             }
-            const perm = await Notification.requestPermission();
-            if (perm !== 'granted') { showToast("Avisos não permitidos. Veja o passo a passo para liberar.", "error"); refreshNotifButton(); return; }
-            try {
-                await subscribePush(true);
-                notifSubOk = true;
-                document.getElementById('btnNotif').classList.add('hidden');
-                showToast("Avisos ativados neste aparelho!");
-            } catch (err) {
-                showToast(friendlyError(err), 'error');
-            }
+            return withBtn(btn, 'Ativando...', async () => {
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') { showToast("Avisos não permitidos. Veja o passo a passo para liberar.", "error"); refreshNotifButton(); return; }
+                try {
+                    await subscribePush(true);
+                    notifSubOk = true;
+                    document.getElementById('btnNotif').classList.add('hidden');
+                    showToast("Avisos ativados neste aparelho!");
+                } catch (err) {
+                    showToast(friendlyError(err), 'error');
+                }
+            });
         }
 
         function closeDocViewer() {
@@ -6421,20 +6716,27 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 catch (e) { inp.checked = !inp.checked; showToast(friendlyError(e), 'error'); }
             });
         }
-        async function setAllFeatures() {
-            try { await saveDriverFeatures(allFeaturesOn()); await drawFeatureToggles(); showToast('Todas as funções ligadas'); }
-            catch (e) { showToast(friendlyError(e), 'error'); }
+        async function setAllFeatures(btn) {
+            return withBtn(btn, 'Ligando...', async () => {
+                try {
+                    await saveDriverFeatures(allFeaturesOn());
+                    document.querySelectorAll('#cfgFeatures [data-feat]').forEach(x => x.checked = true);
+                    showToast('Todas as funções ligadas');
+                }
+                catch (e) { showToast(friendlyError(e), 'error'); }
+            });
         }
         // esconde na tela do motorista o que estiver desligado
         function applyDriverFeatures() {
+            const contratoEnc = !!(state.profile && state.profile.pix_extra && state.profile.pix_extra.contrato_encerrado);
             const tabs = [['crlv', 'Crlv'], ['contract', 'Contract'], ['payment', 'Payment'], ['inspection', 'Inspection']];
-            const on = { crlv: feat('crlv'), contract: feat('contrato'), payment: feat('pagamento'), inspection: feat('vistoria') };
+            const on = { crlv: feat('crlv') && !contratoEnc, contract: feat('contrato'), payment: feat('pagamento'), inspection: feat('vistoria') };
             tabs.forEach(([t, cap]) => { document.getElementById('tabBtn' + cap).style.display = on[t] ? '' : 'none'; if (!on[t]) document.getElementById('tabDrv' + cap).classList.add('hidden'); });
             const visible = tabs.find(([t, cap]) => on[t] && !document.getElementById('tabDrv' + cap).classList.contains('hidden'));
             if (!visible) { const first = tabs.find(([t]) => on[t]); if (first) switchDriverTab(first[0]); }
             tabs.forEach(([t, cap]) => { if (!on[t]) document.getElementById('tabBtn' + cap).style.display = 'none'; });
-            document.getElementById('drvReceiptBox').style.display = feat('comprovante') ? '' : 'none';
-            if (!feat('pagamento')) { const b = document.getElementById('drvPixBanner'); b.className = 'hidden'; b.innerHTML = ''; }
+            document.getElementById('drvReceiptBox').style.display = (feat('comprovante') && !contratoEnc) ? '' : 'none';
+            if (!feat('pagamento') || contratoEnc) { const b = document.getElementById('drvPixBanner'); b.className = 'hidden'; b.innerHTML = ''; }
             const ph = document.getElementById('drvPhoto');
             ph.classList.toggle('hidden', !feat('foto'));
             if (feat('foto') && state.profile) fillAvatar(ph, state.profile.id, state.profile.name);
@@ -7076,7 +7378,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const elist = document.getElementById('appExpList');
             elist.innerHTML = ex.error ? `<p class="text-xs text-red-500">${esc(friendlyError(ex.error))}</p>` : (exps.length ? `<div class="divide-y divide-gray-100 dark:divide-gray-700 text-sm">${exps.map(x => `<div class="py-2 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="font-semibold">${esc(x.category)} · <span class="text-red-600 dark:text-red-400">${fmtMoney(x.amount)}</span></div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">${fmtDate(x.expense_date)}</div></div>
-                    <button onclick="deleteAppExpense('${x.id}')" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div>` : '<p class="text-xs italic text-gray-400">Nenhuma despesa lançada neste período.</p>');
+                    <button onclick="deleteAppExpense('${x.id}', this)" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('')}</div>` : '<p class="text-xs italic text-gray-400">Nenhuma despesa lançada neste período.</p>');
             lastFinData = {
                 titulo: 'Relatório de ganhos com aplicativo',
                 cards: [['Ganhos', total], ['Despesas', spent], [net >= 0 ? 'Sobrou' : 'Faltou', Math.abs(net)]],
@@ -7091,18 +7393,18 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 const v = allVeh().find(y => y.id === x.vehicle_id);
                 return `<div class="py-2 flex items-center gap-2"><div class="flex-1 min-w-0"><div class="font-semibold">${esc(x.app)} · ${fmtMoney(x.amount)}</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 truncate">${fmtDate(x.earning_date)}${v ? ' · ' + esc(v.plate) : ''}${x.description ? ' · ' + esc(x.description) : ''}</div></div>
-                    <button onclick="deleteAppEarning('${x.id}')" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`;
+                    <button onclick="deleteAppEarning('${x.id}', this)" class="text-xs text-red-500 px-2 py-1" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`;
             }).join('')}</div>` : '<p class="text-xs italic text-gray-400">Nenhum ganho lançado neste período.</p>';
         }
         async function saveAppEarning(e) {
             e.preventDefault();
             const form = e.target, amount = parseMoney(document.getElementById('appAmount').value);
             if (!amount) { showToast('Digite um valor válido.', 'error'); return; }
-            // evita lançar o mesmo print duas vezes
-            const dup = await sb.from('app_earnings').select('id').eq('app', document.getElementById('appName').value).eq('earning_date', document.getElementById('appDate').value || todayISO()).eq('amount', amount).limit(1);
-            if (dup.data && dup.data.length && !await uiConfirm('Já existe um ganho igual (mesmo aplicativo, data e valor). Lançar de novo?')) return;
             setBusy(form, true);
             try {
+                // evita lançar o mesmo print duas vezes
+                const dup = await sb.from('app_earnings').select('id').eq('app', document.getElementById('appName').value).eq('earning_date', document.getElementById('appDate').value || todayISO()).eq('amount', amount).limit(1);
+                if (dup.data && dup.data.length && !await uiConfirm('Já existe um ganho igual (mesmo aplicativo, data e valor). Lançar de novo?')) return;
                 const { error } = await sb.from('app_earnings').insert({
                     app: document.getElementById('appName').value, amount,
                     earning_date: document.getElementById('appDate').value || todayISO(),
@@ -7120,23 +7422,28 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         }
         // FOLGA: o lembrete das 20:30–00:00 para quando o dia está marcado como folga
         function workDayISO() { return new Date(Date.now() - 3600 * 1000).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }); }
-        async function renderDayOff() {
+        function paintDayOff(on, day) {
             const box = document.getElementById('appDayOff');
-            const day = workDayISO();
-            const { data, error } = await sb.from('app_days_off').select('day').eq('day', day).maybeSingle();
-            if (error) { box.innerHTML = ''; return; }
-            box.innerHTML = data
+            if (!box) return;
+            box.innerHTML = on
                 ? `<div class="p-3 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 text-sky-900 dark:text-sky-200 flex items-center justify-between gap-2 text-sm">
                         <span><i class="fa-solid fa-umbrella-beach mr-1"></i> Hoje (${fmtDate(day)}) você está <b>de folga</b>. Sem lembretes.</span>
                         <button onclick="setDayOff(false)" class="text-xs font-semibold underline whitespace-nowrap">Desfazer</button></div>`
                 : `<button onclick="setDayOff(true)" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-sky-100 hover:bg-sky-200 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200"><i class="fa-solid fa-umbrella-beach mr-1"></i> Hoje estou de folga</button>`;
         }
+        async function renderDayOff() {
+            const box = document.getElementById('appDayOff');
+            const day = workDayISO();
+            const { data, error } = await sb.from('app_days_off').select('day').eq('day', day).maybeSingle();
+            if (error) { box.innerHTML = ''; return; }
+            paintDayOff(!!data, day);
+        }
         async function setDayOff(on) {
             const day = workDayISO();
+            paintDayOff(on, day);
             const { error } = on ? await sb.from('app_days_off').insert({ day }) : await sb.from('app_days_off').delete().eq('day', day);
-            if (error && !/duplicate/i.test(error.message || '')) { showToast(friendlyError(error), 'error'); return; }
+            if (error && !/duplicate/i.test(error.message || '')) { paintDayOff(!on, day); showToast(friendlyError(error), 'error'); return; }
             showToast(on ? 'Bom descanso! Os lembretes de hoje foram desligados.' : 'Folga desfeita. Os lembretes de hoje voltam.');
-            renderDayOff();
         }
 
         // IA: lê o print da tela de ganhos (Uber/99/inDrive) e preenche o lançamento
@@ -7213,18 +7520,22 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             } catch (err) { showToast(friendlyError(err), 'error'); }
             finally { setBusy(form, false); }
         }
-        async function deleteAppExpense(id) {
+        async function deleteAppExpense(id, btn) {
             if (!await uiConfirm('Excluir esta despesa?')) return;
-            const { error } = await sb.from('app_expenses').delete().eq('id', id);
-            if (error) { showToast(friendlyError(error), 'error'); return; }
-            showToast('Despesa excluída.'); renderAppEarnings();
+            return withBtn(btn, '...', async () => {
+                const { error } = await sb.from('app_expenses').delete().eq('id', id);
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                showToast('Despesa excluída.'); renderAppEarnings();
+            });
         }
 
-        async function deleteAppEarning(id) {
+        async function deleteAppEarning(id, btn) {
             if (!await uiConfirm('Excluir este lançamento?')) return;
-            const { error } = await sb.from('app_earnings').delete().eq('id', id);
-            if (error) { showToast(friendlyError(error), 'error'); return; }
-            showToast('Lançamento excluído.'); renderAppEarnings();
+            return withBtn(btn, '...', async () => {
+                const { error } = await sb.from('app_earnings').delete().eq('id', id);
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                showToast('Lançamento excluído.'); renderAppEarnings();
+            });
         }
 
         /* =====================================================================
@@ -7412,7 +7723,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function openTermsViewer(driverId) {
             const master = state.profile && state.profile.role === 'master';
             const id = driverId || (state.profile && state.profile.id);
-            const d = master ? state.drivers.find(x => x.id === id) : state.profile;
+            const d = master ? allDrv().find(x => x.id === id) : state.profile;
             termsMode = master ? 'record' : 'view';
             document.getElementById('termsTitle').innerHTML = '<i class="fa-solid fa-scale-balanced text-blue-500 mr-1"></i> Termos do app MOTORA';
             document.getElementById('termsSubtitle').innerText = master && d ? `Aceite de ${d.name}` : 'Os termos que você aceitou';
