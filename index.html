@@ -2087,7 +2087,7 @@
         }
 
         // ESTADO EM MEMÓRIA (carregado do Supabase)
-        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [] };
+        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [] };
 
         function toEmail(login) {
             const l = String(login || '').trim().toLowerCase();
@@ -2481,6 +2481,8 @@
                     sb.from('vehicle_expenses').select('*').order('expense_date', { ascending: false }),
                     sb.from('expense_types').select('*').order('name'),
                     sb.from('pix_history').select('*').order('sent_at', { ascending: false }),
+                    sb.from('app_earnings').select('*').order('earning_date', { ascending: false }),
+                    sb.from('app_expenses').select('*').order('expense_date', { ascending: false }),
                     termos
                 ]).then(rs => ({ master: true, rs }));
             }
@@ -2495,7 +2497,7 @@
         }
         function aplicarDados({ master, rs }) {
             if (master) {
-                const [veh, drv, rec, insp, exp, tipos, hist] = rs;
+                const [veh, drv, rec, insp, exp, tipos, hist, earn, aexp] = rs;
                 for (const x of [veh, drv, rec, insp, exp, tipos, hist]) if (x.error) throw x.error;
                 state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.allDrivers = drv.data;
                 const drvList = drv.data.filter(d => d.role === 'driver');
@@ -2503,9 +2505,12 @@
                 state.drivers = drvList.filter(d => !(d.pix_extra && d.pix_extra.arquivado));
                 state.receipts = rec.data; state.inspection = insp.data;
                 state.expenses = exp.data; state.expenseTypes = tipos.data; state.pixHistory = hist.data;
+                state.appEarnings = (earn && !earn.error && earn.data) || [];
+                state.appExpenses = (aexp && !aexp.error && aexp.data) || [];
             } else {
                 const [veh, rec, insp, hist, features] = rs;
                 state.pixHistory = (hist && !hist.error && hist.data) || [];
+                state.appEarnings = []; state.appExpenses = [];
                 if (veh.error) throw veh.error;
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
@@ -2533,7 +2538,7 @@
             const serve = adiantado && conhecido.role === profile.role && conhecido.vehicle_id === profile.vehicle_id;
             aplicarDados(await (serve ? adiantado : carregarDados(profile)));
             await aparencia;
-            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.features, state.terms]);
+            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
             state.sig = sig;
@@ -3639,6 +3644,12 @@
             if (state.vehicles.length === 0) {
                 vehTbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-400 italic">Nenhum veículo cadastrado.</td></tr>`;
             } else {
+                const mesR = finRange('month');
+                const mesNome = new Date(mesR[0] + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long' });
+                const mesCap = mesNome.charAt(0).toUpperCase() + mesNome.slice(1);
+                const mesFin = collectRentFinData(mesR, '', '');
+                const appNetMes = (state.appEarnings || []).filter(x => inRange(dayBR(x.earning_date), mesR)).reduce((a, x) => a + Number(x.amount || 0), 0)
+                    - (state.appExpenses || []).filter(x => inRange(dayBR(x.expense_date), mesR)).reduce((a, x) => a + Number(x.amount || 0), 0);
                 vehTbody.innerHTML = state.vehicles.map(v => {
                     const hasDrv = state.drivers.some(d => d.vehicle_id === v.id);
                     const isOwnerVeh = !hasDrv && state.profile && state.profile.vehicle_id === v.id;
@@ -3646,6 +3657,10 @@
                     const badge = hasDrv ? '' : (isOwnerVeh
                         ? ` <span class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 whitespace-nowrap">Proprietário (${esc(ownerFirst)})</span>`
                         : ' <span class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 whitespace-nowrap">Disponível</span>');
+                    const rentRec = mesFin.paid.filter(h => h.vehicle_id === v.id).reduce((a, h) => a + Number(h.amount || 0), 0);
+                    const rentExp = mesFin.exps.filter(x => x.vehicle_id === v.id).reduce((a, x) => a + Number(x.amount || 0), 0);
+                    const vSaldo = rentRec - rentExp + (state.profile && state.profile.vehicle_id === v.id ? appNetMes : 0);
+                    const vSaldoTxt = (vSaldo < 0 ? '−' : '') + fmtMoney(Math.abs(vSaldo));
                     return `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td class="p-3 font-semibold">${esc(v.model)}${badge}</td>
@@ -3665,7 +3680,7 @@
                                 <div class="flex flex-wrap justify-end gap-2">
                                     <button onclick="abrirEditarVeiculo('${v.id}')" class="text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-pen-to-square mr-1"></i> Editar</button>
                                     <button onclick="openInspection('${v.id}')" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-camera mr-1"></i> Vistoria (${state.inspection.filter(p => p.vehicle_id === v.id).length})</button>
-                                    <button onclick="openExpenses('${v.id}')" class="text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-receipt mr-1"></i> Despesas (${fmtMoney(state.expenses.filter(x => x.vehicle_id === v.id).reduce((a, x) => a + Number(x.amount), 0))})</button>
+                                    <button onclick="openExpenses('${v.id}')" title="Ver e lançar despesas" class="text-xs font-semibold ${vSaldo >= 0 ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'} text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-scale-balanced mr-1"></i> Saldo (${esc(mesCap)}): ${vSaldoTxt}</button>
                                     <button onclick="deleteVehicle('${v.id}')" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap">Excluir veículo</button>
                                 </div>
                             `}
@@ -7935,9 +7950,11 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 } else if (m.acao === 'propor_ganho_aplicativo') {
                     const { error } = await sb.from('app_earnings').insert({ app: dd.app, amount: dd.amount, earning_date: dd.earning_date, vehicle_id: dd.vehicle_id, description: dd.description });
                     if (error) throw error;
+                    syncAppFinState().catch(() => {});
                 } else if (m.acao === 'propor_despesa_aplicativo') {
                     const { error } = await sb.from('app_expenses').insert({ category: dd.category, amount: dd.amount, expense_date: dd.expense_date });
                     if (error) throw error;
+                    syncAppFinState().catch(() => {});
                 } else if (m.acao === 'propor_despesa_motorista') {
                     // lê a ficha de novo para não apagar algo mudado depois que o app abriu
                     const atual = await sb.from('profiles').select('pix_extra').eq('id', dd.driver_id).single();
@@ -7957,6 +7974,15 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         }
 
         // ===== GANHOS APLICATIVO (Uber/99/inDrive) – só o master =====
+        async function syncAppFinState() {
+            const [e1, e2] = await Promise.all([
+                sb.from('app_earnings').select('*').order('earning_date', { ascending: false }),
+                sb.from('app_expenses').select('*').order('expense_date', { ascending: false })
+            ]);
+            if (e1 && !e1.error && e1.data) state.appEarnings = e1.data;
+            if (e2 && !e2.error && e2.data) state.appExpenses = e2.data;
+            renderMasterPanel();
+        }
         async function renderAppEarnings() {
             renderDayOff();
             const r = finRange(document.getElementById('finPeriod').value);
@@ -8059,6 +8085,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 document.getElementById('appAiStatus').innerText = 'Envie o print da tela de ganhos da Uber, 99 ou inDrive: a IA preenche o aplicativo, o valor e a data.';
                 showToast('Ganho lançado!');
                 renderAppEarnings();
+                syncAppFinState().catch(() => {});
             } catch (err) { showToast(friendlyError(err), 'error'); }
             finally { setBusy(form, false); }
         }
@@ -8159,6 +8186,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 document.getElementById('appExpType').value = cat;
                 showToast('Despesa lançada!');
                 renderAppEarnings();
+                syncAppFinState().catch(() => {});
             } catch (err) { showToast(friendlyError(err), 'error'); }
             finally { setBusy(form, false); }
         }
@@ -8167,7 +8195,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             return withBtn(btn, '...', async () => {
                 const { error } = await sb.from('app_expenses').delete().eq('id', id);
                 if (error) { showToast(friendlyError(error), 'error'); return; }
-                showToast('Despesa excluída.'); renderAppEarnings();
+                showToast('Despesa excluída.'); renderAppEarnings(); syncAppFinState().catch(() => {});
             });
         }
 
@@ -8176,7 +8204,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             return withBtn(btn, '...', async () => {
                 const { error } = await sb.from('app_earnings').delete().eq('id', id);
                 if (error) { showToast(friendlyError(error), 'error'); return; }
-                showToast('Lançamento excluído.'); renderAppEarnings();
+                showToast('Lançamento excluído.'); renderAppEarnings(); syncAppFinState().catch(() => {});
             });
         }
 
