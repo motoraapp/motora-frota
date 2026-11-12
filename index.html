@@ -19,6 +19,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- PDF.js para renderizar PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- pdf-lib para gerar contratos em A4 profissional -->
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <!-- Gera o QR code do Pix a partir do copia e cola -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <!-- Supabase (banco de dados online) -->
@@ -448,12 +450,15 @@
                 </div>
                 <div id="masterResumo" class="grid grid-cols-4 gap-2 sm:max-w-md w-full"></div>
                 <div id="masterSituacao"></div>
-                <div class="masterAbas flex gap-2 border-b sm:border-b-0 border-gray-200 dark:border-gray-700 pb-2 sm:pb-0">
+                <div class="masterAbas flex gap-2 border-b sm:border-b-0 border-gray-200 dark:border-gray-700 pb-2 sm:pb-0 flex-wrap">
                     <button onclick="closeAreas();switchMasterTab('drivers')" id="tabMasterDrivers" class="px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm">
                         <i class="fa-solid fa-users mr-1"></i> Motoristas
                     </button>
                     <button onclick="closeAreas();switchMasterTab('vehicles')" id="tabMasterVehicles" class="px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         <i class="fa-solid fa-car mr-1"></i> Veículos
+                    </button>
+                    <button onclick="closeAreas();switchMasterTab('contracts')" id="tabMasterContracts" class="px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                        <i class="fa-solid fa-file-signature mr-1"></i> Contratos
                     </button>
                     <button onclick="toggleArea('cfg')" data-area="cfg" class="px-3 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title="Configurações">
                         <i class="fa-solid fa-gear"></i>
@@ -462,7 +467,7 @@
             </div>
 
             <!-- Atalhos do dono (design antigo; no design novo ficam na barra de baixo). 1 toque abre, outro toque fecha -->
-            <div class="masterAtalhos grid grid-cols-3 gap-2">
+            <div class="masterAtalhos grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button onclick="toggleArea('pix')" data-area="pix" class="py-3 rounded-2xl font-bold text-xs sm:text-sm bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                     <i class="fa-brands fa-pix text-lg sm:text-base"></i> Área do Pix
                 </button>
@@ -471,6 +476,9 @@
                 </button>
                 <button id="btnFinance" onclick="toggleArea('fin')" data-area="fin" class="py-3 rounded-2xl font-bold text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
                     <i class="fa-solid fa-sack-dollar text-lg sm:text-base"></i> Financeiro
+                </button>
+                <button onclick="closeAreas();switchMasterTab('contracts');markMasterNav();window.scrollTo(0,0)" class="py-3 rounded-2xl font-bold text-xs sm:text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+                    <i class="fa-solid fa-file-signature text-lg sm:text-base"></i> Contratos
                 </button>
             </div>
 
@@ -525,6 +533,19 @@
                             <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Arquivo CRLV-e (PDF/Img)</label>
                             <input type="file" id="vehCrlvFile" accept="image/*,application/pdf" onchange="aiReadCrlv(this)" class="w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-gray-700 dark:file:text-blue-400">
                         </div>
+                        <details class="md:col-span-3 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                            <summary class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 cursor-pointer"><i class="fa-solid fa-file-contract text-indigo-500 mr-1"></i> Dados técnicos para contrato (marca, RENAVAM, chassi, km)</summary>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3">
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Marca</label><input type="text" id="vehBrand" placeholder="Ex: Chevrolet" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Versão</label><input type="text" id="vehVersion" placeholder="Ex: LTZ 1.0 Turbo" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ano fabricação</label><input type="text" id="vehMfgYear" inputmode="numeric" placeholder="Ex: 2022" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ano/modelo</label><input type="text" id="vehModelYear" inputmode="numeric" placeholder="Ex: 2023" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">RENAVAM</label><input type="text" id="vehRenavam" inputmode="numeric" placeholder="00000000000" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Chassi</label><input type="text" id="vehChassi" autocapitalize="characters" placeholder="9BG..." class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none uppercase"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Combustível</label><input type="text" id="vehFuel" placeholder="Flex / Elétrico / GNV" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Quilometragem atual</label><input type="number" id="vehMileage" min="0" inputmode="numeric" placeholder="Ex: 45200" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            </div>
+                        </details>
                         <div class="md:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <p id="vehAiStatus" class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Dica: escolha primeiro o CRLV-e e a IA preenche modelo e placa.</p>
                             <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm">
@@ -532,6 +553,54 @@
                             </button>
                         </div>
                     </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUB-ABA: CONTRATOS DE LOCAÇÃO -->
+            <div id="subMasterContracts" class="hidden space-y-6">
+                <div class="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-file-signature text-indigo-600"></i> Contratos de Locação</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Gere, acompanhe assinaturas, baixe o PDF em A4 e consulte o histórico de cada contrato.</p>
+                        </div>
+                        <button type="button" onclick="openContractWizard()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm shadow-sm flex items-center justify-center gap-2 shrink-0">
+                            <i class="fa-solid fa-plus"></i> Novo contrato
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="sm:col-span-2 relative">
+                            <input type="text" id="ctrSearch" oninput="renderContractsTab()" placeholder="Pesquisar por motorista, placa ou número do contrato..." class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        </div>
+                        <select id="ctrFilterStatus" onchange="renderContractsTab()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <option value="">Todas as situações</option>
+                            <option value="rascunho">Rascunho</option>
+                            <option value="aguardando_assinatura">Aguardando assinatura</option>
+                            <option value="ativo">Ativo</option>
+                            <option value="encerrado">Encerrado</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                    <div id="ctrSummaryChips" class="flex flex-wrap gap-2 text-xs"></div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold uppercase text-gray-500">
+                                <tr>
+                                    <th class="p-3 rounded-l-xl">Número</th>
+                                    <th class="p-3">Motorista</th>
+                                    <th class="p-3">Veículo</th>
+                                    <th class="p-3">Placa</th>
+                                    <th class="p-3">Valor</th>
+                                    <th class="p-3">Início</th>
+                                    <th class="p-3">Término</th>
+                                    <th class="p-3">Situação</th>
+                                    <th class="p-3 text-right rounded-r-xl">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblContractsList" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -660,6 +729,7 @@
     <nav id="masterNav" class="bottomNav" style="grid-template-columns:repeat(6,1fr)">
         <button type="button" id="mnDrv" onclick="closeAreas();switchMasterTab('drivers');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-users"></i>Motoristas</button>
         <button type="button" id="mnVeh" onclick="closeAreas();switchMasterTab('vehicles');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-car"></i>Veículos</button>
+        <button type="button" id="mnCtr" onclick="closeAreas();switchMasterTab('contracts');markMasterNav();window.scrollTo(0,0)"><i class="fa-solid fa-file-signature"></i>Contratos</button>
         <button type="button" data-area="pix" onclick="toggleArea('pix')"><i class="fa-brands fa-pix"></i>Pix</button>
         <button type="button" data-area="ia" onclick="toggleArea('ia')" style="position:relative"><i class="fa-solid fa-robot"></i>IA<span class="iaBadge hidden" style="position:absolute;top:2px;right:18%;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:18px"></span></button>
         <button type="button" data-area="fin" onclick="toggleArea('fin')"><i class="fa-solid fa-sack-dollar"></i>Financeiro</button>
@@ -743,12 +813,28 @@
                 <button type="button" onclick="salvarIaCodigo(this)" class="w-full mt-2 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar</button></details>
             <button type="button" onclick="abrirSenha()" class="w-full py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
             <div class="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 space-y-2">
-                <h4 class="font-semibold text-sm"><i class="fa-solid fa-user-tie text-indigo-600 mr-1"></i> Perfil do proprietário (<span id="cfgOwnerName">Thiago</span>)</h4>
+                <h4 class="font-semibold text-sm"><i class="fa-solid fa-user-tie text-indigo-600 mr-1"></i> Perfil do proprietário / Locador (<span id="cfgOwnerName">Thiago</span>)</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">O carro vinculado ao seu perfil não cria login de motorista e é usado por padrão em <b>Ganhos aplicativo</b>.</p>
                 <div>
                     <label for="cfgOwnerVehicle" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Carro do proprietário</label>
                     <select id="cfgOwnerVehicle" onchange="saveOwnerVehicle(this.value, this)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
                 </div>
+                <details class="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white/70 dark:bg-gray-800/70 p-3 text-sm">
+                    <summary class="font-semibold text-xs uppercase text-indigo-700 dark:text-indigo-300 cursor-pointer"><i class="fa-solid fa-file-signature mr-1"></i> Dados do Locador para contratos (preenchimento automático)</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nome completo</label><input id="cfgLocName" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">CPF</label><input id="cfgLocCpf" placeholder="000.000.000-00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">RG</label><input id="cfgLocRg" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nacionalidade</label><input id="cfgLocNat" placeholder="Ex: Brasileira" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Estado civil</label><input id="cfgLocCiv" placeholder="Ex: Casado(a)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Profissão</label><input id="cfgLocProf" placeholder="Ex: Empresário" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Telefone / WhatsApp</label><input id="cfgLocPhone" oninput="this.value=maskPhone(this.value)" placeholder="(00) 00000-0000" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">E-mail</label><input id="cfgLocEmail" type="email" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Endereço completo</label><textarea id="cfgLocAddr" rows="2" placeholder="Rua, nº, bairro, cidade/UF, CEP" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Cidade/UF padrão (Local de assinatura e Foro)</label><input id="cfgLocForo" placeholder="Ex: Goiânia/GO" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    </div>
+                    <button type="button" onclick="saveLocadorSettings(this)" class="w-full mt-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm">Salvar dados do locador</button>
+                </details>
             </div>
             <div class="space-y-2">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-brush text-blue-500 mr-1"></i> Aparência do app</h4>
@@ -890,7 +976,11 @@
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1"><i class="fa-solid fa-envelope text-blue-600 mr-1"></i>E-mail</label><input id="dfEmail" type="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="nome@gmail.com" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nº registro CNH</label><input id="dfCnh" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Categoria CNH</label><input id="dfCnhCat" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div class="flex items-end pb-2"><label class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer"><input type="checkbox" id="dfCnhEar" class="rounded"> Possui registro EAR na CNH</label></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Validade CNH</label><input type="date" id="dfCnhExp" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Nacionalidade</label><input id="dfNat" placeholder="Ex: Brasileira" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Estado civil</label><input id="dfMarital" placeholder="Ex: Solteiro(a)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Profissão</label><input id="dfProf" placeholder="Ex: Motorista de aplicativo" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Veículo</label><select id="dfVehicle" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select></div>
                     <div class="sm:col-span-2"><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Endereço</label><textarea id="dfAddress" rows="2" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
                 </div>
@@ -903,6 +993,8 @@
                 </div>
                 <div><label for="dfObs" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Observação (só o dono vê)</label>
                     <input id="dfObs" type="text" maxlength="120" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                <!-- CONTRATO DE LOCAÇÃO (rental_contracts + ações) -->
+                <div id="dfRentalContractsBox" class="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 p-3 space-y-3"></div>
                 <!-- DEVOLUÇÃO DO VEÍCULO (profiles.pix_extra.devolucao): aviso de 15 dias, até 2 cobranças, recebimento e caução -->
                 <div id="dfDevBox" class="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/60 dark:bg-orange-900/10 p-3 space-y-3"></div>
                 <!-- ENCERRAMENTO DE CONTRATO (profiles.pix_extra.contrato_encerrado) -->
@@ -1115,7 +1207,7 @@
     <!-- MEUS RECIBOS (motorista): todos os recibos pagos, cada um em PDF -->
     <!-- TROCAR MINHA SENHA (motorista e dono) -->
     <div id="modalEditVeh" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-pen-to-square text-teal-600 mr-1"></i> Editar veículo</h3>
                 <button type="button" onclick="fecharEditarVeiculo()" class="w-10 h-10 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -1126,6 +1218,19 @@
                 <div><label for="evRent" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Aluguel por semana (R$)</label><input type="text" id="evRent" inputmode="decimal" placeholder="Ex: 550,00" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 outline-none text-base">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">O novo valor vale para as próximas cobranças. As que já foram enviadas não mudam.</p></div>
                 <div class="grid grid-cols-2 gap-3"><div><label for="evColor" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Cor</label><input type="text" id="evColor" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div><div><label for="evYear" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Ano</label><input type="text" id="evYear" inputmode="numeric" class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div></div>
+                <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                    <summary class="text-xs font-semibold uppercase text-gray-600 dark:text-gray-300 cursor-pointer"><i class="fa-solid fa-file-contract text-indigo-500 mr-1"></i> Dados para contrato (marca, RENAVAM, chassi, km)</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
+                        <div><label for="evBrand" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Marca</label><input type="text" id="evBrand" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div>
+                        <div><label for="evVersion" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Versão</label><input type="text" id="evVersion" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div>
+                        <div><label for="evMfgYear" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ano fabricação</label><input type="text" id="evMfgYear" inputmode="numeric" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div>
+                        <div><label for="evModelYear" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ano/modelo</label><input type="text" id="evModelYear" inputmode="numeric" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div>
+                        <div><label for="evRenavam" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">RENAVAM</label><input type="text" id="evRenavam" inputmode="numeric" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div>
+                        <div><label for="evChassi" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Chassi</label><input type="text" id="evChassi" autocapitalize="characters" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 uppercase"></div>
+                        <div><label for="evFuel" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Combustível</label><input type="text" id="evFuel" placeholder="Flex / Elétrico / GNV" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div>
+                        <div><label for="evMileage" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Quilometragem atual</label><input type="number" id="evMileage" min="0" inputmode="numeric" class="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"></div>
+                    </div>
+                </details>
                 <div><label for="evCrlv" class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1.5">Trocar CRLV-e (opcional)</label><input type="file" id="evCrlv" accept="image/*,application/pdf" class="w-full text-xs text-gray-500">
                     <p id="evCrlvInfo" class="text-xs text-gray-500 dark:text-gray-400 mt-1"></p></div>
                 <button type="submit" class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl">Salvar alterações</button>
@@ -1488,6 +1593,171 @@
         </div>
     </div>
 
+    <!-- MODAL WIZARD DE CONTRATO DE LOCAÇÃO -->
+    <div id="modalContractWizard" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <div class="min-w-0">
+                    <h3 id="cwTitle" class="font-bold text-base sm:text-lg truncate"><i class="fa-solid fa-file-signature text-indigo-600 mr-1"></i> Novo Contrato de Locação</h3>
+                    <p id="cwSubtitle" class="text-xs text-gray-500 dark:text-gray-400">Os dados cadastrados são preenchidos automaticamente. Confira antes de emitir.</p>
+                </div>
+                <button type="button" onclick="closeContractWizard()" aria-label="Fechar" class="w-10 h-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg shrink-0"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar space-y-4">
+                <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+                    <i class="fa-solid fa-scale-balanced mt-0.5 text-amber-600 shrink-0"></i>
+                    <span><b>Minuta contratual editável, sujeita à revisão jurídica antes de sua utilização definitiva.</b> Campos ausentes não são inventados; preencha-os antes da emissão definitiva.</span>
+                </div>
+                <div id="cwMissingBox" class="hidden p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-xs text-red-900 dark:text-red-200 space-y-1"></div>
+
+                <!-- Seleção Motorista & Veículo -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
+                    <div>
+                        <label for="cwDriverId" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Motorista (Locatário)</label>
+                        <select id="cwDriverId" onchange="cwOnDriverChange(this.value)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
+                    </div>
+                    <div>
+                        <label for="cwVehicleId" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Veículo alugado</label>
+                        <select id="cwVehicleId" onchange="cwOnVehicleChange(this.value)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
+                    </div>
+                </div>
+
+                <!-- Locador -->
+                <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3" open>
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-user-tie text-indigo-600 mr-1"></i> 1. Dados do Locador (Proprietário)</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nome completo *</label><input id="cwLocName" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">CPF *</label><input id="cwLocCpf" placeholder="000.000.000-00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">RG *</label><input id="cwLocRg" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nacionalidade *</label><input id="cwLocNat" placeholder="Brasileira" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Estado civil *</label><input id="cwLocCiv" placeholder="Casado(a)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Profissão *</label><input id="cwLocProf" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Telefone *</label><input id="cwLocPhone" oninput="this.value=maskPhone(this.value)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">E-mail *</label><input id="cwLocEmail" type="email" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Endereço completo *</label><input id="cwLocAddr" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    </div>
+                    <label class="mt-2.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="cwSaveLocDefault" checked class="rounded"> Salvar estes dados como padrão do Locador nas configurações</label>
+                </details>
+
+                <!-- Locatário -->
+                <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3" open>
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-id-card text-blue-600 mr-1"></i> 2. Dados do Locatário (Motorista)</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nome completo *</label><input id="cwDrvName" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">CPF *</label><input id="cwDrvCpf" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">RG *</label><input id="cwDrvRg" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data de nascimento *</label><input id="cwDrvBirth" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nacionalidade *</label><input id="cwDrvNat" placeholder="Brasileira" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Estado civil *</label><input id="cwDrvCiv" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Profissão *</label><input id="cwDrvProf" placeholder="Motorista de aplicativo" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Telefone *</label><input id="cwDrvPhone" oninput="this.value=maskPhone(this.value)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">E-mail *</label><input id="cwDrvEmail" type="email" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">CNH *</label><input id="cwDrvCnh" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Categoria CNH *</label><input id="cwDrvCnhCat" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="flex items-end pb-2"><label class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer"><input type="checkbox" id="cwDrvCnhEar" class="rounded"> Registro EAR ativo</label></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Endereço completo *</label><input id="cwDrvAddr" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    </div>
+                    <label class="mt-2.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="cwSyncDrvProfile" checked class="rounded"> Atualizar ficha do motorista com os dados complementados</label>
+                </details>
+
+                <!-- Veículo -->
+                <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3" open>
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-car text-emerald-600 mr-1"></i> 3. Dados do Veículo</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 mt-3">
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Marca</label><input id="cwVehBrand" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Modelo *</label><input id="cwVehModel" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Versão</label><input id="cwVehVersion" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ano fabricação</label><input id="cwVehMfgYear" inputmode="numeric" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ano/modelo</label><input id="cwVehModelYear" inputmode="numeric" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Cor *</label><input id="cwVehColor" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Placa *</label><input id="cwVehPlate" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none uppercase"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">RENAVAM *</label><input id="cwVehRenavam" inputmode="numeric" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Chassi *</label><input id="cwVehChassi" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none uppercase"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Combustível</label><input id="cwVehFuel" placeholder="Flex" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Quilometragem atual</label><input id="cwVehMileage" type="number" min="0" inputmode="numeric" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    </div>
+                    <label class="mt-2.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="cwSyncVehProfile" checked class="rounded"> Atualizar cadastro do veículo com os dados complementados</label>
+                </details>
+
+                <!-- Configuração Comercial -->
+                <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3" open>
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-sliders text-teal-600 mr-1"></i> 4. Configuração Comercial e Testemunhas</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor do aluguel (R$) *</label><input id="cwRentAmount" inputmode="decimal" placeholder="Ex: 550,00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Periodicidade *</label>
+                            <select id="cwPeriodicity" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                <option value="diaria">Diária</option>
+                                <option value="semanal" selected>Semanal</option>
+                                <option value="quinzenal">Quinzenal</option>
+                                <option value="mensal">Mensal</option>
+                            </select>
+                        </div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Dia / Regra de vencimento</label><input id="cwDueDay" placeholder="Ex: Toda segunda-feira" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data de início *</label><input id="cwStartDate" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data de término</label><input id="cwEndDate" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="flex items-end pb-2"><label class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer"><input type="checkbox" id="cwIndeterminate" onchange="document.getElementById('cwEndDate').disabled = this.checked; if(this.checked) document.getElementById('cwEndDate').value = '';" class="rounded"> Prazo indeterminado</label></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor da caução (R$)</label><input id="cwDepositAmount" inputmode="decimal" placeholder="Ex: 1.000,00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Forma de pagamento</label><input id="cwPaymentMethod" placeholder="Pix / Transferência bancária / Asaas" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Limite de km (se aplicável)</label><input id="cwKmLimit" type="number" min="0" inputmode="numeric" placeholder="Livre se vazio" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor por km excedente (R$)</label><input id="cwKmExtraPrice" inputmode="decimal" placeholder="Ex: 0,80" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Foro competente *</label><input id="cwForo" placeholder="Comarca de Goiânia/GO" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Local da assinatura</label><input id="cwLocalAssinatura" placeholder="Cidade/UF" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data da assinatura</label><input id="cwDataAssinatura" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Modo de assinatura</label>
+                            <select id="cwSignatureMode" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                <option value="manual">Manual / PDF impresso</option>
+                                <option value="eletronica_pendente">Preparado para assinatura eletrônica</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Finalidade da locação *</label><textarea id="cwPurpose" rows="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
+                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Observações adicionais</label><textarea id="cwNotes" rows="2" placeholder="Condições particulares, acessórios entregues, observações..." class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 1 — Nome completo</label><input id="cwWit1Name" placeholder="Opcional no rascunho; pode preencher na assinatura" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 1 — CPF</label><input id="cwWit1Cpf" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 2 — Nome completo</label><input id="cwWit2Name" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 2 — CPF</label><input id="cwWit2Cpf" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    </div>
+                </details>
+
+                <!-- Cláusulas editáveis -->
+                <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-gavel text-indigo-600 mr-1"></i> 5. Minuta e Cláusulas do Contrato (1 a 14 — Editáveis)</summary>
+                    <div class="mt-3 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Edite qualquer cláusula se necessário antes da emissão definitiva.</p>
+                            <button type="button" onclick="cwRebuildClauses(true)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-rotate mr-1"></i> Recarregar cláusulas com dados atuais</button>
+                        </div>
+                        <div id="cwClausesBox" class="space-y-2.5"></div>
+                    </div>
+                </details>
+
+                <!-- Prévia -->
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="cwTogglePreview()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-eye mr-1"></i> Pré-visualizar contrato completo</button>
+                </div>
+                <div id="cwPreviewArea" class="hidden rounded-xl border border-gray-300 dark:border-gray-600 bg-white text-gray-900 p-5 sm:p-8 shadow-inner max-h-[52vh] overflow-y-auto text-sm leading-relaxed"></div>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-end gap-2 bg-gray-50 dark:bg-gray-800/80">
+                <button type="button" onclick="closeContractWizard()" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Cancelar</button>
+                <button type="button" onclick="saveContractDraft(this)" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-700 hover:bg-slate-800 text-white"><i class="fa-regular fa-floppy-disk mr-1"></i> Salvar rascunho</button>
+                <button type="button" onclick="emitContract(this)" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"><i class="fa-solid fa-file-pdf mr-1"></i> Emitir contrato e gerar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHE, ASSINATURAS E HISTÓRICO DO CONTRATO -->
+    <div id="modalContractDetail" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <div class="min-w-0">
+                    <h3 id="cdTitle" class="font-bold text-base sm:text-lg truncate">Contrato</h3>
+                    <p id="cdSubtitle" class="text-xs text-gray-500 dark:text-gray-400 truncate"></p>
+                </div>
+                <button type="button" onclick="closeContractDetail()" aria-label="Fechar" class="w-10 h-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg shrink-0"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="cdBody" class="p-4 overflow-y-auto custom-scrollbar space-y-4 text-sm"></div>
+        </div>
+    </div>
+
     <!-- MODAL VISUALIZADOR DE DOCUMENTOS/COMPROVANTES -->
     <div id="modalDocViewer" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -1584,17 +1854,21 @@
             const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
             const pick = (a, b) => Math.round((a + rnd() * (b - a)) * 100) / 100;
             const db = { profiles: [], vehicles: [], receipts: [], pix_history: [], vehicle_expenses: [], expense_types: [], inspection_photos: [],
-                terms_acceptances: [], app_earnings: [], app_expenses: [], app_days_off: [], app_settings: [{ key: 'design', value: { master: 'novo', motorista: 'novo' } }], __docs: [] };
+                terms_acceptances: [], app_earnings: [], app_expenses: [], app_days_off: [], rental_contracts: [], rental_contract_history: [], app_settings: [{ key: 'design', value: { master: 'novo', motorista: 'novo' } }], __docs: [] };
             const doc = p => { db.__docs.push(p); return p; };
             const ago = days => now - days * 86400000;
-            const master = { id: 'demo-master', role: 'master', name: 'Dono (demonstração)', username: 'teste@motora.app', payment_status: 'Em dia', created_at: new Date(ago(130)).toISOString() };
+            const master = { id: 'demo-master', role: 'master', name: 'Dono (demonstração)', username: 'teste@motora.app', payment_status: 'Em dia',
+                cpf: '000.000.000-00', rg: '00.000.000-0', nationality: 'Brasileira', marital_status: 'Casado', profession: 'Empresário',
+                phone: '(11) 99999-0000', email: 'locador.demo@exemplo.com', address: 'Av. Demonstração, 500 – Centro – São Paulo/SP',
+                created_at: new Date(ago(130)).toISOString() };
             db.profiles.push(master);
+            db.app_settings.push({ key: 'locador_config', value: { name: master.name, cpf: master.cpf, rg: master.rg, nationality: master.nationality, marital_status: master.marital_status, profession: master.profession, phone: master.phone, email: master.email, address: master.address, foro_cidade_uf: 'São Paulo/SP' } });
 
             const V = [
-                { id: 'demo-v1', model: 'FIAT/ARGO DRIVE 1.0', plate: 'DMO1A11', color: 'Prata', year: '2022/2023' },
-                { id: 'demo-v2', model: 'CHEVROLET/ONIX 1.0', plate: 'DMO2B22', color: 'Branco', year: '2021/2022' },
-                { id: 'demo-v3', model: 'HYUNDAI/HB20 1.0M', plate: 'DMO3C33', color: 'Preto', year: '2022/2022' },
-                { id: 'demo-v4', model: 'RENAULT/KWID ZEN 1.0', plate: 'DMO4D44', color: 'Vermelho', year: '2023/2023' },
+                { id: 'demo-v1', brand: 'Fiat', model: 'FIAT/ARGO DRIVE 1.0', version: 'Drive 1.0 Flex', plate: 'DMO1A11', color: 'Prata', year: '2022/2023', manufacture_year: '2022', model_year: '2023', renavam: '01234567891', chassi: '9BD358A1HNY000001', fuel: 'Flex', mileage: 48200 },
+                { id: 'demo-v2', brand: 'Chevrolet', model: 'CHEVROLET/ONIX 1.0', version: 'LT 1.0', plate: 'DMO2B22', color: 'Branco', year: '2021/2022', manufacture_year: '2021', model_year: '2022', renavam: '01234567892', chassi: '9BGKS48U0NG000002', fuel: 'Flex', mileage: 61500 },
+                { id: 'demo-v3', brand: 'Hyundai', model: 'HYUNDAI/HB20 1.0M', version: 'Sense 1.0', plate: 'DMO3C33', color: 'Preto', year: '2022/2022', manufacture_year: '2022', model_year: '2022', renavam: '01234567893', chassi: '9BHBG51CAKP000003', fuel: 'Flex', mileage: 54100 },
+                { id: 'demo-v4', brand: 'Renault', model: 'RENAULT/KWID ZEN 1.0', version: 'Zen 1.0', plate: 'DMO4D44', color: 'Vermelho', year: '2023/2023', manufacture_year: '2023', model_year: '2023', renavam: '01234567894', chassi: '93YRBB003PJ000004', fuel: 'Flex', mileage: 31900 },
             ];
             const RENT = { 'demo-v1': 650, 'demo-v2': 500, 'demo-v3': 620, 'demo-v4': 550 };
             V.forEach(v => db.vehicles.push({ ...v, rent_amount: RENT[v.id], crlv_path: doc(`demo/${v.id}/crlv-e.svg`), created_at: new Date(ago(130)).toISOString() }));
@@ -1615,7 +1889,8 @@
                 const prof = {
                     id: d.id, role: 'driver', name: d.name, username: d.username, vehicle_id: d.vehicle_id, payment_status: 'Em dia',
                     phone: d.phone, cpf: d.cpf, rg: '00.000.00' + (di + 1) + '-0', birth_date: '199' + (di + 1) + '-0' + (di + 3) + '-1' + di,
-                    cnh_number: '0000000000' + (di + 1), cnh_category: 'B', cnh_expiry: d.cnh_expiry,
+                    nationality: 'Brasileira', marital_status: di % 2 === 0 ? 'Solteiro' : 'Casado', profession: 'Motorista de aplicativo',
+                    cnh_number: '0000000000' + (di + 1), cnh_category: 'B', cnh_ear: true, cnh_expiry: d.cnh_expiry,
                     address: 'Rua Exemplo, ' + (100 + di * 25) + ' – Bairro Demonstração – São Paulo/SP',
                     cnh_path: doc(`demo/${d.id}/cnh.svg`), address_path: doc(`demo/${d.id}/endereco.svg`), contract_path: doc(`demo/${d.id}/contrato.svg`),
                     inspection_term_path: doc(`demo/${d.id}/termo-vistoria.svg`),
@@ -1718,6 +1993,45 @@
                 if (dd % 14 === 3) db.app_expenses.push({ id: demoId(), category: 'Lavagem', amount: 35, expense_date: day, description: null, created_at: new Date(ago(dd)).toISOString() });
                 if (dd % 30 === 7) db.app_expenses.push({ id: demoId(), category: 'Manutenção', amount: pick(90, 260), expense_date: day, description: null, created_at: new Date(ago(dd)).toISOString() });
             }
+            // contratos de locação de demonstração
+            const demoCtrBuild = (cid, num, drvIdx, vehIdx, status, startDays, endDays, signed) => {
+                const drv = db.profiles.find(p => p.id === `demo-d${drvIdx}`), veh = db.vehicles.find(v => v.id === `demo-v${vehIdx}`);
+                if (!drv || !veh) return;
+                const sDate = demoDay(ago(startDays)), eDate = endDays != null ? demoDay(ago(endDays)) : null;
+                const snap = {
+                    contract_number: num,
+                    locador: { name: master.name, cpf: master.cpf, rg: master.rg, nationality: master.nationality, marital_status: master.marital_status, profession: master.profession, phone: master.phone, email: master.email, address: master.address },
+                    locatario: { name: drv.name, cpf: drv.cpf, rg: drv.rg, birth_date: drv.birth_date, nationality: drv.nationality, marital_status: drv.marital_status, profession: drv.profession, phone: drv.phone, email: drv.email, address: drv.address, cnh_number: drv.cnh_number, cnh_category: drv.cnh_category, cnh_ear: drv.cnh_ear },
+                    veiculo: { brand: veh.brand, model: veh.model, version: veh.version, manufacture_year: veh.manufacture_year, model_year: veh.model_year, color: veh.color, plate: veh.plate, renavam: veh.renavam, chassi: veh.chassi, fuel: veh.fuel, mileage: veh.mileage },
+                    comercial: { rent_amount: veh.rent_amount, periodicity: 'semanal', due_day: 'Toda segunda-feira', start_date: sDate, end_date: eDate, is_indeterminate: eDate == null, deposit_amount: 1000, payment_method: 'Pix / Transferência bancária', km_limit: null, km_extra_price: null, purpose: 'Utilização do veículo para atividades remuneradas de transporte de passageiros por meio de aplicativos, plataformas digitais e serviços de transporte executivo, observadas as exigências legais aplicáveis.', notes: 'Entregue com CRLV-e digital, chave reserva e estepe.', local_assinatura: 'São Paulo/SP', data_assinatura: sDate, foro_cidade_uf: 'São Paulo/SP' },
+                    testemunhas: [{ name: 'João Pereira (Demo)', cpf: '111.111.111-11' }, { name: 'Maria Souza (Demo)', cpf: '222.222.222-22' }],
+                    clauses: null
+                };
+                const sIso = new Date(ago(startDays)).toISOString();
+                const sigData = {
+                    locador_at: signed ? sIso : null, locatario_at: signed ? sIso : null,
+                    witness1_at: signed ? sIso : null, witness2_at: signed ? sIso : null,
+                    witness1_name: snap.testemunhas[0].name, witness1_cpf: snap.testemunhas[0].cpf,
+                    witness2_name: snap.testemunhas[1].name, witness2_cpf: snap.testemunhas[1].cpf
+                };
+                db.rental_contracts.push({
+                    id: cid, owner_id: 'demo-master', driver_id: drv.id, vehicle_id: veh.id, contract_number: num, status,
+                    rent_amount: veh.rent_amount, payment_periodicity: 'semanal', due_day: 'Toda segunda-feira', start_date: sDate, end_date: eDate, indefinite_term: eDate == null,
+                    deposit_amount: 1000, payment_method: 'Pix / Transferência bancária', km_limit: null, excess_km_fee: null,
+                    purpose: snap.comercial.purpose, notes: snap.comercial.notes, signature_place: 'São Paulo/SP', signature_date: sDate,
+                    signature_mode: signed ? 'digitalizado' : 'manual', signature_data: sigData,
+                    signed_at: signed ? sIso : null, emitted_at: sIso, snapshot_data: snap,
+                    pdf_path: doc(`demo/${drv.id}/contrato-${cid}.svg`), signed_pdf_path: signed ? doc(`demo/${drv.id}/contrato.svg`) : null,
+                    terminated_at: status === 'encerrado' ? new Date(ago(10)).toISOString() : null,
+                    termination_reason: status === 'encerrado' ? 'Término amigável de demonstração' : null,
+                    created_at: sIso, updated_at: sIso
+                });
+                db.rental_contract_history.push({ id: demoId(), owner_id: 'demo-master', contract_id: cid, driver_id: drv.id, event_type: 'emitido', description: `Contrato ${num} gerado (demonstração)`, metadata: { status }, created_at: sIso });
+                if (signed) db.rental_contract_history.push({ id: demoId(), owner_id: 'demo-master', contract_id: cid, driver_id: drv.id, event_type: 'assinado', description: 'Assinaturas manuais registradas', metadata: {}, created_at: new Date(ago(startDays - 1)).toISOString() });
+            };
+            demoCtrBuild('demo-c1', 'CTR-2026-0001', 1, 1, 'ativo', 90, null, true);
+            demoCtrBuild('demo-c2', 'CTR-2026-0002', 2, 2, 'aguardando_assinatura', 5, null, false);
+            demoCtrBuild('demo-c3', 'CTR-2026-0003', 3, 3, 'encerrado', 120, 10, true);
             return { db, userId: role === 'master' ? 'demo-master' : 'demo-d1' };
         }
 
@@ -1973,6 +2287,11 @@
                 DEMO.db.profiles.push({ id, role: 'driver', name: p_name, username: p_email, vehicle_id: p_vehicle || null, payment_status: 'Em dia', pix_code: p_pix_code || null, created_at: new Date().toISOString() });
                 return id;
             },
+            next_rental_contract_number() {
+                const y = new Date().getFullYear();
+                const seq = (DEMO.db.rental_contracts || []).length + 1;
+                return `CTR-${y}-${String(seq).padStart(4, '0')}`;
+            },
             master_delete_driver({ p_id }) {
                 // igual ao real: só bloqueia o acesso, nada de documento ou registro é apagado
                 const d = DEMO.db.profiles.find(p => p.id === p_id && p.role === 'driver');
@@ -2087,7 +2406,7 @@
         }
 
         // ESTADO EM MEMÓRIA (carregado do Supabase)
-        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [] };
+        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [], contracts: [], contractHistory: [], locadorCfg: null };
 
         function toEmail(login) {
             const l = String(login || '').trim().toLowerCase();
@@ -2291,8 +2610,10 @@
         }
         function markMasterNav() {
             const v = !document.getElementById('subMasterVehicles').classList.contains('hidden');
+            const c = !document.getElementById('subMasterContracts').classList.contains('hidden');
             document.getElementById('mnVeh').classList.toggle('atual', v);
-            document.getElementById('mnDrv').classList.toggle('atual', !v);
+            document.getElementById('mnCtr').classList.toggle('atual', c);
+            document.getElementById('mnDrv').classList.toggle('atual', !v && !c);
         }
         function fillDesignCfg() {
             const v = x => (x === 'claro' || x === 'auto') ? x : 'escuro';
@@ -2483,6 +2804,9 @@
                     sb.from('pix_history').select('*').order('sent_at', { ascending: false }),
                     sb.from('app_earnings').select('*').order('earning_date', { ascending: false }),
                     sb.from('app_expenses').select('*').order('expense_date', { ascending: false }),
+                    sb.from('rental_contracts').select('*').order('created_at', { ascending: false }),
+                    sb.from('rental_contract_history').select('*').order('created_at', { ascending: false }),
+                    sb.from('app_settings').select('key,value').eq('key', 'locador_config').maybeSingle(),
                     termos
                 ]).then(rs => ({ master: true, rs }));
             }
@@ -2491,13 +2815,15 @@
                 sb.from('receipts').select('*').eq('driver_id', profile.id).order('created_at'),
                 profile.vehicle_id ? sb.from('inspection_photos').select('*').eq('vehicle_id', profile.vehicle_id).order('created_at') : Promise.resolve({ data: [] }),
                 sb.from('pix_history').select('*').eq('driver_id', profile.id).order('sent_at'),
+                sb.from('rental_contracts').select('*').eq('driver_id', profile.id).order('created_at', { ascending: false }),
+                sb.from('rental_contract_history').select('*').eq('driver_id', profile.id).order('created_at', { ascending: false }),
                 loadDriverFeatures(),
                 termos
             ]).then(rs => ({ master: false, rs }));
         }
         function aplicarDados({ master, rs }) {
             if (master) {
-                const [veh, drv, rec, insp, exp, tipos, hist, earn, aexp] = rs;
+                const [veh, drv, rec, insp, exp, tipos, hist, earn, aexp, ctrs, ctrHist, locCfg] = rs;
                 for (const x of [veh, drv, rec, insp, exp, tipos, hist]) if (x.error) throw x.error;
                 state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.allDrivers = drv.data;
                 const drvList = drv.data.filter(d => d.role === 'driver');
@@ -2507,10 +2833,16 @@
                 state.expenses = exp.data; state.expenseTypes = tipos.data; state.pixHistory = hist.data;
                 state.appEarnings = (earn && !earn.error && earn.data) || [];
                 state.appExpenses = (aexp && !aexp.error && aexp.data) || [];
+                state.contracts = (ctrs && !ctrs.error && ctrs.data) || [];
+                state.contractHistory = (ctrHist && !ctrHist.error && ctrHist.data) || [];
+                state.locadorCfg = (locCfg && !locCfg.error && locCfg.data && locCfg.data.value) || null;
             } else {
-                const [veh, rec, insp, hist, features] = rs;
+                const [veh, rec, insp, hist, ctrs, ctrHist, features] = rs;
                 state.pixHistory = (hist && !hist.error && hist.data) || [];
                 state.appEarnings = []; state.appExpenses = [];
+                state.contracts = (ctrs && !ctrs.error && ctrs.data) || [];
+                state.contractHistory = (ctrHist && !ctrHist.error && ctrHist.data) || [];
+                state.locadorCfg = null;
                 if (veh.error) throw veh.error;
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
@@ -2538,7 +2870,7 @@
             const serve = adiantado && conhecido.role === profile.role && conhecido.vehicle_id === profile.vehicle_id;
             aplicarDados(await (serve ? adiantado : carregarDados(profile)));
             await aparencia;
-            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.features, state.terms]);
+            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.contracts, state.contractHistory, state.locadorCfg, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
             state.sig = sig;
@@ -3181,17 +3513,19 @@
         function switchMasterTab(tab) {
             const btnVeh = document.getElementById('tabMasterVehicles');
             const btnDrv = document.getElementById('tabMasterDrivers');
+            const btnCtr = document.getElementById('tabMasterContracts');
             const subVeh = document.getElementById('subMasterVehicles');
             const subDrv = document.getElementById('subMasterDrivers');
+            const subCtr = document.getElementById('subMasterContracts');
             const on = "px-4 py-2 rounded-xl font-semibold text-sm bg-blue-600 text-white shadow-sm";
             const off = "px-4 py-2 rounded-xl font-semibold text-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300";
-            if (tab === 'vehicles') {
-                btnVeh.className = on; btnDrv.className = off;
-                subVeh.classList.remove('hidden'); subDrv.classList.add('hidden');
-            } else {
-                btnDrv.className = on; btnVeh.className = off;
-                subDrv.classList.remove('hidden'); subVeh.classList.add('hidden');
-            }
+            if (btnVeh) btnVeh.className = tab === 'vehicles' ? on : off;
+            if (btnDrv) btnDrv.className = (tab !== 'vehicles' && tab !== 'contracts') ? on : off;
+            if (btnCtr) btnCtr.className = tab === 'contracts' ? on : off;
+            if (subVeh) subVeh.classList.toggle('hidden', tab !== 'vehicles');
+            if (subCtr) subCtr.classList.toggle('hidden', tab !== 'contracts');
+            if (subDrv) subDrv.classList.toggle('hidden', tab === 'vehicles' || tab === 'contracts');
+            if (tab === 'contracts' && typeof renderContractsTab === 'function') renderContractsTab();
         }
 
         // WhatsApp do motorista: máscara (11) 90000-0000 e link wa.me com 55 na frente
@@ -3771,6 +4105,7 @@
                                 <summary>Mais ações</summary>
                                 <div class="motGrade">
                                     <button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-solid fa-address-card"></i> Ficha</button>
+                                    <button onclick="openContractForDriver('${d.id}')" class="motItem"><i class="fa-solid fa-file-signature"></i> Contrato de locação</button>
                                     ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="motItem"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-brands fa-whatsapp"></i> Adicionar WhatsApp</button>`}
                                     ${!contratoEnc && (temPix || atraso || pend) ? `<button onclick="openNewPix('${d.id}')" class="motItem"><i class="fa-brands fa-pix"></i> Novo Pix</button>` : ''}
                                     ${temPix ? `<button onclick="openEditPix('${d.id}')" class="motItem"><i class="fa-solid fa-pen"></i> Editar Pix enviado</button>` : ''}
@@ -3798,6 +4133,7 @@
             syncCnhPhotos().catch(() => {});
             fillAvatars(drvTbody).catch(() => {});
             rotularTabelas(document.getElementById('subMasterVehicles'));
+            if (typeof renderContractsTab === 'function') renderContractsTab();
         }
         function renderArchivedDrivers() {
             const box = document.getElementById('tblArchivedDrivers'), cnt = document.getElementById('drvArchivedCount');
@@ -3855,7 +4191,14 @@
             try {
                 const rentVal = parseMoney(document.getElementById('vehRent').value);
                 const color = document.getElementById('vehColor').value.trim() || null, year = document.getElementById('vehYear').value.trim() || null;
-                const { data: veh, error } = await sb.from('vehicles').insert(rentVal != null ? { model, plate, color, year, rent_amount: rentVal } : { model, plate, color, year }).select().single();
+                const payload = { model, plate, color, year };
+                if (rentVal != null) payload.rent_amount = rentVal;
+                const vStr = id => (document.getElementById(id) && document.getElementById(id).value.trim()) || null;
+                const extraMap = { brand: vStr('vehBrand'), version: vStr('vehVersion'), manufacture_year: vStr('vehMfgYear'), model_year: vStr('vehModelYear'), renavam: vStr('vehRenavam'), chassi: vStr('vehChassi') ? vStr('vehChassi').toUpperCase() : null, fuel: vStr('vehFuel') };
+                for (const [k, val] of Object.entries(extraMap)) if (val) payload[k] = val;
+                const mVal = vStr('vehMileage');
+                if (mVal !== null && /^\d+$/.test(mVal)) payload.mileage = parseInt(mVal, 10);
+                const { data: veh, error } = await sb.from('vehicles').insert(payload).select().single();
                 if (error) throw error;
                 if (crlvFile) {
                     const path = await uploadFile(crlvFile, `vehicles/${veh.id}/crlv`);
@@ -3912,6 +4255,9 @@
             document.getElementById('evRent').value = v.rent_amount != null ? String(v.rent_amount).replace('.', ',') : '';
             document.getElementById('evColor').value = v.color || '';
             document.getElementById('evYear').value = v.year || '';
+            const setEv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+            setEv('evBrand', v.brand); setEv('evVersion', v.version); setEv('evMfgYear', v.manufacture_year); setEv('evModelYear', v.model_year);
+            setEv('evRenavam', v.renavam); setEv('evChassi', v.chassi); setEv('evFuel', v.fuel); setEv('evMileage', v.mileage != null ? String(v.mileage) : '');
             document.getElementById('evCrlv').value = '';
             // carro antigo sem cor ou ano: a IA lê do CRLV-e já guardado
             if ((!v.color || !v.year) && v.crlv_path && appConfig.gemini && !DEMO) aiReadFiles([v.crlv_path], 'vehicle').then((r) => {
@@ -3936,7 +4282,14 @@
             if (rentTxt && rent == null) { showToast('Valor inválido. Ex: 550,00', 'error'); return; }
             setBusy(form, true);
             try {
+                const curV = state.vehicles.find(x => x.id === id) || {};
                 const dados = { model, plate, rent_amount: rent, color: document.getElementById('evColor').value.trim() || null, year: document.getElementById('evYear').value.trim() || null };
+                const evStr = elId => (document.getElementById(elId) && document.getElementById(elId).value.trim()) || null;
+                const evExtra = { brand: evStr('evBrand'), version: evStr('evVersion'), manufacture_year: evStr('evMfgYear'), model_year: evStr('evModelYear'), renavam: evStr('evRenavam'), chassi: evStr('evChassi') ? evStr('evChassi').toUpperCase() : null, fuel: evStr('evFuel') };
+                for (const [k, val] of Object.entries(evExtra)) if (val != null || k in curV) dados[k] = val;
+                const evMil = evStr('evMileage');
+                if (evMil !== null && /^\d+$/.test(evMil)) dados.mileage = parseInt(evMil, 10);
+                else if ('mileage' in curV) dados.mileage = null;
                 if (file) {
                     const path = await uploadFile(file, `vehicles/${id}/crlv-${Date.now()}`);
                     if (!path) return; // arquivo grande demais: o aviso já apareceu
@@ -4260,11 +4613,58 @@
                 if (selEl) selEl.disabled = false;
             }
         }
+        function locadorMerged() {
+            const p = state.profile || {}, c = state.locadorCfg || {};
+            return {
+                name: c.name || p.name || '', cpf: c.cpf || p.cpf || '', rg: c.rg || p.rg || '',
+                nationality: c.nationality || p.nationality || '', marital_status: c.marital_status || p.marital_status || '',
+                profession: c.profession || p.profession || '', phone: c.phone || p.phone || '',
+                email: c.email || p.email || '', address: c.address || p.address || '',
+                foro_cidade_uf: c.foro_cidade_uf || ''
+            };
+        }
+        function fillLocadorSettings() {
+            const l = locadorMerged(), map = { cfgLocName: 'name', cfgLocCpf: 'cpf', cfgLocRg: 'rg', cfgLocNat: 'nationality', cfgLocCiv: 'marital_status', cfgLocProf: 'profession', cfgLocPhone: 'phone', cfgLocEmail: 'email', cfgLocAddr: 'address', cfgLocForo: 'foro_cidade_uf' };
+            for (const [id, k] of Object.entries(map)) { const el = document.getElementById(id); if (el) el.value = l[k] || ''; }
+        }
+        async function saveLocadorSettings(btn) {
+            if (!state.profile) return;
+            const g = id => (document.getElementById(id) && document.getElementById(id).value.trim()) || '';
+            const val = {
+                name: g('cfgLocName') || state.profile.name || '', cpf: g('cfgLocCpf'), rg: g('cfgLocRg'),
+                nationality: g('cfgLocNat'), marital_status: g('cfgLocCiv'), profession: g('cfgLocProf'),
+                phone: g('cfgLocPhone'), email: g('cfgLocEmail'), address: g('cfgLocAddr'), foro_cidade_uf: g('cfgLocForo')
+            };
+            return withBtn(btn, 'Salvando...', async () => {
+                try {
+                    const profUp = {
+                        name: val.name || null, cpf: val.cpf || null, rg: val.rg || null,
+                        nationality: val.nationality || null, marital_status: val.marital_status || null,
+                        profession: val.profession || null, phone: val.phone || null, email: val.email || null, address: val.address || null
+                    };
+                    if (!DEMO) {
+                        const r1 = await sb.from('app_settings').upsert({ key: 'locador_config', value: val, updated_at: new Date().toISOString() });
+                        if (r1.error) throw r1.error;
+                        const r2 = await sb.from('profiles').update(profUp).eq('id', state.profile.id);
+                        if (r2.error && !/column .* does not exist/i.test(r2.error.message || '')) throw r2.error;
+                    } else {
+                        await sb.from('app_settings').upsert({ key: 'locador_config', value: val, updated_at: new Date().toISOString() });
+                        await sb.from('profiles').update(profUp).eq('id', state.profile.id);
+                    }
+                    state.locadorCfg = val;
+                    Object.assign(state.profile, profUp);
+                    const ownerNameEl = document.getElementById('cfgOwnerName');
+                    if (ownerNameEl) ownerNameEl.textContent = val.name || 'Proprietário';
+                    showToast('Dados do Locador salvos!');
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
         async function openSettings() {
             fillDesignCfg();
             const ownerNameEl = document.getElementById('cfgOwnerName');
             if (ownerNameEl) ownerNameEl.textContent = (state.profile && state.profile.name) || 'Proprietário';
             fillOwnerVehicleSelect('cfgOwnerVehicle');
+            fillLocadorSettings();
             document.getElementById('cfgGemini').value = '';
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
@@ -4394,13 +4794,15 @@
 
         // ===== FICHA DO MOTORISTA =====
         let fileDriverId = null;
-        const DF = { name: 'dfName', cpf: 'dfCpf', rg: 'dfRg', birth_date: 'dfBirth', phone: 'dfPhone', phone2: 'dfPhone2', email: 'dfEmail', cnh_number: 'dfCnh', cnh_category: 'dfCnhCat', cnh_expiry: 'dfCnhExp', address: 'dfAddress' };
+        const DF = { name: 'dfName', cpf: 'dfCpf', rg: 'dfRg', birth_date: 'dfBirth', phone: 'dfPhone', phone2: 'dfPhone2', email: 'dfEmail', cnh_number: 'dfCnh', cnh_category: 'dfCnhCat', cnh_expiry: 'dfCnhExp', nationality: 'dfNat', marital_status: 'dfMarital', profession: 'dfProf', address: 'dfAddress' };
         function openDriverFile(id) {
             const d = allDrv().find(x => x.id === id && x.role === 'driver');
             if (!d) return;
             fileDriverId = id;
-            for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
+            for (const [col, el] of Object.entries(DF)) { const inp = document.getElementById(el); if (inp) inp.value = d[col] || ''; }
+            const earEl = document.getElementById('dfCnhEar'); if (earEl) earEl.checked = !!d.cnh_ear;
             dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender(); dfDevEtapa = ''; dfDevRender(); dfContratoRender();
+            if (typeof renderDriverRentalContractsBox === 'function') renderDriverRentalContractsBox(id);
             document.getElementById('dfObs').value = (d.pix_extra && d.pix_extra.observacao) || '';
             { const m2 = (d.pix_extra && d.pix_extra.motorista2) || {}; document.getElementById('dfM2Nome').value = m2.nome || ''; document.getElementById('dfM2Fone').value = m2.whatsapp || ''; }
             document.getElementById('dfTitleName').innerText = (d.name || '') + (d.pix_extra && d.pix_extra.arquivado ? ' (Arquivada)' : '');
@@ -4430,8 +4832,17 @@
         async function saveDriverFile(e) {
             e.preventDefault();
             const form = e.target, id = fileDriverId;
+            const curDrvRef = allDrv().find(x => x.id === id) || {};
+            const optCtrCols = new Set(['nationality', 'marital_status', 'profession']);
             const updates = {};
-            for (const [col, el] of Object.entries(DF)) { const v = document.getElementById(el).value.trim(); updates[col] = v || null; }
+            for (const [col, el] of Object.entries(DF)) {
+                const inp = document.getElementById(el);
+                const v = inp ? inp.value.trim() : '';
+                if (!v && optCtrCols.has(col) && !(col in curDrvRef)) continue;
+                updates[col] = v || null;
+            }
+            const earEl = document.getElementById('dfCnhEar');
+            if (earEl && (earEl.checked || 'cnh_ear' in curDrvRef)) updates.cnh_ear = !!earEl.checked;
             if (!updates.name) { showToast("Informe o nome.", "error"); return; }
             updates.vehicle_id = document.getElementById('dfVehicle').value || null;
             const cobForma = dfCobRead();
@@ -8669,9 +9080,941 @@ notify pgrst, 'reload schema';`;
             if (kind === 'vistoria') {
                 const fotos = state.inspection.length && feat('vistoria') ? ' As fotos da vistoria estão na aba <b>Vistoria</b>.' : '';
                 renderFilePreview('contractViewer', d.inspection_term_path, `Nenhum termo de vistoria cadastrado pela administração.${fotos}`, 'Termo de vistoria');
-            } else {
-                renderFilePreview('contractViewer', d.contract_path, 'Nenhum contrato de locação cadastrado pela administração.', 'Contrato de locação');
+                return;
             }
+            const ctrs = (state.contracts || []).filter(c => c.driver_id === d.id && c.status !== 'rascunho');
+            if (!ctrs.length) {
+                renderFilePreview('contractViewer', d.contract_path, 'Nenhum contrato de locação cadastrado pela administração.', 'Contrato de locação');
+                return;
+            }
+            const viewer = document.getElementById('contractViewer');
+            viewer.innerHTML = `<div class="w-full space-y-3">
+                ${ctrs.map(c => {
+                    const meta = CONTRACT_STATUS_META[c.status] || CONTRACT_STATUS_META.aguardando_assinatura;
+                    const v = (c.snapshot_data && c.snapshot_data.veiculo) || {};
+                    const sd = c.signature_data || {};
+                    const path = c.signed_pdf_path || c.pdf_path || d.contract_path;
+                    const per = c.payment_periodicity || c.periodicity || 'semanal';
+                    const ind = c.indefinite_term != null ? c.indefinite_term : c.is_indeterminate;
+                    return `<div class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <div class="font-bold text-sm">${esc(c.contract_number)}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">${esc(v.model || '')}${v.plate ? ' · ' + esc(v.plate) : ''} · ${fmtMoney(c.rent_amount)} (${esc(contractPeriodLabel(per))})</div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${meta.cls}">${meta.label}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-3">
+                            <span>Início: <b>${fmtDate(c.start_date)}</b></span>
+                            <span>Término: <b>${ind ? 'Indeterminado' : (c.end_date ? fmtDate(c.end_date) : '-')}</b></span>
+                            ${sd.locatario_at ? `<span class="text-emerald-600"><i class="fa-solid fa-check mr-1"></i>Assinatura registrada em ${fmtDate(sd.locatario_at)}</span>` : '<span class="text-amber-600">Aguardando assinatura</span>'}
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${path ? `<button type="button" onclick="viewDocIdx(${docRef(path, `Contrato ${esc(c.contract_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-eye mr-1"></i> ${c.signed_pdf_path ? 'Ver contrato assinado' : 'Visualizar PDF'}</button>` : ''}
+                            <button type="button" onclick="downloadContractPdf('${c.id}', this)" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
+                            ${c.pdf_path && c.signed_pdf_path ? `<button type="button" onclick="viewDocIdx(${docRef(c.pdf_path, `Minuta PDF ${esc(c.contract_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700"><i class="fa-solid fa-file-pdf mr-1"></i> Via gerada</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('')}
+                ${d.contract_path ? `<div class="text-right"><button type="button" onclick="viewDocIdx(${docRef(d.contract_path, 'Contrato anexado na ficha')})" class="text-xs text-blue-600 dark:text-blue-400 underline">Abrir documento complementar da ficha</button></div>` : ''}
+            </div>`;
+        }
+
+        // =====================================================================
+        // MÓDULO DE CONTRATOS DE LOCAÇÃO (PDF A4, cláusulas 1-14, assinatura e histórico)
+        // =====================================================================
+        const CONTRACT_PURPOSE_DEFAULT = 'Utilização do veículo para atividades remuneradas de transporte de passageiros por meio de aplicativos, plataformas digitais e serviços de transporte executivo, observadas as exigências legais aplicáveis.';
+        const PERIODICITY_LABELS = { diaria: 'Diária', semanal: 'Semanal', quinzenal: 'Quinzenal', mensal: 'Mensal' };
+        const CONTRACT_STATUS_META = {
+            rascunho: { label: 'Rascunho', cls: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' },
+            aguardando_assinatura: { label: 'Aguardando assinatura', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' },
+            ativo: { label: 'Ativo', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' },
+            encerrado: { label: 'Encerrado', cls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300' },
+            cancelado: { label: 'Cancelado', cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200' }
+        };
+        const contractPeriodLabel = p => PERIODICITY_LABELS[p] || p || 'Semanal';
+        function contractStatusBadge(st) {
+            const m = CONTRACT_STATUS_META[st] || { label: st || '-', cls: 'bg-gray-100 text-gray-700' };
+            return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${m.cls}">${esc(m.label)}</span>`;
+        }
+        function pdfSafeText(str) {
+            return String(str == null ? '' : str)
+                .replace(/\u2212/g, '-')
+                .replace(/[\u00A0\u202F]/g, ' ')
+                .replace(/[\u2018\u2019]/g, "'")
+                .replace(/[\u201C\u201D]/g, '"')
+                .replace(/[\u2022\u25CF]/g, '-')
+                .replace(/[^\x09\x0A\x0D\x20-\xFF]/g, ch => {
+                    const keep = { '\u2013': '-', '\u2014': '--', '\u20AC': 'EUR', '\u2026': '...' };
+                    return keep[ch] || '';
+                });
+        }
+        function contractPdfFileName(c) {
+            const snap = (c && c.snapshot_data) || {};
+            const slug = v => String(v || 'SEM_DADO').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'SEM_DADO';
+            const drv = slug((snap.locatario && snap.locatario.name) || 'MOTORISTA');
+            const plate = slug((snap.veiculo && snap.veiculo.plate) || 'VEICULO');
+            const dateStr = String((c && (c.signature_date || (snap.comercial && snap.comercial.data_assinatura) || c.start_date)) || todayISO()).replace(/[^0-9-]/g, '');
+            return `CONTRATO_LOCACAO_${drv}_${plate}_${dateStr}.pdf`;
+        }
+
+        function buildDefaultClauses(snap) {
+            const l = snap.locador || {}, d = snap.locatario || {}, v = snap.veiculo || {}, c = snap.comercial || {};
+            const valFmt = c.rent_amount != null ? fmtMoney(c.rent_amount) : 'a definir';
+            const perLbl = contractPeriodLabel(c.periodicity).toLowerCase();
+            const depFmt = Number(c.deposit_amount) > 0 ? fmtMoney(c.deposit_amount) : 'sem caução exigida neste instrumento';
+            const kmTxt = c.km_limit ? `fica estabelecido o limite de ${c.km_limit} km por período, incidindo o valor de ${fmtMoney(c.km_extra_price || 0)} por quilômetro excedente` : 'não há limite contratual de quilometragem, salvo uso abusivo incompatível com a conservação regular do bem';
+            const vigTxt = c.is_indeterminate
+                ? `prazo indeterminado, com início em ${fmtDate(c.start_date)}, podendo ser encerrado mediante aviso prévio escrito conforme a Cláusula 11`
+                : `prazo determinado com início em ${fmtDate(c.start_date)} e término em ${fmtDate(c.end_date || c.start_date)}, renovável mediante aditivo ou emissão de novo instrumento contratual`;
+            const vehSpec = [
+                v.brand && `Marca ${v.brand}`,
+                v.model && `Modelo ${v.model}`,
+                v.version && `Versão ${v.version}`,
+                (v.manufacture_year || v.model_year) && `Ano Fab./Mod. ${v.manufacture_year || '-'}/${v.model_year || '-'}`,
+                v.color && `Cor ${v.color}`,
+                v.plate && `Placa ${v.plate}`,
+                v.renavam && `RENAVAM ${v.renavam}`,
+                v.chassi && `Chassi ${v.chassi}`,
+                v.fuel && `Combustível ${v.fuel}`,
+                v.mileage != null && v.mileage !== '' && `Quilometragem inicial ${v.mileage} km`
+            ].filter(Boolean).join(', ');
+            const purpose = c.purpose || CONTRACT_PURPOSE_DEFAULT;
+            return [
+                { num: 1, title: 'CLÁUSULA 1 — DO OBJETO', body: `O LOCADOR dá em locação ao LOCATÁRIO, livre de ônus que impeçam a posse regular, o veículo automotor com as seguintes especificações: ${vehSpec}.\nParágrafo único. O veículo destina-se exclusivamente à finalidade declarada pelas partes: ${purpose}` },
+                { num: 2, title: 'CLÁUSULA 2 — DA VIGÊNCIA', body: `A presente locação vigerá por ${vigTxt}. A eventual permanência do LOCATÁRIO na posse do veículo após o termo final sem formalização de novo contrato não implica renúncia às obrigações de pagamento, conservação e restituição imediata do bem.` },
+                { num: 3, title: 'CLÁUSULA 3 — DO VALOR E PAGAMENTO', body: `Pela locação do veículo, o LOCATÁRIO pagará ao LOCADOR o valor de ${valFmt}, com periodicidade ${perLbl}, vencimento ${c.due_day || 'conforme calendário ajustado entre as partes'}, por meio de ${c.payment_method || 'Pix ou transferência bancária indicada pelo LOCADOR'}.\nParágrafo 1º. Em caso de atraso no pagamento, incidirá multa moratória de 2% (dois por cento), juros de mora de 1% (um por cento) ao mês pro rata die e atualização monetária aplicável, podendo o LOCADOR notificar o LOCATÁRIO para regularização ou rescisão.\nParágrafo 2º. Quanto à rodagem contratada, ${kmTxt}.` },
+                { num: 4, title: 'CLÁUSULA 4 — DA CAUÇÃO', body: `A título de garantia contratual (caução), ajusta-se o valor de ${depFmt}. Quando constituída, a caução destina-se exclusivamente a assegurar o adimplemento de aluguéis vencidos, multas de trânsito, franquias de sinistro, avarias comprovadas ou pendências apuradas na devolução.\nParágrafo único. Encerrada a locação e concluída a vistoria final, eventuais retenções deverão ser objeto de prestação de contas discriminada com comprovantes ao LOCATÁRIO, restituindo-se o saldo remanescente no prazo ajustado entre as partes.` },
+                { num: 5, title: 'CLÁUSULA 5 — DAS OBRIGAÇÕES DO LOCATÁRIO', body: `São obrigações irrenunciáveis do LOCATÁRIO durante toda a posse do veículo:\n- Utilizar o veículo de maneira prudente, zelosa e estritamente compatível com a sua destinação;\n- Manter sua Carteira Nacional de Habilitação (CNH) e documentação obrigatória em situação regular e válida;\n- Possuir e manter ativa a observação "Exerce Atividade Remunerada (EAR)" na CNH sempre que exigido para transporte remunerado de passageiros;\n- Cumprir rigorosamente o Código de Trânsito Brasileiro (CTB) e as normas dos órgãos de trânsito e plataformas;\n- Não emprestar, ceder, sublocar, penhorar ou transferir a posse do veículo a terceiros sem autorização prévia e por escrito do LOCADOR;\n- Comunicar imediatamente ao LOCADOR quaisquer acidentes, sinistros, panes, alertas no painel, furtos, roubos ou danos mecânicos;\n- Não utilizar o veículo para atividades ilícitas, corridas ilegais, transporte de cargas perigosas ou rebocamento indevido;\n- Manter o veículo limpo e em condições adequadas de conservação interna e externa.` },
+                { num: 6, title: 'CLÁUSULA 6 — DAS MULTAS E INFRAÇÕES', body: `As infrações de trânsito praticadas durante o período em que o veículo estiver sob a posse do LOCATÁRIO serão de sua inteira responsabilidade financeira e administrativa, cabendo-lhe assumir a pontuação na CNH.\nParágrafo único. Recebida a notificação de autuação, o LOCADOR informará o LOCATÁRIO em tempo hábil para assinatura do formulário de indicação do real condutor infrator junto ao órgão de trânsito, observados os prazos e procedimentos legais do Código de Trânsito Brasileiro (CTB).` },
+                { num: 7, title: 'CLÁUSULA 7 — DA MANUTENÇÃO', body: `A manutenção preventiva ordinária decorrente do desgaste natural pelo uso regular (troca programada de óleo, filtros, pastilhas e lonas de freio, pneus e revisões periódicas de fábrica) obedecerá ao plano preventivo definido pelo LOCADOR, devendo o LOCATÁRIO comparecer pontualmente às paradas agendadas.\nParágrafo 1º. Defeitos preexistentes devidamente registrados na vistoria de entrega não serão imputados ao LOCATÁRIO.\nParágrafo 2º. Danos mecânicos, elétricos ou estéticos decorrentes de mau uso, negligência, direção imprudente, circulação em alagamentos, falta de comunicação tempestiva de avarias ou manutenção realizada sem autorização serão integralmente custeados pelo LOCATÁRIO.` },
+                { num: 8, title: 'CLÁUSULA 8 — DO SEGURO E SINISTROS', body: `Em caso de colisão, incêndio, roubo, furto ou dano a terceiros, o LOCATÁRIO deverá acionar imediatamente as autoridades policiais (Boletim de Ocorrência) e comunicar o LOCADOR no menor prazo possível, fornecendo fotos e informações completas do ocorrido.\nParágrafo 1º. Não se presume que apólices de seguro particulares convencionais cubram o transporte remunerado de passageiros; cabe às partes verificar expressamente a existência de cobertura específica e endosso para atividade em aplicativos na apólice vigente do veículo.\nParágrafo 2º. Quando houver cobertura securitária acionável em sinistro culposo atribuível ao LOCATÁRIO, este responderá pela franquia da apólice ou participação financeira prevista, respondendo pelos prejuízos integrais se agir com dolo, embriaguez ou grave violação que exclua a cobertura.` },
+                { num: 9, title: 'CLÁUSULA 9 — DO RASTREAMENTO', body: `O LOCATÁRIO declara ciência e autoriza o funcionamento de sistema de rastreamento e telemetria instalado no veículo, com finalidade exclusiva de segurança patrimonial, proteção contra fraude, imobilização em caso de apropriação indébita e recuperação em hipótese de furto ou roubo.\nParágrafo único. O tratamento dos dados de geolocalização respeitará a finalidade de segurança e a legislação vigente de proteção de dados pessoais.` },
+                { num: 10, title: 'CLÁUSULA 10 — DA DEVOLUÇÃO', body: `Ao término ou rescisão da locação, o LOCATÁRIO restituirá o veículo no local e horário combinados, acompanhado de todas as chaves (inclusive reserva, se entregue), documentação do veículo, estepe e demais acessórios originais.\nParágrafo único. Será realizada vistoria final confrontando o estado de conservação com a vistoria de entrega, registrando-se a quilometragem final e o nível de combustível ou carga de bateria equivalente ao recebido.` },
+                { num: 11, title: 'CLÁUSULA 11 — DA RESCISÃO', body: `O contrato poderá ser rescindido por mútuo acordo ou por iniciativa de qualquer das partes, mediante aviso prévio por escrito com antecedência mínima combinada (recomendado 7 a 15 dias), ou imediatamente nos casos de inadimplência reiterada, descumprimento grave de cláusula contratual, suspensão/cassação da CNH ou exposição do veículo a risco ilícito, obrigando-se o LOCATÁRIO à devolução imediata do bem sem prejuízo dos valores devidos até a efetiva entrega.` },
+                { num: 12, title: 'CLÁUSULA 12 — DA RESPONSABILIDADE CIVIL', body: `O LOCATÁRIO responde civilmente por danos materiais, morais e estéticos causados ao veículo ou a terceiros durante o período de posse, nos termos da legislação civil aplicável, sem prejuízo das responsabilidades legais solidárias ou objetivas eventualmente atribuíveis perante terceiros e do consequente direito de regresso do LOCADOR.` },
+                { num: 13, title: 'CLÁUSULA 13 — DA PROTEÇÃO DE DADOS', body: `As partes comprometem-se a tratar os dados pessoais coletados (identificação, CNH, contato, endereço, dados financeiros e registros de condução) exclusivamente para execução do presente contrato, cumprimento de obrigações legais e regulatórias (como indicação de infratores no CTB), cobrança e tutela de direitos, em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD).` },
+                { num: 14, title: 'CLÁUSULA 14 — DO FORO', body: `Fica eleito o foro da Comarca de ${c.foro_cidade_uf || 'domicílio competente conforme a legislação vigente'} para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato, observadas as normas legais de competência aplicáveis.${c.notes ? '\n\nOBSERVAÇÕES PARTICULARES AJUSTADAS PELAS PARTES: ' + c.notes : ''}` }
+            ];
+        }
+
+        function generateContractPdfBytes(contract) {
+            if (!window.PDFLib) throw new Error('Biblioteca de PDF (pdf-lib) não carregada.');
+            const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+            const snap = contract.snapshot_data || {};
+            const l = snap.locador || {}, d = snap.locatario || {}, v = snap.veiculo || {}, c = snap.comercial || {}, sd = contract.signature_data || {};
+            const wList = Array.isArray(snap.testemunhas) ? snap.testemunhas : [{ name: sd.witness1_name || '', cpf: sd.witness1_cpf || '' }, { name: sd.witness2_name || '', cpf: sd.witness2_cpf || '' }];
+            const clauses = (Array.isArray(snap.clauses) && snap.clauses.length) ? snap.clauses : buildDefaultClauses(snap);
+
+            return (async () => {
+                const pdf = await PDFDocument.create();
+                const fontReg = await pdf.embedFont(StandardFonts.TimesRoman);
+                const fontBold = await pdf.embedFont(StandardFonts.TimesRomanBold);
+                const fontSans = await pdf.embedFont(StandardFonts.Helvetica);
+                const fontSansBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+                const W = 595.28, H = 841.89, ML = 54, MR = 54, CW = W - ML - MR, TOP = H - 68, BOT = 58;
+                const ink = rgb(0.1, 0.12, 0.16), muted = rgb(0.38, 0.42, 0.48), lineCol = rgb(0.8, 0.83, 0.88), boxBg = rgb(0.96, 0.97, 0.985);
+                const pages = [];
+                let page = null, y = TOP;
+
+                function drawHeader(p) {
+                    p.drawText(pdfSafeText('CONTRATO PARTICULAR DE LOCAÇÃO DE VEÍCULO'), { x: ML, y: H - 36, size: 9, font: fontSansBold, color: ink });
+                    p.drawText(pdfSafeText(`Nº ${contract.contract_number || 'RASCUNHO'}`), { x: W - MR - fontSansBold.widthOfTextAtSize(pdfSafeText(`Nº ${contract.contract_number || 'RASCUNHO'}`), 9), y: H - 36, size: 9, font: fontSansBold, color: muted });
+                    p.drawLine({ start: { x: ML, y: H - 44 }, end: { x: W - MR, y: H - 44 }, thickness: 0.75, color: lineCol });
+                }
+                function newPage() {
+                    page = pdf.addPage([W, H]);
+                    pages.push(page);
+                    drawHeader(page);
+                    y = TOP;
+                    return page;
+                }
+                function ensureSpace(pts) {
+                    if (!page || y - pts < BOT) newPage();
+                }
+                function wrapLines(text, font, size, maxW) {
+                    const safe = pdfSafeText(text).trim();
+                    if (!safe) return [];
+                    const paragraphs = safe.split(/\r?\n/);
+                    const out = [];
+                    paragraphs.forEach((para, pi) => {
+                        const words = para.trim().split(/\s+/).filter(Boolean);
+                        if (!words.length) { out.push({ text: '', words: [], last: true }); return; }
+                        let cur = [], curW = 0, spaceW = font.widthOfTextAtSize(' ', size);
+                        words.forEach(w => {
+                            const ww = font.widthOfTextAtSize(w, size);
+                            if (cur.length && curW + spaceW + ww > maxW) {
+                                out.push({ text: cur.join(' '), words: cur, last: false });
+                                cur = [w]; curW = ww;
+                            } else {
+                                cur.push(w);
+                                curW += (cur.length > 1 ? spaceW : 0) + ww;
+                            }
+                        });
+                        out.push({ text: cur.join(' '), words: cur, last: true });
+                        if (pi < paragraphs.length - 1) out.push({ text: '', words: [], last: true, gap: 4 });
+                    });
+                    return out;
+                }
+                function drawJustifiedLine(ln, x, yPos, maxW, font, size, color) {
+                    if (!ln.text) return;
+                    if (ln.last || ln.words.length <= 1) {
+                        page.drawText(ln.text, { x, y: yPos, size, font, color });
+                        return;
+                    }
+                    const wordsW = ln.words.reduce((acc, w) => acc + font.widthOfTextAtSize(w, size), 0);
+                    const gaps = ln.words.length - 1;
+                    const extra = maxW - wordsW;
+                    const spaceW = extra / gaps;
+                    const baseSpace = font.widthOfTextAtSize(' ', size);
+                    if (spaceW > baseSpace * 3.2) {
+                        page.drawText(ln.text, { x, y: yPos, size, font, color });
+                        return;
+                    }
+                    let cx = x;
+                    ln.words.forEach((w, idx) => {
+                        page.drawText(w, { x: cx, y: yPos, size, font, color });
+                        if (idx < gaps) cx += font.widthOfTextAtSize(w, size) + spaceW;
+                    });
+                }
+
+                newPage();
+                // Título
+                const mainTitle = 'CONTRATO PARTICULAR DE LOCAÇÃO DE VEÍCULO AUTOMOTOR';
+                const subTitle = 'PARA FINS DE TRANSPORTE POR APLICATIVOS';
+                page.drawText(pdfSafeText(mainTitle), { x: Math.max(ML, (W - fontBold.widthOfTextAtSize(pdfSafeText(mainTitle), 13)) / 2), y, size: 13, font: fontBold, color: ink });
+                y -= 16;
+                page.drawText(pdfSafeText(subTitle), { x: Math.max(ML, (W - fontBold.widthOfTextAtSize(pdfSafeText(subTitle), 11)) / 2), y, size: 11, font: fontBold, color: muted });
+                y -= 20;
+
+                // Quadro resumo partes e objeto
+                const idLines = [
+                    `LOCADOR: ${l.name || '-'}, CPF ${l.cpf || '-'}, RG ${l.rg || '-'}, ${l.nationality || '-'}, ${l.marital_status || '-'}, ${l.profession || '-'}, residente em ${l.address || '-'}, Tel. ${l.phone || '-'}, E-mail ${l.email || '-'}.`,
+                    `LOCATÁRIO: ${d.name || '-'}, CPF ${d.cpf || '-'}, RG ${d.rg || '-'}, nasc. ${d.birth_date ? fmtDate(d.birth_date) : '-'}, ${d.nationality || '-'}, ${d.marital_status || '-'}, ${d.profession || '-'}, CNH ${d.cnh_number || '-'} (Cat. ${d.cnh_category || '-'}${d.cnh_ear ? ', ' + (d.cnh_ear === true ? 'EAR' : d.cnh_ear) : ''}), residente em ${d.address || '-'}, Tel. ${d.phone || '-'}, E-mail ${d.email || '-'}.`,
+                    `VEÍCULO: ${[v.brand, v.model, v.version].filter(Boolean).join(' ') || '-'} | Ano ${v.manufacture_year || '-'}/${v.model_year || '-'} | Cor ${v.color || '-'} | Placa ${v.plate || '-'} | RENAVAM ${v.renavam || '-'} | Chassi ${v.chassi || '-'}.`
+                ];
+                const preamble = 'Pelo presente instrumento particular, as partes acima qualificadas celebram o presente Contrato de Locação de Veículo Automotor, regido pela legislação civil brasileira vigente e pelas cláusulas e condições seguintes:';
+                [...idLines, preamble].forEach((txt, idx) => {
+                    const wrapped = wrapLines(txt, fontReg, 10, CW - (idx < 3 ? 16 : 0));
+                    const need = wrapped.length * 14 + (idx < 3 ? 12 : 8);
+                    ensureSpace(need);
+                    if (idx < 3) {
+                        page.drawRectangle({ x: ML, y: y - wrapped.length * 14 - 4, width: CW, height: wrapped.length * 14 + 12, color: boxBg, borderColor: lineCol, borderWidth: 0.6 });
+                        y -= 4;
+                    }
+                    wrapped.forEach(ln => {
+                        if (ln.gap) { y -= ln.gap; return; }
+                        drawJustifiedLine(ln, ML + (idx < 3 ? 8 : 0), y, CW - (idx < 3 ? 16 : 0), fontReg, 10, ink);
+                        y -= 14;
+                    });
+                    y -= idx < 3 ? 10 : 8;
+                });
+
+                // Cláusulas 1 a 14 (proteção contra título órfão: exige espaço para título + primeiras linhas)
+                for (const cl of clauses) {
+                    const titleLines = wrapLines(cl.title, fontBold, 10.5, CW);
+                    const bodyLines = wrapLines(cl.body, fontReg, 10, CW);
+                    const minBlock = titleLines.length * 14 + Math.min(bodyLines.length, 3) * 14 + 14;
+                    ensureSpace(minBlock);
+                    titleLines.forEach(tl => {
+                        page.drawText(tl.text, { x: ML, y, size: 10.5, font: fontBold, color: ink });
+                        y -= 14;
+                    });
+                    y -= 2;
+                    bodyLines.forEach(bl => {
+                        ensureSpace(16);
+                        if (bl.gap) { y -= bl.gap; return; }
+                        drawJustifiedLine(bl, ML, y, CW, fontReg, 10, ink);
+                        y -= 14;
+                    });
+                    y -= 8;
+                }
+
+                // Bloco atômico de Local/Data + Assinaturas
+                const localDt = `${c.local_assinatura || c.foro_cidade_uf || 'Local'}, ${c.data_assinatura ? fmtDate(c.data_assinatura) : fmtDate(c.start_date || todayISO())}.`;
+                ensureSpace(160);
+                y -= 6;
+                page.drawText(pdfSafeText(localDt), { x: ML, y, size: 10.5, font: fontBold, color: ink });
+                y -= 28;
+
+                const colW = (CW - 28) / 2;
+                const drawSigBox = (sx, sy, roleTitle, nome, cpf, signedAt) => {
+                    page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
+                    page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 13, size: 9, font: fontBold, color: ink });
+                    page.drawText(pdfSafeText(`Nome: ${nome || '____________________________'}`), { x: sx, y: sy - 25, size: 8.5, font: fontReg, color: ink });
+                    page.drawText(pdfSafeText(`CPF: ${cpf || '_________________'}`), { x: sx, y: sy - 37, size: 8.5, font: fontReg, color: ink });
+                    page.drawText(pdfSafeText(signedAt ? `Assinado em: ${fmtDate(signedAt)}` : 'Data: ____/____/________'), { x: sx, y: sy - 49, size: 8, font: fontReg, color: muted });
+                };
+
+                drawSigBox(ML, y, 'LOCADOR', l.name, l.cpf, sd.locador_at);
+                drawSigBox(ML + colW + 28, y, 'LOCATÁRIO', d.name, d.cpf, sd.locatario_at);
+                y -= 86;
+
+                ensureSpace(88);
+                const w1 = wList[0] || {}, w2 = wList[1] || {};
+                drawSigBox(ML, y, 'TESTEMUNHA 1', w1.name, w1.cpf, sd.witness1_at);
+                drawSigBox(ML + colW + 28, y, 'TESTEMUNHA 2', w2.name, w2.cpf, sd.witness2_at);
+
+                // Rodapés com paginação exata "Página X de Y"
+                const totalP = pages.length;
+                const footLeft = pdfSafeText(`${contract.contract_number || 'RASCUNHO'} | ${(l.name || 'LOCADOR').split(' ')[0]} x ${(d.name || 'LOCATÁRIO').split(' ')[0]}`);
+                pages.forEach((p, idx) => {
+                    p.drawLine({ start: { x: ML, y: 38 }, end: { x: W - MR, y: 38 }, thickness: 0.6, color: lineCol });
+                    p.drawText(footLeft, { x: ML, y: 24, size: 8, font: fontSans, color: muted });
+                    const pNum = pdfSafeText(`Página ${idx + 1} de ${totalP}`);
+                    p.drawText(pNum, { x: W - MR - fontSans.widthOfTextAtSize(pNum, 8), y: 24, size: 8, font: fontSans, color: muted });
+                });
+                return await pdf.save();
+            })();
+        }
+
+        // Renderiza lista CONTRATOS na aba Master e na Ficha do Motorista
+        function renderContractsTab() {
+            const tbody = document.getElementById('tblContractsList');
+            const chips = document.getElementById('ctrSummaryChips');
+            if (!tbody) return;
+            const list = state.contracts || [];
+            const q = ((document.getElementById('ctrSearch') && document.getElementById('ctrSearch').value) || '').trim().toLowerCase();
+            const stFilter = (document.getElementById('ctrFilterStatus') && document.getElementById('ctrFilterStatus').value) || '';
+            if (chips) {
+                const counts = {};
+                list.forEach(c => { counts[c.status] = (counts[c.status] || 0) + 1; });
+                chips.innerHTML = Object.entries(CONTRACT_STATUS_META).map(([k, m]) =>
+                    `<button type="button" onclick="document.getElementById('ctrFilterStatus').value='${k}';renderContractsTab()" class="px-2.5 py-1 rounded-full font-semibold ${m.cls} ${stFilter === k ? 'ring-2 ring-indigo-500' : 'opacity-90'}">${esc(m.label)}: ${counts[k] || 0}</button>`
+                ).join('') + (stFilter ? `<button type="button" onclick="document.getElementById('ctrFilterStatus').value='';renderContractsTab()" class="px-2.5 py-1 rounded-full bg-gray-200 dark:bg-gray-700 font-semibold">Limpar filtro</button>` : '');
+            }
+            const filtered = list.filter(c => {
+                if (stFilter && c.status !== stFilter) return false;
+                if (!q) return true;
+                const s = c.snapshot_data || {};
+                const drv = allDrv().find(x => x.id === c.driver_id);
+                const veh = allVeh().find(x => x.id === c.vehicle_id);
+                const hay = [c.contract_number, s.locatario && s.locatario.name, drv && drv.name, s.veiculo && s.veiculo.model, s.veiculo && s.veiculo.plate, veh && veh.model, veh && veh.plate].filter(Boolean).join(' ').toLowerCase();
+                return hay.includes(q);
+            });
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-6 text-center text-gray-400 italic">${list.length ? 'Nenhum contrato encontrado com esse filtro.' : 'Nenhum contrato criado ainda. Clique em "Novo contrato" ou crie pela ficha do motorista.'}</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = filtered.map(c => {
+                const s = c.snapshot_data || {};
+                const drvName = (s.locatario && s.locatario.name) || (allDrv().find(x => x.id === c.driver_id) || {}).name || '-';
+                const vSnap = s.veiculo || allVeh().find(x => x.id === c.vehicle_id) || {};
+                const per = c.payment_periodicity || c.periodicity || 'semanal';
+                const ind = c.indefinite_term != null ? c.indefinite_term : c.is_indeterminate;
+                return `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                    <td class="p-3 font-mono text-xs font-bold">${esc(c.contract_number || 'RASCUNHO')}</td>
+                    <td class="p-3 font-medium">${esc(drvName)}</td>
+                    <td class="p-3">${esc(vSnap.model || '-')}</td>
+                    <td class="p-3 font-mono text-xs">${esc(vSnap.plate || '-')}</td>
+                    <td class="p-3 whitespace-nowrap">${fmtMoney(c.rent_amount)} <span class="text-xs text-gray-400">/${esc(contractPeriodLabel(per).slice(0, 3).toLowerCase())}</span></td>
+                    <td class="p-3 whitespace-nowrap">${fmtDate(c.start_date)}</td>
+                    <td class="p-3 whitespace-nowrap">${ind ? 'Indeterminado' : (c.end_date ? fmtDate(c.end_date) : '-')}</td>
+                    <td class="p-3">${contractStatusBadge(c.status)}</td>
+                    <td class="p-3 text-right">
+                        <div class="flex justify-end gap-1.5 flex-wrap">
+                            <button type="button" onclick="openContractDetail('${c.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200 hover:bg-indigo-100">Abrir</button>
+                            <button type="button" onclick="downloadContractPdf('${c.id}', this)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-200" title="Baixar PDF"><i class="fa-solid fa-file-pdf text-red-600"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+            rotularTabelas(document.getElementById('subMasterContracts'));
+        }
+
+        function renderDriverRentalContractsBox(driverId) {
+            const box = document.getElementById('dfRentalContractsBox');
+            if (!box) return;
+            const list = (state.contracts || []).filter(c => c.driver_id === driverId);
+            const active = list.find(c => c.status === 'ativo' || c.status === 'aguardando_assinatura');
+            box.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h4 class="font-semibold text-sm"><i class="fa-solid fa-file-signature text-indigo-600 mr-1"></i> CONTRATO DE LOCAÇÃO</h4>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="openContractWizard({ driverId: '${driverId}' })" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Criar contrato</button>
+                        ${active ? `<button type="button" onclick="openContractWizard({ renewFrom: '${active.id}' })" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-rotate mr-1"></i> Renovar</button>` : ''}
+                    </div>
+                </div>
+                ${list.length ? `<div class="space-y-2">
+                    ${list.map(c => {
+                        const s = c.snapshot_data || {};
+                        const v = s.veiculo || {};
+                        const per = c.payment_periodicity || c.periodicity || 'semanal';
+                        return `<div class="p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-indigo-200/80 dark:border-indigo-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="min-w-0 text-xs">
+                                <div class="flex items-center gap-2 flex-wrap"><span class="font-mono font-bold">${esc(c.contract_number)}</span>${contractStatusBadge(c.status)}</div>
+                                <div class="text-gray-500 dark:text-gray-400 mt-0.5">${esc(v.model || '-')} (${esc(v.plate || '-')}) · ${fmtMoney(c.rent_amount)}/${esc(contractPeriodLabel(per).toLowerCase())} · Início ${fmtDate(c.start_date)}</div>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 shrink-0">
+                                <button type="button" onclick="openContractDetail('${c.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200">Gerenciar / Assinar</button>
+                                <button type="button" onclick="downloadContractPdf('${c.id}', this)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-download mr-1"></i> PDF</button>
+                                <button type="button" onclick="printContractPdf('${c.id}', this)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-print"></i></button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>` : '<p class="text-xs text-gray-500 dark:text-gray-400">Nenhum contrato estruturado gerado para este motorista ainda.</p>'}
+            `;
+        }
+        function openContractForDriver(driverId) {
+            const list = (state.contracts || []).filter(c => c.driver_id === driverId);
+            if (list.length === 1) { openContractDetail(list[0].id); return; }
+            if (list.length > 1) { openDriverFile(driverId); return; }
+            openContractWizard({ driverId });
+        }
+
+        // ---- WIZARD DE CRIAÇÃO / EDIÇÃO DE RASCUNHO / RENOVAÇÃO ----
+        let cwState = { id: null, renewed_from_id: null, clauses: [], contract_number: null };
+        function closeContractWizard() { document.getElementById('modalContractWizard').classList.add('hidden'); }
+        function cwPopulateSelects(drvId, vehId) {
+            const drvSel = document.getElementById('cwDriverId'), vehSel = document.getElementById('cwVehicleId');
+            const drvs = allDrv().filter(d => d.role === 'driver');
+            drvSel.innerHTML = `<option value="">Selecione o motorista...</option>` + drvs.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
+            vehSel.innerHTML = `<option value="">Selecione o veículo...</option>` + (state.vehicles || []).map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
+            if (drvId) drvSel.value = drvId;
+            if (vehId) vehSel.value = vehId;
+        }
+        function cwFillLocador(l) {
+            const src = l || locadorMerged();
+            const map = { cwLocName: 'name', cwLocCpf: 'cpf', cwLocRg: 'rg', cwLocNat: 'nationality', cwLocCiv: 'marital_status', cwLocProf: 'profession', cwLocPhone: 'phone', cwLocEmail: 'email', cwLocAddr: 'address' };
+            for (const [id, k] of Object.entries(map)) document.getElementById(id).value = src[k] || '';
+            if (!document.getElementById('cwForo').value && src.foro_cidade_uf) document.getElementById('cwForo').value = src.foro_cidade_uf;
+            if (!document.getElementById('cwLocalAssinatura').value && src.foro_cidade_uf) document.getElementById('cwLocalAssinatura').value = src.foro_cidade_uf;
+        }
+        function cwFillDriver(d) {
+            d = d || {};
+            const map = { cwDrvName: 'name', cwDrvCpf: 'cpf', cwDrvRg: 'rg', cwDrvBirth: 'birth_date', cwDrvNat: 'nationality', cwDrvCiv: 'marital_status', cwDrvProf: 'profession', cwDrvPhone: 'phone', cwDrvEmail: 'email', cwDrvCnh: 'cnh_number', cwDrvCnhCat: 'cnh_category', cwDrvAddr: 'address' };
+            for (const [id, k] of Object.entries(map)) document.getElementById(id).value = d[k] || '';
+            const earEl = document.getElementById('cwDrvCnhEar');
+            if (earEl) earEl.checked = !!d.cnh_ear;
+            const dayIdx = d.payment_day_of_week;
+            if (dayIdx != null && !cwState.id) {
+                const dias = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+                if (dias[dayIdx]) document.getElementById('cwDueDay').value = ((dayIdx === 0 || dayIdx === 6) ? 'Todo ' : 'Toda ') + dias[dayIdx];
+            }
+            const cau = d.pix_extra && d.pix_extra.caucao;
+            if (cau && cau.total && !cwState.id) document.getElementById('cwDepositAmount').value = String(cau.total).replace('.', ',');
+        }
+        function cwFillVehicle(v) {
+            v = v || {};
+            let mfg = v.manufacture_year || '', mod = v.model_year || '';
+            if ((!mfg || !mod) && v.year && /\d{4}\s*\/\s*\d{4}/.test(v.year)) {
+                const pts = v.year.split('/'); mfg = mfg || pts[0].trim(); mod = mod || pts[1].trim();
+            }
+            document.getElementById('cwVehBrand').value = v.brand || '';
+            document.getElementById('cwVehModel').value = v.model || '';
+            document.getElementById('cwVehVersion').value = v.version || '';
+            document.getElementById('cwVehMfgYear').value = mfg;
+            document.getElementById('cwVehModelYear').value = mod;
+            document.getElementById('cwVehColor').value = v.color || '';
+            document.getElementById('cwVehPlate').value = v.plate || '';
+            document.getElementById('cwVehRenavam').value = v.renavam || '';
+            document.getElementById('cwVehChassi').value = v.chassi || '';
+            document.getElementById('cwVehFuel').value = v.fuel || '';
+            document.getElementById('cwVehMileage').value = v.mileage != null ? String(v.mileage) : '';
+            if (v.rent_amount != null && (!cwState.id || !document.getElementById('cwRentAmount').value)) {
+                document.getElementById('cwRentAmount').value = String(v.rent_amount).replace('.', ',');
+            }
+        }
+        function cwOnDriverChange(drvId) {
+            const d = allDrv().find(x => x.id === drvId);
+            cwFillDriver(d || {});
+            if (d && d.vehicle_id) {
+                document.getElementById('cwVehicleId').value = d.vehicle_id;
+                cwOnVehicleChange(d.vehicle_id);
+            } else { cwRebuildClauses(false); }
+        }
+        function cwOnVehicleChange(vehId) {
+            const v = state.vehicles.find(x => x.id === vehId);
+            if (v && v.rent_amount != null) document.getElementById('cwRentAmount').value = String(v.rent_amount).replace('.', ',');
+            cwFillVehicle(v || {});
+            cwRebuildClauses(false);
+        }
+        function cwReadSnapshot() {
+            const gv = id => (document.getElementById(id) && document.getElementById(id).value.trim()) || '';
+            const numOrNull = id => { const v = parseMoney(gv(id)); return v != null ? v : null; };
+            const isInd = document.getElementById('cwIndeterminate').checked;
+            const earEl = document.getElementById('cwDrvCnhEar');
+            const snap = {
+                contract_number: cwState.contract_number || 'RASCUNHO',
+                locador: { name: gv('cwLocName'), cpf: gv('cwLocCpf'), rg: gv('cwLocRg'), nationality: gv('cwLocNat'), marital_status: gv('cwLocCiv'), profession: gv('cwLocProf'), phone: gv('cwLocPhone'), email: gv('cwLocEmail'), address: gv('cwLocAddr') },
+                locatario: { name: gv('cwDrvName'), cpf: gv('cwDrvCpf'), rg: gv('cwDrvRg'), birth_date: gv('cwDrvBirth'), nationality: gv('cwDrvNat'), marital_status: gv('cwDrvCiv'), profession: gv('cwDrvProf'), phone: gv('cwDrvPhone'), email: gv('cwDrvEmail'), cnh_number: gv('cwDrvCnh'), cnh_category: gv('cwDrvCnhCat'), cnh_ear: !!(earEl && earEl.checked), address: gv('cwDrvAddr') },
+                veiculo: { brand: gv('cwVehBrand'), model: gv('cwVehModel'), version: gv('cwVehVersion'), manufacture_year: gv('cwVehMfgYear'), model_year: gv('cwVehModelYear'), color: gv('cwVehColor'), plate: gv('cwVehPlate').toUpperCase(), renavam: gv('cwVehRenavam'), chassi: gv('cwVehChassi').toUpperCase(), fuel: gv('cwVehFuel'), mileage: gv('cwVehMileage') ? parseInt(gv('cwVehMileage'), 10) : null },
+                comercial: { rent_amount: numOrNull('cwRentAmount'), periodicity: gv('cwPeriodicity') || 'semanal', due_day: gv('cwDueDay'), start_date: gv('cwStartDate'), end_date: isInd ? null : (gv('cwEndDate') || null), is_indeterminate: isInd, deposit_amount: numOrNull('cwDepositAmount'), payment_method: gv('cwPaymentMethod'), km_limit: gv('cwKmLimit') ? parseInt(gv('cwKmLimit'), 10) : null, km_extra_price: numOrNull('cwKmExtraPrice'), purpose: gv('cwPurpose'), notes: gv('cwNotes'), local_assinatura: gv('cwLocalAssinatura'), data_assinatura: gv('cwDataAssinatura') || todayISO(), foro_cidade_uf: gv('cwForo') },
+                testemunhas: [{ name: gv('cwWit1Name'), cpf: gv('cwWit1Cpf') }, { name: gv('cwWit2Name'), cpf: gv('cwWit2Cpf') }],
+                clauses: null
+            };
+            const clInputs = document.querySelectorAll('#cwClausesBox textarea[data-clause-idx]');
+            if (clInputs.length) {
+                snap.clauses = [...clInputs].map(ta => {
+                    const idx = Number(ta.dataset.clauseIdx);
+                    const ti = document.querySelector(`#cwClausesBox input[data-clause-title="${idx}"]`);
+                    return { num: idx + 1, title: (ti && ti.value.trim()) || `CLÁUSULA ${idx + 1}`, body: ta.value };
+                });
+            } else {
+                snap.clauses = buildDefaultClauses(snap);
+            }
+            return snap;
+        }
+        function cwRenderClausesEditor(clauses) {
+            const box = document.getElementById('cwClausesBox');
+            if (!box) return;
+            box.innerHTML = clauses.map((cl, i) => `
+                <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 space-y-1.5">
+                    <input type="text" data-clause-title="${i}" value="${esc(cl.title)}" class="w-full px-2.5 py-1.5 text-xs font-bold rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    <textarea rows="3" data-clause-idx="${i}" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">${esc(cl.body)}</textarea>
+                </div>
+            `).join('');
+        }
+        function cwRebuildClauses(forceToast) {
+            const snap = cwReadSnapshot();
+            const clauses = buildDefaultClauses(snap);
+            cwState.clauses = clauses;
+            cwRenderClausesEditor(clauses);
+            if (!document.getElementById('cwPreviewArea').classList.contains('hidden')) cwRenderPreview();
+            if (forceToast) showToast('Cláusulas atualizadas com os dados atuais.');
+        }
+        function cwRenderPreview() {
+            const snap = cwReadSnapshot();
+            const c = snap.comercial, l = snap.locador, d = snap.locatario, v = snap.veiculo;
+            const clauses = snap.clauses || buildDefaultClauses(snap);
+            const area = document.getElementById('cwPreviewArea');
+            area.innerHTML = `
+                <div class="text-center border-b border-gray-300 pb-3 mb-4">
+                    <div class="font-bold text-base">CONTRATO PARTICULAR DE LOCAÇÃO DE VEÍCULO AUTOMOTOR</div>
+                    <div class="text-xs text-gray-600 font-semibold">PARA FINS DE TRANSPORTE POR APLICATIVOS · ${esc(snap.contract_number || 'MINUTA')}</div>
+                </div>
+                <div class="space-y-2 text-xs mb-4 bg-gray-50 p-3 rounded border border-gray-200">
+                    <p><b>LOCADOR:</b> ${esc(l.name || '-')} | CPF ${esc(l.cpf || '-')} | RG ${esc(l.rg || '-')} | ${esc(l.address || '-')}</p>
+                    <p><b>LOCATÁRIO:</b> ${esc(d.name || '-')} | CPF ${esc(d.cpf || '-')} | CNH ${esc(d.cnh_number || '-')} (${esc(d.cnh_category || '-')}) | ${esc(d.address || '-')}</p>
+                    <p><b>VEÍCULO:</b> ${esc([v.brand, v.model, v.version].filter(Boolean).join(' ') || '-')} | Placa ${esc(v.plate || '-')} | RENAVAM ${esc(v.renavam || '-')} | Chassi ${esc(v.chassi || '-')}</p>
+                </div>
+                <div class="space-y-3 text-justify text-xs">
+                    ${clauses.map(cl => `<div><div class="font-bold mb-0.5">${esc(cl.title)}</div><div class="whitespace-pre-line">${esc(cl.body)}</div></div>`).join('')}
+                </div>
+                <div class="mt-6 pt-4 border-t border-gray-300 text-xs">
+                    <p class="font-semibold mb-4">${esc(c.local_assinatura || c.foro_cidade_uf || 'Local')}, ${fmtDate(c.data_assinatura || c.start_date || todayISO())}.</p>
+                    <div class="grid grid-cols-2 gap-6 pt-4">
+                        <div class="border-t border-gray-600 pt-1"><b>LOCADOR</b><br>${esc(l.name || '-')}<br>CPF: ${esc(l.cpf || '-')}</div>
+                        <div class="border-t border-gray-600 pt-1"><b>LOCATÁRIO</b><br>${esc(d.name || '-')}<br>CPF: ${esc(d.cpf || '-')}</div>
+                        <div class="border-t border-gray-600 pt-1"><b>TESTEMUNHA 1</b><br>${esc((snap.testemunhas[0] && snap.testemunhas[0].name) || '________________')}<br>CPF: ${esc((snap.testemunhas[0] && snap.testemunhas[0].cpf) || '____________')}</div>
+                        <div class="border-t border-gray-600 pt-1"><b>TESTEMUNHA 2</b><br>${esc((snap.testemunhas[1] && snap.testemunhas[1].name) || '________________')}<br>CPF: ${esc((snap.testemunhas[1] && snap.testemunhas[1].cpf) || '____________')}</div>
+                    </div>
+                </div>
+            `;
+        }
+        function cwTogglePreview() {
+            const area = document.getElementById('cwPreviewArea');
+            area.classList.toggle('hidden');
+            if (!area.classList.contains('hidden')) cwRenderPreview();
+        }
+        function validateContractForEmission(drvId, vehId, snap) {
+            const missing = [];
+            if (!drvId) missing.push('Selecionar o Motorista (Locatário)');
+            if (!vehId) missing.push('Selecionar o Veículo');
+            const reqLoc = [['name', 'Nome do Locador'], ['cpf', 'CPF do Locador'], ['rg', 'RG do Locador'], ['nationality', 'Nacionalidade do Locador'], ['marital_status', 'Estado civil do Locador'], ['profession', 'Profissão do Locador'], ['address', 'Endereço do Locador'], ['phone', 'Telefone do Locador'], ['email', 'E-mail do Locador']];
+            const reqDrv = [['name', 'Nome do Locatário'], ['cpf', 'CPF do Locatário'], ['rg', 'RG do Locatário'], ['birth_date', 'Nascimento do Locatário'], ['nationality', 'Nacionalidade do Locatário'], ['marital_status', 'Estado civil do Locatário'], ['profession', 'Profissão do Locatário'], ['address', 'Endereço do Locatário'], ['phone', 'Telefone do Locatário'], ['email', 'E-mail do Locatário'], ['cnh_number', 'CNH do Locatário'], ['cnh_category', 'Categoria da CNH']];
+            const reqVeh = [['model', 'Modelo do veículo'], ['color', 'Cor do veículo'], ['plate', 'Placa do veículo'], ['renavam', 'RENAVAM do veículo'], ['chassi', 'Chassi do veículo']];
+            reqLoc.forEach(([k, lbl]) => { if (!snap.locador[k]) missing.push(lbl); });
+            reqDrv.forEach(([k, lbl]) => { if (!snap.locatario[k]) missing.push(lbl); });
+            reqVeh.forEach(([k, lbl]) => { if (!snap.veiculo[k]) missing.push(lbl); });
+            if (!(snap.comercial.rent_amount > 0)) missing.push('Valor do aluguel (> 0)');
+            if (!snap.comercial.start_date) missing.push('Data de início do contrato');
+            if (!snap.comercial.is_indeterminate && !snap.comercial.end_date) missing.push('Data de término (ou marcar prazo indeterminado)');
+            if (!snap.comercial.purpose) missing.push('Finalidade da locação');
+            if (!snap.comercial.foro_cidade_uf) missing.push('Foro competente');
+            return missing;
+        }
+        function openContractWizard(opts) {
+            opts = opts || {};
+            cwState = { id: null, renewed_from_id: null, clauses: [], contract_number: null };
+            const missBox = document.getElementById('cwMissingBox');
+            missBox.classList.add('hidden'); missBox.innerHTML = '';
+            document.getElementById('cwPreviewArea').classList.add('hidden');
+
+            const existing = opts.contractId ? (state.contracts || []).find(c => c.id === opts.contractId) : null;
+            const renewSrc = opts.renewFrom ? (state.contracts || []).find(c => c.id === opts.renewFrom) : null;
+            const src = existing || renewSrc;
+            const drvId = opts.driverId || (src && src.driver_id) || '';
+            const drv = allDrv().find(x => x.id === drvId);
+            const vehId = opts.vehicleId || (src && src.vehicle_id) || (drv && drv.vehicle_id) || '';
+            cwPopulateSelects(drvId, vehId);
+
+            if (existing) {
+                cwState.id = existing.id; cwState.contract_number = existing.contract_number;
+                document.getElementById('cwTitle').innerHTML = `<i class="fa-solid fa-file-pen text-indigo-600 mr-1"></i> Editar Rascunho · ${esc(existing.contract_number)}`;
+            } else if (renewSrc) {
+                cwState.renewed_from_id = renewSrc.id;
+                document.getElementById('cwTitle').innerHTML = `<i class="fa-solid fa-rotate text-indigo-600 mr-1"></i> Renovar Contrato · ${esc(renewSrc.contract_number)}`;
+            } else {
+                document.getElementById('cwTitle').innerHTML = `<i class="fa-solid fa-file-signature text-indigo-600 mr-1"></i> Novo Contrato de Locação`;
+            }
+
+            if (src && src.snapshot_data) {
+                const s = src.snapshot_data, cm = s.comercial || {}, tw = s.testemunhas || [];
+                cwFillLocador(s.locador);
+                cwFillDriver(existing ? s.locatario : (drv || s.locatario));
+                const curVeh = state.vehicles.find(x => x.id === vehId);
+                cwFillVehicle(existing ? s.veiculo : (curVeh || s.veiculo));
+                document.getElementById('cwRentAmount').value = cm.rent_amount != null ? String(cm.rent_amount).replace('.', ',') : '';
+                document.getElementById('cwPeriodicity').value = cm.periodicity || 'semanal';
+                document.getElementById('cwDueDay').value = cm.due_day || '';
+                document.getElementById('cwStartDate').value = renewSrc ? todayISO() : (cm.start_date || todayISO());
+                const isInd = !!cm.is_indeterminate;
+                document.getElementById('cwIndeterminate').checked = isInd;
+                document.getElementById('cwEndDate').disabled = isInd;
+                document.getElementById('cwEndDate').value = (!isInd && !renewSrc && cm.end_date) ? cm.end_date : '';
+                document.getElementById('cwDepositAmount').value = cm.deposit_amount != null ? String(cm.deposit_amount).replace('.', ',') : '';
+                document.getElementById('cwPaymentMethod').value = cm.payment_method || 'Pix / Transferência bancária';
+                document.getElementById('cwKmLimit').value = cm.km_limit != null ? String(cm.km_limit) : '';
+                document.getElementById('cwKmExtraPrice').value = cm.km_extra_price != null ? String(cm.km_extra_price).replace('.', ',') : '';
+                document.getElementById('cwPurpose').value = cm.purpose || CONTRACT_PURPOSE_DEFAULT;
+                document.getElementById('cwNotes').value = cm.notes || '';
+                document.getElementById('cwLocalAssinatura').value = cm.local_assinatura || cm.foro_cidade_uf || '';
+                document.getElementById('cwDataAssinatura').value = renewSrc ? todayISO() : (cm.data_assinatura || todayISO());
+                document.getElementById('cwForo').value = cm.foro_cidade_uf || cm.local_assinatura || '';
+                document.getElementById('cwSignatureMode').value = src.signature_mode || 'manual';
+                document.getElementById('cwWit1Name').value = (tw[0] && tw[0].name) || '';
+                document.getElementById('cwWit1Cpf').value = (tw[0] && tw[0].cpf) || '';
+                document.getElementById('cwWit2Name').value = (tw[1] && tw[1].name) || '';
+                document.getElementById('cwWit2Cpf').value = (tw[1] && tw[1].cpf) || '';
+                const cls = (existing && Array.isArray(s.clauses) && s.clauses.length) ? s.clauses : buildDefaultClauses(cwReadSnapshot());
+                cwRenderClausesEditor(cls);
+            } else {
+                cwFillLocador();
+                cwFillDriver(drv || {});
+                const v = state.vehicles.find(x => x.id === vehId);
+                cwFillVehicle(v || {});
+                document.getElementById('cwPeriodicity').value = 'semanal';
+                if (!document.getElementById('cwDueDay').value) document.getElementById('cwDueDay').value = 'Toda segunda-feira';
+                document.getElementById('cwStartDate').value = todayISO();
+                document.getElementById('cwIndeterminate').checked = true;
+                document.getElementById('cwEndDate').disabled = true; document.getElementById('cwEndDate').value = '';
+                document.getElementById('cwPaymentMethod').value = 'Pix / Transferência bancária';
+                document.getElementById('cwKmLimit').value = ''; document.getElementById('cwKmExtraPrice').value = '';
+                document.getElementById('cwPurpose').value = CONTRACT_PURPOSE_DEFAULT;
+                document.getElementById('cwNotes').value = '';
+                document.getElementById('cwDataAssinatura').value = todayISO();
+                document.getElementById('cwSignatureMode').value = 'manual';
+                document.getElementById('cwWit1Name').value = ''; document.getElementById('cwWit1Cpf').value = '';
+                document.getElementById('cwWit2Name').value = ''; document.getElementById('cwWit2Cpf').value = '';
+                cwRenderClausesEditor(buildDefaultClauses(cwReadSnapshot()));
+            }
+            document.getElementById('modalContractWizard').classList.remove('hidden');
+        }
+
+        async function cwSyncSources(drvId, vehId, snap) {
+            if (document.getElementById('cwSaveLocDefault').checked && state.profile) {
+                const l = snap.locador;
+                const val = { ...l, foro_cidade_uf: snap.comercial.foro_cidade_uf || '' };
+                try {
+                    await sb.from('app_settings').upsert({ key: 'locador_config', value: val, updated_at: new Date().toISOString() });
+                    state.locadorCfg = val;
+                    await sb.from('profiles').update({ cpf: l.cpf || null, rg: l.rg || null, nationality: l.nationality || null, marital_status: l.marital_status || null, profession: l.profession || null, phone: l.phone || null, email: l.email || null, address: l.address || null }).eq('id', state.profile.id);
+                } catch (e) {}
+            }
+            if (document.getElementById('cwSyncDrvProfile').checked && drvId) {
+                const d = snap.locatario;
+                try {
+                    await sb.from('profiles').update({
+                        name: d.name || undefined, cpf: d.cpf || null, rg: d.rg || null, birth_date: d.birth_date || null,
+                        nationality: d.nationality || null, marital_status: d.marital_status || null, profession: d.profession || null,
+                        phone: d.phone || null, email: d.email || null, cnh_number: d.cnh_number || null, cnh_category: d.cnh_category || null,
+                        cnh_ear: !!d.cnh_ear, address: d.address || null
+                    }).eq('id', drvId);
+                } catch (e) {}
+            }
+            if (document.getElementById('cwSyncVehProfile').checked && vehId) {
+                const v = snap.veiculo;
+                try {
+                    await sb.from('vehicles').update({
+                        brand: v.brand || null, model: v.model || undefined, version: v.version || null,
+                        manufacture_year: v.manufacture_year || null, model_year: v.model_year || null,
+                        color: v.color || null, plate: v.plate || undefined, renavam: v.renavam || null,
+                        chassi: v.chassi || null, fuel: v.fuel || null, mileage: v.mileage != null ? v.mileage : null
+                    }).eq('id', vehId);
+                } catch (e) {}
+            }
+        }
+        async function logContractHistory(contractId, driverId, eventType, description, metadata) {
+            try {
+                await sb.from('rental_contract_history').insert({
+                    owner_id: (state.profile && state.profile.id) || null,
+                    contract_id: contractId, driver_id: driverId,
+                    event_type: eventType, description, metadata: metadata || {}
+                });
+            } catch (e) {}
+        }
+        async function persistContract(targetStatus, btn) {
+            const drvId = document.getElementById('cwDriverId').value;
+            const vehId = document.getElementById('cwVehicleId').value;
+            const snap = cwReadSnapshot();
+            const missBox = document.getElementById('cwMissingBox');
+            if (targetStatus !== 'rascunho') {
+                const missing = validateContractForEmission(drvId, vehId, snap);
+                if (missing.length) {
+                    missBox.innerHTML = `<b>Dados obrigatórios ausentes para emissão definitiva:</b><ul class="list-disc pl-5 mt-1">${missing.map(m => `<li>${esc(m)}</li>`).join('')}</ul>`;
+                    missBox.classList.remove('hidden');
+                    missBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    showToast('Preencha os campos obrigatórios antes de emitir.', 'error');
+                    return;
+                }
+            } else if (!drvId || !vehId) {
+                showToast('Selecione ao menos o motorista e o veículo para salvar o rascunho.', 'error');
+                return;
+            }
+            missBox.classList.add('hidden');
+            return withBtn(btn, targetStatus === 'rascunho' ? 'Salvando...' : 'Gerando PDF...', async () => {
+                try {
+                    let num = cwState.contract_number;
+                    if (!num) {
+                        const rNum = await sb.rpc('next_rental_contract_number');
+                        num = (!rNum.error && rNum.data) ? rNum.data : `CTR-${new Date().getFullYear()}-${String((state.contracts || []).length + 1).padStart(4, '0')}`;
+                    }
+                    snap.contract_number = num;
+                    const cm = snap.comercial;
+                    const sigData = {
+                        witness1_name: (snap.testemunhas[0] && snap.testemunhas[0].name) || null,
+                        witness1_cpf: (snap.testemunhas[0] && snap.testemunhas[0].cpf) || null,
+                        witness2_name: (snap.testemunhas[1] && snap.testemunhas[1].name) || null,
+                        witness2_cpf: (snap.testemunhas[1] && snap.testemunhas[1].cpf) || null,
+                        foro_cidade_uf: cm.foro_cidade_uf || null
+                    };
+                    const rowPayload = {
+                        owner_id: (state.profile && state.profile.id) || null,
+                        driver_id: drvId, vehicle_id: vehId, contract_number: num, status: targetStatus,
+                        rent_amount: Number(cm.rent_amount) || 0, payment_periodicity: cm.periodicity || 'semanal',
+                        due_day: cm.due_day || null, start_date: cm.start_date || todayISO(),
+                        end_date: cm.is_indeterminate ? null : (cm.end_date || null),
+                        indefinite_term: !!cm.is_indeterminate, deposit_amount: cm.deposit_amount != null ? Number(cm.deposit_amount) : 0,
+                        payment_method: cm.payment_method || null, km_limit: cm.km_limit || null,
+                        excess_km_fee: cm.km_extra_price != null ? Number(cm.km_extra_price) : null,
+                        purpose: cm.purpose || CONTRACT_PURPOSE_DEFAULT, notes: cm.notes || null,
+                        signature_place: cm.local_assinatura || null, signature_date: cm.data_assinatura || null,
+                        signature_mode: document.getElementById('cwSignatureMode').value || 'manual',
+                        signature_data: sigData,
+                        renewed_from_id: cwState.renewed_from_id || null,
+                        snapshot_data: snap
+                    };
+                    let saved = null;
+                    if (cwState.id) {
+                        const res = await sb.from('rental_contracts').update(rowPayload).eq('id', cwState.id).select().single();
+                        if (res.error) throw res.error;
+                        saved = res.data;
+                    } else {
+                        const res = await sb.from('rental_contracts').insert(rowPayload).select().single();
+                        if (res.error) throw res.error;
+                        saved = res.data;
+                    }
+                    if (targetStatus !== 'rascunho') {
+                        const pdfBytes = await generateContractPdfBytes(saved);
+                        const fileName = contractPdfFileName(saved);
+                        const storagePath = `${drvId}/contratos/${saved.id}/${fileName}`;
+                        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                        const up = await sb.storage.from(BUCKET).upload(storagePath, blob, { upsert: true, contentType: 'application/pdf' });
+                        if (up.error) throw up.error;
+                        const upd = await sb.from('rental_contracts').update({ pdf_path: storagePath, emitted_at: new Date().toISOString() }).eq('id', saved.id).select().single();
+                        if (!upd.error && upd.data) saved = upd.data;
+                        await sb.from('profiles').update({ contract_path: storagePath }).eq('id', drvId);
+                        await logContractHistory(saved.id, drvId, cwState.renewed_from_id ? 'renovado' : 'emitido', `${cwState.renewed_from_id ? 'Contrato renovado e emitido' : 'Contrato emitido e PDF gerado'}: ${num}`, { pdf_path: storagePath });
+                        if (cwState.renewed_from_id) {
+                            await sb.from('rental_contracts').update({ status: 'encerrado', terminated_at: new Date().toISOString(), termination_reason: `Renovado pelo contrato ${num}` }).eq('id', cwState.renewed_from_id);
+                            await logContractHistory(cwState.renewed_from_id, drvId, 'renovado', `Substituído por renovação (${num})`, { next_contract_id: saved.id });
+                        }
+                    } else {
+                        await logContractHistory(saved.id, drvId, cwState.id ? 'editado' : 'rascunho', cwState.id ? `Rascunho ${num} atualizado` : `Rascunho ${num} criado`, {});
+                    }
+                    await cwSyncSources(drvId, vehId, snap);
+                    closeContractWizard();
+                    await reload();
+                    if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
+                    showToast(targetStatus === 'rascunho' ? `Rascunho ${num} salvo!` : `Contrato ${num} gerado com PDF!`);
+                    openContractDetail(saved.id);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        function saveContractDraft(btn) { return persistContract('rascunho', btn); }
+        function emitContract(btn) { return persistContract('aguardando_assinatura', btn); }
+
+        async function ensureContractPdfBlob(c) {
+            if (c.pdf_path) {
+                try {
+                    const f = await fileUrl(c.pdf_path);
+                    if (f && f.blob && (f.blob.type === 'application/pdf' || !DEMO)) return f.blob;
+                } catch (e) {}
+            }
+            const bytes = await generateContractPdfBytes(c);
+            return new Blob([bytes], { type: 'application/pdf' });
+        }
+        async function downloadContractPdf(id, btn) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            if (!c) return;
+            const run = async () => {
+                const blob = await ensureContractPdfBlob(c);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = contractPdfFileName(c);
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+            };
+            return btn ? withBtn(btn, 'Baixando...', run) : run();
+        }
+        async function printContractPdf(id, btn) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            if (!c) return;
+            const run = async () => {
+                const blob = await ensureContractPdfBlob(c);
+                const url = URL.createObjectURL(blob);
+                const w = window.open(url, '_blank');
+                if (w) setTimeout(() => { try { w.print(); } catch (e) {} }, 700);
+                else showToast('Permita pop-ups para imprimir ou use Baixar PDF.', 'info');
+            };
+            return btn ? withBtn(btn, 'Preparando...', run) : run();
+        }
+
+        // ---- MODAL DETALHE, ASSINATURAS, UPLOAD ASSINADO, RENOVAR, ENCERRAR, CANCELAR ----
+        function closeContractDetail() { document.getElementById('modalContractDetail').classList.add('hidden'); }
+        function openContractDetail(id) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            if (!c) return;
+            const s = c.snapshot_data || {}, l = s.locador || {}, d = s.locatario || {}, v = s.veiculo || {}, cm = s.comercial || {}, sd = c.signature_data || {};
+            const per = c.payment_periodicity || c.periodicity || 'semanal';
+            const ind = c.indefinite_term != null ? c.indefinite_term : c.is_indeterminate;
+            const hist = (state.contractHistory || []).filter(h => h.contract_id === id);
+            document.getElementById('cdTitle').innerHTML = `<i class="fa-solid fa-file-contract text-indigo-600 mr-1"></i> ${esc(c.contract_number || 'Contrato')}`;
+            document.getElementById('cdSubtitle').textContent = `${d.name || '-'} · ${v.model || '-'} (${v.plate || '-'})`;
+            const sigBox = (label, checked, dtVal, idCb, idDt) => `
+                <label class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 text-xs">
+                    <span class="flex items-center gap-2 font-semibold"><input type="checkbox" id="${idCb}" ${checked ? 'checked' : ''} class="rounded"> ${label}</span>
+                    <input type="date" id="${idDt}" value="${esc(dtVal ? String(dtVal).slice(0, 10) : '')}" class="p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
+                </label>`;
+            const canAct = c.status !== 'encerrado' && c.status !== 'cancelado';
+            document.getElementById('cdBody').innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">${contractStatusBadge(c.status)} <span class="text-xs text-gray-500">Criado em ${fmtDate(c.created_at)}</span>${c.renewed_from_id ? `<span class="text-xs text-indigo-600 font-semibold"><i class="fa-solid fa-link mr-1"></i>Renovação</span>` : ''}</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        ${c.status === 'rascunho' ? `<button type="button" onclick="closeContractDetail();openContractWizard({ contractId: '${c.id}' })" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white"><i class="fa-solid fa-pen mr-1"></i> Editar rascunho</button>` : ''}
+                        <button type="button" onclick="downloadContractPdf('${c.id}', this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
+                        <button type="button" onclick="printContractPdf('${c.id}', this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700"><i class="fa-solid fa-print mr-1"></i> Imprimir</button>
+                        ${c.pdf_path ? `<button type="button" onclick="viewDocIdx(${docRef(c.pdf_path, `PDF ${esc(c.contract_number)}`)})" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700"><i class="fa-solid fa-eye mr-1"></i> Ver PDF salvo</button>` : ''}
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-700">
+                    <div><b>Locador:</b> ${esc(l.name || '-')} (${esc(l.cpf || '-')})</div>
+                    <div><b>Locatário:</b> ${esc(d.name || '-')} (${esc(d.cpf || '-')})</div>
+                    <div><b>Veículo:</b> ${esc([v.brand, v.model].filter(Boolean).join(' ') || '-')} · ${esc(v.plate || '-')} · RENAVAM ${esc(v.renavam || '-')}</div>
+                    <div><b>Aluguel:</b> ${fmtMoney(c.rent_amount)} (${esc(contractPeriodLabel(per))}) · Caução ${c.deposit_amount ? fmtMoney(c.deposit_amount) : 'Sem caução'}</div>
+                    <div><b>Vigência:</b> ${fmtDate(c.start_date)} até ${ind ? 'Prazo indeterminado' : fmtDate(c.end_date)}</div>
+                    <div><b>Foro:</b> ${esc(cm.foro_cidade_uf || sd.foro_cidade_uf || '-')}</div>
+                </div>
+                <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <h4 class="font-bold text-sm"><i class="fa-solid fa-signature text-indigo-600 mr-1"></i> Assinaturas e Documento Assinado</h4>
+                        <span class="text-[11px] text-gray-500">Arquitetura preparada para assinatura eletrônica futura (sem simulação).</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        ${sigBox('Locador assinou', sd.locador_at, sd.locador_at, 'cdSigLoc', 'cdSigLocDt')}
+                        ${sigBox('Locatário assinou', sd.locatario_at, sd.locatario_at, 'cdSigDrv', 'cdSigDrvDt')}
+                        ${sigBox('Testemunha 1 assinou', sd.witness1_at, sd.witness1_at, 'cdSigW1', 'cdSigW1Dt')}
+                        ${sigBox('Testemunha 2 assinou', sd.witness2_at, sd.witness2_at, 'cdSigW2', 'cdSigW2Dt')}
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="cdActivateOnSign" ${c.status === 'aguardando_assinatura' ? 'checked' : ''} class="rounded"> Ativar contrato ao confirmar assinatura de Locador e Locatário</label>
+                        <button type="button" onclick="saveContractSignatures('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"><i class="fa-solid fa-check mr-1"></i> Registrar assinaturas</button>
+                    </div>
+                    <div class="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300">Anexar contrato assinado digitalizado (PDF/Foto)</label>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="file" id="cdSignedFile" accept="image/*,application/pdf" class="flex-1 text-xs text-gray-500">
+                            <button type="button" onclick="uploadSignedContractFile('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shrink-0"><i class="fa-solid fa-upload mr-1"></i> Enviar assinado</button>
+                        </div>
+                        ${c.signed_pdf_path ? `<div class="text-xs text-emerald-600 flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Documento assinado anexado <button type="button" onclick="viewDocIdx(${docRef(c.signed_pdf_path, `Assinado - ${esc(c.contract_number)}`)})" class="underline font-semibold">Visualizar documento assinado</button></div>` : ''}
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    ${canAct ? `<button type="button" onclick="closeContractDetail();openContractWizard({ renewFrom: '${c.id}' })" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-rotate mr-1"></i> Renovar contrato</button>` : ''}
+                    ${canAct ? `<button type="button" onclick="terminateContractPrompt('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white"><i class="fa-solid fa-flag-checkered mr-1"></i> Encerrar contrato</button>` : ''}
+                    ${c.status === 'rascunho' || c.status === 'aguardando_assinatura' ? `<button type="button" onclick="cancelContractPrompt('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-ban mr-1"></i> Cancelar</button>` : ''}
+                </div>
+                <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
+                    <h4 class="font-bold text-sm"><i class="fa-solid fa-clock-rotate-left text-gray-500 mr-1"></i> Histórico do contrato</h4>
+                    ${hist.length ? `<ul class="space-y-1.5 text-xs">${hist.map(h => `<li class="flex items-start justify-between gap-2 border-t border-gray-100 dark:border-gray-700 pt-1.5 first:border-0 first:pt-0"><span><b>${esc(h.description || h.event_label || h.event_type)}</b></span><span class="text-gray-400 shrink-0">${dataHoraBR(h.created_at)}</span></li>`).join('')}</ul>` : '<p class="text-xs text-gray-400 italic">Sem eventos registrados.</p>'}
+                </div>
+            `;
+            document.getElementById('modalContractDetail').classList.remove('hidden');
+        }
+        async function saveContractSignatures(id, btn) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            if (!c) return;
+            const rd = (cbId, dtId) => document.getElementById(cbId).checked ? ((document.getElementById(dtId).value || todayISO()) + 'T12:00:00Z') : null;
+            const locAt = rd('cdSigLoc', 'cdSigLocDt'), drvAt = rd('cdSigDrv', 'cdSigDrvDt');
+            const w1At = rd('cdSigW1', 'cdSigW1Dt'), w2At = rd('cdSigW2', 'cdSigW2Dt');
+            const activate = document.getElementById('cdActivateOnSign') && document.getElementById('cdActivateOnSign').checked && locAt && drvAt;
+            const nextStatus = activate && (c.status === 'aguardando_assinatura' || c.status === 'rascunho') ? 'ativo' : c.status;
+            return withBtn(btn, 'Registrando...', async () => {
+                try {
+                    const nextSigData = { ...(c.signature_data || {}), locador_at: locAt, locatario_at: drvAt, witness1_at: w1At, witness2_at: w2At };
+                    const upd = {
+                        signature_data: nextSigData,
+                        signed_at: (locAt && drvAt) ? (c.signed_at || new Date().toISOString()) : null,
+                        status: nextStatus
+                    };
+                    const { error } = await sb.from('rental_contracts').update(upd).eq('id', id);
+                    if (error) throw error;
+                    await logContractHistory(id, c.driver_id, 'assinatura', nextStatus === 'ativo' ? 'Assinaturas registradas e contrato ativado' : 'Registro de assinaturas atualizado', { locador: !!locAt, locatario: !!drvAt, t1: !!w1At, t2: !!w2At });
+                    await reload();
+                    openContractDetail(id);
+                    showToast('Assinaturas registradas!');
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        async function uploadSignedContractFile(id, btn) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            const inp = document.getElementById('cdSignedFile');
+            const file = inp && inp.files && inp.files[0];
+            if (!c) return;
+            if (!file) { showToast('Selecione o arquivo digitalizado primeiro.', 'error'); return; }
+            return withBtn(btn, 'Enviando...', async () => {
+                try {
+                    const path = await uploadFile(file, `${c.driver_id}/contratos/${c.id}/assinado-${Date.now()}`);
+                    if (!path) return;
+                    const { error } = await sb.from('rental_contracts').update({ signed_pdf_path: path, signature_mode: 'digitalizado' }).eq('id', id);
+                    if (error) throw error;
+                    await sb.from('profiles').update({ contract_path: path }).eq('id', c.driver_id);
+                    await logContractHistory(id, c.driver_id, 'anexo_assinado', 'Contrato assinado digitalizado anexado', { signed_pdf_path: path });
+                    await reload();
+                    openContractDetail(id);
+                    showToast('Documento assinado anexado ao contrato e à ficha!');
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        async function terminateContractPrompt(id) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            if (!c) return;
+            const motivo = await uiPrompt('Encerrar contrato ' + c.contract_number, { label: 'Motivo / observação do encerramento', placeholder: 'Ex: Devolução do veículo em bom estado', okText: 'Encerrar contrato', danger: true });
+            if (motivo === null) return;
+            try {
+                const { error } = await sb.from('rental_contracts').update({ status: 'encerrado', terminated_at: new Date().toISOString(), termination_reason: motivo.trim() || 'Encerrado pela administração', updated_at: new Date().toISOString() }).eq('id', id);
+                if (error) throw error;
+                await logContractHistory(id, c.driver_id, 'encerrado', `Contrato encerrado${motivo.trim() ? ': ' + motivo.trim() : ''}`, null);
+                await reload();
+                openContractDetail(id);
+                if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
+                showToast('Contrato encerrado!');
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+        }
+        async function cancelContractPrompt(id) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            if (!c) return;
+            const ok = await uiConfirm(`Deseja cancelar o contrato ${c.contract_number}? Ele permanecerá no histórico como cancelado.`, { title: 'Cancelar contrato', okText: 'Sim, cancelar', danger: true });
+            if (!ok) return;
+            try {
+                const { error } = await sb.from('rental_contracts').update({ status: 'cancelado', updated_at: new Date().toISOString() }).eq('id', id);
+                if (error) throw error;
+                await logContractHistory(id, c.driver_id, 'cancelado', `Contrato ${c.contract_number} cancelado`, null);
+                await reload();
+                openContractDetail(id);
+                if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
+                showToast('Contrato cancelado!');
+            } catch (e) { showToast(friendlyError(e), 'error'); }
         }
     </script>
 </body>

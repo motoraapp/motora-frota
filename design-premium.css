@@ -227,10 +227,14 @@ html[data-skin] .sit-alerta { display: flex; align-items: center; gap: 10px; wid
 html[data-skin] .sit-alerta i:first-child { color: var(--warn); }
 html[data-skin] .sit-alerta .fa-chevron-right { margin-left: auto; font-size: 11px; color: var(--muted); }
 html[data-skin] #secMasterPanel > .masterTopo .masterAbas { display: none !important; }
-html[data-skin][data-design] #secMasterPanel > .masterAtalhos { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+html[data-skin][data-design] #secMasterPanel > .masterAtalhos { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
 html[data-skin][data-design] #secMasterPanel > .masterAtalhos button { min-height: 76px; flex-direction: column; gap: 7px; background: var(--card) !important; color: var(--text) !important; border: 1px solid var(--line); border-radius: var(--r-lg) !important; font-size: var(--fs-small); font-weight: 500; box-shadow: var(--shadow) !important; }
 html[data-skin][data-design] #secMasterPanel > .masterAtalhos button i { font-size: 20px; color: var(--accent-text); }
-@media (min-width: 640px) { html[data-skin] #masterResumo { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 1023px) { #mnCtr { display: none !important; } }
+@media (min-width: 640px) {
+  html[data-skin] #masterResumo { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  html[data-skin][data-design] #secMasterPanel > .masterAtalhos { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 /* ---------- 14. Painel do motorista ---------- */
 html[data-skin] #secDriverPanel > div:first-of-type + div, html[data-skin] #secDriverPanel .min-h-\[400px\] { border-radius: var(--r-lg); }

@@ -27,6 +27,7 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 | Painel do motorista (abas CRLV-e, Contrato, Pagamento, Vistoria) | `#secDriverPanel`, `renderDriverPanel`, `switchDriverTab`, `renderDriverExtras`, `renderDriverProfileExtras` (caução/próxima semana) |
 | Funções do motorista ligadas/desligadas | seção "FUNÇÕES DO MOTORISTA" |
 | Ficha do motorista (dono) | `#modalDriverFile`, `openDriverFile`, `saveDriverFile`, `closeDriverFile` |
+| Contratos de locação (PDF A4, wizard, assinatura e histórico) | `#subMasterContracts`, `#dfRentalContractsBox`, `#modalContractWizard`, `#modalContractDetail`, `openContractWizard`, `generateContractPdfBytes`, `buildDefaultClauses`, `openContractDetail`, `renderContractsTab`, `saveLocadorSettings`, `supabase/2026-11-12-modulo-contratos.sql` |
 | Forma de cobrança / dia do pagamento / Pix automático do MOTORA | `cobOf`, `dfCobFill`, `dfCobRead`, `dfCobInfo`, `cobResumoHtml` (perto de "DIA DO PAGAMENTO e PAGAMENTO AUTOMÁTICO") |
 | Caução | seções "CAUÇÃO DO MOTORISTA" e "CAUÇÃO: quanto já foi pago" (`cauOf`, `cauNext`, `cauStatus`, `dfCauFill`, `dfCauRead`) |
 | Multas e despesas do motorista | seção "MULTAS E OUTRAS DESPESAS" (`multasOf`, `multasPendentes`, `dfMultFill`) |
