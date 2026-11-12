@@ -20,7 +20,9 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 | Trocar minha senha | seção "TROCAR MINHA SENHA", `#modalSenha` |
 | Modo demonstração (dados fictícios) | `demoBuild` (dados), `demoClient` (banco falso), `demoDocBlob` (documentos desenhados), `abrirDemo`, `trocarDemo`, `demoBanner`, `#secDemoEscolha`, `demoAssistente` (IA falsa) |
 | Carregar dados do banco | `reload` |
-| Visual, temas e aparência | `design-premium.css` (variáveis no topo); `applyDesign`, `fillDesignCfg`, `saveDesign` |
+| Visual, temas e aparência | `design-premium.css` (variáveis no topo; seção 19 = regras da revisão de 12/11); `applyDesign`, `fillDesignCfg`, `saveDesign` |
+| Janela de confirmação do app (no lugar de confirm/prompt) | `#uiDialogo`, `uiDialogo`, `uiConfirm`, `uiPrompt` |
+| Cartões dos motoristas (lista do dono) | `#tblDriversList` em `renderMasterPanel`, `marcarSituacao`, `confirmReceipt`, `rejectReceipt`, `receiptMasterBox` |
 | Painel do dono (abas, barra de baixo) | `#secMasterPanel`, `switchMasterTab`, `toggleArea` |
 | Painel do motorista (abas CRLV-e, Contrato, Pagamento, Vistoria) | `#secDriverPanel`, `renderDriverPanel`, `switchDriverTab`, `renderDriverExtras`, `renderDriverProfileExtras` (caução/próxima semana) |
 | Funções do motorista ligadas/desligadas | seção "FUNÇÕES DO MOTORISTA" |

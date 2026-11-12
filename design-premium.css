@@ -7,7 +7,7 @@
 /* ---------- 1. Variáveis ---------- */
 html[data-skin] {
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Segoe UI", Roboto, sans-serif;
-  --fs-caption: 12px; --fs-small: 13px; --fs-body: 15px; --fs-title: 17px; --fs-large: 22px; --fs-hero: 30px;
+  --fs-caption: 12px; --fs-small: 13px; --fs-body: 15px; --fs-title: 19px; --fs-large: 22px; --fs-hero: 30px;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
   --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px;
   --ease: cubic-bezier(.32, .72, 0, 1); --t-fast: .16s; --t-med: .32s;
@@ -16,10 +16,10 @@ html[data-skin] {
 html[data-skin][data-theme="tnd"] {
   --bg: #0d1015; --bar: rgba(19, 23, 30, .78); --bar-solid: #13171e; --card: #171b23; --card-2: #1f242e;
   --line: rgba(255, 255, 255, .08); --line-strong: rgba(255, 255, 255, .14);
-  --text: #f3f5f8; --muted: #98a2b3; --faint: #667085;
-  --accent: #2f7bf6; --accent-text: #6ba4ff; --on-accent: #fff; --accent-tint: rgba(47, 123, 246, .15);
-  --pay: #1f9d57; --on-pay: #fff; --good: #3ddc84; --good-tint: rgba(61, 220, 132, .13);
-  --bad: #ff5c52; --bad-solid: #e5392f; --bad-tint: rgba(255, 92, 82, .14);
+  --text: #f3f5f8; --muted: #98a2b3; --faint: #858fa1;
+  --accent: #2a6fe8; --accent-text: #6ba4ff; --on-accent: #fff; --accent-tint: rgba(47, 123, 246, .15);
+  --pay: #16834a; --on-pay: #fff; --good: #3ddc84; --good-tint: rgba(61, 220, 132, .13);
+  --bad: #ff7a70; --bad-solid: #d6342b; --bad-tint: rgba(255, 92, 82, .14);
   --warn: #f6c453; --warn-solid: #e2a92c; --warn-tint: rgba(246, 196, 83, .14);
   --btn2: rgba(255, 255, 255, .08); --soft2: rgba(255, 255, 255, .04); --input: rgba(255, 255, 255, .06);
   --radius: var(--r-lg);
@@ -31,9 +31,9 @@ html[data-skin][data-theme="tnd"] {
 html[data-skin][data-theme="tn"] {
   --bg: #eff1f5; --bar: rgba(255, 255, 255, .8); --bar-solid: #fff; --card: #fff; --card-2: #f5f6f9;
   --line: rgba(15, 23, 42, .08); --line-strong: rgba(15, 23, 42, .16);
-  --text: #12161d; --muted: #5d6778; --faint: #8a93a3;
+  --text: #12161d; --muted: #5d6778; --faint: #687183;
   --accent: #2563eb; --accent-text: #1d55cf; --on-accent: #fff; --accent-tint: rgba(37, 99, 235, .1);
-  --pay: #178a4b; --on-pay: #fff; --good: #137a41; --good-tint: rgba(23, 138, 75, .11);
+  --pay: #16834a; --on-pay: #fff; --good: #137a41; --good-tint: rgba(23, 138, 75, .11);
   --bad: #cf2c22; --bad-solid: #d9342a; --bad-tint: rgba(217, 52, 42, .1);
   --warn: #93650a; --warn-solid: #d99a1c; --warn-tint: rgba(217, 154, 28, .15);
   --btn2: rgba(15, 23, 42, .06); --soft2: rgba(15, 23, 42, .03); --input: #fff;
@@ -286,3 +286,89 @@ html[data-skin] #secMasterPanel:not(.hidden), html[data-skin] #secDriverPanel:no
 
 /* ---------- 18. Impressão: recibos e relatórios saem em papel branco ---------- */
 @media print { html[data-skin] body { background: #fff !important; color: #000 !important; } }
+
+/* ---------- 19. Revisão de design de 12/11/2026 (Impeccable critique 22/40) ----------
+   Regra de cor: azul = ação; vermelho = só perigo (contornado); verde = só "pago"; amarelo = só aviso.
+   Toque: nada clicável com menos de 44px. Texto: nada abaixo de 12px. */
+
+/* Cor por papel: botão verde/amarelo sólido deixa de disputar com o azul; vermelho sólido vira contornado */
+html[data-skin][data-design] main :is(button, a).bg-emerald-600, html[data-skin][data-design] main :is(button, a).bg-green-600,
+html[data-skin][data-design] .fixed.inset-0 :is(button, a).bg-emerald-600, html[data-skin][data-design] .fixed.inset-0 :is(button, a).bg-green-600 { background: var(--accent) !important; color: var(--on-accent) !important; }
+html[data-skin][data-design] main :is(button, a):is(.bg-amber-600, .bg-amber-500, .bg-orange-600, .bg-orange-500, .bg-yellow-500),
+html[data-skin][data-design] .fixed.inset-0 :is(button, a):is(.bg-amber-600, .bg-amber-500, .bg-orange-600, .bg-orange-500, .bg-yellow-500) { background: var(--btn2) !important; color: var(--text) !important; }
+html[data-skin][data-design] main :is(button, a):is(.bg-amber-600, .bg-amber-500, .bg-orange-600, .bg-orange-500) i { color: var(--warn) !important; }
+html[data-skin][data-design] :is(main, header, .fixed.inset-0) :is(button, a):is(.bg-red-600, .bg-red-500):not(#uiDlgSim) { background: transparent !important; color: var(--bad) !important; box-shadow: inset 0 0 0 1.5px var(--bad) !important; }
+html[data-skin][data-design] :is(main, header, .fixed.inset-0) :is(button, a):is(.bg-red-600, .bg-red-500):not(#uiDlgSim) i { color: var(--bad) !important; }
+html[data-skin][data-design] [class*="shadow-blue-"] { box-shadow: 0 6px 16px rgba(0, 0, 0, .22) !important; }
+
+/* Texto de exemplo dentro dos campos legível (antes 2,9:1) */
+html[data-skin] input::placeholder, html[data-skin] textarea::placeholder { color: var(--muted); opacity: 1; }
+
+/* Alvos de toque: 44px */
+html[data-skin][data-design] :is(main, .fixed.inset-0) :is(button, a[class*="py-"], label[class*="py-"]):not(.uiDlgOpcao) { min-height: 44px; }
+html[data-skin][data-design][data-theme] main tbody td :is(button, a[class*="py-"], label[class*="py-"]) { min-height: 44px; }
+html[data-skin][data-design] header button { min-width: 44px; min-height: 44px; }
+
+/* Tamanho mínimo de texto: 12px */
+html[data-skin] .text-\[10px\], html[data-skin] .text-\[11px\], html[data-skin] .text-\[10\.5px\] { font-size: 12px !important; }
+html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #drvTabs nav button { font-size: 12px !important; }
+html[data-skin] .graf-col span { font-size: 12px; }
+
+/* Barra de baixo: só um item aceso (o que está aberto vence a aba atual) */
+html[data-skin][data-design] .bottomNav:has(button.aberto) button.atual:not(.aberto) { color: var(--faint) !important; font-weight: 500 !important; background: none !important; }
+html[data-skin][data-design] .bottomNav:has(button.aberto) button.atual:not(.aberto) i { transform: none; }
+/* Atalhos grandes de Pix/IA/Financeiro repetiam a barra de baixo */
+html[data-skin][data-design] #secMasterPanel > .masterAtalhos { display: none !important; }
+
+/* Janela de confirmação do app */
+html[data-skin] #uiDlgTitulo { font-size: var(--fs-title); }
+html[data-skin] .uiDlgBotao { min-height: 48px; }
+html[data-skin] #uiDlgSim { background: var(--accent) !important; color: var(--on-accent) !important; }
+html[data-skin] #uiDlgSim.perigo { background: var(--bad-solid) !important; color: #fff !important; }
+html[data-skin] #uiDlgNao { background: var(--btn2) !important; color: var(--text) !important; }
+html[data-skin] .uiDlgOpcao { min-height: 40px; padding: 8px 14px; border-radius: 999px; background: var(--btn2); color: var(--text); font-size: var(--fs-small); font-weight: 500; text-align: left; }
+html[data-skin] .uiDlgOpcao:active { background: var(--accent-tint); }
+
+/* Cartões dos motoristas */
+html[data-skin] .motLista { display: grid; gap: var(--sp-3); }
+@media (min-width: 1024px) { html[data-skin] .motLista { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+html[data-skin] .motCard { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card-2); }
+html[data-skin] .motCard.atraso { border-color: color-mix(in srgb, var(--bad) 55%, transparent); background: linear-gradient(var(--bad-tint), var(--bad-tint)), var(--card-2); }
+html[data-skin] .motTopo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+html[data-skin] .motFoto { width: 44px; height: 44px; flex: none; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 50%; background: var(--btn2); color: var(--muted); font-weight: 600; }
+html[data-skin] .motNome { font-size: 17px; font-weight: 650; line-height: 1.25; overflow-wrap: anywhere; }
+html[data-skin] .motCarro { font-size: var(--fs-small); color: var(--muted); overflow-wrap: anywhere; }
+html[data-skin] .motSituacao { flex: none; max-width: 46%; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 650; line-height: 1.2; text-align: center; }
+html[data-skin] .motSituacao.ruim { background: var(--bad-solid); color: #fff; }
+html[data-skin] .motSituacao.aviso { background: var(--warn-tint); color: var(--warn); }
+html[data-skin] .motSituacao.bom { background: var(--good-tint); color: var(--good); }
+html[data-skin] .motInfo { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+html[data-skin] .motSelos { display: flex; flex-wrap: wrap; gap: 6px; }
+html[data-skin] .motSelos:empty { display: none; }
+html[data-skin] .motComprovante { padding: 12px; border-radius: var(--r-md); background: var(--card); border: 1px solid var(--line); }
+html[data-skin] .motComprovante .max-w-\[230px\] { max-width: none; }
+html[data-skin] .motLink { min-height: 44px; padding: 0 4px; color: var(--accent-text); font-size: var(--fs-small); font-weight: 600; }
+html[data-skin] .motPrincipal { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 650; }
+html[data-skin] .motExcluir { padding: 12px; border-radius: var(--r-md); background: var(--bad-tint); }
+html[data-skin] .motCard details.motMais { border: 0 !important; background: none !important; }
+html[data-skin] .motMais > summary { padding: 0 36px 0 2px; color: var(--accent-text); font-size: var(--fs-small); cursor: pointer; }
+html[data-skin] .motGrade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+html[data-skin] .motItem { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 44px; padding: 8px 12px; border-radius: 12px; background: var(--btn2); color: var(--text); font-size: var(--fs-small); font-weight: 500; text-align: left; line-height: 1.25; }
+html[data-skin] .motItem i { flex: none; width: 16px; text-align: center; color: var(--muted); }
+html[data-skin] .motItem.perigo { background: none; color: var(--bad); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--bad) 60%, transparent); }
+html[data-skin] .motItem.perigo i { color: var(--bad); }
+@media (hover: hover) { html[data-skin] .motItem:hover { background: var(--soft2); } }
+
+/* Tela do motorista: o que ele deve vem primeiro; trocar senha vai para o fim */
+html[data-skin] #secDriverPanel:not(.hidden) { display: flex; flex-direction: column; gap: 24px; }
+html[data-skin] #secDriverPanel:not(.hidden) > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+html[data-skin] #secDriverPanel > #viewAsBanner { order: -4; }
+html[data-skin] #secDriverPanel > #drvPixBanner { order: -3; }
+html[data-skin] #secDriverPanel > :is(#cnhBanner, #notifBanner, #apkUpdateBanner) { order: -2; }
+html[data-skin] #secDriverPanel > #btnMeusRecibos { order: 90; }
+html[data-skin] #secDriverPanel > #btnTrocarSenhaDrv { order: 91; }
+html[data-skin][data-design] #drvPixBanner.drvDeve { background: var(--card) !important; border-color: var(--line) !important; box-shadow: var(--shadow); }
+html[data-skin] .drvDeveValor { margin-top: 2px; font-size: 36px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; color: var(--text); }
+html[data-skin] .motListaBloco > .dobraTopo { padding: 4px 2px; }
+html[data-skin] button.dobraTopo { min-height: 44px !important; }
+@media (min-width: 1024px) { html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #drvTabs nav button { min-height: 44px; } }

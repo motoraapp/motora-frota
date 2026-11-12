@@ -267,7 +267,6 @@
                             <i class="fa-solid fa-car text-2xl"></i>
                         </div>
                         <div>
-                            <span class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Veículo Alocado</span>
                             <h2 class="text-xl font-bold" id="drvVehicleName">Sem Veículo Vinculado</h2>
                             <p class="text-sm text-gray-500 dark:text-gray-400" id="drvVehicleDetails">Placa: - | Modelo: -</p>
                         </div>
@@ -360,7 +359,7 @@
                     <div class="flex flex-col md:flex-row justify-between gap-6 border-b border-gray-100 dark:border-gray-700 pb-6">
                         <div>
                             <h3 class="font-bold text-lg mb-1">Pagamento</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Efetue a transferência referente ao período vigente para manter seus serviços ativos.</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Pague pelo QR code ou pelo copia e cola e depois envie o comprovante aqui.</p>
                             <p id="drvDueText" class="text-sm font-semibold mt-2"></p>
                         </div>
                         <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-600">
@@ -549,27 +548,13 @@
                     <button type="button" onclick="toggleDobra('dProxCob')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Próximas cobranças</h3><i id="dProxCobSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
                     <div id="dProxCob" class="dobraCorpo mt-4"><div id="proxCobList" class="space-y-2"></div></div>
                 </div>
-                <!-- Lista de Motoristas -->
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-                    <button type="button" onclick="toggleDobra('dDrvList')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Motoristas Cadastrados</h3><i id="dDrvListSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
+                <!-- Lista de Motoristas (sem moldura: os cartões já são a moldura) -->
+                <div class="motListaBloco">
+                    <button type="button" onclick="toggleDobra('dDrvList')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2">Motoristas</h3><i id="dDrvListSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform rotate-180"></i></button>
                     <div id="dDrvList" class="dobraCorpo mt-4">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold uppercase text-gray-500">
-                                <tr>
-                                    <th class="p-3 rounded-l-xl">Nome</th>
-                                    <th class="p-3">Veículo Alocado</th>
-                                    <th class="p-3">Status Pagamento</th>
-                                    <th class="p-3">Documentos</th>
-                                    <th class="p-3">Comprovantes</th>
-                                    <th class="p-3 text-right rounded-r-xl">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tblDriversList" class="divide-y divide-gray-100 dark:divide-gray-700">
-                                <!-- Renderizado via JS -->
-                            </tbody>
-                        </table>
-                    </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Quem precisa de atenção aparece primeiro.</p>
+                        <!-- Cartões dos motoristas: renderizados em renderMasterPanel (cartão curto + "Mais ações") -->
+                        <div id="tblDriversList" class="motLista"></div>
                     </div>
                 </div>
 
@@ -774,7 +759,7 @@
                 </label>
             </div>
             <div class="space-y-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <h4 class="font-semibold text-sm"><i class="fa-solid fa-wand-magic-sparkles text-indigo-500 mr-1"></i> Leitura de documentos com IA (Gemini)</h4>
+                <h4 class="font-semibold text-sm"><i class="fa-solid fa-wand-magic-sparkles text-indigo-500 mr-1"></i> Leitura de documentos com IA (Gemini, do Google)</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Status: <span id="cfgGeminiStatus"></span></p>
                 <input type="password" id="cfgGemini" autocomplete="off" placeholder="Cole aqui a chave do Gemini (começa com AIza...)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                 <button onclick="saveConfig('gemini_key', 'cfgGemini')" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm">Salvar chave do Gemini</button>
@@ -826,6 +811,21 @@
             </div>
             <p class="text-sm" id="credMail"></p>
             <button onclick="document.getElementById('modalCreds').classList.add('hidden')" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm">OK</button>
+        </div>
+    </div>
+
+    <!-- JANELA DE CONFIRMAÇÃO DO APP (substitui confirm/prompt do navegador; ver uiDialogo) -->
+    <div id="uiDialogo" class="hidden fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="uiDlgTitulo" aria-describedby="uiDlgTexto">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <h3 id="uiDlgTitulo" class="font-bold text-lg leading-snug"></h3>
+            <p id="uiDlgTexto" class="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-line"></p>
+            <div id="uiDlgOpcoes" class="hidden mt-4 flex flex-wrap gap-2"></div>
+            <input id="uiDlgLinha" type="text" class="hidden mt-4 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700" aria-labelledby="uiDlgTitulo">
+            <textarea id="uiDlgCampo" rows="3" class="hidden mt-4 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700" aria-labelledby="uiDlgTitulo"></textarea>
+            <div class="mt-6 grid grid-cols-2 gap-3">
+                <button type="button" id="uiDlgNao" class="uiDlgBotao py-3 rounded-xl font-semibold bg-gray-100 dark:bg-gray-700">Cancelar</button>
+                <button type="button" id="uiDlgSim" class="uiDlgBotao py-3 rounded-xl font-semibold">Confirmar</button>
+            </div>
         </div>
     </div>
 
@@ -1025,7 +1025,7 @@
                 <label class="flex items-center justify-between gap-3 p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-900/10 cursor-pointer">
                     <span class="min-w-0">
                         <span id="roboSwitchLabel" class="block text-sm font-bold"><i class="fa-solid fa-robot text-green-600 mr-1"></i> Envio automático desligado</span>
-                        <span class="block text-xs text-gray-500 dark:text-gray-400">Ligado: o robô (no Hostless) envia sozinho as mensagens e os recibos no WhatsApp do motorista (só disparo, ele não responde ninguém). <span id="roboStatus"></span></span><div id="roboQr" class="hidden mt-2 text-center"></div>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Ligado: o robô (que fica ligado no servidor) envia sozinho as mensagens e os recibos no WhatsApp do motorista (só disparo, ele não responde ninguém). <span id="roboStatus"></span></span><div id="roboQr" class="hidden mt-2 text-center"></div>
                     </span>
                     <span class="sw"><input type="checkbox" id="roboSwitch" onchange="toggleRobo(this.checked)"><span></span></span>
                 </label>
@@ -2033,6 +2033,74 @@
             return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
+        // "2026-11-09T18:59" ou "2026-11-09 18:59" -> "09/11/2026 às 18:59" (o resto fica como veio)
+        function dataHoraBR(v) {
+            const m = String(v || "").match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+            if (!m) return String(v || "");
+            return `${m[3]}/${m[2]}/${m[1]}` + (m[4] ? ` às ${m[4]}:${m[5]}` : "");
+        }
+
+        // Janela de confirmação do próprio app (no lugar de confirm/prompt do navegador, que mostram "site diz...").
+        // uiConfirm(texto, { titulo, sim, perigo }) -> true/false · uiPrompt(texto, valor, { titulo, opcoes, linha }) -> texto ou null
+        function uiDialogo({ titulo = 'Confirmar', texto = '', sim = 'Confirmar', nao = 'Cancelar', perigo = false, campo = null, opcoes = null, linha = false }) {
+            return new Promise(resolve => {
+                const box = document.getElementById('uiDialogo');
+                const $ = id => document.getElementById(id);
+                const entrada = campo ? $(linha ? 'uiDlgLinha' : 'uiDlgCampo') : null;
+                $('uiDlgTitulo').textContent = titulo;
+                $('uiDlgTexto').textContent = texto;
+                $('uiDlgTexto').classList.toggle('hidden', !texto);
+                ['uiDlgLinha', 'uiDlgCampo'].forEach(id => $(id).classList.add('hidden'));
+                if (entrada) { entrada.value = campo.valor || ''; entrada.placeholder = campo.dica || ''; entrada.classList.remove('hidden'); }
+                const op = $('uiDlgOpcoes');
+                op.innerHTML = '';
+                op.classList.toggle('hidden', !(opcoes && opcoes.length && entrada));
+                (opcoes || []).forEach(t => {
+                    const b = document.createElement('button');
+                    b.type = 'button'; b.className = 'uiDlgOpcao'; b.textContent = t;
+                    b.onclick = () => { entrada.value = t; entrada.focus(); };
+                    op.appendChild(b);
+                });
+                const bSim = $('uiDlgSim'), bNao = $('uiDlgNao');
+                bSim.textContent = sim; bNao.textContent = nao;
+                bSim.classList.toggle('perigo', !!perigo);
+                const antes = document.activeElement;
+                const fim = ok => {
+                    box.classList.add('hidden');
+                    document.removeEventListener('keydown', tecla, true);
+                    bSim.onclick = bNao.onclick = box.onclick = null;
+                    if (antes && antes.focus) try { antes.focus(); } catch (_) {}
+                    if (!entrada) return resolve(!!ok);
+                    resolve(ok ? entrada.value.trim() : null);
+                };
+                const tecla = e => {
+                    if (e.key === 'Escape') { e.preventDefault(); fim(false); }
+                    else if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target !== bNao) { e.preventDefault(); fim(true); }
+                };
+                bSim.onclick = () => fim(true);
+                bNao.onclick = () => fim(false);
+                box.onclick = e => { if (e.target === box) fim(false); };
+                document.addEventListener('keydown', tecla, true);
+                box.classList.remove('hidden');
+                (entrada || (perigo ? bNao : bSim)).focus();
+            });
+        }
+        // Título = a pergunta (até o primeiro "?"); o resto vira a explicação. "Excluir..." vira ação de perigo.
+        function uiConfirm(msg, op = {}) {
+            msg = String(msg);
+            const q = msg.indexOf('?');
+            const corta = !op.titulo && q > 0 && q < 110;
+            const titulo = op.titulo || (corta ? msg.slice(0, q + 1) : 'Confirmar');
+            const texto = op.titulo ? msg : (corta ? msg.slice(q + 1).trim() : msg);
+            const exclui = /^\s*Excluir/i.test(msg);
+            return uiDialogo({ titulo, texto, sim: op.sim || (exclui ? 'Excluir' : 'Confirmar'), perigo: op.perigo != null ? op.perigo : exclui });
+        }
+        function uiPrompt(msg, valor = '', op = {}) {
+            const linhas = String(msg).split('\n');
+            return uiDialogo({ titulo: op.titulo || linhas[0], texto: op.titulo ? msg : linhas.slice(1).join('\n'), sim: op.sim || 'Salvar',
+                campo: { valor, dica: op.dica || '' }, opcoes: op.opcoes, perigo: !!op.perigo, linha: op.linha !== false && !op.opcoes });
+        }
+
         function friendlyError(err) {
             const m = (err && (err.message || err.error_description)) || String(err || '');
             if (/Invalid login credentials/i.test(m)) return 'Usuário ou senha inválidos!';
@@ -2439,7 +2507,7 @@
             setTimeout(refreshNotifButton, 0);
             document.getElementById('btnLogout').classList.remove('hidden');
             if (state.profile.role === 'master') {
-                document.getElementById('headerRoleSubtitle').innerText = "Painel Administrativo Master";
+                document.getElementById('headerRoleSubtitle').innerText = "Painel do dono";
                 document.getElementById('statusToggleContainer').classList.add('hidden');
                 showSection('secMasterPanel');
                 loadConfigStatus().catch(() => {});
@@ -2488,7 +2556,7 @@
         async function viewAsDriver(id) {
             if (switchingAccount) return;
             const d = state.drivers.find(x => x.id === id);
-            if (!confirm(`Entrar na conta de ${d ? d.name : 'motorista'}? Tudo o que você fizer lá (enviar comprovante, etc.) vale como se fosse ele.`)) return;
+            if (!await uiConfirm(`Entrar na conta de ${d ? d.name : 'motorista'}? Tudo o que você fizer lá (enviar comprovante, etc.) vale como se fosse ele.`)) return;
             switchingAccount = true;
             try {
                 const { data: cur } = await sb.auth.getSession();
@@ -2668,11 +2736,15 @@
             if (driver.pix_due_at && !paidThisPix && dueGone) {
                 banner.className = "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-900 dark:text-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
                 banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-clock mr-1"></i> Prazo de pagamento encerrado</b><br>O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59. Se já pagou, envie o comprovante; se não, fale com o locador.</div>
-                    <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar comprovante</button>`;
+                    <button onclick="switchDriverTab('payment'); document.getElementById('drvTabs').scrollIntoView({ behavior: 'smooth' })" class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar comprovante</button>`;
             } else if (driver.pix_due_at && !paidThisPix) {
-                banner.className = "bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-900 dark:text-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-                banner.innerHTML = `<div class="text-sm">${lastWeekRec && lastWeekRec.rejected_at ? `<b class="text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')}<br>` : ''}<b><i class="fa-brands fa-pix mr-1"></i> Novo Pix disponível!</b>${driver.pix_amount != null ? ` Valor: <b>${fmtMoney(driver.pix_amount)}</b>` : ''}<br>Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b>${driver.asaas_auto_charge_enabled ? '. O pagamento é conferido sozinho.' : ' e depois envie o comprovante aqui no app.'}</div>
-                    <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Ver pagamento</button>`;
+                // Bloco principal da tela do motorista: quanto deve e até quando (fica no topo, ver #drvPixBanner no CSS)
+                banner.className = "drvDeve bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 flex flex-col gap-4";
+                banner.innerHTML = `${lastWeekRec && lastWeekRec.rejected_at ? `<p class="text-sm text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> <b>Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')} Envie outro.</p>` : ''}
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400">${driver.pix_amount != null ? 'Você deve' : 'Pix da semana'}</p>
+                    ${driver.pix_amount != null ? `<p class="drvDeveValor">${fmtMoney(driver.pix_amount)}</p>` : ''}
+                    <p class="text-sm mt-1">Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b>${driver.asaas_auto_charge_enabled ? '. O pagamento é conferido sozinho.' : ' e depois envie o comprovante aqui.'}</p></div>
+                    <button onclick="switchDriverTab('payment'); document.getElementById('drvTabs').scrollIntoView({ behavior: 'smooth' })" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold"><i class="fa-brands fa-pix mr-2"></i>Pagar e enviar comprovante</button>`;
             } else if (driver.pix_due_at && paidEarlier) {
                 banner.className = "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded-2xl p-4 text-sm";
                 banner.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Este Pix <b>já está pago</b> (entrou no seu pagamento anterior). Você não precisa pagar de novo.`;
@@ -2865,20 +2937,22 @@
             const info = [];
             if (a.recebedor_nome) info.push('Para: ' + esc(a.recebedor_nome));
             if (a.valor != null) info.push('Valor: ' + fmtMoney(a.valor));
-            if (a.situacao) info.push('Situação: ' + esc(a.situacao));
-            if (a.data_hora) info.push('Data: ' + esc(String(a.data_hora).replace('T', ' ')));
+            if (a.situacao) info.push('No comprovante: ' + esc(a.situacao));
+            if (a.data_hora) info.push('Data: ' + esc(dataHoraBR(a.data_hora)));
             let html = `<div class="mt-1 max-w-[230px]">${receiptBadge(r, true)}`;
-            if (info.length) html += `<div class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 leading-snug">${info.join('<br>')}</div>`;
-            if (probs.length) html += `<ul class="text-[11px] text-red-600 dark:text-red-300 mt-1 list-disc pl-4 leading-snug">${probs.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`;
-            if (a.error) html += `<div class="text-[11px] text-gray-500 mt-1">${esc(a.error)}</div>`;
+            if (info.length) html += `<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-snug">${info.join('<br>')}</div>`;
+            if (probs.length) html += `<ul class="text-xs text-red-600 dark:text-red-300 mt-1 list-disc pl-4 leading-snug">${probs.map(p => `<li>${esc(p)}</li>`).join('')}</ul>${r.confirmed_at || r.rejected_at ? '' : '<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Abra o comprovante e confira. Se estiver certo, confirme; se não, recuse e o motorista manda outro.</p>'}`;
+            if (a.error) html += `<div class="text-xs text-gray-500 mt-1">${esc(a.error)}</div>`;
             if (r.confirmed_at) {
                 html += `<button onclick="openRecibo('${r.id}')" class="mt-2 text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-receipt mr-1"></i> Recibo</button>`;
             }
             if (!r.confirmed_at) {
                 html += `<div class="flex flex-wrap gap-1 mt-2">
-                    <button onclick="confirmReceipt('${r.id}', this)" class="text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i> Confirmar Pix</button>
-                    ${r.rejected_at ? '' : `<button onclick="rejectReceipt('${r.id}', this)" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-xmark mr-1"></i> Recusar</button>`}
-                    <button onclick="recheckReceipt('${r.id}', this)" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Pedir para a IA ler de novo"><i class="fa-solid fa-rotate"></i></button>
+                    ${r.rejected_at
+                        ? `<button onclick="confirmReceipt('${r.id}', this)" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i> Confirmar mesmo assim</button>`
+                        : `<button onclick="confirmReceipt('${r.id}', this)" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i> Confirmar Pix</button>
+                    <button onclick="rejectReceipt('${r.id}', this)" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-xmark mr-1"></i> Recusar</button>`}
+                    <button onclick="recheckReceipt('${r.id}', this)" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-2.5 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-rotate mr-1"></i> Ler de novo</button>
                 </div>`;
             }
             return html + `</div>`;
@@ -2891,16 +2965,25 @@
             catch (e) { showToast(friendlyError(e), 'error'); }
             finally { if (btn && document.body.contains(btn)) { btn.disabled = false; btn.innerHTML = old; } }
         }
-        function confirmReceipt(id, btn) {
+        async function confirmReceipt(id, btn) {
+            const r = state.receipts.find(x => x.id === id) || {};
+            const d = state.drivers.find(x => x.id === r.driver_id);
+            const valor = r.ai_result && r.ai_result.valor != null ? fmtMoney(r.ai_result.valor) : '';
+            const quem = d ? d.name.split(' ')[0] : 'o motorista';
+            if (!await uiConfirm('Isso encerra a cobrança e avisa ' + quem + ' que o pagamento foi recebido.' + (r.rejected_at ? '\n\nEste comprovante tinha sido recusado.' : ''),
+                { titulo: valor ? `Confirmar ${valor} de ${quem}?` : `Confirmar o Pix de ${quem}?`, sim: 'Confirmar Pix' })) return;
             return receiptAction(btn, async () => {
                 const { error } = await sb.rpc('master_confirm_receipt', { p_receipt: id });
                 if (error) throw error;
                 showToast('Pix confirmado! O motorista foi avisado.');
             }).then(() => { if (state.receipts.some(x => x.id === id && x.confirmed_at)) openRecibo(id); });
         }
-        function rejectReceipt(id, btn) {
-            const reason = prompt('Motivo da recusa (o motorista vai ver):', 'Os dados do comprovante não conferem.');
+        async function rejectReceipt(id, btn) {
+            const reason = await uiPrompt('O motorista vai ver este motivo e poderá mandar outro comprovante.', '', {
+                titulo: 'Por que recusar?', sim: 'Recusar comprovante', perigo: true, dica: 'Escreva ou toque num motivo',
+                opcoes: ['Valor diferente da cobrança', 'Não dá para ler o comprovante', 'Pix para outra conta', 'Data ou comprovante antigo'] });
             if (reason === null) return;
+            if (!reason) { showToast('Escreva o motivo da recusa.', 'error'); return; }
             return receiptAction(btn, async () => {
                 const { error } = await sb.rpc('master_reject_receipt', { p_receipt: id, p_reason: reason });
                 if (error) throw error;
@@ -3011,68 +3094,84 @@
             vehSelect.innerHTML = `<option value="">Nenhum Veículo</option>` + state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
             if (state.vehicles.some(v => v.id === keepVeh)) vehSelect.value = keepVeh;
 
+            // Cartão curto por motorista: situação + UMA ação do momento; o resto fica em "Mais ações".
+            // Ordem: em atraso, depois comprovante para conferir, depois os outros (por nome).
             const drvTbody = document.getElementById('tblDriversList');
             if (state.drivers.length === 0) {
-                drvTbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-400 italic">Nenhum motorista cadastrado.</td></tr>`;
+                drvTbody.innerHTML = `<p class="p-4 text-center text-gray-400 italic">Nenhum motorista cadastrado.</p>`;
             } else {
-                drvTbody.innerHTML = state.drivers.map(d => {
+                const recsDe = d => state.receipts.filter(r => r.driver_id === d.id);
+                const pendDe = d => { const rs = recsDe(d), u = rs[rs.length - 1]; return u && !u.confirmed_at && !u.rejected_at ? u : null; };
+                const ordem = d => d.payment_status === 'Em atraso' ? 0 : pendDe(d) ? 1 : 2;
+                const lista = [...state.drivers].sort((a, b) => ordem(a) - ordem(b) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
+                drvTbody.innerHTML = lista.map(d => {
                     const vehicle = allVeh().find(v => v.id === d.vehicle_id);
-                    const recs = state.receipts.filter(r => r.driver_id === d.id);
+                    const recs = recsDe(d);
                     const last = recs[recs.length - 1];
+                    const pend = pendDe(d);
+                    const atraso = d.payment_status === 'Em atraso';
+                    const temPix = !!(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link));
+                    const sit = atraso ? ['ruim', 'Em atraso'] : pend ? ['aviso', 'Pix a conferir'] : ['bom', 'Em dia'];
+                    const vence = d.pix_due_at ? (atraso ? 'Pix atual vence ' : 'Próximo Pix vence ') + fmtDue(d.pix_due_at, true) : 'Nenhum Pix enviado';
+                    const wa = waLink(d.phone || d.phone2);
+                    const principal = atraso
+                        ? `<button onclick="cobrarAtraso('${d.id}', this)" class="motPrincipal"><i class="fa-brands fa-whatsapp mr-2"></i> Cobrar atraso</button>`
+                        : pend ? ''
+                        : !temPix ? `<button onclick="openNewPix('${d.id}')" class="motPrincipal"><i class="fa-brands fa-pix mr-2"></i> Enviar Pix</button>`
+                        : '';
+                    const docs = [
+                        d.cnh_path && `<button onclick="viewDocIdx(${docRef(d.cnh_path, `CNH - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-id-card"></i> CNH</button>`,
+                        d.address_path && `<button onclick="viewDocIdx(${docRef(d.address_path, `Endereço - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-house"></i> Comprovante de endereço</button>`,
+                        d.contract_path && `<button onclick="viewDocIdx(${docRef(d.contract_path, `Contrato - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-file-contract"></i> Contrato</button>`,
+                        d.inspection_term_path && `<button onclick="viewDocIdx(${docRef(d.inspection_term_path, `Termo de vistoria - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-clipboard-check"></i> Termo de vistoria</button>`
+                    ].filter(Boolean).join('');
                     return `
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                            <td class="p-3 font-semibold">
-                                <div class="flex items-center gap-2"><span class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 flex items-center justify-center text-xs text-gray-500" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span><span>${esc(d.name)}</span></div>
+                        <article class="motCard${atraso ? ' atraso' : ''}">
+                            <div class="motTopo">
+                                <span class="motFoto" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span>
+                                <div class="min-w-0 flex-1">
+                                    <div class="motNome">${esc(d.name)}</div>
+                                    <div class="motCarro">${vehicle ? `${esc(vehicle.model)} · ${esc(vehicle.plate)}` : 'Sem veículo'}</div>
+                                </div>
+                                <span class="motSituacao ${sit[0]}">${sit[1]}</span>
+                            </div>
+                            <div class="motInfo">
+                                <div class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${vence}</div>
                                 ${obsResumoHtml(d)}${cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
-                                <div class="text-xs text-gray-400 font-normal">Login: ${esc(showLogin(d.username))}</div>
-                                <button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-solid fa-address-card mr-1"></i> Ficha</button>
-                                ${waLink(d.phone || d.phone2) ? `<a href="${waLink(d.phone || d.phone2)}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs font-semibold bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="mt-2 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> Adicionar WhatsApp</button>`}
-                                <button onclick="viewAsDriver('${d.id}')" class="mt-2 text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg whitespace-nowrap" title="Entrar na conta deste motorista, sem precisar da senha dele"><i class="fa-solid fa-right-to-bracket mr-1"></i> Entrar na conta</button>
-                                ${driverToDelete === d.id ? `
-                                    <div class="mt-2 flex flex-wrap items-center gap-2 font-normal">
-                                        <span class="text-xs text-red-500">Excluir ${esc(d.name)}? Ele não vai mais conseguir entrar no app. Documentos, Pix e comprovantes continuam guardados no app e no Drive.</span>
-                                        <button onclick="confirmDeleteDriver('${d.id}')" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg">Sim, excluir</button>
-                                        <button onclick="cancelDeleteDriver()" class="text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-3 py-1.5 rounded-lg">Cancelar</button>
+                                <div class="motSelos">${/aceito/i.test(termsBadgeMaster(d)) ? '' : termsBadgeMaster(d)}${cnhBadgeMaster(d)}</div>
+                            </div>
+                            ${pend ? `<div class="motComprovante">
+                                <div class="flex items-center justify-between gap-2"><span class="font-semibold text-sm">Comprovante de ${new Date(pend.created_at).toLocaleDateString('pt-BR')}</span>
+                                <button onclick="viewDocIdx(${docRef(pend.file_path, `Comprovante - ${esc(d.name)} (${new Date(pend.created_at).toLocaleDateString('pt-BR')})`)})" class="motLink"><i class="fa-solid fa-eye mr-1"></i> Abrir</button></div>
+                                ${receiptMasterBox(pend)}
+                            </div>` : ''}
+                            ${principal ? `<div class="motAcao">${principal}</div>` : ''}
+                            ${driverToDelete === d.id ? `
+                                <div class="motExcluir">
+                                    <p class="text-sm">Excluir ${esc(d.name)}? Ele não vai mais conseguir entrar no app. Documentos, Pix e comprovantes continuam guardados no app e no Drive.</p>
+                                    <div class="grid grid-cols-2 gap-2 mt-3">
+                                        <button onclick="cancelDeleteDriver()" class="motItem justify-center">Cancelar</button>
+                                        <button onclick="confirmDeleteDriver('${d.id}')" class="motItem perigo justify-center">Sim, excluir</button>
                                     </div>
-                                ` : ''}
-                            </td>
-                            <td class="p-3">${vehicle ? `${esc(vehicle.model)} (${esc(vehicle.plate)})` : `<span class="text-xs text-gray-400">Sem veículo</span>`}</td>
-                            <td class="p-3">
-                                <select onchange="updateDriverPaymentStatus('${d.id}', this.value)" class="text-xs font-semibold rounded-lg p-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
-                                    <option value="Em dia" ${d.payment_status !== 'Em atraso' ? 'selected' : ''}>Em dia</option>
-                                    <option value="Em atraso" ${d.payment_status === 'Em atraso' ? 'selected' : ''}>Em atraso</option>
-                                </select>
-                                <div class="text-xs text-gray-400 mt-1 whitespace-nowrap">${d.pix_due_at ? 'Vence: ' + fmtDue(d.pix_due_at, true) : 'Sem Pix enviado'}</div>
-                                <button onclick="openNewPix('${d.id}')" class="mt-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-pix mr-1"></i> Novo Pix</button>
-                                ${d.payment_status === 'Em atraso' ? `<button onclick="cobrarAtraso('${d.id}', this)" class="mt-2 block text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i> Cobrar atraso</button>` : ''}
-                                ${(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link)) ? `<div class="flex gap-1 mt-1">
-                                    <button onclick="openEditPix('${d.id}')" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Editar o Pix enviado"><i class="fa-solid fa-pen mr-1"></i> Editar</button>
-                                    <button onclick="deletePix('${d.id}', this)" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg whitespace-nowrap" title="Excluir o Pix enviado"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>
                                 </div>` : ''}
-                            </td>
-                            <td class="p-3 space-x-1 whitespace-nowrap">
-                                ${d.cnh_path ? `<button onclick="viewDocIdx(${docRef(d.cnh_path, `CNH - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="CNH"><i class="fa-solid fa-id-card"></i> CNH</button>` : ''}
-                                ${d.address_path ? `<button onclick="viewDocIdx(${docRef(d.address_path, `Endereço - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="Endereço"><i class="fa-solid fa-house"></i> End</button>` : ''}
-                                ${d.contract_path ? `<button onclick="viewDocIdx(${docRef(d.contract_path, `Contrato - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="Contrato"><i class="fa-solid fa-file-contract"></i> Contrato</button>` : ''}
-                                ${d.inspection_term_path ? `<button onclick="viewDocIdx(${docRef(d.inspection_term_path, `Termo de vistoria - ${esc(d.name)}`)})" class="text-xs bg-gray-100 dark:bg-gray-700 p-1.5 rounded" title="Termo de vistoria"><i class="fa-solid fa-clipboard-check"></i> Vistoria</button>` : ''}
-                                ${!d.cnh_path && !d.address_path && !d.contract_path && !d.inspection_term_path ? '<span class="text-xs text-gray-400">Nenhum</span>' : ''}
-                                <div class="mt-2">${termsBadgeMaster(d)}</div>
-                                <div class="mt-1">${cnhBadgeMaster(d)}</div>
-                            </td>
-                            <td class="p-3">
-                                ${last ? `
-                                    <button onclick="viewDocIdx(${docRef(last.file_path, `Comprovante - ${esc(d.name)} (${new Date(last.created_at).toLocaleDateString('pt-BR')})`)})" class="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 px-2 py-1 rounded font-semibold">
-                                        Ver último (${recs.length})
-                                    </button>
-                                    ${receiptMasterBox(last)}
-                                ` : `<span class="text-xs text-gray-400">Nenhum</span>`}
-                            </td>
-                            <td class="p-3 text-right">
-                                <button onclick="deleteDriver('${d.id}')" class="text-xs font-semibold bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg whitespace-nowrap" title="Excluir Motorista">
-                                    <i class="fa-solid fa-trash mr-1"></i> Excluir
-                                </button>
-                            </td>
-                        </tr>
+                            <details class="motMais">
+                                <summary>Mais ações</summary>
+                                <div class="motGrade">
+                                    <button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-solid fa-address-card"></i> Ficha</button>
+                                    ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="motItem"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-brands fa-whatsapp"></i> Adicionar WhatsApp</button>`}
+                                    ${temPix || atraso || pend ? `<button onclick="openNewPix('${d.id}')" class="motItem"><i class="fa-brands fa-pix"></i> Novo Pix</button>` : ''}
+                                    ${temPix ? `<button onclick="openEditPix('${d.id}')" class="motItem"><i class="fa-solid fa-pen"></i> Editar Pix enviado</button>` : ''}
+                                    <button onclick="marcarSituacao('${d.id}', '${atraso ? 'Em dia' : 'Em atraso'}')" class="motItem"><i class="fa-solid ${atraso ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${atraso ? 'Marcar como em dia' : 'Marcar em atraso'}</button>
+                                    <button onclick="viewAsDriver('${d.id}')" class="motItem"><i class="fa-solid fa-right-to-bracket"></i> Entrar na conta dele</button>
+                                    ${last && last !== pend ? `<button onclick="viewDocIdx(${docRef(last.file_path, `Comprovante - ${esc(d.name)} (${new Date(last.created_at).toLocaleDateString('pt-BR')})`)})" class="motItem"><i class="fa-solid fa-file-invoice"></i> Último comprovante (${recs.length})</button>` : ''}
+                                    ${last && last.confirmed_at ? `<button onclick="openRecibo('${last.id}')" class="motItem"><i class="fa-solid fa-receipt"></i> Recibo</button>` : ''}
+                                    ${docs}
+                                    ${temPix ? `<button onclick="deletePix('${d.id}', this)" class="motItem perigo"><i class="fa-solid fa-trash"></i> Excluir Pix enviado</button>` : ''}
+                                    <button onclick="deleteDriver('${d.id}')" class="motItem perigo"><i class="fa-solid fa-user-xmark"></i> Excluir motorista</button>
+                                </div>
+                                ${last && last !== pend && last.rejected_at ? `<div class="mt-3">${receiptMasterBox(last)}</div>` : ''}
+                            </details>
+                        </article>
                     `;
                 }).join('');
             }
@@ -3279,6 +3378,15 @@
             }
         }
 
+        // "Mais ações" > Marcar como em dia / em atraso (antes era um seletor que mudava sem perguntar)
+        async function marcarSituacao(id, novo) {
+            const d = state.drivers.find(x => x.id === id); if (!d) return;
+            const emDia = novo === 'Em dia';
+            if (!await uiConfirm(emDia ? 'Use quando ele já pagou e o app não registrou sozinho.' : 'Ele passa a aparecer no topo da lista, com o botão Cobrar atraso.',
+                { titulo: emDia ? `Marcar ${d.name.split(' ')[0]} como em dia?` : `Marcar ${d.name.split(' ')[0]} em atraso?`, sim: emDia ? 'Marcar em dia' : 'Marcar em atraso' })) return;
+            await updateDriverPaymentStatus(id, novo);
+            renderMasterPanel();
+        }
         async function updateDriverPaymentStatus(id, newStatus) {
             const { error } = await sb.from('profiles').update({ payment_status: newStatus }).eq('id', id);
             if (error) { showToast(friendlyError(error), 'error'); await reload(); return; }
@@ -4026,7 +4134,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         }
         async function deleteExpense(id) {
             const x = state.expenses.find(e => e.id === id);
-            if (!x || !confirm('Excluir esta despesa?')) return;
+            if (!x || !await uiConfirm('Excluir esta despesa?')) return;
             const { error } = await sb.from('vehicle_expenses').delete().eq('id', id);
             if (error) { showToast(friendlyError(error), 'error'); return; }
             if (x.file_path) sb.storage.from(BUCKET).remove([x.file_path]).catch(() => {});
@@ -4158,7 +4266,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
 
         async function deleteInspectionPhoto(id) {
             const p = state.inspection.find(x => x.id === id);
-            if (!p || !confirm('Excluir esta foto da vistoria?')) return;
+            if (!p || !await uiConfirm('Excluir esta foto da vistoria?')) return;
             try {
                 const { error } = await sb.from('inspection_photos').delete().eq('id', id);
                 if (error) throw error;
@@ -4474,7 +4582,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             else fileMultas.itens.pop();
         }
         async function delMulta(mid) {
-            const it = fileMultas.itens.find(i => i.id === mid); if (!it || !confirm(`Excluir "${it.desc}" (${fmtMoney(it.valor)})?`)) return;
+            const it = fileMultas.itens.find(i => i.id === mid); if (!it || !await uiConfirm(`Excluir "${it.desc}" (${fmtMoney(it.valor)})?`)) return;
             fileMultas.itens = fileMultas.itens.filter(i => i.id !== mid);
             if (await savePixExtra(fileDriverId, x => { x.multas = { ...fileMultas }; })) { dfMultRender(); renderMasterPanel(); }
         }
@@ -4628,7 +4736,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         async function editVehicleRent(id) {
             const v = state.vehicles.find(x => x.id === id); if (!v) return;
             const cur = v.rent_amount != null ? String(v.rent_amount).replace('.', ',') : '';
-            const txt = prompt(`Valor do aluguel por semana do ${v.model} (${v.plate}).\nEle entra sozinho no Pix do motorista deste carro.`, cur);
+            const txt = await uiPrompt(`Valor do aluguel por semana do ${v.model} (${v.plate}).\nEle entra sozinho no Pix do motorista deste carro.`, cur);
             if (txt === null) return;
             const val = txt.trim() ? parseMoney(txt) : null;
             if (txt.trim() && val == null) { showToast('Valor inválido. Ex: 550,00', 'error'); return; }
@@ -5325,7 +5433,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             if (await saveIARules([...iaRegras, t])) { el.value = ''; showToast('Regra adicionada.'); }
         }
         async function delIARule(i) {
-            if (!confirm('Excluir esta regra?\n\n' + iaRegras[i])) return;
+            if (!await uiConfirm('Excluir esta regra?\n\n' + iaRegras[i])) return;
             if (await saveIARules(iaRegras.filter((_, k) => k !== i))) showToast('Regra excluída.');
         }
         async function openIA(focusId) {
@@ -5400,7 +5508,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             showToast('Aprovada. Mensagem liberada para o motorista.');
         }
         function iaPhone2(d) { return iaPhone(d ? { phone: d.phone2 } : null); }
-        function iaSend(id, again, num) {
+        async function iaSend(id, again, num) {
             const r = iaRows.find(x => x.id === id);
             if (!r) return;
             if (!again && r.status !== 'pendente') { showToast('O robô já enviou esta mensagem.'); renderIA(); return; }
@@ -5425,7 +5533,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                     .catch(e => { if (e && e.name !== 'AbortError') showToast('Não foi possível compartilhar.', 'error'); });
                 return;
             }
-            if (!confirm('O WhatsApp da locadora está desconectado. Quer abrir no WhatsApp deste aparelho? A mensagem sairá pelo seu número, só com o texto.')) return;
+            if (!await uiConfirm('O WhatsApp da locadora está desconectado. Quer abrir no WhatsApp deste aparelho? A mensagem sairá pelo seu número, só com o texto.')) return;
             const dd = state.drivers.find(x => x.id === r.driver_id);
             const ph = num === 2 ? iaPhone2(dd) : (iaPhone(dd) || iaPhone2(dd));
             window.open((ph ? 'https://wa.me/' + ph : 'https://wa.me/') + '?text=' + encodeURIComponent(text), '_blank');
@@ -5441,7 +5549,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             updateIABadge(); renderIA();
         }
         async function iaDelete(id) {
-            if (!confirm('Excluir esta mensagem?')) return;
+            if (!await uiConfirm('Excluir esta mensagem?')) return;
             const { error } = await sb.from('whatsapp_queue').delete().eq('id', id);
             if (error) { showToast('Não foi possível excluir.', 'error'); return; }
             iaRows = iaRows.filter(x => x.id !== id);
@@ -5527,7 +5635,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         async function deletePix(id, btn) {
             const d = state.drivers.find(x => x.id === id);
             if (!d) return;
-            if (!confirm(`Excluir o Pix enviado para ${d.name}? A chave some da tela dele e a cobrança deixa de valer.`)) return;
+            if (!await uiConfirm(`Excluir o Pix enviado para ${d.name}? A chave some da tela dele e a cobrança deixa de valer.`)) return;
             await receiptAction(btn, async () => {
                 const { error } = await sb.rpc('master_delete_pix', { p_driver: id });
                 if (error) throw error;
@@ -5557,20 +5665,20 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const dueV = document.getElementById('newPixDue').value, iniV = document.getElementById('newPixIni').value, fimV = document.getElementById('newPixFim').value;
             if (!dueV) { showToast("Escolha o vencimento.", "error"); return; }
             if (!iniV || !fimV || fimV < iniV) { showToast("Confira as datas de \"Vale de\" e \"Até\".", "error"); return; }
-            if (dueV < todayISO() && !confirm(`O vencimento ${dataBR(dueV)} já passou. O motorista pode ficar "Em atraso". Continuar?`)) return;
+            if (dueV < todayISO() && !await uiConfirm(`O vencimento ${dataBR(dueV)} já passou. O motorista pode ficar "Em atraso". Continuar?`)) return;
             { const soma = descSoma(document.getElementById('newPixDescription').value);
-              if (soma != null && Math.abs(soma - amount) >= 0.005 && !confirm(`A descrição soma ${fmtMoney(soma)}, mas o total da cobrança é ${fmtMoney(amount)}. O recibo vai mostrar essa diferença. Continuar assim?`)) return; }
+              if (soma != null && Math.abs(soma - amount) >= 0.005 && !await uiConfirm(`A descrição soma ${fmtMoney(soma)}, mas o total da cobrança é ${fmtMoney(amount)}. O recibo vai mostrar essa diferença. Continuar assim?`)) return; }
             const resumo = `${editing ? 'Salvar' : 'Enviar'} este Pix para ${d ? d.name : 'o motorista'}?\n\n${parts.lines.join('\n') || 'Total: ' + fmtMoney(amount)}${parts.add || parts.disc || parts.cau || parts.mult ? '' : '\nTotal: ' + fmtMoney(amount)}`;
-            if (!confirm(resumo)) return;
+            if (!await uiConfirm(resumo)) return;
             setBusy(form, true);
             try {
-                if (code && !pixValid(code) && !confirm('Este código Pix parece incompleto ou com erro. Enviar mesmo assim?')) return;
+                if (code && !pixValid(code) && !await uiConfirm('Este código Pix parece incompleto ou com erro. Enviar mesmo assim?')) return;
                 const keyOn = document.getElementById('newPixKeyOn').checked;
                 try { localStorage.setItem('motora_pix_key_on', keyOn ? '1' : '0'); } catch (e) {}
                 const keyType = document.getElementById('newPixKeyType').value;
                 const key = keyOn ? normalizePixKey(keyType, document.getElementById('newPixKey').value) : '';
                 if (keyOn && !key) { showToast("Digite a chave Pix ou desligue a opção \"Pix com chave\".", "error"); return; }
-                if (key && !pixKeyLooksOk(keyType, key) && !confirm(`A chave Pix não parece ser do tipo ${PIX_KEY_TYPES[keyType]}. Enviar mesmo assim?`)) return;
+                if (key && !pixKeyLooksOk(keyType, key) && !await uiConfirm(`A chave Pix não parece ser do tipo ${PIX_KEY_TYPES[keyType]}. Enviar mesmo assim?`)) return;
                 const link = key ? `chave:${keyType}|${key}` : null;
                 try { localStorage.setItem('motora_pix_key_type', keyType); } catch (e) {}
                 if (pixAutoLigado()) pixRecebedorGuardar();
@@ -6414,7 +6522,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const dd = m.dados;
             if (m.acao === 'propor_ganho_aplicativo') {
                 const dup = await sb.from('app_earnings').select('id').eq('app', dd.app).eq('earning_date', dd.earning_date).eq('amount', dd.amount).limit(1);
-                if (dup.data && dup.data.length && !confirm('Já existe um ganho igual (mesmo aplicativo, data e valor). Lançar de novo?')) return;
+                if (dup.data && dup.data.length && !await uiConfirm('Já existe um ganho igual (mesmo aplicativo, data e valor). Lançar de novo?')) return;
             }
             m.estado = 'salvando'; renderIAChat();
             try {
@@ -6523,7 +6631,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             if (!amount) { showToast('Digite um valor válido.', 'error'); return; }
             // evita lançar o mesmo print duas vezes
             const dup = await sb.from('app_earnings').select('id').eq('app', document.getElementById('appName').value).eq('earning_date', document.getElementById('appDate').value || todayISO()).eq('amount', amount).limit(1);
-            if (dup.data && dup.data.length && !confirm('Já existe um ganho igual (mesmo aplicativo, data e valor). Lançar de novo?')) return;
+            if (dup.data && dup.data.length && !await uiConfirm('Já existe um ganho igual (mesmo aplicativo, data e valor). Lançar de novo?')) return;
             setBusy(form, true);
             try {
                 const { error } = await sb.from('app_earnings').insert({
@@ -6637,14 +6745,14 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             finally { setBusy(form, false); }
         }
         async function deleteAppExpense(id) {
-            if (!confirm('Excluir esta despesa?')) return;
+            if (!await uiConfirm('Excluir esta despesa?')) return;
             const { error } = await sb.from('app_expenses').delete().eq('id', id);
             if (error) { showToast(friendlyError(error), 'error'); return; }
             showToast('Despesa excluída.'); renderAppEarnings();
         }
 
         async function deleteAppEarning(id) {
-            if (!confirm('Excluir este lançamento?')) return;
+            if (!await uiConfirm('Excluir este lançamento?')) return;
             const { error } = await sb.from('app_earnings').delete().eq('id', id);
             if (error) { showToast(friendlyError(error), 'error'); return; }
             showToast('Lançamento excluído.'); renderAppEarnings();
