@@ -1272,7 +1272,7 @@
                     <h4 class="font-semibold text-sm mb-2"><i class="fa-solid fa-users mr-1 text-blue-500"></i> Por motorista</h4>
                     <div id="finDrivers"></div>
                 </div>
-                <p class="text-xs text-gray-400">Recebido = soma de tudo que foi pago por Pix no período (valor dos comprovantes aceitos; um pagamento pode quitar mais de uma cobrança). Em aberto = o que ainda falta pagar das cobranças enviadas. Cada pagamento conta para o veículo da cobrança correspondente, mesmo após troca ou devolução.</p>
+                <p class="text-xs text-gray-400">Recebido = soma dos pagamentos por Pix no período (comprovantes aceitos) + valor pago na entrada da caução. Despesas = gastos lançados nos veículos + cauções pagas ao motorista na devolução/encerramento. Em aberto = o que ainda falta pagar das cobranças enviadas.</p>
                 </div>
                 <div id="finAppsBox" class="hidden space-y-4">
                     <div id="appTotals"></div>
@@ -3927,10 +3927,10 @@
         function drvCauLer() {
             const forma = document.getElementById('drvCauForma').value; if (!forma) return null;
             const total = parseMoney(document.getElementById('drvCauTotal').value) || 0;
-            if (forma === 'paga') return { forma, total: total || null };
+            if (forma === 'paga') return { forma, total: total || null, ...(total > 0 ? { entrada_em: todayISO() } : {}) };
             const entrada = parseMoney(document.getElementById('drvCauEnt').value) || 0, n = parseInt(document.getElementById('drvCauN').value, 10) || 0;
             const plano = cauPlano(total, entrada, n);
-            return { forma, total, entrada, parcelas: plano ? plano.parcelas : n, cobradas: 0, valor_parcela: plano ? plano.valor_parcela : 0 };
+            return { forma, total, entrada, ...(entrada > 0 ? { entrada_em: todayISO() } : {}), parcelas: plano ? plano.parcelas : n, cobradas: 0, valor_parcela: plano ? plano.valor_parcela : 0 };
         }
         async function handleAddDriver(e) {
             e.preventDefault();
@@ -4309,10 +4309,16 @@
             const cobForma = dfCobRead();
             { const c = cobForma; updates.payment_day_of_week = c.dia; updates.asaas_auto_charge_enabled = c.auto === 'asaas'; }
             {   // caução: guardada junto com o acréscimo repetido, sem apagar o resto
-                const cur = (allDrv().find(x => x.id === id) || {}).pix_extra || {};
+                const curDrv = allDrv().find(x => x.id === id) || {};
+                const cur = curDrv.pix_extra || {};
                 const cau = dfCauRead();
                 if (cau && cau.forma === 'parcelada' && (!(cau.parcelas > 0) || !(cau.valor_parcela > 0))) { showToast('Caução parcelada: informe as vezes e o valor de cada parcela.', 'error'); return; }
                 if (cau && cau.forma === 'parcelada' && cau.valor_parcela < CAU_MIN && (Number(cau.total) || 0) - (cau.entrada || 0) >= CAU_MIN) { showToast(`A parcela mínima da caução é ${fmtMoney(CAU_MIN)}.`, 'error'); return; }
+                if (cau && ((cau.forma === 'parcelada' && Number(cau.entrada) > 0) || (cau.forma === 'paga' && Number(cau.total) > 0))) {
+                    const prev = cur.caucao || {};
+                    const prevHadUpfront = (prev.forma === 'parcelada' && Number(prev.entrada) > 0) || (prev.forma === 'paga' && Number(prev.total) > 0);
+                    cau.entrada_em = prev.entrada_em || (prevHadUpfront ? dayBR(curDrv.created_at) : null) || todayISO();
+                }
                 const next = { ...cur }; if (cau) next.caucao = cau; else delete next.caucao;
                 if (updates.vehicle_id && next.contrato_encerrado) { delete next.contrato_encerrado; delete next.sem_cobranca; delete next.arquivado; delete next.arquivado_em; }
                 if (fileMultas) next.multas = { ...fileMultas };
@@ -4469,10 +4475,10 @@
             const r = finRange(document.getElementById('finPeriod').value);
             const fDrv = document.getElementById('finFltDriver').value, fVeh = document.getElementById('finFltVehicle').value;
             const vehOf = id => (allDrv().find(d => d.id === id) || {}).vehicle_id;
-            const baseDrivers = allDrv().filter(d => (!fDrv || d.id === fDrv) && (d.role === 'driver' || state.pixHistory.some(h => h.driver_id === d.id) || state.receipts.some(r => r.driver_id === d.id)));
-            // Recebido = soma dos pagamentos (comprovantes aceitos) feitos no período; Em aberto = o que falta das cobranças.
-            // Cada pagamento leva o vehicle_id da cobrança correspondente (preservado mesmo após desvincular o carro).
-            const allPaid = [], allOpen = [];
+            const baseDrivers = allDrv().filter(d => (!fDrv || d.id === fDrv) && (d.role === 'driver' || state.pixHistory.some(h => h.driver_id === d.id) || state.receipts.some(r => r.driver_id === d.id) || cauEntradaItem(d) || cauPagoDespesaItem(d)));
+            // Recebido = pagamentos por Pix no período + entrada da caução; Despesas = despesas dos veículos + caução devolvida ao motorista.
+            // Em aberto = o que falta das cobranças. Cada lançamento preserva o vehicle_id correspondente mesmo após desvincular o carro.
+            const allPaid = [], allOpen = [], cauExps = [];
             baseDrivers.forEach(d => {
                 const al = allocatePix(d.id);
                 al.pays.forEach(p => {
@@ -4489,6 +4495,10 @@
                         allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(lastH, d.id), amount: p.val, day, desc: (lastH && lastH.h && lastH.h.description) || '' });
                     }
                 });
+                const ce = cauEntradaItem(d, al);
+                if (ce && inRange(ce.day, r)) allPaid.push({ driver_id: d.id, vehicle_id: ce.vehicle_id, amount: ce.amount, day: ce.day, desc: ce.desc });
+                const cp = cauPagoDespesaItem(d, state.pixHistory, al);
+                if (cp && inRange(dayBR(cp.expense_date), r) && (!fVeh || cp.vehicle_id === fVeh)) cauExps.push(cp);
                 al.charges.forEach(c => {
                     if (c.remaining > 0.005) allOpen.push({
                         driver_id: d.id,
@@ -4505,7 +4515,7 @@
             const paid = fVeh ? allPaid.filter(h => h.vehicle_id === fVeh) : allPaid;
             const open = fVeh ? allOpen.filter(h => h.vehicle_id === fVeh) : allOpen;
             const vehFilterSet = fVeh ? [fVeh] : (fDrv ? [...new Set(paid.concat(open).map(x => x.vehicle_id).concat(vehOf(fDrv)).filter(Boolean))] : null);
-            const exps = state.expenses.filter(x => inRange(dayBR(x.expense_date), r) && (!vehFilterSet || (vehFilterSet.length && vehFilterSet.includes(x.vehicle_id))));
+            const exps = state.expenses.filter(x => inRange(dayBR(x.expense_date), r) && (!vehFilterSet || (vehFilterSet.length && vehFilterSet.includes(x.vehicle_id)))).concat(cauExps);
             const sum = (list, f) => list.reduce((a, x) => a + Number(f(x) || 0), 0);
             const received = sum(paid, h => h.amount), pending = sum(open, h => h.amount), spent = sum(exps, x => x.amount);
             const balance = received - spent;
@@ -4538,7 +4548,6 @@
             // dados guardados para o botão "Gerar relatório"
             const dName = id => (allDrv().find(d => d.id === id) || {}).name || 'Motorista';
             const vName = id => { const v = allVeh().find(x => x.id === id); return v ? `${v.model} (${v.plate})` : '-'; };
-            const tName = id => (state.expenseTypes.find(t => t.id === id) || {}).name || 'Despesa';
             const periodSel = document.getElementById('finPeriod');
             const periodLabel = (periodSel.options[periodSel.selectedIndex] || {}).text || '';
             const fltParts = [];
@@ -4555,8 +4564,8 @@
                 tabelas: [
                     { titulo: 'Por veículo', head: ['Veículo', 'Recebido', 'Despesas', 'Saldo'], rows: vData.map(x => [`${x.v.model} (${x.v.plate})${x.v.deleted_at ? ' – excluído' : ''}`, fmtMoney(x.rec), fmtMoney(x.sp), fmtMoney(x.rec - x.sp)]) },
                     { titulo: 'Por motorista', head: ['Motorista', 'Recebido', 'Em aberto'], rows: dData.map(x => [x.d.name, fmtMoney(x.rec), fmtMoney(x.pen)]) },
-                    { titulo: 'Pagamentos recebidos', head: ['Data', 'Motorista', 'Valor'], rows: paid.slice().sort((a, b) => String(a.day).localeCompare(String(b.day))).map(h => [fmtDate(h.day), dName(h.driver_id), fmtMoney(h.amount)]) },
-                    { titulo: 'Despesas dos veículos', head: ['Data', 'Veículo / tipo', 'Valor'], rows: exps.slice().sort((a, b) => String(a.expense_date).localeCompare(String(b.expense_date))).map(x => [fmtDate(x.expense_date), `${vName(x.vehicle_id)} · ${tName(x.type_id)}${x.description ? ' · ' + x.description : ''}`, fmtMoney(x.amount)]) },
+                    { titulo: 'Pagamentos recebidos', head: ['Data', 'Motorista', 'Valor'], rows: paid.slice().sort((a, b) => String(a.day).localeCompare(String(b.day))).map(h => [fmtDate(h.day), dName(h.driver_id) + (h.desc && h.desc.toLowerCase().includes('caução') ? ` (${h.desc})` : ''), fmtMoney(h.amount)]) },
+                    { titulo: 'Despesas dos veículos', head: ['Data', 'Veículo / tipo', 'Valor'], rows: exps.slice().sort((a, b) => String(a.expense_date).localeCompare(String(b.expense_date))).map(x => [fmtDate(x.expense_date), `${vName(x.vehicle_id)} · ${expTypeName(x)}${x.description ? ' · ' + x.description : ''}`, fmtMoney(x.amount)]) },
                 ],
             };
         }
@@ -4571,7 +4580,6 @@
             const dObj = id => allDrv().find(d => d.id === id);
             const dName = id => (dObj(id) || {}).name || 'Motorista';
             const vName = id => { const v = allVeh().find(x => x.id === id); return v ? `${v.model} (${v.plate})` : 'Sem veículo'; };
-            const tName = id => (state.expenseTypes.find(t => t.id === id) || {}).name || 'Despesa';
             const banner = (cls, label, val, sub) => `<div class="p-3.5 rounded-xl border ${cls}">
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-xs font-semibold opacity-85">${label}</span>
@@ -4649,7 +4657,7 @@
                 titleEl.innerHTML = `<i class="fa-solid fa-arrow-up text-red-500"></i> <span>Despesas</span>`;
                 const items = s.exps.slice().sort((a, b) => String(b.expense_date).localeCompare(String(a.expense_date)));
                 const byType = {};
-                items.forEach(x => { const tn = tName(x.type_id); byType[tn] = (byType[tn] || 0) + Number(x.amount || 0); });
+                items.forEach(x => { const tn = expTypeName(x); byType[tn] = (byType[tn] || 0) + Number(x.amount || 0); });
                 let html = banner('bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200',
                     'Total de despesas no período', fmtMoney(s.spent),
                     `${items.length} lançamento${items.length === 1 ? '' : 's'} registrado${items.length === 1 ? '' : 's'}.`);
@@ -4661,10 +4669,11 @@
                 if (!items.length) { html += empty('Nenhuma despesa neste período.'); }
                 else {
                     html += `<div class="divide-y divide-gray-100 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-3">` + items.map(x => {
-                        const ref = x.file_path ? docRef(x.file_path, `Nota · ${tName(x.type_id)} (${fmtDate(x.expense_date)})`) : -1;
+                        const tn = expTypeName(x);
+                        const ref = x.file_path ? docRef(x.file_path, `Nota · ${tn} (${fmtDate(x.expense_date)})`) : -1;
                         return `<div class="py-2.5 flex items-start justify-between gap-2 text-xs">
                             <div class="min-w-0">
-                                <p class="font-bold text-gray-900 dark:text-gray-100">${esc(tName(x.type_id))} <span class="font-normal text-gray-500">· ${esc(vName(x.vehicle_id))}</span></p>
+                                <p class="font-bold text-gray-900 dark:text-gray-100">${esc(tn)} <span class="font-normal text-gray-500">· ${esc(vName(x.vehicle_id))}</span></p>
                                 <p class="text-gray-500 dark:text-gray-400 mt-0.5">${fmtDate(x.expense_date)}${x.description ? ' · ' + esc(x.description) : ''}</p>
                             </div>
                             <div class="text-right shrink-0">
@@ -5374,6 +5383,51 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 out.entrada = parseMoney(document.getElementById('dfCauEnt').value) || 0;
             }
             return out;
+        }
+        function expTypeName(x) {
+            if (!x) return 'Despesa';
+            return x.type_name || (state.expenseTypes.find(t => t.id === x.type_id) || {}).name || 'Despesa';
+        }
+        function driverFinVehicleId(d, al) {
+            if (!d) return null;
+            const enc = d.pix_extra && d.pix_extra.contrato_encerrado;
+            if (d.vehicle_id) return d.vehicle_id;
+            if (enc && enc.veiculo_id) return enc.veiculo_id;
+            const charges = al ? al.charges : state.pixHistory.filter(h => h.driver_id === d.id).map(h => ({ h }));
+            for (let i = charges.length - 1; i >= 0; i--) {
+                const vid = chargeVehicleId(charges[i], d.id);
+                if (vid) return vid;
+            }
+            return null;
+        }
+        function cauEntradaItem(d, al) {
+            const c = cauOf(d); if (!c) return null;
+            let amount = 0, desc = '';
+            if (c.forma === 'parcelada' && Number(c.entrada) > 0) {
+                amount = Number(c.entrada);
+                desc = 'Entrada da caução';
+            } else if (c.forma === 'paga' && Number(c.total) > 0) {
+                const charges = al ? al.charges : state.pixHistory.filter(h => h.driver_id === d.id);
+                const hasPaidCauPix = charges.some(x => { const h = x.h || x; return h.paid_at && /cau[çc][ãa]o\s*\d+\s*\/\s*\d+/i.test(h.description || ''); });
+                if (!hasPaidCauPix) { amount = Number(c.total); desc = 'Caução (paga na entrada)'; }
+            }
+            if (!(amount > 0.005)) return null;
+            return { amount, day: c.entrada_em || dayBR(d.created_at) || todayISO(), desc, vehicle_id: driverFinVehicleId(d, al) };
+        }
+        function cauPagoDespesaItem(d, hist, al) {
+            const enc = d && d.pix_extra && d.pix_extra.contrato_encerrado;
+            if (!enc || !enc.caucao_pago_em) return null;
+            const c30 = contrato30Info(enc, d);
+            if (!c30 || !c30.pagoEm || !(c30.cauLiquida > 0.005)) return null;
+            return {
+                id: 'cau_pago_' + d.id,
+                driver_id: d.id,
+                vehicle_id: driverFinVehicleId(d, al),
+                type_name: 'Devolução de caução',
+                amount: c30.cauLiquida,
+                expense_date: c30.pagoEm,
+                description: `${d.name}${c30.descTotal > 0 ? ` (desc. ${fmtMoney(c30.descTotal)} de ${fmtMoney(c30.cauPago)})` : ''}`
+            };
         }
         // ===== CAUÇÃO: quanto já foi pago =====
         // pago = entrada + parcelas cobradas e já pagas (parcela cobrada num Pix ainda em aberto não conta)
@@ -7394,7 +7448,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function iaOpcoes(tipo, lista, nome) { return { erro: lista.length ? `Encontrei mais de um ${tipo}. Pergunte ao dono qual é.` : `Não encontrei ${tipo} com "${nome}".`, opcoes: lista.slice(0, 8) }; }
         async function iaTodosMotoristas() {
             if (!iaExcluidos) { const { data } = await sb.from('profiles').select('*').eq('role', 'excluido'); iaExcluidos = data || []; }
-            return [...state.drivers, ...iaExcluidos];
+            return [...state.drivers, ...(state.archivedDrivers || []), ...iaExcluidos];
         }
         async function iaFerramenta(nome, a) {
             a = a || {};
@@ -7443,9 +7497,15 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             if (nome === 'consultar_financeiro') {
                 if (!iaDataOk(a.inicio) || !iaDataOk(a.fim)) return { erro: 'Preciso das datas no formato AAAA-MM-DD.' };
                 const dentro = t => { const x = dayBR(t); return x >= a.inicio && x <= a.fim; };
-                let recebido = 0, aberto = 0;
-                (await iaTodosMotoristas()).forEach(d => { const al = allocatePix(d.id); al.pays.forEach(p => { if (dentro(p.r.created_at)) recebido += Number(p.val || 0); }); if (d.role !== 'excluido') al.charges.forEach(c => { if (c.remaining > 0.005) aberto += c.remaining; }); });
-                const despV = state.expenses.filter(x => dentro(x.expense_date)).reduce((t, x) => t + Number(x.amount || 0), 0);
+                let recebido = 0, aberto = 0, cauPagoDesp = 0;
+                (await iaTodosMotoristas()).forEach(d => {
+                    const al = allocatePix(d.id);
+                    al.pays.forEach(p => { if (dentro(p.r.created_at)) recebido += Number(p.val || 0); });
+                    const ce = cauEntradaItem(d, al); if (ce && dentro(ce.day)) recebido += ce.amount;
+                    const cp = cauPagoDespesaItem(d, state.pixHistory, al); if (cp && dentro(cp.expense_date)) cauPagoDesp += cp.amount;
+                    if (d.role !== 'excluido') al.charges.forEach(c => { if (c.remaining > 0.005) aberto += c.remaining; });
+                });
+                const despV = state.expenses.filter(x => dentro(x.expense_date)).reduce((t, x) => t + Number(x.amount || 0), 0) + cauPagoDesp;
                 const [g, e] = await Promise.all([sb.from('app_earnings').select('*').gte('earning_date', a.inicio).lte('earning_date', a.fim), sb.from('app_expenses').select('*').gte('expense_date', a.inicio).lte('expense_date', a.fim)]);
                 if (g.error || e.error) return { erro: 'Não consegui ler os dados de aplicativo.' };
                 const porApp = {}; (g.data || []).forEach(x => { porApp[x.app] = (porApp[x.app] || 0) + Number(x.amount || 0); });
