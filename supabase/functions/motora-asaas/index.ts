@@ -138,30 +138,12 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   linhas.push(`Total: ${brl(total)}`);
 
   // ----- QR code Pix estático com o valor da semana (sem taxa até 100 Pix/mês) -----
-  let chave = await secret("asaas_chave_pix");
-  if (!chave) {
-    const ks = await asaas("GET", "/pix/addressKeys?status=ACTIVE&limit=10");
-    chave = ks?.data?.[0]?.key;
-    if (!chave) throw new Error("Sua conta do Asaas ainda não tem chave Pix. Crie uma chave (aleatória) no app do Asaas.");
-    await admin.from("app_secrets").upsert({ key: "asaas_chave_pix", value: chave });
-  }
-  const qr = await asaas("POST", "/pix/qrCodes/static", {
-    addressKey: chave, value: total, format: "ALL", allowsMultiplePayments: false,
-    description: `MOTORA ${String(d.name).split(/\s+/)[0]} venc ${venc.iso.split("-").reverse().join("/")}`.slice(0, 37),
-  });
-  if (!qr?.id) throw new Error("O Asaas não devolveu o QR code.");
-
-  // QR code como imagem no app (mesma pasta dos documentos do motorista)
-  let qrPath: string | null = null;
-  if (qr?.encodedImage) {
-    qrPath = `${d.id}/pix-qr-asaas-${Date.now()}.png`;
-    const up = await admin.storage.from("docs").upload(qrPath, decodeBase64(qr.encodedImage), { contentType: "image/png", upsert: true });
-    if (up.error) qrPath = null;
-  }
+  const { qr, qrPath } = await criarQrAsaasEUpload(d, total, `MOTORA ${String(d.name).split(/\s+/)[0]} venc ${venc.iso.split("-").reverse().join("/")}`);
 
   // ----- atualiza o motorista (o banco cria o histórico e a data de pagamento sozinho) -----
   tirarAjustes(ex, ajustes);
   delete ex.repetir; delete ex.descricao; delete ex.valor; delete ex.ultimo_enviado;
+  delete ex.parcial; delete ex.parcial_pendente;
   if (novoRepetir) Object.assign(ex, { repetir: true, descricao: novoRepetir.descricao, valor: d.pix_extra.valor, ultimo_enviado: true });
   if (cauCobrada) ex.caucao = { ...cau, cobradas: Number(cau.cobradas || 0) + 1 };
   if (multas.length) { const ids = new Set(multas.map((i: Extra) => i.id)); ex.multas = { ...ex.multas, itens: ex.multas.itens.map((i: Extra) => ids.has(i.id) ? { ...i, cobrada: hojeBR() } : i) }; }
@@ -179,17 +161,93 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   return { motorista: d.name, qr: qr.id, valor: total, vencimento: venc.iso };
 }
 
+const r2 = (v: number) => Math.round(v * 100) / 100;
+
+async function criarQrAsaasEUpload(d: Extra, valor: number, desc: string) {
+  let chave = await secret("asaas_chave_pix");
+  if (!chave) {
+    const ks = await asaas("GET", "/pix/addressKeys?status=ACTIVE&limit=10");
+    chave = ks?.data?.[0]?.key;
+    if (!chave) throw new Error("Sua conta do Asaas ainda não tem chave Pix. Crie uma chave (aleatória) no app do Asaas.");
+    await admin.from("app_secrets").upsert({ key: "asaas_chave_pix", value: chave });
+  }
+  const qr = await asaas("POST", "/pix/qrCodes/static", {
+    addressKey: chave, value: r2(valor), format: "ALL", allowsMultiplePayments: false,
+    description: desc.slice(0, 37),
+  });
+  if (!qr?.id) throw new Error("O Asaas não devolveu o QR code.");
+
+  let qrPath: string | null = null;
+  if (qr?.encodedImage) {
+    qrPath = `${d.id}/pix-qr-asaas-${Date.now()}.png`;
+    const up = await admin.storage.from("docs").upload(qrPath, decodeBase64(qr.encodedImage), { contentType: "image/png", upsert: true });
+    if (up.error) qrPath = null;
+  }
+  return { qr, qrPath };
+}
+
+async function saldoAbertoMotorista(d: Extra) {
+  const [{ data: cobs }, { data: recs }] = await Promise.all([
+    admin.from("pix_history").select("amount, sent_at, due_at").eq("driver_id", d.id).order("sent_at"),
+    admin.from("receipts").select("id, created_at, confirmed_at, rejected_at, ai_status, ai_result").eq("driver_id", d.id).order("created_at"),
+  ]);
+  const vistos = new Set<string>();
+  const pays: Extra[] = [];
+  for (const r of recs ?? []) {
+    if (r.rejected_at || (!r.confirmed_at && r.ai_status !== "ok")) continue;
+    const tid = r.ai_result?.id_transacao;
+    if (tid) { if (vistos.has(tid)) continue; vistos.add(tid); }
+    pays.push(r);
+  }
+  const charges = (cobs ?? [])
+    .filter((h) => h.amount != null)
+    .map((h) => ({ h, remaining: Number(h.amount), paid: 0 }));
+  for (const r of pays) {
+    const lido = Number(r.ai_result?.valor);
+    let left = lido > 0 ? lido : (charges.find((c) => c.remaining > 0.005)?.remaining ?? 0);
+    for (const c of charges) {
+      if (left <= 0.005) break;
+      const take = Math.min(left, c.remaining);
+      c.remaining = r2(c.remaining - take);
+      c.paid = r2(c.paid + take);
+      left = r2(left - take);
+    }
+  }
+  const curCharge = d.pix_sent_at
+    ? charges.find((c) => c.h.sent_at && Math.abs(new Date(c.h.sent_at).getTime() - new Date(d.pix_sent_at).getTime()) < 2000) || null
+    : null;
+  const restanteTotal = r2(charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0));
+  const temReciboAtual = d.pix_sent_at
+    ? (recs ?? []).some((r) => !r.rejected_at && new Date(r.created_at).getTime() >= new Date(d.pix_sent_at).getTime())
+    : false;
+  const jaPagouParte = temReciboAtual || (!!curCharge && curCharge.paid > 0.005);
+  const temAtraso = charges.some((c) => c.remaining > 0.005 && c.h.due_at && Date.now() > new Date(c.h.due_at).getTime());
+  return { restanteTotal, curCharge, jaPagouParte, temAtraso };
+}
+
+async function salvarQrParcialNoPerfil(dId: string, qr: Extra, qrPath: string | null, valor: number, ex: Extra) {
+  const { error } = await admin.rpc("asaas_set_partial_qr", {
+    p_driver: dId,
+    p_code: qr?.payload || null,
+    p_qr_path: qrPath,
+    p_amount: r2(valor),
+    p_extra: ex,
+  });
+  if (error) throw new Error("salvar Pix parcial: " + error.message);
+}
+
 async function cobrarTodos() {
   const { data: lista } = await admin.from("profiles").select("*").eq("role", "driver").eq("asaas_auto_charge_enabled", true);
-  if (!lista?.length) return []; // ninguém ligado na ficha: nem fala com o Asaas
+  const ativos = (lista ?? []).filter((d) => !d.pix_extra?.sem_cobranca && !d.pix_extra?.contrato_encerrado);
+  if (!ativos.length) return []; // ninguém ligado na ficha: nem fala com o Asaas
   const inicioMes = new Date(hojeBR().slice(0, 8) + "01T00:00:00-03:00").toISOString();
   const { count } = await admin.from("receipts").select("id", { count: "exact", head: true }).contains("ai_result", { origem: "asaas" }).gte("created_at", inicioMes);
-  if ((count ?? 0) + lista.length > LIMITE_GRATIS) {
+  if ((count ?? 0) + ativos.length > LIMITE_GRATIS) {
     await avisar({ type: "master_alert", title: "Asaas: limite grátis do mês", body: `Já são ${count} Pix neste mês. Para não pagar tarifa, as cobranças automáticas pararam até o mês que vem. Use o Novo Pix.`, url: "/" });
     return [{ pulou: "limite de Pix sem tarifa do mês" }];
   }
   const out: unknown[] = [];
-  for (const d of lista ?? []) {
+  for (const d of ativos) {
     try { out.push(await cobrarMotorista(d)); } catch (e) {
       out.push({ motorista: d.name, erro: String((e as Error).message || e) });
       await avisar({ type: "master_alert", title: `Asaas: erro na cobrança de ${d.name}`, body: String((e as Error).message || e).slice(0, 180), url: "/" });
@@ -200,7 +258,7 @@ async function cobrarTodos() {
 
 // ----- pagamento recebido -----
 async function quemPagou(p: Record<string, any>) { // eslint-disable-line @typescript-eslint/no-explicit-any
-  const campos = "id, name, cpf, pix_extra, role, pix_description";
+  const campos = "id, name, cpf, pix_extra, role, pix_description, pix_sent_at, pix_due_at, pix_amount";
   // 1) pelo QR code da semana
   if (p.pixQrCodeId) {
     const { data } = await admin.from("profiles").select(campos).eq("role", "driver").contains("pix_extra", { asaas: { qrs: [p.pixQrCodeId] } }).limit(1);
@@ -257,18 +315,148 @@ async function pagamentoRecebido(aviso: Record<string, any>) { // eslint-disable
   // abate a cobrança e volta para "Em dia" (mesma regra dos comprovantes)
   await admin.from("receipts").update({ confirmed_at: agora }).eq("id", rec.id); // dispara o gatilho de abatimento
 
+  // Verifica se restou saldo devedor; se restou, gera automaticamente um novo Pix no Asaas para o restante
+  const { restanteTotal } = await saldoAbertoMotorista(d);
+  const ex: Extra = { ...(d.pix_extra || {}) };
+  delete ex.parcial;
+  delete ex.parcial_pendente;
+
+  if (restanteTotal > 0.005) {
+    let novoQrCriado = false;
+    try {
+      const { qr, qrPath } = await criarQrAsaasEUpload(d, restanteTotal, `MOTORA ${String(d.name).split(/\s+/)[0]} restante`);
+      const asx: Extra = ex.asaas || {};
+      ex.asaas = { ...asx, qr: qr.id, qrs: [qr.id, ...(asx.qrs || [])].slice(0, 12), criada_em: new Date().toISOString() };
+      await salvarQrParcialNoPerfil(d.id, qr, qrPath, restanteTotal, ex);
+      novoQrCriado = true;
+    } catch (e) {
+      await admin.from("profiles").update({ pix_extra: ex }).eq("id", d.id);
+      await avisar({ type: "master_alert", title: `${d.name}: erro ao gerar Pix do restante`, body: `Pagou ${brl(p.value)}, mas faltou gerar o Pix de ${brl(restanteTotal)}: ${String((e as Error).message || e).slice(0, 140)}`, url: "/" });
+    }
+    await avisar({ type: "master_alert", title: `${d.name} pagou parte (${brl(p.value)})`, body: `Falta ${brl(restanteTotal)}. ${novoQrCriado ? "Novo Pix do valor restante gerado pelo Asaas." : "Confira no app."}`, url: "/" });
+    await avisar({ type: "driver_alert", driver_id: d.id, title: "Pagamento parcial confirmado", body: `Recebemos ${brl(p.value)}. Falta ${brl(restanteTotal)}.${novoQrCriado ? " Já geramos um novo Pix com o valor restante no app." : ""}`, url: "/?aba=pagamento" });
+    return { ok: true, motorista: d.name, valor: p.value, restante: restanteTotal, novoQrCriado };
+  }
+
+  if (d.pix_extra?.parcial || d.pix_extra?.parcial_pendente) {
+    await admin.from("profiles").update({ pix_extra: ex }).eq("id", d.id);
+  }
   await avisar({ type: "master_alert", title: `${d.name} pagou ${brl(p.value)}`, body: "Pagamento conferido pelo Asaas. O recibo vai para o WhatsApp dele.", url: "/" });
   await avisar({ type: "driver_alert", driver_id: d.id, title: "Recibo de pagamento", body: `Recebemos seu pagamento de ${brl(p.value)} em ${quando.split("-").reverse().join("/")}. Obrigado!${d.pix_description ? "\nReferente a: " + String(d.pix_description).replace(/\n/g, " · ") : ""}`, url: "/?aba=pagamento" });
   return { ok: true, motorista: d.name, valor: p.value };
 }
 
-async function ehMaster(req: Request) {
+async function usuarioAuth(req: Request) {
   const tok = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  if (!tok) return false;
+  if (!tok) return null;
   const { data } = await admin.auth.getUser(tok);
-  if (!data?.user) return false;
-  const { data: p } = await admin.from("profiles").select("role").eq("id", data.user.id).maybeSingle();
+  if (!data?.user) return null;
+  const { data: p } = await admin.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
+  return p || null;
+}
+
+async function ehMaster(req: Request) {
+  const p = await usuarioAuth(req);
   return p?.role === "master";
+}
+
+async function pixParcialMotorista(req: Request, body: Extra) {
+  const d = await usuarioAuth(req);
+  if (!d || d.role !== "driver") return json({ ok: false, error: "Acesso apenas para o motorista." }, 403);
+  if (d.pix_extra?.sem_cobranca || d.pix_extra?.contrato_encerrado) return json({ ok: false, error: "Contrato encerrado ou sem cobrança ativa." });
+
+  const valor = r2(Number(body.valor));
+  if (!Number.isFinite(valor) || valor < 1) return json({ ok: false, error: "Informe um valor válido de pelo menos R$ 1,00." });
+
+  const { restanteTotal, curCharge, jaPagouParte, temAtraso } = await saldoAbertoMotorista(d);
+  if (!(restanteTotal > 0.005)) return json({ ok: false, error: "Não há saldo em aberto para pagar." });
+  if (valor > restanteTotal + 0.005) return json({ ok: false, error: `O valor não pode ser maior que o saldo em aberto (${brl(restanteTotal)}).` });
+
+  const ex: Extra = { ...(d.pix_extra || {}) };
+  const pagandoRestanteTotal = Math.abs(valor - restanteTotal) <= 0.005;
+  const vencido = temAtraso || (!!d.pix_due_at && Date.now() > new Date(d.pix_due_at).getTime());
+  // Regra: antes do pagamento (sem pagamento feito na semana e dentro do vencimento), ou se pediu para voltar ao total restante, gera o Pix na hora.
+  // Após já ter pagamento ou após o vencimento, se pedir valor menor que o pagamento/restante da semana, exige autorização do master.
+  const precisaAutorizacao = !pagandoRestanteTotal && (jaPagouParte || vencido);
+
+  if (precisaAutorizacao) {
+    ex.parcial_pendente = {
+      valor,
+      restante: restanteTotal,
+      solicitado_em: new Date().toISOString(),
+      charge_sent_at: d.pix_sent_at || null,
+      motivo: jaPagouParte ? "apos_pagamento" : "apos_vencimento",
+    };
+    const { error } = await admin.from("profiles").update({ pix_extra: ex }).eq("id", d.id);
+    if (error) throw new Error(error.message);
+    await avisar({
+      type: "master_alert",
+      title: `Autorizar Pix inferior: ${d.name}`,
+      body: `Pediu para pagar ${brl(valor)} (falta ${brl(restanteTotal)}). Confirme no card do motorista para liberar o QR code.`,
+      url: "/",
+    });
+    return json({ ok: true, autorizado: false, pendente: true, valor, restante: restanteTotal });
+  }
+
+  const { qr, qrPath } = await criarQrAsaasEUpload(d, valor, `MOTORA ${String(d.name).split(/\s+/)[0]} ${pagandoRestanteTotal ? "restante" : "parcial"}`);
+  const asx: Extra = ex.asaas || {};
+  ex.asaas = { ...asx, qr: qr.id, qrs: [qr.id, ...(asx.qrs || [])].slice(0, 12), criada_em: new Date().toISOString() };
+  delete ex.parcial_pendente;
+  if (pagandoRestanteTotal) {
+    delete ex.parcial;
+  } else {
+    ex.parcial = { valor, total_cobranca: curCharge?.h?.amount ?? restanteTotal, qr: qr.id, criada_em: new Date().toISOString() };
+  }
+  await salvarQrParcialNoPerfil(d.id, qr, qrPath, valor, ex);
+  if (!pagandoRestanteTotal) {
+    await avisar({
+      type: "master_alert",
+      title: `${d.name} gerou Pix parcial`,
+      body: `Gerou QR Code de ${brl(valor)} (restará ${brl(r2(restanteTotal - valor))}).`,
+      url: "/",
+    });
+  }
+  return json({ ok: true, autorizado: true, valor, payload: qr.payload, qr_path: qrPath });
+}
+
+async function autorizarParcial(req: Request, body: Extra) {
+  if (!(await ehMaster(req))) return json({ ok: false, error: "Apenas o administrador pode autorizar." }, 403);
+  const driverId = String(body.driver_id || "");
+  if (!driverId) return json({ ok: false, error: "Motorista não informado." });
+  const { data: d } = await admin.from("profiles").select("*").eq("id", driverId).eq("role", "driver").maybeSingle();
+  if (!d) return json({ ok: false, error: "Motorista não encontrado." });
+
+  const ex: Extra = { ...(d.pix_extra || {}) };
+  const pend = ex.parcial_pendente;
+  if (!pend || !(Number(pend.valor) > 0)) return json({ ok: false, error: "Este motorista não tem pedido de pagamento parcial pendente." });
+
+  if (body.aprovar === false) {
+    delete ex.parcial_pendente;
+    const { error } = await admin.from("profiles").update({ pix_extra: ex }).eq("id", d.id);
+    if (error) throw new Error(error.message);
+    await avisar({
+      type: "driver_alert", driver_id: d.id,
+      title: "Pix parcial não autorizado",
+      body: `O pedido para gerar Pix de ${brl(pend.valor)} não foi autorizado. Pague o valor normal no app ou fale com a locadora.`,
+      url: "/?aba=pagamento",
+    });
+    return json({ ok: true, recusado: true });
+  }
+
+  const valor = r2(Number(pend.valor));
+  const { qr, qrPath } = await criarQrAsaasEUpload(d, valor, `MOTORA ${String(d.name).split(/\s+/)[0]} aut`);
+  const asx: Extra = ex.asaas || {};
+  ex.asaas = { ...asx, qr: qr.id, qrs: [qr.id, ...(asx.qrs || [])].slice(0, 12), criada_em: new Date().toISOString() };
+  delete ex.parcial_pendente;
+  ex.parcial = { valor, qr: qr.id, criada_em: new Date().toISOString(), autorizado_em: new Date().toISOString() };
+  await salvarQrParcialNoPerfil(d.id, qr, qrPath, valor, ex);
+  await avisar({
+    type: "driver_alert", driver_id: d.id,
+    title: "Pix parcial liberado!",
+    body: `Seu pedido foi aprovado. O QR Code de ${brl(valor)} já está disponível na aba Pagamento.`,
+    url: "/?aba=pagamento",
+  });
+  return json({ ok: true, autorizado: true, valor, payload: qr.payload, qr_path: qrPath });
 }
 
 // confere a conta e deixa o aviso de pagamento (webhook) configurado no Asaas. Não cria cobrança nem gasta nada.
@@ -307,7 +495,13 @@ Deno.serve(async (req) => {
       }
       return json({ received: true }); // o Asaas só precisa do "200"
     }
-    // 2) o banco pedindo as cobranças do dia
+    // 2) ações do app (motorista ou administrador) e do banco (cron)
+    if (body.acao === "pix_parcial") {
+      try { return await pixParcialMotorista(req, body); } catch (e) { return json({ ok: false, error: String((e as Error).message || e) }); }
+    }
+    if (body.acao === "autorizar_parcial") {
+      try { return await autorizarParcial(req, body); } catch (e) { return json({ ok: false, error: String((e as Error).message || e) }); }
+    }
     const cronTok = req.headers.get("x-cron-token");
     const doBanco = !!cronTok && cronTok === (await secret("cron_token"));
     if (body.acao === "preparar" && (doBanco || await ehMaster(req))) {

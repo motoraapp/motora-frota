@@ -49,6 +49,7 @@
         @media (max-width: 640px) { input, select, textarea { font-size: 16px !important; } }
         /* iPhone (app na tela de início): os campos precisam aceitar toque, seleção e teclado */
         input, textarea, select, [contenteditable]:not([contenteditable="false"]) { -webkit-user-select: text !important; user-select: text !important; touch-action: auto !important; pointer-events: auto; -webkit-touch-callout: default; }
+        button, a, summary, select { touch-action: manipulation; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
@@ -391,6 +392,7 @@
                                 <p id="drvPixDoneTitle" class="font-semibold">Comprovante aceito</p>
                                 <p id="drvPixDoneText" class="text-xs text-gray-500 dark:text-gray-400 mt-1">A chave Pix desta semana foi retirada. A próxima aparece aqui quando for enviada.</p>
                             </div>
+                            <div id="drvParcialNotice" class="hidden w-full mb-3 p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-xs text-left"></div>
                             <div id="drvPixKey" class="w-full flex flex-col items-center">
                             <div id="pixQrContainer" class="w-48 h-48 bg-white p-2 rounded-lg shadow-sm mb-4 flex items-center justify-center text-gray-400">
                                 <!-- QR Code Renderizado aqui -->
@@ -415,6 +417,14 @@
                                     </div>
                                 </div>
                             </div>
+                            </div>
+                            <div id="drvParcialActions" class="hidden w-full mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 space-y-2">
+                                <button id="btnPagarParte" type="button" onclick="pedirPixParcial(this)" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-coins"></i> Pagar parte do valor
+                                </button>
+                                <button id="btnPagarTotalRestante" type="button" onclick="restaurarPixTotal(this)" class="hidden w-full py-2 rounded-xl text-xs font-semibold bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100">
+                                    <i class="fa-solid fa-rotate-left mr-1"></i> Gerar Pix do valor total restante
+                                </button>
                             </div>
                         </div>
 
@@ -558,6 +568,15 @@
                     </div>
                 </div>
 
+                <!-- Fichas Arquivadas (após marcar caução pago) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <button type="button" onclick="toggleDobra('dDrvArchived')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-500"></i> Fichas Arquivadas <span id="drvArchivedCount" class="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">0</span></h3><i id="dDrvArchivedSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i></button>
+                    <div id="dDrvArchived" class="dobraCorpo mt-4 hidden">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Motoristas com caução paga e ficha arquivada. Você pode consultar a ficha, documentos e recibos ou desarquivar a qualquer momento.</p>
+                        <div id="tblArchivedDrivers" class="motLista"></div>
+                    </div>
+                </div>
+
                 <!-- Form de Adicionar Motorista -->
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <button type="button" onclick="toggleDobra('dDrvForm')" class="dobraTopo w-full flex items-center justify-between gap-2 text-left"><h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-user-plus text-blue-500"></i> Cadastrar Novo Motorista</h3><i id="dDrvFormSeta" class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i></button>
@@ -664,7 +683,7 @@
     </nav>
 
     <!-- MODAL PRIMEIRO LOGIN -->
-    <div id="modalFirstLogin" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalFirstLogin" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
             <div class="text-center mb-6">
                 <div class="w-12 h-12 bg-blue-100 dark:bg-gray-700 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -699,7 +718,7 @@
     </div>
 
     <!-- MODAL OBRIGATÓRIO: ATIVAR NOTIFICAÇÕES (MOTORISTA) -->
-    <div id="modalNotif" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div id="modalNotif" class="hidden fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border-2 border-red-500">
             <div class="text-center mb-4">
                 <div class="w-14 h-14 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -713,7 +732,7 @@
     </div>
 
     <!-- MODAL VISTORIA (MASTER) -->
-    <div id="modalInspection" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalInspection" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <div>
@@ -727,7 +746,7 @@
     </div>
 
     <!-- MODAL CONFIGURAÇÕES (MASTER) -->
-    <div id="modalSettings" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalSettings" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-5">
             <div class="flex justify-between items-center">
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-gear mr-1"></i> Configurações</h3>
@@ -787,7 +806,7 @@
     </div>
 
     <!-- MODAL TEMAS -->
-    <div id="modalThemes" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div id="modalThemes" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onclick="if(event.target===this)this.classList.add('hidden')">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-3">
             <div class="flex justify-between items-center">
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-palette mr-1"></i> Escolha o tema</h3>
@@ -799,7 +818,7 @@
     </div>
 
     <!-- MODAL DADOS DE ACESSO DO MOTORISTA NOVO -->
-    <div id="modalCreds" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalCreds" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4 text-center">
             <div class="text-4xl text-emerald-600"><i class="fa-solid fa-circle-check"></i></div>
             <h3 class="text-lg font-bold" id="credName"></h3>
@@ -830,7 +849,7 @@
     </div>
 
     <!-- MODAL FICHA DO MOTORISTA (MASTER) -->
-    <div id="modalDriverFile" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalDriverFile" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <form onsubmit="saveDriverFile(event)" class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h3 class="font-bold"><i class="fa-solid fa-address-card text-indigo-500 mr-1"></i> Ficha do Motorista</h3>
@@ -870,6 +889,8 @@
                     <input id="dfObs" type="text" maxlength="120" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                 <!-- DEVOLUÇÃO DO VEÍCULO (profiles.pix_extra.devolucao): aviso de 15 dias, até 2 cobranças, recebimento e caução -->
                 <div id="dfDevBox" class="rounded-xl border border-orange-200 dark:border-orange-800 bg-orange-50/60 dark:bg-orange-900/10 p-3 space-y-3"></div>
+                <!-- ENCERRAMENTO DE CONTRATO (profiles.pix_extra.contrato_encerrado) -->
+                <div id="dfContratoBox" class="rounded-xl border border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-900/10 p-3 space-y-2"></div>
                 <div class="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50/60 dark:bg-teal-900/10 p-3 space-y-3">
                     <h4 class="font-semibold text-sm"><i class="fa-solid fa-calendar-day text-teal-600 mr-1"></i> Pagamento do motorista</h4>
                     <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Dia da semana do pagamento</label>
@@ -956,7 +977,7 @@
 
     <!-- MODAL CONTROLE FINANCEIRO (MASTER) -->
     <!-- RECIBO DE PAGAMENTO (MASTER -> motorista pelo WhatsApp) -->
-    <div id="modalRecibo" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalRecibo" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-solid fa-receipt text-emerald-500 mr-1"></i> Recibo de pagamento</h3>
@@ -976,7 +997,7 @@
     </div>
 
     <!-- ÁREA DO PIX (MASTER): escolhe o motorista e envia, edita ou exclui o Pix -->
-    <div id="modalPixArea" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalPixArea" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-brands fa-pix text-teal-500 mr-1"></i> Área do Pix</h3>
@@ -993,7 +1014,7 @@
     </div>
 
     <!-- ÁREA IA (MASTER): mensagens de WhatsApp prontas para cada aviso enviado ao motorista -->
-    <div id="modalIA" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalIA" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-solid fa-robot text-green-600 mr-1"></i> Área IA</h3>
@@ -1077,7 +1098,7 @@
 
     <!-- MEUS RECIBOS (motorista): todos os recibos pagos, cada um em PDF -->
     <!-- TROCAR MINHA SENHA (motorista e dono) -->
-    <div id="modalEditVeh" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalEditVeh" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-pen-to-square text-teal-600 mr-1"></i> Editar veículo</h3>
@@ -1096,7 +1117,7 @@
         </div>
     </div>
 
-    <div id="modalSenha" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalSenha" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-center mb-1">
                 <h3 class="text-lg font-bold"><i class="fa-solid fa-key text-blue-600 mr-1"></i> Trocar minha senha</h3>
@@ -1118,7 +1139,7 @@
         </div>
     </div>
 
-    <div id="modalMeusRecibos" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalMeusRecibos" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-solid fa-receipt text-emerald-600 mr-1"></i> Meus recibos</h3>
@@ -1137,7 +1158,7 @@
     </div>
 
     <!-- E-MAIL: a IA escreve, o dono confere e só então envia (sai pela conta Google do dono) -->
-    <div id="modalEmail" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+    <div id="modalEmail" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-solid fa-envelope text-blue-600 mr-1"></i> Conferir e-mail antes de enviar</h3>
@@ -1158,7 +1179,7 @@
     </div>
 
     <!-- RELATÓRIO DO FINANCEIRO (segue o período e os filtros escolhidos) -->
-    <div id="modalReport" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalReport" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full h-[92vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-solid fa-file-lines text-indigo-500 mr-1"></i> Relatório</h3>
@@ -1173,7 +1194,7 @@
         </div>
     </div>
 
-    <div id="modalFinance" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalFinance" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-solid fa-sack-dollar text-emerald-500 mr-1"></i> Controle financeiro</h3>
@@ -1254,7 +1275,7 @@
                     <h4 class="font-semibold text-sm mb-2"><i class="fa-solid fa-users mr-1 text-blue-500"></i> Por motorista</h4>
                     <div id="finDrivers"></div>
                 </div>
-                <p class="text-xs text-gray-400">Recebido = soma de tudo que foi pago por Pix no período (valor dos comprovantes aceitos; um pagamento pode quitar mais de uma cobrança). Em aberto = o que ainda falta pagar das cobranças enviadas. O valor de cada motorista conta para o veículo que está com ele hoje.</p>
+                <p class="text-xs text-gray-400">Recebido = soma de tudo que foi pago por Pix no período (valor dos comprovantes aceitos; um pagamento pode quitar mais de uma cobrança). Em aberto = o que ainda falta pagar das cobranças enviadas. Cada pagamento conta para o veículo da cobrança correspondente, mesmo após troca ou devolução.</p>
                 </div>
                 <div id="finAppsBox" class="hidden space-y-4">
                     <div id="appTotals"></div>
@@ -1296,7 +1317,7 @@
     </div>
 
     <!-- MODAL DESPESAS DO VEÍCULO (MASTER) -->
-    <div id="modalExpenses" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+    <div id="modalExpenses" class="hidden fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <div>
@@ -1332,7 +1353,7 @@
     </div>
 
     <!-- MODAL NOVO PIX -->
-    <div id="modalNewPix" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalNewPix" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <form onsubmit="saveNewPix(event)" class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[92vh] overflow-y-auto custom-scrollbar p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4">
             <div class="flex justify-between items-start">
                 <div>
@@ -1443,7 +1464,7 @@
     </div>
 
     <!-- CORRIGIR RECIBO: muda só o texto e o período; valor e comprovante não mudam -->
-    <div id="modalCorrigirRecibo" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalCorrigirRecibo" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
                 <h3 class="font-bold"><i class="fa-solid fa-pen text-blue-600 mr-1"></i> Corrigir recibo</h3>
@@ -1458,7 +1479,7 @@
     </div>
 
     <!-- MODAL VISUALIZADOR DE DOCUMENTOS/COMPROVANTES -->
-    <div id="modalDocViewer" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div id="modalDocViewer" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
                 <h4 class="font-bold text-sm" id="modalDocTitle">Visualizar Documento</h4>
@@ -1473,7 +1494,7 @@
     </div>
 
     <!-- MODAL TERMOS DO APP (aceite obrigatório do motorista / leitura / comprovante para o master) -->
-    <div id="modalTerms" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[65] flex items-center justify-center p-3 sm:p-4">
+    <div id="modalTerms" class="hidden fixed inset-0 bg-black/80 z-[65] flex items-center justify-center p-3 sm:p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start gap-3">
                 <div>
@@ -1903,6 +1924,38 @@
                 d.vehicle_id = null;
                 (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: d.id, title: 'Devolução concluída', body: '', message: `Olá, ${String(d.name).split(' ')[0]}! Recebemos o carro. Sua devolução foi concluída e você não receberá mais cobranças.`, status: 'aprovar', created_at: new Date().toISOString(), sent_at: null });
             },
+            master_encerrar_contrato({ p_driver, p_data }) {
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) return;
+                const v = DEMO.db.vehicles.find(x => x.id === d.vehicle_id);
+                const data = p_data || todayISO(), ate = dataMais(data, 30);
+                const next = { ...(d.pix_extra || {}) };
+                ['pix_auto', 'pix_auto_venc', 'devolucao', 'parcial', 'parcial_pendente', 'arquivado', 'arquivado_em'].forEach(k => delete next[k]);
+                next.sem_cobranca = true;
+                next.contrato_encerrado = { data, caucao_ate: ate, encerrado_em: new Date().toISOString(), veiculo_id: d.vehicle_id || null, veiculo: v ? `${v.model} (${v.plate})` : null };
+                d.vehicle_id = null; d.asaas_auto_charge_enabled = false; d.picpay_auto_charge_enabled = false;
+                d.pix_code = d.pix_qr_path = d.pix_link = d.pix_amount = d.pix_description = d.pix_sent_at = d.pix_due_at = null;
+                d.pix_extra = next;
+                (DEMO.db.whatsapp_queue = DEMO.db.whatsapp_queue || []).push({ id: demoId(), driver_id: d.id, title: 'Contrato encerrado', body: 'Previsão de pagamento da caução em 30 dias.', message: `Olá, ${String(d.name).split(' ')[0]}! Seu contrato foi encerrado em ${fmtDate(data)}. A caução será paga na data de ${fmtDate(ate)} (após 30 dias do encerramento do contrato).`, status: 'aprovar', created_at: new Date().toISOString(), sent_at: null });
+            },
+            master_caucao_paga_arquivar({ p_driver, p_data_pago }) {
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) return;
+                const v = DEMO.db.vehicles.find(x => x.id === d.vehicle_id);
+                const pago = p_data_pago || todayISO();
+                const next = { ...(d.pix_extra || {}) };
+                ['pix_auto', 'pix_auto_venc', 'devolucao', 'parcial', 'parcial_pendente'].forEach(k => delete next[k]);
+                const enc = next.contrato_encerrado || { data: pago, caucao_ate: dataMais(pago, 30), encerrado_em: new Date().toISOString(), veiculo_id: d.vehicle_id || null, veiculo: v ? `${v.model} (${v.plate})` : null };
+                next.contrato_encerrado = { ...enc, caucao_pago_em: pago, caucao_pago_registrado_em: new Date().toISOString() };
+                next.sem_cobranca = true; next.arquivado = true; next.arquivado_em = new Date().toISOString();
+                d.vehicle_id = null; d.asaas_auto_charge_enabled = false; d.picpay_auto_charge_enabled = false;
+                d.pix_code = d.pix_qr_path = d.pix_link = d.pix_amount = d.pix_description = d.pix_sent_at = d.pix_due_at = null;
+                d.pix_extra = next;
+            },
+            master_desarquivar_ficha({ p_driver }) {
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d || !d.pix_extra) return;
+                const next = { ...d.pix_extra };
+                delete next.arquivado; delete next.arquivado_em;
+                d.pix_extra = Object.keys(next).length ? next : null;
+            },
             master_create_driver({ p_email, p_name, p_vehicle, p_pix_code }) {
                 const id = demoId();
                 DEMO.db.profiles.push({ id, role: 'driver', name: p_name, username: p_email, vehicle_id: p_vehicle || null, payment_status: 'Em dia', pix_code: p_pix_code || null, created_at: new Date().toISOString() });
@@ -2054,7 +2107,10 @@
                 $('uiDlgTexto').textContent = texto;
                 $('uiDlgTexto').classList.toggle('hidden', !texto);
                 ['uiDlgLinha', 'uiDlgCampo'].forEach(id => $(id).classList.add('hidden'));
-                if (entrada) { entrada.value = campo.valor || ''; entrada.placeholder = campo.dica || ''; entrada.classList.remove('hidden'); }
+                if (entrada) {
+                    if (linha) { entrada.type = campo.tipo || 'text'; entrada.inputMode = campo.modo || ''; }
+                    entrada.value = campo.valor || ''; entrada.placeholder = campo.dica || ''; entrada.classList.remove('hidden');
+                }
                 const op = $('uiDlgOpcoes');
                 op.innerHTML = '';
                 op.classList.toggle('hidden', !(opcoes && opcoes.length && entrada));
@@ -2070,6 +2126,7 @@
                 const antes = document.activeElement;
                 const fim = ok => {
                     box.classList.add('hidden');
+                    if (linha) { $('uiDlgLinha').type = 'text'; $('uiDlgLinha').inputMode = ''; }
                     document.removeEventListener('keydown', tecla, true);
                     bSim.onclick = bNao.onclick = box.onclick = null;
                     if (antes && antes.focus) try { antes.focus(); } catch (_) {}
@@ -2406,7 +2463,7 @@
             if (profile.role === 'master') {
                 return Promise.all([
                     sb.from('vehicles').select('*').order('created_at'),
-                    sb.from('profiles').select('*').eq('role', 'driver').order('created_at'),
+                    sb.from('profiles').select('*').in('role', ['driver', 'excluido']).order('created_at'),
                     sb.from('receipts').select('*').order('created_at'),
                     sb.from('inspection_photos').select('*').order('created_at'),
                     sb.from('vehicle_expenses').select('*').order('expense_date', { ascending: false }),
@@ -2428,7 +2485,11 @@
             if (master) {
                 const [veh, drv, rec, insp, exp, tipos, hist] = rs;
                 for (const x of [veh, drv, rec, insp, exp, tipos, hist]) if (x.error) throw x.error;
-                state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.drivers = drv.data; state.receipts = rec.data; state.inspection = insp.data;
+                state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.allDrivers = drv.data;
+                const drvList = drv.data.filter(d => d.role === 'driver');
+                state.archivedDrivers = drvList.filter(d => d.pix_extra && d.pix_extra.arquivado);
+                state.drivers = drvList.filter(d => !(d.pix_extra && d.pix_extra.arquivado));
+                state.receipts = rec.data; state.inspection = insp.data;
                 state.expenses = exp.data; state.expenseTypes = tipos.data; state.pixHistory = hist.data;
             } else {
                 const [veh, rec, insp, hist, features] = rs;
@@ -2436,7 +2497,7 @@
                 if (veh.error) throw veh.error;
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
-                state.allVehicles = null; state.vehicles = veh.data; state.receipts = rec.data; state.drivers = []; state.inspection = insp.data;
+                state.allVehicles = null; state.vehicles = veh.data; state.receipts = rec.data; state.allDrivers = null; state.drivers = []; state.archivedDrivers = []; state.inspection = insp.data;
                 state.features = features;
             }
         }
@@ -2742,39 +2803,56 @@
             const banner = document.getElementById('drvPixBanner');
             const weekRecs = driver.pix_sent_at ? state.receipts.filter(r => new Date(r.created_at) >= new Date(driver.pix_sent_at)) : [];
             const lastWeekRec = weekRecs[weekRecs.length - 1];
+            const alDrv = allocatePix(driver.id);
+            const restanteTotal = Math.round(alDrv.charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0) * 100) / 100;
             // Pix já quitado por um pagamento anterior (ex.: pagou duas cobranças num Pix só)
-            const curCharge = driver.pix_sent_at ? allocatePix(driver.id).charges.find(c => c.h.sent_at && Math.abs(new Date(c.h.sent_at) - new Date(driver.pix_sent_at)) < 2000) : null;
+            const curCharge = driver.pix_sent_at ? alDrv.charges.find(c => c.h.sent_at && Math.abs(new Date(c.h.sent_at) - new Date(driver.pix_sent_at)) < 2000) : null;
+            const curPaid = curCharge ? curCharge.paidBy.reduce((t, p) => t + Number(p.amt || 0), 0) : 0;
+            const curRemaining = curCharge ? Math.max(0, Math.round(curCharge.remaining * 100) / 100) : (driver.pix_amount != null ? Number(driver.pix_amount) : 0);
+            const hasOpenDebt = curCharge ? curCharge.remaining > 0.005 : restanteTotal > 0.005;
             const paidEarlier = !lastWeekRec && !!curCharge && curCharge.remaining <= 0.005 && curCharge.paidBy.length > 0;
             const paidThisPix = paidEarlier || (!!lastWeekRec && !lastWeekRec.rejected_at);
+            const exDrv = driver.pix_extra || {};
+            const parcial = exDrv.parcial && Number(exDrv.parcial.valor) > 0 ? exDrv.parcial : null;
+            const pendParcial = exDrv.parcial_pendente && Number(exDrv.parcial_pendente.valor) > 0 ? exDrv.parcial_pendente : null;
+            const hasPendingRec = weekRecs.some(r => !r.rejected_at && !r.confirmed_at && r.ai_status !== 'ok' && r.ai_status !== 'confere');
+            const deveExibirSaldo = restanteTotal > 0.005 ? (curCharge ? curRemaining : restanteTotal) : (driver.pix_amount != null ? Number(driver.pix_amount) : 0);
             if (driver.pix_due_at) {
                 dueEl.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Data de pagamento: ${fmtDue(driver.pix_due_at)} até 23:59${driver.asaas_auto_charge_enabled ? '<br><i class="fa-solid fa-robot mr-1"></i> Pagamento conferido sozinho: depois de pagar não precisa enviar comprovante.' : ''}`;
             } else {
                 dueEl.innerHTML = '';
             }
             const dueGone = !!driver.pix_due_at && Date.now() > new Date(driver.pix_due_at).getTime();
-            if (driver.pix_due_at && !paidThisPix && dueGone) {
+            if (driver.pix_due_at && (!paidThisPix || hasOpenDebt) && !hasPendingRec && dueGone) {
                 banner.className = "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-900 dark:text-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-                banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-clock mr-1"></i> Prazo de pagamento encerrado</b><br>O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59. Se já pagou, envie o comprovante; se não, fale com o locador.</div>
-                    <button onclick="switchDriverTab('payment'); document.getElementById('drvTabs').scrollIntoView({ behavior: 'smooth' })" class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar comprovante</button>`;
-            } else if (driver.pix_due_at && !paidThisPix) {
+                banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-clock mr-1"></i> Prazo de pagamento encerrado</b><br>O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59.${curPaid > 0.005 ? ` Já pago: <b>${fmtMoney(curPaid)}</b> · Falta: <b>${fmtMoney(deveExibirSaldo)}</b>.` : ''} Se já pagou, envie o comprovante; se não, fale com o locador.</div>
+                    <button onclick="switchDriverTab('payment'); document.getElementById('drvTabs').scrollIntoView({ behavior: 'smooth' })" class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">${pendParcial ? 'Ver pedido de Pix' : 'Ver pagamento'}</button>`;
+            } else if (driver.pix_due_at && hasPendingRec && (!paidEarlier)) {
+                if (lastWeekRec && lastWeekRec.ai_status === 'alerta') {
+                    const probs = (lastWeekRec.ai_result && lastWeekRec.ai_result.problemas) || [];
+                    banner.className = "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-900 dark:text-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                    banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-triangle-exclamation mr-1"></i> Problema no seu comprovante</b><br>${probs.map(esc).join('<br>') || 'Os dados não conferem.'}<br>Confira e envie o comprovante correto.</div>
+                        <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar de novo</button>`;
+                } else {
+                    banner.className = "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-200 rounded-2xl p-4 text-sm";
+                    banner.innerHTML = `<i class="fa-solid fa-hourglass-half mr-1"></i> Comprovante recebido. <b>Aguardando confirmação</b> do pagamento.`;
+                }
+            } else if (driver.pix_due_at && (!paidThisPix || hasOpenDebt)) {
                 // Bloco principal da tela do motorista: quanto deve e até quando (fica no topo, ver #drvPixBanner no CSS)
                 banner.className = "drvDeve bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 flex flex-col gap-4";
                 banner.innerHTML = `${lastWeekRec && lastWeekRec.rejected_at ? `<p class="text-sm text-red-600 dark:text-red-300"><i class="fa-solid fa-circle-xmark mr-1"></i> <b>Seu comprovante foi recusado.</b> ${esc(lastWeekRec.reject_reason || '')} Envie outro.</p>` : ''}
-                    <div><p class="text-sm text-gray-500 dark:text-gray-400">${driver.pix_amount != null ? 'Você deve' : 'Pix da semana'}</p>
-                    ${driver.pix_amount != null ? `<p class="drvDeveValor">${fmtMoney(driver.pix_amount)}</p>` : ''}
+                    ${pendParcial ? `<p class="text-sm text-amber-700 dark:text-amber-300"><i class="fa-solid fa-hourglass-half mr-1"></i> Pedido de Pix parcial de <b>${fmtMoney(pendParcial.valor)}</b> aguardando autorização da locadora.</p>` : ''}
+                    <div><p class="text-sm text-gray-500 dark:text-gray-400">${curPaid > 0.005 ? `Falta pagar (já pago ${fmtMoney(curPaid)})` : (driver.pix_amount != null ? 'Você deve' : 'Pix da semana')}</p>
+                    ${(deveExibirSaldo > 0 || driver.pix_amount != null) ? `<p class="drvDeveValor">${fmtMoney(deveExibirSaldo)}</p>` : ''}
+                    ${parcial ? `<p class="text-xs font-semibold text-blue-600 dark:text-blue-300 mt-1">QR Code parcial ativo: ${fmtMoney(parcial.valor)}</p>` : ''}
                     <p class="text-sm mt-1">Pague até <b>${fmtDue(driver.pix_due_at)} às 23:59</b>${driver.asaas_auto_charge_enabled ? '. O pagamento é conferido sozinho.' : ' e depois envie o comprovante aqui.'}</p></div>
                     <button onclick="switchDriverTab('payment'); document.getElementById('drvTabs').scrollIntoView({ behavior: 'smooth' })" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold"><i class="fa-brands fa-pix mr-2"></i>Pagar e enviar comprovante</button>`;
             } else if (driver.pix_due_at && paidEarlier) {
                 banner.className = "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded-2xl p-4 text-sm";
                 banner.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Este Pix <b>já está pago</b> (entrou no seu pagamento anterior). Você não precisa pagar de novo.`;
-            } else if (driver.pix_due_at && paidThisPix && lastWeekRec.confirmed_at) {
+            } else if (driver.pix_due_at && paidThisPix && lastWeekRec && lastWeekRec.confirmed_at) {
                 banner.className = "bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 rounded-2xl p-4 text-sm";
                 banner.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> Pagamento desta semana <b>confirmado</b>. Obrigado!`;
-            } else if (driver.pix_due_at && paidThisPix && lastWeekRec.ai_status === 'alerta') {
-                const probs = (lastWeekRec.ai_result && lastWeekRec.ai_result.problemas) || [];
-                banner.className = "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-900 dark:text-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-                banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-triangle-exclamation mr-1"></i> Problema no seu comprovante</b><br>${probs.map(esc).join('<br>') || 'Os dados não conferem.'}<br>Confira e envie o comprovante correto.</div>
-                    <button onclick="switchDriverTab('payment')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">Enviar de novo</button>`;
             } else if (driver.pix_due_at && paidThisPix) {
                 banner.className = "bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-200 rounded-2xl p-4 text-sm";
                 banner.innerHTML = `<i class="fa-solid fa-hourglass-half mr-1"></i> Comprovante recebido. <b>Aguardando confirmação</b> do pagamento.`;
@@ -2786,17 +2864,19 @@
             // Valor e descrição da cobrança
             const hasPix = !!(driver.pix_code || driver.pix_qr_path || parsePixKey(driver.pix_link));
             const charge = document.getElementById('drvChargeInfo');
-            const showCharge = hasPix && driver.pix_amount != null;
+            const showCharge = (hasPix && driver.pix_amount != null) || restanteTotal > 0.005;
             charge.classList.toggle('hidden', !showCharge);
-            document.getElementById('drvChargeAmount').innerText = showCharge ? fmtMoney(driver.pix_amount) : '';
+            const valorCaixa = parcial ? `${fmtMoney(parcial.valor)} <span class="text-sm font-normal opacity-80">(de ${fmtMoney(restanteTotal || deveExibirSaldo)} restante)</span>` : esc(fmtMoney(deveExibirSaldo || driver.pix_amount || 0));
+            document.getElementById('drvChargeAmount').innerHTML = showCharge ? valorCaixa : '';
             const desc = (driver.pix_description || '').trim();
             const perAtual = pixPeriodo(state.pixHistory.find(h => h.driver_id === driver.id && h.sent_at === driver.pix_sent_at));
             const descTela = (perAtual ? `Vale de ${dataBR(perAtual.ini)} a ${dataBR(perAtual.fim)}${desc ? '\n' : ''}` : '') + desc;
             document.getElementById('drvChargeDescWrap').classList.toggle('hidden', !descTela);
             document.getElementById('drvChargeDesc').innerText = descTela;
 
-            // Comprovante correto (IA conferiu ou o master confirmou): a chave Pix some sozinha
-            const receiptOk = paidEarlier || (paidThisPix && (lastWeekRec.confirmed_at || lastWeekRec.ai_status === 'ok' || lastWeekRec.ai_status === 'confere'));
+            // Comprovante correto (IA conferiu ou o master confirmou): a chave Pix só some se o valor da semana foi 100% quitado
+            const chargeQuitada = curCharge ? curCharge.remaining <= 0.005 : (!!lastWeekRec && (lastWeekRec.confirmed_at || lastWeekRec.ai_status === 'ok' || lastWeekRec.ai_status === 'confere'));
+            const receiptOk = paidEarlier || (paidThisPix && chargeQuitada && !hasPendingRec);
             // Só aparecem as formas de pagamento que o dono preencheu; todas somem no prazo (segunda 23:59)
             const pkInfo = parsePixKey(driver.pix_link);
             const hasQr = !!driver.pix_qr_path || (!!driver.pix_code && pixValid(driver.pix_code));
@@ -2804,20 +2884,36 @@
             const hasKey = feat('linkbb') && !!pkInfo;
             const expired = !!driver.pix_due_at && Date.now() > new Date(driver.pix_due_at).getTime();
             const noMethod = !hasQr && !hasCode && !hasKey;
-            const hidePay = !!receiptOk || expired || noMethod;
+            const hidePay = !!receiptOk || (expired && !parcial) || noMethod;
             document.getElementById('drvPixKey').classList.toggle('hidden', hidePay);
             document.getElementById('drvPixDone').classList.toggle('hidden', !hidePay);
+            const pNotice = document.getElementById('drvParcialNotice');
+            if (pendParcial) {
+                pNotice.className = 'w-full mb-3 p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 text-xs text-left';
+                pNotice.innerHTML = `<i class="fa-solid fa-hourglass-half mr-1"></i> <b>Aguardando autorização do administrador</b><br>Você solicitou pagar <b>${fmtMoney(pendParcial.valor)}</b>. Assim que a locadora confirmar no sistema, o QR Code desse valor será liberado aqui.`;
+            } else if (parcial && !hidePay) {
+                pNotice.className = 'w-full mb-3 p-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 text-xs text-left';
+                pNotice.innerHTML = `<i class="fa-brands fa-pix mr-1 text-blue-600"></i> <b>Pix parcial de ${fmtMoney(parcial.valor)}</b> gerado pelo Asaas. Depois que este pagamento cair, um novo Pix será gerado com o restante (<b>${fmtMoney(Math.max(0, (restanteTotal || deveExibirSaldo) - parcial.valor))}</b>).`;
+            } else if (curPaid > 0.005 && hasOpenDebt && !hidePay) {
+                pNotice.className = 'w-full mb-3 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 text-xs text-left';
+                pNotice.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> Parte já paga: <b>${fmtMoney(curPaid)}</b>. O QR Code abaixo já está com o valor restante (<b>${fmtMoney(deveExibirSaldo)}</b>).`;
+            } else {
+                pNotice.className = 'hidden'; pNotice.innerHTML = '';
+            }
+            const podeParcial = restanteTotal > 1 && !receiptOk && !pendParcial && !exDrv.sem_cobranca && !exDrv.contrato_encerrado && (!dueGone || hasOpenDebt);
+            document.getElementById('drvParcialActions').classList.toggle('hidden', !podeParcial);
+            document.getElementById('btnPagarTotalRestante').classList.toggle('hidden', !(podeParcial && parcial && Math.abs(parcial.valor - restanteTotal) > 0.01));
             const doneBox = document.getElementById('drvPixDone');
             if (receiptOk) {
                 doneBox.className = 'w-full py-8 text-sm text-emerald-700 dark:text-emerald-300';
                 document.getElementById('drvPixDoneIcon').className = 'fa-solid fa-circle-check text-4xl mb-2';
                 document.getElementById('drvPixDoneTitle').innerText = paidEarlier ? 'Este Pix já está pago' : 'Comprovante aceito';
                 document.getElementById('drvPixDoneText').innerText = 'As formas de pagamento desta semana foram retiradas. As próximas aparecem aqui quando forem enviadas.';
-            } else if (expired) {
+            } else if (expired && !parcial) {
                 doneBox.className = 'w-full py-8 text-sm text-red-600 dark:text-red-300';
                 document.getElementById('drvPixDoneIcon').className = 'fa-solid fa-clock text-4xl mb-2';
                 document.getElementById('drvPixDoneTitle').innerText = 'Prazo de pagamento encerrado';
-                document.getElementById('drvPixDoneText').innerText = `O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59. Se você já pagou, envie o comprovante ao lado. Se não pagou, fale com o locador.`;
+                document.getElementById('drvPixDoneText').innerText = `O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59. Se você já pagou, envie o comprovante ao lado. Se não pagou, você pode solicitar um pagamento parcial abaixo ou falar com o locador.`;
             } else {
                 doneBox.className = 'w-full py-8 text-sm text-gray-500 dark:text-gray-400';
                 document.getElementById('drvPixDoneIcon').className = 'fa-brands fa-pix text-4xl mb-2';
@@ -3073,6 +3169,228 @@
             return ph.length >= 12 ? 'https://wa.me/' + ph : '';
         }
         function allVeh() { return state.allVehicles || state.vehicles; }
+        function allDrv() { return state.allDrivers || state.drivers; }
+        function chargeVehicleId(charge, driverId) {
+            if (charge && charge.h) {
+                if (charge.h.vehicle_id) return charge.h.vehicle_id;
+                const desc = String(charge.h.description || '');
+                if (desc) {
+                    const hit = allVeh().find(v => (v.plate && desc.toUpperCase().includes(String(v.plate).toUpperCase())) || (v.model && desc.toLowerCase().includes(String(v.model).toLowerCase())));
+                    if (hit) return hit.id;
+                }
+            }
+            const d = allDrv().find(x => x.id === driverId);
+            return (d && (d.vehicle_id || (d.pix_extra && d.pix_extra.contrato_encerrado && d.pix_extra.contrato_encerrado.veiculo_id))) || null;
+        }
+        async function enviarPedidoParcialAsaas(valor, btn) {
+            if (DEMO) { showToast('Na demonstração o Pix parcial pelo Asaas não é gerado.'); return; }
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Gerando Pix...'; }
+            try {
+                const { data, error } = await sb.functions.invoke('motora-asaas', { body: { acao: 'pix_parcial', valor } });
+                if (error || !data || !data.ok) throw new Error((data && data.error) || (error && error.message) || 'Não foi possível gerar o Pix.');
+                await reload();
+                if (data.pendente) showToast(`Pedido de ${fmtMoney(data.valor)} enviado! Aguardando autorização do administrador.`);
+                else showToast(`Pix de ${fmtMoney(data.valor)} gerado! Confira o QR Code abaixo.`);
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = old; }
+            }
+        }
+        async function pedirPixParcial(btn) {
+            const d = viewDriver(); if (!d) return;
+            const al = allocatePix(d.id);
+            const restante = Math.round(al.charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0) * 100) / 100;
+            if (!(restante > 1)) { showToast('Não há saldo suficiente em aberto.', 'error'); return; }
+            const resp = await uiDialogo({
+                titulo: 'Pagar parte do valor',
+                texto: `Saldo em aberto: ${fmtMoney(restante)}.\nInforme quanto você quer pagar agora pelo Pix:`,
+                sim: 'Gerar Pix',
+                campo: { tipo: 'text', modo: 'decimal', valor: '', dica: 'Ex: 300,00' },
+                linha: true
+            });
+            if (resp === null) return;
+            const v = parseMoney(resp);
+            if (!Number.isFinite(v) || v < 1) { showToast('Informe um valor de pelo menos R$ 1,00.', 'error'); return; }
+            if (v > restante + 0.005) { showToast(`O valor não pode passar do saldo em aberto (${fmtMoney(restante)}).`, 'error'); return; }
+            await enviarPedidoParcialAsaas(v, btn);
+        }
+        async function restaurarPixTotal(btn) {
+            const d = viewDriver(); if (!d) return;
+            const al = allocatePix(d.id);
+            const restante = Math.round(al.charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0) * 100) / 100;
+            if (restante >= 1) await enviarPedidoParcialAsaas(restante, btn);
+        }
+        async function responderPixParcial(driverId, aprovar, btn) {
+            const d = state.drivers.find(x => x.id === driverId);
+            const p = d && d.pix_extra && d.pix_extra.parcial_pendente;
+            if (!d || !p) return;
+            const ok = await uiConfirm(
+                aprovar
+                    ? `Autorizar Pix inferior de ${fmtMoney(p.valor)} para ${d.name}? O QR Code será gerado no Asaas e liberado para o motorista na hora.`
+                    : `Recusar o pedido de pagamento inferior (${fmtMoney(p.valor)}) de ${d.name}?`,
+                { sim: aprovar ? 'Autorizar e gerar QR Code' : 'Recusar pedido', perigo: !aprovar }
+            );
+            if (!ok) return;
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Processando...'; }
+            try {
+                const { data, error } = await sb.functions.invoke('motora-asaas', { body: { acao: 'autorizar_parcial', driver_id: driverId, aprovar } });
+                if (error || !data || !data.ok) throw new Error((data && data.error) || (error && error.message) || 'Erro ao responder pedido.');
+                await reload();
+                showToast(aprovar ? `Pix de ${fmtMoney(data.valor)} liberado para ${d.name}!` : 'Pedido recusado.');
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = old; }
+            }
+        }
+        function contrato30Info(enc) {
+            if (!enc || !enc.data) return null;
+            const dataIso = String(enc.data).slice(0, 10);
+            const baseMs = dataDe(dataIso).getTime();
+            if (!Number.isFinite(baseMs)) return null;
+            const ateIso = enc.caucao_ate ? String(enc.caucao_ate).slice(0, 10) : dataMais(dataIso, 30);
+            const hojeMs = dataDe(todayISO()).getTime();
+            const passados = Math.max(0, Math.floor((hojeMs - baseMs) / 86400000));
+            const faltam = Math.max(0, 30 - passados);
+            const pagoEm = enc.caucao_pago_em ? String(enc.caucao_pago_em).slice(0, 10) : null;
+            return {
+                dataIso, ateIso, passados, faltam, pagoEm, vencido: passados >= 30,
+                contagem: pagoEm ? 'Caução paga' : (faltam === 0 ? '30 de 30 dias concluídos' : `${passados} de 30 dias · falta${faltam === 1 ? '' : 'm'} ${faltam} dia${faltam === 1 ? '' : 's'}`),
+                msg: pagoEm
+                    ? `Caução paga em ${fmtDate(pagoEm)}.`
+                    : `A caução será paga em ${fmtDate(ateIso)} (após 30 dias do encerramento do contrato).`
+            };
+        }
+        async function encerrarContrato(driverId, dataIso, btn) {
+            if (!driverId || !dataIso) return;
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Encerrando...'; }
+            try {
+                const { error } = await sb.rpc('master_encerrar_contrato', { p_driver: driverId, p_data: dataIso });
+                if (error) throw error;
+                await reload();
+                if (fileDriverId === driverId) openDriverFile(driverId);
+                showToast(`Contrato encerrado em ${fmtDate(dataIso)}. A caução será paga em ${fmtDate(dataMais(dataIso, 30))}.`);
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = old; }
+            }
+        }
+        async function encerrarContratoPrompt(driverId) {
+            const d = allDrv().find(x => x.id === driverId && x.role === 'driver'); if (!d) return;
+            const dataIso = await uiDialogo({
+                titulo: `Encerrar contrato de ${d.name}`,
+                texto: 'Escolha a data de encerramento. O veículo fica disponível, cobranças automáticas param, conta 30 dias para a caução e todos os pagamentos continuam no Financeiro.',
+                sim: 'Encerrar contrato',
+                perigo: true,
+                campo: { tipo: 'date', valor: todayISO() },
+                linha: true
+            });
+            if (!dataIso) return;
+            await encerrarContrato(driverId, dataIso);
+        }
+        async function reativarContrato(driverId, btn) {
+            const d = allDrv().find(x => x.id === driverId && x.role === 'driver'); if (!d) return;
+            if (!await uiConfirm(`Reativar contrato de ${d.name}? Você poderá vincular um veículo e voltar a cobrar normalmente.`, { sim: 'Reativar' })) return;
+            const ex = { ...(d.pix_extra || {}) };
+            delete ex.contrato_encerrado;
+            delete ex.sem_cobranca;
+            delete ex.arquivado;
+            delete ex.arquivado_em;
+            const { error } = await sb.from('profiles').update({ pix_extra: Object.keys(ex).length ? ex : null }).eq('id', driverId);
+            if (error) { showToast(friendlyError(error), 'error'); return; }
+            await reload();
+            if (fileDriverId === driverId) openDriverFile(driverId);
+            showToast('Contrato reativado! Escolha o veículo e a forma de cobrança na ficha.');
+        }
+        async function marcarCaucaoPagoArquivar(driverId, btn) {
+            const d = allDrv().find(x => x.id === driverId && x.role === 'driver'); if (!d) return;
+            const inp = document.getElementById('dfCauPagoData');
+            const dataPago = (inp && inp.value) || todayISO();
+            if (!await uiConfirm(`Marcar a caução de ${d.name} como paga em ${fmtDate(dataPago)} e arquivar a ficha em "Fichas Arquivadas"?`, { sim: 'Caução pago e arquivar' })) return;
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Arquivando...'; }
+            try {
+                const { error } = await sb.rpc('master_caucao_paga_arquivar', { p_driver: driverId, p_data_pago: dataPago });
+                if (error) throw error;
+                closeDriverFile();
+                await reload();
+                showToast('Caução marcada como paga e ficha movida para Fichas Arquivadas.');
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = old; }
+            }
+        }
+        async function desarquivarFicha(driverId, btn) {
+            const d = allDrv().find(x => x.id === driverId && x.role === 'driver'); if (!d) return;
+            if (!await uiConfirm(`Desarquivar a ficha de ${d.name}? Ela voltará para a lista de Motoristas.`, { sim: 'Desarquivar' })) return;
+            const old = btn ? btn.innerHTML : '';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> ...'; }
+            try {
+                const { error } = await sb.rpc('master_desarquivar_ficha', { p_driver: driverId });
+                if (error) throw error;
+                await reload();
+                if (fileDriverId === driverId) openDriverFile(driverId);
+                showToast('Ficha desarquivada e movida para Motoristas.');
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = old; }
+            }
+        }
+        function dfContratoRender() {
+            const box = document.getElementById('dfContratoBox'), d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver');
+            if (!box || !d) return;
+            const enc = d.pix_extra && d.pix_extra.contrato_encerrado;
+            const arq = !!(d.pix_extra && d.pix_extra.arquivado);
+            const c30 = contrato30Info(enc);
+            const tit = '<h4 class="font-semibold text-sm"><i class="fa-solid fa-file-circle-xmark text-red-600 mr-1"></i> Encerrar contrato e caução</h4>';
+            if (enc && c30) {
+                box.innerHTML = tit + `
+                    <p class="text-sm">Contrato encerrado em <b>${fmtDate(enc.data)}</b>${enc.veiculo ? ` (${esc(enc.veiculo)})` : ''}. Pagamentos, recibos e documentos seguem preservados.</p>
+                    <div class="p-3 rounded-xl ${c30.pagoEm ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'} text-xs space-y-1">
+                        <div class="flex items-center justify-between gap-2 font-bold"><span><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</span><span>Previsão: ${fmtDate(c30.ateIso)}</span></div>
+                        <p class="text-sm font-medium">${esc(c30.msg)}</p>
+                    </div>
+                    ${arq ? `
+                        <p class="text-xs font-semibold text-amber-700 dark:text-amber-300"><i class="fa-solid fa-box-archive mr-1"></i> Ficha arquivada${d.pix_extra.arquivado_em ? ` em ${fmtDate(d.pix_extra.arquivado_em)}` : ''}.</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="desarquivarFicha('${d.id}', this)" class="text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white px-3 py-2.5 rounded-xl"><i class="fa-solid fa-box-open mr-1"></i> Desarquivar ficha</button>
+                            <button type="button" onclick="reativarContrato('${d.id}', this)" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 rounded-xl"><i class="fa-solid fa-rotate-left mr-1"></i> Reativar contrato</button>
+                        </div>
+                    ` : `
+                        <div class="flex flex-wrap items-end gap-2 pt-1">
+                            <div class="flex-1 min-w-[160px]"><label for="dfCauPagoData" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data do pagamento da caução</label>
+                            <input id="dfCauPagoData" type="date" value="${todayISO()}" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            <button type="button" onclick="marcarCaucaoPagoArquivar('${d.id}', this)" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-check mr-1"></i> Caução pago</button>
+                        </div>
+                        <button type="button" onclick="reativarContrato('${d.id}', this)" class="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg"><i class="fa-solid fa-rotate-left mr-1"></i> Reativar contrato</button>
+                    `}`;
+                return;
+            }
+            box.innerHTML = tit + `<p class="text-xs text-gray-600 dark:text-gray-300">Libera o veículo atual, para novas cobranças, inicia a contagem de 30 dias da caução e mantém todo o histórico financeiro guardado.</p>
+                <div class="flex flex-wrap items-end gap-2">
+                    <div class="flex-1 min-w-[160px]"><label for="dfEncData" class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Data de encerramento</label>
+                    <input id="dfEncData" type="date" value="${todayISO()}" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                    <button type="button" onclick="encerrarContratoConfirmFicha(this)" class="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold">Encerrar contrato</button>
+                </div>
+                <div class="pt-2 border-t border-red-200 dark:border-red-900/40 flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Já acertou a caução?</span>
+                    <button type="button" onclick="marcarCaucaoPagoArquivar('${d.id}', this)" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-check mr-1"></i> Caução pago</button>
+                </div>`;
+        }
+        async function encerrarContratoConfirmFicha(btn) {
+            const d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver');
+            const dataIso = document.getElementById('dfEncData') && document.getElementById('dfEncData').value;
+            if (!d || !dataIso) { showToast('Informe a data de encerramento.', 'error'); return; }
+            if (!await uiConfirm(`Encerrar o contrato de ${d.name} em ${fmtDate(dataIso)}? O veículo será desvinculado, inicia a contagem de 30 dias da caução e todo o histórico financeiro continua salvo.`, { sim: 'Encerrar contrato', perigo: true })) return;
+            await encerrarContrato(d.id, dataIso, btn);
+        }
         function renderMasterPanel() {
             DOC_REG = [];
             renderMasterResumo();
@@ -3121,22 +3439,32 @@
             } else {
                 const recsDe = d => state.receipts.filter(r => r.driver_id === d.id);
                 const pendDe = d => { const rs = recsDe(d), u = rs[rs.length - 1]; return u && !u.confirmed_at && !u.rejected_at ? u : null; };
-                const ordem = d => d.payment_status === 'Em atraso' ? 0 : pendDe(d) ? 1 : 2;
+                const parcPendDe = d => d.pix_extra && d.pix_extra.parcial_pendente && Number(d.pix_extra.parcial_pendente.valor) > 0 ? d.pix_extra.parcial_pendente : null;
+                const ordem = d => parcPendDe(d) ? 0 : d.payment_status === 'Em atraso' ? 1 : pendDe(d) ? 2 : 3;
                 const lista = [...state.drivers].sort((a, b) => ordem(a) - ordem(b) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'));
                 drvTbody.innerHTML = lista.map(d => {
                     const vehicle = allVeh().find(v => v.id === d.vehicle_id);
                     const recs = recsDe(d);
                     const last = recs[recs.length - 1];
                     const pend = pendDe(d);
+                    const pendParc = parcPendDe(d);
+                    const contratoEnc = d.pix_extra && d.pix_extra.contrato_encerrado ? d.pix_extra.contrato_encerrado : null;
+                    const c30 = contrato30Info(contratoEnc);
                     const atraso = d.payment_status === 'Em atraso';
                     const temPix = !!(d.pix_code || d.pix_qr_path || parsePixKey(d.pix_link));
-                    const sit = atraso ? ['ruim', 'Em atraso'] : pend ? ['aviso', 'Pix a conferir'] : ['bom', 'Em dia'];
-                    const vence = d.pix_due_at ? (atraso ? 'Pix atual vence ' : 'Próximo Pix vence ') + fmtDue(d.pix_due_at, true) : 'Nenhum Pix enviado';
+                    const sit = contratoEnc ? ['aviso', 'Encerrado'] : atraso ? ['ruim', 'Em atraso'] : pend ? ['aviso', 'Pix a conferir'] : ['bom', 'Em dia'];
+                    const vence = contratoEnc ? `Contrato encerrado em ${fmtDate(contratoEnc.data)}` : d.pix_due_at ? (atraso ? 'Pix atual vence ' : 'Próximo Pix vence ') + fmtDue(d.pix_due_at, true) : 'Nenhum Pix enviado';
                     const wa = waLink(d.phone || d.phone2);
-                    const principal = atraso
+                    const principal = pendParc
+                        ? `<div class="p-3 rounded-xl border border-red-400 dark:border-red-700 bg-red-50 dark:bg-red-900/30 space-y-2 w-full">
+                               <p class="text-xs font-semibold text-red-700 dark:text-red-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Pediu Pix inferior: <b>${fmtMoney(pendParc.valor)}</b>${pendParc.restante ? ` (falta ${fmtMoney(pendParc.restante)})` : ''}</p>
+                               <button onclick="responderPixParcial('${d.id}', true, this)" class="motPrincipal blink-red"><i class="fa-solid fa-check-double mr-2"></i> Autorizar Pix de ${fmtMoney(pendParc.valor)}</button>
+                               <button onclick="responderPixParcial('${d.id}', false, this)" class="motItem w-full justify-center">Recusar pedido</button>
+                           </div>`
+                        : atraso
                         ? `<button onclick="cobrarAtraso('${d.id}', this)" class="motPrincipal"><i class="fa-brands fa-whatsapp mr-2"></i> Cobrar atraso</button>`
                         : pend ? ''
-                        : !temPix ? `<button onclick="openNewPix('${d.id}')" class="motPrincipal"><i class="fa-brands fa-pix mr-2"></i> Enviar Pix</button>`
+                        : !temPix && !contratoEnc ? `<button onclick="openNewPix('${d.id}')" class="motPrincipal"><i class="fa-brands fa-pix mr-2"></i> Enviar Pix</button>`
                         : '';
                     const docs = [
                         d.cnh_path && `<button onclick="viewDocIdx(${docRef(d.cnh_path, `CNH - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-id-card"></i> CNH</button>`,
@@ -3145,18 +3473,19 @@
                         d.inspection_term_path && `<button onclick="viewDocIdx(${docRef(d.inspection_term_path, `Termo de vistoria - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-clipboard-check"></i> Termo de vistoria</button>`
                     ].filter(Boolean).join('');
                     return `
-                        <article class="motCard${atraso ? ' atraso' : ''}">
+                        <article class="motCard${atraso ? ' atraso' : ''}${pendParc ? ' pendParcial' : ''}">
                             <div class="motTopo">
                                 <span class="motFoto" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span>
                                 <div class="min-w-0 flex-1">
                                     <div class="motNome">${esc(d.name)}</div>
-                                    <div class="motCarro">${vehicle ? `${esc(vehicle.model)} · ${esc(vehicle.plate)}` : 'Sem veículo'}</div>
+                                    <div class="motCarro">${vehicle ? `${esc(vehicle.model)} · ${esc(vehicle.plate)}` : (contratoEnc && contratoEnc.veiculo ? `Ex: ${esc(contratoEnc.veiculo)}` : 'Sem veículo')}</div>
                                 </div>
                                 <span class="motSituacao ${sit[0]}">${sit[1]}</span>
                             </div>
                             <div class="motInfo">
                                 <div class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${vence}</div>
-                                ${obsResumoHtml(d)}${cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
+                                ${c30 ? `<div class="mt-1.5 p-2.5 rounded-xl ${c30.pagoEm ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'} text-xs space-y-1"><div class="flex items-center justify-between gap-2 font-bold"><span><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</span><span>${fmtDate(c30.ateIso)}</span></div><p>${esc(c30.msg)}</p></div>` : ''}
+                                ${obsResumoHtml(d)}${contratoEnc ? '' : cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
                                 <div class="motSelos">${/aceito/i.test(termsBadgeMaster(d)) ? '' : termsBadgeMaster(d)}${cnhBadgeMaster(d)}</div>
                             </div>
                             ${pend ? `<div class="motComprovante">
@@ -3178,7 +3507,7 @@
                                 <div class="motGrade">
                                     <button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-solid fa-address-card"></i> Ficha</button>
                                     ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="motItem"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-brands fa-whatsapp"></i> Adicionar WhatsApp</button>`}
-                                    ${temPix || atraso || pend ? `<button onclick="openNewPix('${d.id}')" class="motItem"><i class="fa-brands fa-pix"></i> Novo Pix</button>` : ''}
+                                    ${!contratoEnc && (temPix || atraso || pend) ? `<button onclick="openNewPix('${d.id}')" class="motItem"><i class="fa-brands fa-pix"></i> Novo Pix</button>` : ''}
                                     ${temPix ? `<button onclick="openEditPix('${d.id}')" class="motItem"><i class="fa-solid fa-pen"></i> Editar Pix enviado</button>` : ''}
                                     <button onclick="marcarSituacao('${d.id}', '${atraso ? 'Em dia' : 'Em atraso'}')" class="motItem"><i class="fa-solid ${atraso ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${atraso ? 'Marcar como em dia' : 'Marcar em atraso'}</button>
                                     <button onclick="viewAsDriver('${d.id}')" class="motItem"><i class="fa-solid fa-right-to-bracket"></i> Entrar na conta dele</button>
@@ -3186,6 +3515,9 @@
                                     ${last && last.confirmed_at ? `<button onclick="openRecibo('${last.id}')" class="motItem"><i class="fa-solid fa-receipt"></i> Recibo</button>` : ''}
                                     ${docs}
                                     ${temPix ? `<button onclick="deletePix('${d.id}', this)" class="motItem perigo"><i class="fa-solid fa-trash"></i> Excluir Pix enviado</button>` : ''}
+                                    ${contratoEnc
+                                        ? `<button onclick="reativarContrato('${d.id}', this)" class="motItem"><i class="fa-solid fa-rotate-left"></i> Reativar contrato</button>`
+                                        : `<button onclick="encerrarContratoPrompt('${d.id}')" class="motItem perigo"><i class="fa-solid fa-file-circle-xmark"></i> Encerrar contrato</button>`}
                                     <button onclick="deleteDriver('${d.id}')" class="motItem perigo"><i class="fa-solid fa-user-xmark"></i> Excluir motorista</button>
                                 </div>
                                 ${last && last !== pend && last.rejected_at ? `<div class="mt-3">${receiptMasterBox(last)}</div>` : ''}
@@ -3195,10 +3527,55 @@
                 }).join('');
             }
             if (!document.getElementById('modalFinance').classList.contains('hidden')) renderFinance();
+            renderArchivedDrivers();
             renderTermsSetupBanner();
             autoReadNewCnhs();
             syncCnhPhotos().catch(() => {});
             fillAvatars(drvTbody).catch(() => {});
+            rotularTabelas(document.getElementById('subMasterVehicles'));
+        }
+        function renderArchivedDrivers() {
+            const box = document.getElementById('tblArchivedDrivers'), cnt = document.getElementById('drvArchivedCount');
+            const list = [...(state.archivedDrivers || [])].sort((a, b) => String((b.pix_extra && b.pix_extra.arquivado_em) || '').localeCompare(String((a.pix_extra && a.pix_extra.arquivado_em) || '')));
+            if (cnt) cnt.textContent = String(list.length);
+            if (!box) return;
+            if (!list.length) { box.innerHTML = `<p class="p-4 text-center text-gray-400 italic">Nenhuma ficha arquivada ainda.</p>`; return; }
+            box.innerHTML = list.map(d => {
+                const enc = d.pix_extra && d.pix_extra.contrato_encerrado;
+                const c30 = contrato30Info(enc);
+                const recs = state.receipts.filter(r => r.driver_id === d.id);
+                const last = recs[recs.length - 1];
+                const docs = [
+                    d.cnh_path && `<button onclick="viewDocIdx(${docRef(d.cnh_path, `CNH - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-id-card"></i> CNH</button>`,
+                    d.address_path && `<button onclick="viewDocIdx(${docRef(d.address_path, `Endereço - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-house"></i> Comprovante de endereço</button>`,
+                    d.contract_path && `<button onclick="viewDocIdx(${docRef(d.contract_path, `Contrato - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-file-contract"></i> Contrato</button>`,
+                    d.inspection_term_path && `<button onclick="viewDocIdx(${docRef(d.inspection_term_path, `Termo de vistoria - ${esc(d.name)}`)})" class="motItem"><i class="fa-solid fa-clipboard-check"></i> Termo de vistoria</button>`
+                ].filter(Boolean).join('');
+                return `
+                    <article class="motCard">
+                        <div class="motTopo">
+                            <span class="motFoto" data-avatar="${d.id}">${esc((d.name || '?')[0].toUpperCase())}</span>
+                            <div class="min-w-0 flex-1">
+                                <div class="motNome">${esc(d.name)}</div>
+                                <div class="motCarro">${enc && enc.veiculo ? `Ex: ${esc(enc.veiculo)}` : 'Sem veículo'}</div>
+                            </div>
+                            <span class="motSituacao bom">Arquivada</span>
+                        </div>
+                        <div class="motInfo">
+                            ${enc ? `<div class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-regular fa-calendar-xmark mr-1"></i>Contrato encerrado em ${fmtDate(enc.data)}</div>` : ''}
+                            ${c30 && c30.pagoEm ? `<div class="text-xs text-emerald-700 dark:text-emerald-300 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i>${esc(c30.msg)}</div>` : ''}
+                            ${d.pix_extra && d.pix_extra.arquivado_em ? `<div class="text-xs text-gray-400">Arquivada em ${fmtDate(d.pix_extra.arquivado_em)}</div>` : ''}
+                        </div>
+                        <div class="motGrade mt-3">
+                            <button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-solid fa-address-card"></i> Ver ficha</button>
+                            <button onclick="desarquivarFicha('${d.id}', this)" class="motItem"><i class="fa-solid fa-box-open"></i> Desarquivar</button>
+                            ${last ? `<button onclick="viewDocIdx(${docRef(last.file_path, `Comprovante - ${esc(d.name)} (${new Date(last.created_at).toLocaleDateString('pt-BR')})`)})" class="motItem"><i class="fa-solid fa-file-invoice"></i> Comprovantes (${recs.length})</button>` : ''}
+                            ${docs}
+                        </div>
+                    </article>
+                `;
+            }).join('');
+            fillAvatars(box).catch(() => {});
         }
 
         // AÇÕES MASTER
@@ -3581,10 +3958,10 @@
             document.getElementById('cfgGemini').value = '';
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
-            document.getElementById('modalSettings').classList.remove('hidden');
+            paintConfig();
             drawFeatureToggles();
-            await loadConfigStatus(); paintConfig();
-            loadRobo().then(paintRobo).catch(() => {});
+            document.getElementById('modalSettings').classList.remove('hidden');
+            Promise.all([loadConfigStatus().then(paintConfig), loadRobo().then(paintRobo)]).catch(() => {});
         }
         function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); }
         async function saveConfig(key, inputId) {
@@ -3649,14 +4026,14 @@
         let fileDriverId = null;
         const DF = { name: 'dfName', cpf: 'dfCpf', rg: 'dfRg', birth_date: 'dfBirth', phone: 'dfPhone', phone2: 'dfPhone2', email: 'dfEmail', cnh_number: 'dfCnh', cnh_category: 'dfCnhCat', cnh_expiry: 'dfCnhExp', address: 'dfAddress' };
         function openDriverFile(id) {
-            const d = state.drivers.find(x => x.id === id);
+            const d = allDrv().find(x => x.id === id && x.role === 'driver');
             if (!d) return;
             fileDriverId = id;
             for (const [col, el] of Object.entries(DF)) document.getElementById(el).value = d[col] || '';
-            dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender(); dfDevEtapa = ''; dfDevRender();
+            dfCauFill(d); dfMultFill(d); dfCobFill(d); dfAjRender(); dfDevEtapa = ''; dfDevRender(); dfContratoRender();
             document.getElementById('dfObs').value = (d.pix_extra && d.pix_extra.observacao) || '';
             { const m2 = (d.pix_extra && d.pix_extra.motorista2) || {}; document.getElementById('dfM2Nome').value = m2.nome || ''; document.getElementById('dfM2Fone').value = m2.whatsapp || ''; }
-            document.getElementById('dfTitleName').innerText = d.name || '';
+            document.getElementById('dfTitleName').innerText = (d.name || '') + (d.pix_extra && d.pix_extra.arquivado ? ' (Arquivada)' : '');
             fillAvatar(document.getElementById('dfPhoto'), id, d.name);
             const sel = document.getElementById('dfVehicle');
             sel.innerHTML = `<option value="">Nenhum Veículo</option>` + state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
@@ -3674,6 +4051,7 @@
                     return `<tr class="border-t border-gray-100 dark:border-gray-700"><td class="py-1 pr-2">${fmtDate(h.sent_at)}</td><td class="pr-2">${fmtDate(h.due_at)}</td><td class="pr-2">${h.amount != null ? fmtMoney(h.amount) : '-'}${h.description ? `<div class="text-[11px] text-gray-400 whitespace-pre-line">${esc(h.description)}</div>` : ''}</td><td class="pr-2">${h.paid_at ? fmtDate(h.paid_at) : '-'}</td><td>${sit}</td></tr>`;
                 }).join('')}</tbody></table></div>
                 <p class="mt-2 font-semibold">Total recebido: ${fmtMoney(hist.filter(h => h.paid_at).reduce((a, h) => a + Number(h.amount || 0), 0))}</p>` : '<p class="italic text-gray-400">Nenhum Pix enviado ainda.</p>';
+            rotularTabelas(document.getElementById('modalDriverFile'));
             document.getElementById('modalDriverFile').classList.remove('hidden');
             loadConfigStatus().catch(() => {});
         }
@@ -3689,11 +4067,12 @@
             const cobForma = dfCobRead();
             { const c = cobForma; updates.payment_day_of_week = c.dia; updates.asaas_auto_charge_enabled = c.auto === 'asaas'; }
             {   // caução: guardada junto com o acréscimo repetido, sem apagar o resto
-                const cur = (state.drivers.find(x => x.id === id) || {}).pix_extra || {};
+                const cur = (allDrv().find(x => x.id === id) || {}).pix_extra || {};
                 const cau = dfCauRead();
                 if (cau && cau.forma === 'parcelada' && (!(cau.parcelas > 0) || !(cau.valor_parcela > 0))) { showToast('Caução parcelada: informe as vezes e o valor de cada parcela.', 'error'); return; }
                 if (cau && cau.forma === 'parcelada' && cau.valor_parcela < CAU_MIN && (Number(cau.total) || 0) - (cau.entrada || 0) >= CAU_MIN) { showToast(`A parcela mínima da caução é ${fmtMoney(CAU_MIN)}.`, 'error'); return; }
                 const next = { ...cur }; if (cau) next.caucao = cau; else delete next.caucao;
+                if (updates.vehicle_id && next.contrato_encerrado) { delete next.contrato_encerrado; delete next.sem_cobranca; delete next.arquivado; delete next.arquivado_em; }
                 if (fileMultas) next.multas = { ...fileMultas };
                 { const o = document.getElementById('dfObs').value.trim(); if (o) next.observacao = o; else delete next.observacao; }
                 {   // 2º motorista: recebe no WhatsApp as mesmas mensagens do cadastro
@@ -3797,7 +4176,8 @@
         function fillFinFilters() {
             const setOpts = (id, html) => { const el = document.getElementById(id), keep = el.value; el.innerHTML = html; if ([...el.options].some(o => o.value === keep)) el.value = keep; };
             const vOpts = state.vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('');
-            setOpts('finFltDriver', '<option value="">Todos</option>' + state.drivers.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join(''));
+            const finDrvs = allDrv().filter(d => d.role === 'driver' || state.pixHistory.some(h => h.driver_id === d.id) || state.receipts.some(r => r.driver_id === d.id));
+            setOpts('finFltDriver', '<option value="">Todos</option>' + finDrvs.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(d => `<option value="${d.id}">${esc(d.name)}${d.role === 'excluido' ? ' (excluído)' : ''}</option>`).join(''));
             setOpts('finFltVehicle', '<option value="">Todos</option>' + vOpts);
             setOpts('appFltVeh', '<option value="">Todos</option>' + vOpts);
         }
@@ -3836,17 +4216,30 @@
             if (finTab === 'apps') { renderAppEarnings(); return; }
             const r = finRange(document.getElementById('finPeriod').value);
             const fDrv = document.getElementById('finFltDriver').value, fVeh = document.getElementById('finFltVehicle').value;
-            const vehOf = id => (state.drivers.find(d => d.id === id) || {}).vehicle_id;
-            const drivers = state.drivers.filter(d => (!fDrv || d.id === fDrv) && (!fVeh || d.vehicle_id === fVeh));
-            // Recebido = soma dos pagamentos (comprovantes aceitos) feitos no período; Em aberto = o que falta das cobranças
-            const paid = [], open = [];
-            drivers.forEach(d => {
+            const vehOf = id => (allDrv().find(d => d.id === id) || {}).vehicle_id;
+            const baseDrivers = allDrv().filter(d => (!fDrv || d.id === fDrv) && (d.role === 'driver' || state.pixHistory.some(h => h.driver_id === d.id) || state.receipts.some(r => r.driver_id === d.id)));
+            // Recebido = soma dos pagamentos (comprovantes aceitos) feitos no período; Em aberto = o que falta das cobranças.
+            // Cada pagamento leva o vehicle_id da cobrança correspondente (preservado mesmo após desvincular o carro).
+            const allPaid = [], allOpen = [];
+            baseDrivers.forEach(d => {
                 const al = allocatePix(d.id);
-                al.pays.forEach(p => { if (inRange(dayBR(p.r.created_at), r) && p.val) paid.push({ driver_id: d.id, amount: p.val, day: dayBR(p.r.created_at) }); });
-                al.charges.forEach(c => { if (c.remaining > 0.005) open.push({ driver_id: d.id, amount: c.remaining }); });
+                al.pays.forEach(p => {
+                    if (!inRange(dayBR(p.r.created_at), r) || !p.val) return;
+                    const day = dayBR(p.r.created_at);
+                    if (p.alloc.length) {
+                        p.alloc.forEach(a => allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(a.c, d.id), amount: a.amt, day }));
+                        if (p.left > 0.005) allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(p.alloc[p.alloc.length - 1].c, d.id), amount: p.left, day });
+                    } else {
+                        const lastH = al.charges[al.charges.length - 1];
+                        allPaid.push({ driver_id: d.id, vehicle_id: chargeVehicleId(lastH, d.id), amount: p.val, day });
+                    }
+                });
+                al.charges.forEach(c => { if (c.remaining > 0.005) allOpen.push({ driver_id: d.id, vehicle_id: chargeVehicleId(c, d.id), amount: c.remaining }); });
             });
-            const vehFilterSet = fVeh ? [fVeh] : (fDrv ? [vehOf(fDrv)].filter(Boolean) : null);
-            const exps = state.expenses.filter(x => inRange(dayBR(x.expense_date), r) && (!vehFilterSet || vehFilterSet.includes(x.vehicle_id)));
+            const paid = fVeh ? allPaid.filter(h => h.vehicle_id === fVeh) : allPaid;
+            const open = fVeh ? allOpen.filter(h => h.vehicle_id === fVeh) : allOpen;
+            const vehFilterSet = fVeh ? [fVeh] : (fDrv ? [...new Set(paid.concat(open).map(x => x.vehicle_id).concat(vehOf(fDrv)).filter(Boolean))] : null);
+            const exps = state.expenses.filter(x => inRange(dayBR(x.expense_date), r) && (!vehFilterSet || (vehFilterSet.length && vehFilterSet.includes(x.vehicle_id))));
             const sum = (list, f) => list.reduce((a, x) => a + Number(f(x) || 0), 0);
             const received = sum(paid, h => h.amount), pending = sum(open, h => h.amount), spent = sum(exps, x => x.amount);
             const balance = received - spent;
@@ -3859,7 +4252,6 @@
                 card(balance >= 0 ? 'Lucro' : 'Prejuízo', Math.abs(balance), balance >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200' : 'bg-red-100 dark:bg-red-900/40 border-red-300 dark:border-red-700 text-red-900 dark:text-red-200', 'fa-scale-balanced') +
                 card('Em aberto (a receber)', pending, 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200', 'fa-hourglass-half');
 
-            const drvVeh = id => (state.drivers.find(d => d.id === id) || {}).vehicle_id;
             const row = cells => `<tr class="border-t border-gray-100 dark:border-gray-700">${cells.map((c, i) => `<td class="py-1.5 ${i ? 'text-right pl-2 whitespace-nowrap' : 'pr-2'}">${c}</td>`).join('')}</tr>`;
             const table = (head, rows) => rows.length ? `<div class="overflow-x-auto"><table class="w-full text-left text-xs">
                     <thead class="text-gray-500"><tr>${head.map((h, i) => `<th class="pb-1 ${i ? 'text-right pl-2' : ''}">${h}</th>`).join('')}</tr></thead>
@@ -3867,20 +4259,21 @@
             const money = (v, neg) => `<span class="${neg && v < 0 ? 'text-red-500 font-semibold' : ''}">${fmtMoney(v)}</span>`;
 
             const vData = allVeh().filter(v => !vehFilterSet || vehFilterSet.includes(v.id)).map(v => {
-                const rec = sum(paid.filter(h => drvVeh(h.driver_id) === v.id), h => h.amount);
+                const rec = sum(paid.filter(h => h.vehicle_id === v.id), h => h.amount);
                 const sp = sum(exps.filter(x => x.vehicle_id === v.id), x => x.amount);
                 return { v, rec, sp };
             }).filter(x => x.rec || x.sp);
             const vRows = vData.map(x => row([`${esc(x.v.model)}${x.v.deleted_at ? ' <span class="text-gray-400">(excluído)</span>' : ''}<br><span class="text-gray-400">${esc(x.v.plate)}</span>`, fmtMoney(x.rec), fmtMoney(x.sp), money(x.rec - x.sp, true)]));
             document.getElementById('finVehicles').innerHTML = table(['Veículo', 'Recebido', 'Despesas', 'Saldo'], vRows);
 
-            const dData = drivers.map(d => ({ d, rec: sum(paid.filter(h => h.driver_id === d.id), h => h.amount), pen: sum(open.filter(h => h.driver_id === d.id), h => h.amount) }))
+            const dData = baseDrivers.map(d => ({ d, rec: sum(paid.filter(h => h.driver_id === d.id), h => h.amount), pen: sum(open.filter(h => h.driver_id === d.id), h => h.amount) }))
                 .filter(x => x.rec || x.pen);
-            const dRows = dData.map(x => row([esc(x.d.name), fmtMoney(x.rec), x.pen ? `<span class="text-amber-600 font-semibold">${fmtMoney(x.pen)}</span>` : fmtMoney(0)]));
+            const dRows = dData.map(x => row([esc(x.d.name) + (x.d.role === 'excluido' ? ' <span class="text-gray-400">(excluído)</span>' : ''), fmtMoney(x.rec), x.pen ? `<span class="text-amber-600 font-semibold">${fmtMoney(x.pen)}</span>` : fmtMoney(0)]));
             document.getElementById('finDrivers').innerHTML = table(['Motorista', 'Recebido', 'Em aberto'], dRows);
+            rotularTabelas(document.getElementById('modalFinance'));
             renderFinGrafico(paid, exps, dData);
             // dados guardados para o botão "Gerar relatório"
-            const dName = id => (state.drivers.find(d => d.id === id) || {}).name || 'Motorista';
+            const dName = id => (allDrv().find(d => d.id === id) || {}).name || 'Motorista';
             const vName = id => { const v = allVeh().find(x => x.id === id); return v ? `${v.model} (${v.plate})` : '-'; };
             const tName = id => (state.expenseTypes.find(t => t.id === id) || {}).name || 'Despesa';
             lastFinData = {
@@ -4363,7 +4756,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         }
         let dfDevEtapa = '';
         function dfDevRender() {
-            const box = document.getElementById('dfDevBox'), d = state.drivers.find(x => x.id === fileDriverId); if (!box || !d) return;
+            const box = document.getElementById('dfDevBox'), d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver'); if (!box || !d) return;
             const dev = devOf(d), tit = '<h4 class="font-semibold text-sm"><i class="fa-solid fa-car-side text-orange-600 mr-1"></i> Devolução do veículo</h4>';
             const btn = (cor, fn, txt) => `<button type="button" onclick="${fn}" class="text-xs font-semibold ${cor} px-3 py-2 rounded-lg">${txt}</button>`;
             if (!dev) {
@@ -4396,17 +4789,17 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             await reload(); dfDevEtapa = ''; dfDevRender(); return true;
         }
         async function dfDevAvisar() {
-            const d = state.drivers.find(x => x.id === fileDriverId), ate = new Date(); ate.setDate(ate.getDate() + 15);
+            const d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver'), ate = new Date(); ate.setDate(ate.getDate() + 15);
             // cobrança automática para: o Pix só sai quando o dono envia (Novo Pix), e as mensagens esperam a aprovação dele
             const auto = d.asaas_auto_charge_enabled ? 'asaas' : null;
             if (await dfDevSalvar({ ...(d.pix_extra || {}), devolucao: { informada_em: new Date().toISOString(), ate: ate.toLocaleDateString('sv-SE'), auto } }, { asaas_auto_charge_enabled: false })) showToast('Devolução registrada. Mensagens ao motorista agora esperam sua aprovação.');
         }
         async function dfDevDesfazer() {
-            const d = state.drivers.find(x => x.id === fileDriverId), ex = { ...(d.pix_extra || {}) }, auto = ex.devolucao && ex.devolucao.auto; delete ex.devolucao;
+            const d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver'), ex = { ...(d.pix_extra || {}) }, auto = ex.devolucao && ex.devolucao.auto; delete ex.devolucao;
             if (await dfDevSalvar(ex, auto ? { [auto + '_auto_charge_enabled']: true } : null)) showToast('Aviso de devolução desfeito.');
         }
         async function dfDevReceber(b) {
-            const d = state.drivers.find(x => x.id === fileDriverId), data = document.getElementById('dfDevData').value;
+            const d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver'), data = document.getElementById('dfDevData').value;
             if (!data) { showToast('Informe a data máxima da caução.', 'error'); return; }
             const st = cauStatus(d, state.pixHistory), mult = multasAbertas(d).reduce((t, i) => t + Number(i.valor || 0), 0);
             b.disabled = true;
@@ -4582,9 +4975,9 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             return p.linhas.length ? p.linhas.map(([k, x]) => `<div class="flex justify-between gap-3"><span class="min-w-0 break-words">${esc(k)}</span><b class="whitespace-nowrap ${x < 0 ? 'text-emerald-600' : ''}">${fmtMoney(x)}</b></div>`).join('') + `<div class="flex justify-between gap-3 font-bold border-t border-gray-200 dark:border-gray-600 pt-1 mt-1"><span>Total previsto</span><span>${fmtMoney(p.total)}</span></div>` : '<p class="text-xs text-gray-500">Sem valor previsto.</p>';
         }
         function dfAjRender() {
-            const d = state.drivers.find(x => x.id === fileDriverId); if (!d) return;
+            const d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver'); if (!d) return;
             const it = ajustesOf(d);
-            document.getElementById('dfAjList').innerHTML = it.length ? it.map(a => `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600"><p class="flex-1 min-w-0 text-sm font-semibold break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}${a.a_partir ? `<span class="block text-xs font-normal text-gray-500 dark:text-gray-400"><i class="fa-regular fa-calendar mr-1"></i>Cobrado a partir de ${dataBR(a.a_partir, true)}${ajusteVale(a, vencProxima(state.drivers.find(x => x.id === fileDriverId) || {})) ? ' (entra na próxima cobrança)' : ' (ainda não entra na próxima)'}</span>` : ''}</p><button type="button" onclick="delAjuste('${a.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum desconto ou valor extra lançado.</p>';
+            document.getElementById('dfAjList').innerHTML = it.length ? it.map(a => `<div class="flex items-center gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600"><p class="flex-1 min-w-0 text-sm font-semibold break-words">${a.tipo === 'desconto' ? 'Desconto' : 'Valor extra'}: ${esc(a.desc)} · ${fmtMoney(a.valor)}${a.a_partir ? `<span class="block text-xs font-normal text-gray-500 dark:text-gray-400"><i class="fa-regular fa-calendar mr-1"></i>Cobrado a partir de ${dataBR(a.a_partir, true)}${ajusteVale(a, vencProxima(d)) ? ' (entra na próxima cobrança)' : ' (ainda não entra na próxima)'}</span>` : ''}</p><button type="button" onclick="delAjuste('${a.id}')" class="text-xs px-2 py-1 text-red-500" title="Excluir"><i class="fa-solid fa-trash"></i></button></div>`).join('') : '<p class="text-xs italic text-gray-400">Nenhum desconto ou valor extra lançado.</p>';
             document.getElementById('dfAjPrev').innerHTML = `<p class="text-xs font-bold uppercase text-gray-500 mb-1">Prévia que o motorista vê</p>${previsaoHtml(d)}`;
         }
         async function addAjuste() {
@@ -4605,7 +4998,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         }
         let fileMultas = null; // cópia da lista da ficha aberta
         async function savePixExtra(id, mut) {
-            const d = state.drivers.find(x => x.id === id); if (!d) return false;
+            const d = allDrv().find(x => x.id === id && x.role === 'driver'); if (!d) return false;
             const next = { ...(d.pix_extra || {}) }; mut(next);
             const val = Object.keys(next).length ? next : null;
             const { error } = await sb.from('profiles').update({ pix_extra: val }).eq('id', id);
@@ -4620,7 +5013,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             document.getElementById('dfMultDate').value = todayISO();
             dfMultRender();
         }
-        function fdPaga(i) { const d = state.drivers.find(x => x.id === fileDriverId); return d ? multaPagaAuto(d, i) : !!i.paga; }
+        function fdPaga(i) { const d = allDrv().find(x => x.id === fileDriverId && x.role === 'driver'); return d ? multaPagaAuto(d, i) : !!i.paga; }
         function dfMultRender() {
             const box = document.getElementById('dfMultList'), it = (fileMultas && fileMultas.itens) || [];
             box.innerHTML = it.length ? it.map(i => `<div class="flex items-start gap-2 p-2.5 rounded-xl bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
@@ -4710,6 +5103,13 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     <div class="h-2 rounded-full bg-amber-100 dark:bg-amber-900/40 overflow-hidden"><div class="h-full bg-amber-500" style="width:${pct}%"></div></div>
                     ${c.forma === 'parcelada' ? `<p class="text-xs text-gray-600 dark:text-gray-300">${c.entrada ? 'Entrada ' + fmtMoney(c.entrada) + ' + ' : ''}${cauParcelasTexto(c)} · ${st.pagas || 0} parcela(s) paga(s)</p>` : ''}
                 </div></div>`);
+            }
+            const enc = d.pix_extra && d.pix_extra.contrato_encerrado;
+            const c30 = contrato30Info(enc);
+            if (enc && c30) {
+                boxes.push(dobraCard('drvDobraContrato', 'fa-file-circle-xmark text-amber-600', `Contrato encerrado em ${fmtDate(enc.data)}`,
+                    `<p class="text-sm font-semibold ${c30.pagoEm ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300'}"><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</p>
+                    <p class="text-sm">${esc(c30.msg)}</p>${enc.veiculo ? `<p class="text-xs text-gray-500">Veículo: ${esc(enc.veiculo)}</p>` : ''}`));
             }
             const dv = devOf(d);
             if (dv && dv.mostrar) { // o motorista só vê depois do dono aprovar a mensagem de devolução concluída
@@ -5247,8 +5647,6 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 }));
             });
         }
-        new MutationObserver(() => { clearTimeout(rotularTabelas.t); rotularTabelas.t = setTimeout(() => rotularTabelas(), 50); })
-            .observe(document.body, { childList: true, subtree: true });
 
         // ÁREAS DO DONO: 1 toque abre, outro toque no mesmo botão fecha (e abrir uma fecha a outra)
         const AREAS = {
@@ -5510,14 +5908,16 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             iaFocus = focusId || null;
             if (focusId) iaTab = 'pendente';
             document.getElementById('modalIA').classList.remove('hidden');
-            document.getElementById('iaList').innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
-            paintIASwitch(await loadIASetting());
-            loadRobo().then(paintRobo).catch(() => {});
+            if (iaRows.length) renderIA();
+            else document.getElementById('iaList').innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</p>';
             clearInterval(window._roboTimer); // QR code do robô muda a cada ~20 s: atualiza enquanto a Área IA está aberta
             window._roboTimer = setInterval(() => { if (document.getElementById('modalIA').classList.contains('hidden')) return clearInterval(window._roboTimer); loadRobo().then(paintRobo).catch(() => {}); }, 8000);
-            loadIARules();
-            await loadIA().catch(() => {});
-            renderIA();
+            Promise.all([
+                loadIASetting().then(paintIASwitch).catch(() => {}),
+                loadRobo().then(paintRobo).catch(() => {}),
+                Promise.resolve().then(() => loadIARules()).catch(() => {}),
+                loadIA().then(() => renderIA()).catch(() => renderIA())
+            ]);
         }
         function closeIA() { document.getElementById('modalIA').classList.add('hidden'); iaFocus = null; }
         function iaShow(tab) { iaTab = tab; iaFocus = null; renderIA(); }
@@ -6237,11 +6637,12 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         let photoSyncRunning = false;
         async function syncCnhPhotos() {
             if (photoSyncRunning || !state.drivers) return;
+            const pendentes = state.drivers.filter(d => d.cnh_path && !cnhWaiting(d) && !PHOTO_DONE.has(d.id + '|' + d.cnh_path));
+            if (!pendentes.length) return;
             photoSyncRunning = true;
             let changed = false;
             try {
-                for (const d of state.drivers) {
-                    if (!d.cnh_path || cnhWaiting(d) || PHOTO_DONE.has(d.id + '|' + d.cnh_path)) continue;
+                await Promise.all(pendentes.map(async d => {
                     PHOTO_DONE.add(d.id + '|' + d.cnh_path);
                     try {
                         const { mainTime, crops } = await photoFiles(d.id);
@@ -6254,7 +6655,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                         }
                         if (crops.length) await sb.storage.from(BUCKET).remove(crops.map(c => `${d.id}/${c.name}`));
                     } catch (e) { PHOTO_DONE.delete(d.id + '|' + d.cnh_path); }
-                }
+                }));
             } finally { photoSyncRunning = false; }
             if (changed) { showToast('Foto do perfil atualizada pela CNH nova.'); fillAvatars(document.getElementById('tblDriversList')).catch(() => {}); }
         }
@@ -6646,16 +7047,14 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             const fApp = document.getElementById('appFltApp').value, fExp = document.getElementById('appFltExp').value, fAV = document.getElementById('appFltVeh').value;
             if (fApp) q = q.eq('app', fApp);
             if (fAV) q = q.eq('vehicle_id', fAV);
-            const { data, error } = await q;
-            if (error) { list.innerHTML = `<p class="text-xs text-red-500">${esc(friendlyError(error))}</p>`; tot.innerHTML = ''; return; }
-            const total = data.reduce((a, x) => a + Number(x.amount || 0), 0);
-            const by = {}; data.forEach(x => by[x.app] = (by[x.app] || 0) + Number(x.amount || 0));
-            // despesas do período
             let eq = sb.from('app_expenses').select('*').order('expense_date', { ascending: false });
             if (r[0]) eq = eq.gte('expense_date', r[0]);
             if (r[1]) eq = eq.lt('expense_date', r[1]);
             if (fExp) eq = eq.eq('category', fExp);
-            const ex = await eq;
+            const [{ data, error }, ex] = await Promise.all([q, eq]);
+            if (error) { list.innerHTML = `<p class="text-xs text-red-500">${esc(friendlyError(error))}</p>`; tot.innerHTML = ''; return; }
+            const total = data.reduce((a, x) => a + Number(x.amount || 0), 0);
+            const by = {}; data.forEach(x => by[x.app] = (by[x.app] || 0) + Number(x.amount || 0));
             // tipos de despesa no filtro
             const fe = document.getElementById('appFltExp'), keepFe = fe.value;
             const allTypes = [...new Set([...APP_EXP_DEFAULT, ...appExpCustomTypes(), ...(ex.data || []).map(x => x.category)])];

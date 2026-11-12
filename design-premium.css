@@ -10,7 +10,7 @@ html[data-skin] {
   --fs-caption: 12px; --fs-small: 13px; --fs-body: 15px; --fs-title: 19px; --fs-large: 22px; --fs-hero: 30px;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
   --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px;
-  --ease: cubic-bezier(.32, .72, 0, 1); --t-fast: .16s; --t-med: .32s;
+  --ease: cubic-bezier(.32, .72, 0, 1); --t-fast: .11s; --t-med: .18s;
   --sidebar: 244px;
 }
 html[data-skin][data-theme="tnd"] {
@@ -45,7 +45,7 @@ html[data-skin][data-theme="tn"] {
 }
 
 /* ---------- 2. Base e tipografia ---------- */
-html[data-skin] body { font-family: var(--font) !important; font-size: var(--fs-body); letter-spacing: -.005em; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; background: var(--bg) var(--glow) no-repeat fixed !important; color: var(--text) !important; }
+html[data-skin] body { font-family: var(--font) !important; font-size: var(--fs-body); letter-spacing: -.005em; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; background: var(--bg) var(--glow) no-repeat !important; color: var(--text) !important; }
 html[data-skin] h1, html[data-skin] h2, html[data-skin] h3, html[data-skin] h4 { letter-spacing: -.02em; font-weight: 650; }
 html[data-skin] h2.text-xl, html[data-skin] h2.text-2xl { font-size: var(--fs-large); }
 html[data-skin] h3.text-lg, html[data-skin] h3.font-bold { font-size: var(--fs-title); }
@@ -57,6 +57,7 @@ html[data-skin] .text-gray-600 { color: var(--muted); }
 html[data-skin] .text-gray-500, html[data-skin] .text-gray-400, html[data-skin] .dark\:text-gray-400, html[data-skin] .dark\:text-gray-500 { color: var(--muted); }
 html[data-skin] [class*="font-bold"], html[data-skin] .font-extrabold { font-weight: 650; }
 html[data-skin] p, html[data-skin] td, html[data-skin] span { font-variant-numeric: tabular-nums; }
+html[data-skin] a, html[data-skin] button, html[data-skin] summary, html[data-skin] select { touch-action: manipulation; }
 html[data-skin] a { -webkit-tap-highlight-color: transparent; }
 html[data-skin] button { -webkit-tap-highlight-color: transparent; }
 
@@ -83,7 +84,7 @@ html[data-skin][data-design] .text-white { color: #fff; }
 html[data-skin][data-design] .border-blue-600 { border-color: var(--accent) !important; }
 
 /* ---------- 4. Barra do topo ---------- */
-html[data-skin][data-design] header { background: var(--bar) !important; -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border-bottom: 1px solid var(--line) !important; box-shadow: none !important; }
+html[data-skin][data-design] header { background: var(--bar-solid) !important; border-bottom: 1px solid var(--line) !important; box-shadow: none !important; }
 html[data-skin] header > div { height: 58px; }
 html[data-skin] header h1 { font-size: var(--fs-title) !important; letter-spacing: .04em !important; font-weight: 700; }
 html[data-skin] header .bg-blue-600 { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 11px !important; background: linear-gradient(160deg, #4b90fb, #1f62d8) !important; }
@@ -97,7 +98,7 @@ html[data-skin] body:has(#secLogin:not(.hidden)) header, html[data-skin] body:ha
 html[data-skin] #secLogin { max-width: 380px; margin-top: max(7vh, 28px); animation: sobe var(--t-med) var(--ease) both; }
 html[data-skin] #secLogin img { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 18px 46px rgba(47, 123, 246, .32); }
 html[data-skin] #secLogin h2 { font-size: var(--fs-hero); letter-spacing: .02em; font-weight: 700; margin-top: 18px; }
-html[data-skin] #secLogin .rounded-2xl { padding: 24px !important; border-radius: var(--r-xl) !important; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+html[data-skin] #secLogin .rounded-2xl { padding: 24px !important; border-radius: var(--r-xl) !important; }
 html[data-skin] #secLogin button[type=submit] { min-height: 52px; border-radius: var(--r-md) !important; font-size: 16px; font-weight: 600; }
 html[data-skin] #loginErro { border-radius: var(--r-md) !important; animation: treme .32s var(--ease); }
 html[data-skin] #secDemoEscolha { animation: sobe var(--t-med) var(--ease) both; }
@@ -168,19 +169,19 @@ html[data-skin] details[open] > summary::after { transform: rotate(-135deg); mar
 html[data-skin] details[open] > :not(summary) { animation: aparece var(--t-med) var(--ease) both; }
 
 /* ---------- 11. Janelas ---------- */
-html[data-skin] .fixed.inset-0[class*="bg-black"] { background: rgba(6, 8, 12, .52) !important; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: aparece .22s ease both; }
-html[data-skin][data-design] .fixed.inset-0 > .bg-white, html[data-skin][data-design] .fixed.inset-0 > form.bg-white { background: var(--card) !important; border: 1px solid var(--line) !important; border-radius: var(--r-xl) !important; box-shadow: var(--shadow-pop) !important; animation: janela var(--t-med) var(--ease) both; }
+html[data-skin] .fixed.inset-0[class*="bg-black"] { background: rgba(6, 8, 12, .64) !important; animation: aparece .12s ease both; }
+html[data-skin][data-design] .fixed.inset-0 > .bg-white, html[data-skin][data-design] .fixed.inset-0 > form.bg-white { background: var(--card) !important; border: 1px solid var(--line) !important; border-radius: var(--r-xl) !important; box-shadow: var(--shadow-pop) !important; animation: janela .15s var(--ease) both; }
 html[data-skin] .fixed.inset-0 > div > .border-b:first-child, html[data-skin] .fixed.inset-0 > form > .border-b:first-child { border-bottom-color: var(--line) !important; }
 html[data-skin] .fixed.inset-0 h3.font-bold { font-size: var(--fs-title); }
 @media (max-width: 639px) {
-  html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > .bg-white, html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > form.bg-white { position: relative; border-radius: var(--r-xl) var(--r-xl) 0 0 !important; border-width: 1px 0 0 !important; padding-top: 10px; animation: folha var(--t-med) var(--ease) both; }
+  html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > .bg-white, html[data-skin][data-design] .fixed.inset-0.flex.items-center.justify-center > form.bg-white { position: relative; border-radius: var(--r-xl) var(--r-xl) 0 0 !important; border-width: 1px 0 0 !important; padding-top: 10px; animation: folha .15s var(--ease) both; }
   html[data-skin] .fixed.inset-0.flex.items-center.justify-center > .bg-white::before, html[data-skin] .fixed.inset-0.flex.items-center.justify-center > form.bg-white::before { content: ""; display: block; flex: none; width: 38px; height: 5px; margin: 0 auto 4px; border-radius: 3px; background: var(--line-strong); }
 }
 html[data-skin] #toast > * , html[data-skin] #toast { border-radius: 999px; }
-html[data-skin] #toast { -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); transition: transform var(--t-med) var(--ease), opacity var(--t-med); }
+html[data-skin] #toast { transition: transform var(--t-fast) var(--ease), opacity var(--t-fast); }
 
 /* ---------- 12. Navegação ---------- */
-html[data-skin][data-design] .bottomNav.ativo, html[data-skin][data-design] #drvTabs { background: var(--bar) !important; -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px); border-top: 1px solid var(--line) !important; }
+html[data-skin][data-design] .bottomNav.ativo, html[data-skin][data-design] #drvTabs { background: var(--bar-solid) !important; border-top: 1px solid var(--line) !important; }
 html[data-skin][data-design] .bottomNav button, html[data-skin][data-design] #drvTabs nav button { min-height: 50px; font-size: 10.5px !important; font-weight: 500 !important; letter-spacing: 0; color: var(--faint) !important; border: 0 !important; border-radius: 12px; background: none !important; transition: color var(--t-fast), transform var(--t-fast) var(--ease); }
 html[data-skin][data-design] .bottomNav button i, html[data-skin][data-design] #drvTabs nav button i { font-size: 20px; transition: transform var(--t-med) var(--ease); }
 html[data-skin][data-design] .bottomNav button.atual, html[data-skin][data-design] .bottomNav button.aberto, html[data-skin][data-design] #drvTabs nav button.border-blue-600 { color: var(--accent-text) !important; font-weight: 600 !important; }
@@ -297,8 +298,8 @@ html[data-skin][data-design] .fixed.inset-0 :is(button, a).bg-emerald-600, html[
 html[data-skin][data-design] main :is(button, a):is(.bg-amber-600, .bg-amber-500, .bg-orange-600, .bg-orange-500, .bg-yellow-500),
 html[data-skin][data-design] .fixed.inset-0 :is(button, a):is(.bg-amber-600, .bg-amber-500, .bg-orange-600, .bg-orange-500, .bg-yellow-500) { background: var(--btn2) !important; color: var(--text) !important; }
 html[data-skin][data-design] main :is(button, a):is(.bg-amber-600, .bg-amber-500, .bg-orange-600, .bg-orange-500) i { color: var(--warn) !important; }
-html[data-skin][data-design] :is(main, header, .fixed.inset-0) :is(button, a):is(.bg-red-600, .bg-red-500):not(#uiDlgSim) { background: transparent !important; color: var(--bad) !important; box-shadow: inset 0 0 0 1.5px var(--bad) !important; }
-html[data-skin][data-design] :is(main, header, .fixed.inset-0) :is(button, a):is(.bg-red-600, .bg-red-500):not(#uiDlgSim) i { color: var(--bad) !important; }
+html[data-skin][data-design] :is(main, header, .fixed.inset-0) :is(button, a):is(.bg-red-600, .bg-red-500):not(#uiDlgSim):not(.blink-red) { background: transparent !important; color: var(--bad) !important; box-shadow: inset 0 0 0 1.5px var(--bad) !important; }
+html[data-skin][data-design] :is(main, header, .fixed.inset-0) :is(button, a):is(.bg-red-600, .bg-red-500):not(#uiDlgSim):not(.blink-red) i { color: var(--bad) !important; }
 html[data-skin][data-design] [class*="shadow-blue-"] { box-shadow: 0 6px 16px rgba(0, 0, 0, .22) !important; }
 
 /* Texto de exemplo dentro dos campos legível (antes 2,9:1) */
@@ -334,6 +335,8 @@ html[data-skin] .motLista { display: grid; gap: var(--sp-3); }
 @media (min-width: 1024px) { html[data-skin] .motLista { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
 html[data-skin] .motCard { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--card-2); }
 html[data-skin] .motCard.atraso { border-color: color-mix(in srgb, var(--bad) 55%, transparent); background: linear-gradient(var(--bad-tint), var(--bad-tint)), var(--card-2); }
+html[data-skin] .motCard.pendParcial { border-color: var(--bad) !important; box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 55%, transparent), var(--shadow); }
+html[data-skin] .motPrincipal.blink-red { background: #dc2626 !important; color: #fff !important; animation: blinkRed 1.05s ease-in-out infinite; }
 html[data-skin] .motTopo { display: flex; align-items: center; gap: 12px; min-width: 0; }
 html[data-skin] .motFoto { width: 44px; height: 44px; flex: none; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 50%; background: var(--btn2); color: var(--muted); font-weight: 600; }
 html[data-skin] .motNome { font-size: 17px; font-weight: 650; line-height: 1.25; overflow-wrap: anywhere; }
