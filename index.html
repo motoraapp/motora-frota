@@ -557,18 +557,31 @@
                 </div>
             </div>
 
-            <!-- SUB-ABA: CONTRATOS DE LOCAÇÃO -->
+            <!-- SUB-ABA: CONTRATOS DE LOCAÇÃO E VISTORIAS -->
             <div id="subMasterContracts" class="hidden space-y-6">
                 <div class="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                            <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-file-signature text-indigo-600"></i> Contratos de Locação</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Gere, acompanhe assinaturas, baixe o PDF em A4 e consulte o histórico de cada contrato.</p>
+                            <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-file-signature text-indigo-600"></i> Contratos e Vistorias</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Gerencie contratos A4, termos de vistoria de entrega e termos de devolução com análise por IA.</p>
                         </div>
-                        <button type="button" onclick="openContractWizard()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm shadow-sm flex items-center justify-center gap-2 shrink-0">
-                            <i class="fa-solid fa-plus"></i> Novo contrato
-                        </button>
+                        <div class="flex flex-wrap gap-2 shrink-0">
+                            <button type="button" onclick="openInspectionWizard({ type: 'entrega' })" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-clipboard-check"></i> Vistoria de Entrega
+                            </button>
+                            <button type="button" onclick="openInspectionWizard({ type: 'devolucao' })" class="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-car-burst"></i> Termo de Devolução
+                            </button>
+                            <button type="button" onclick="openContractWizard()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-plus"></i> Novo contrato
+                            </button>
+                        </div>
                     </div>
+                    <div class="flex gap-2 border-b border-gray-200 dark:border-gray-700 pb-2">
+                        <button type="button" id="subTabBtnContratos" onclick="switchContractsSubtab('contracts')" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white">Contratos de Locação</button>
+                        <button type="button" id="subTabBtnVistorias" onclick="switchContractsSubtab('inspections')" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Vistorias e Devoluções</button>
+                    </div>
+                    <div id="ctrPaneContracts" class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="sm:col-span-2 relative">
                             <input type="text" id="ctrSearch" oninput="renderContractsTab()" placeholder="Pesquisar por motorista, placa ou número do contrato..." class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
@@ -601,6 +614,45 @@
                             </thead>
                             <tbody id="tblContractsList" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
                         </table>
+                    </div>
+                    </div>
+                    <div id="ctrPaneInspections" class="hidden space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                            <div class="sm:col-span-2 relative">
+                                <input type="text" id="inspTermSearch" oninput="renderInspectionsTab()" placeholder="Pesquisar por número, motorista ou placa..." class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            </div>
+                            <select id="inspTermFilterType" onchange="renderInspectionsTab()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                <option value="">Todos os tipos</option>
+                                <option value="entrega">Vistoria de Entrega</option>
+                                <option value="devolucao">Termo de Devolução</option>
+                            </select>
+                            <select id="inspTermFilterStatus" onchange="renderInspectionsTab()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                <option value="">Todas as situações</option>
+                                <option value="rascunho">Rascunho</option>
+                                <option value="aguardando_assinatura">Aguardando assinatura</option>
+                                <option value="concluido">Concluído</option>
+                                <option value="cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                        <div id="inspTermSummaryChips" class="flex flex-wrap gap-2 text-xs"></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs font-semibold uppercase text-gray-500">
+                                    <tr>
+                                        <th class="p-3 rounded-l-xl">Número</th>
+                                        <th class="p-3">Tipo</th>
+                                        <th class="p-3">Veículo / Placa</th>
+                                        <th class="p-3">Motorista</th>
+                                        <th class="p-3">Data / KM</th>
+                                        <th class="p-3">Avarias</th>
+                                        <th class="p-3">Situação</th>
+                                        <th class="p-3 text-right rounded-r-xl">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tblInspectionsList" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1090,7 +1142,7 @@
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">CNH</label><input type="file" id="dfCnhFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Comp. endereço</label><input type="file" id="dfAddrFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
                         <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Contrato de locação</label><input type="file" id="dfContractFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
-                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Termo de vistoria</label><input type="file" id="dfInspTermFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
+                        <div><label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Termo de vistoria externo (opcional)</label><input type="file" id="dfInspTermFile" accept="image/*,application/pdf" class="w-full text-xs"></div>
                     </div>
                 </div>
                 <div id="dfCnhPending"></div>
@@ -1799,6 +1851,148 @@
         </div>
     </div>
 
+    <!-- MODAL GERADOR DE TERMO DE VISTORIA (ENTREGA E DEVOLUÇÃO) -->
+    <div id="modalInspectionTerm" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-5xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <div class="min-w-0">
+                    <h3 class="font-bold text-base sm:text-lg flex items-center gap-2"><i id="iwIcon" class="fa-solid fa-clipboard-check text-emerald-600"></i> <span id="iwTitle">Termo de Vistoria Veicular</span></h3>
+                    <p id="iwSubtitle" class="text-xs text-gray-500 dark:text-gray-400 truncate">Reutilize fotos salvas ou envie várias de uma vez para análise assistiva por IA.</p>
+                </div>
+                <button type="button" onclick="closeInspectionWizard()" aria-label="Fechar" class="w-10 h-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg shrink-0"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="iwBody" class="p-4 sm:p-5 overflow-y-auto custom-scrollbar space-y-4 text-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-gray-50 dark:bg-gray-900/40 p-3.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Tipo do termo *</label>
+                        <select id="iwType" onchange="iwOnTypeChange()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <option value="entrega">Vistoria de Entrega (início)</option>
+                            <option value="devolucao">Termo de Devolução (término)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Veículo *</label>
+                        <select id="iwVehicle" onchange="iwOnVehicleChange()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Motorista (Locatário)</label>
+                        <select id="iwDriver" onchange="iwOnDriverChange()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Contrato vinculado</label>
+                        <select id="iwContract" onchange="iwOnContractChange()" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
+                    </div>
+                    <div id="iwBaseBox" class="hidden sm:col-span-2">
+                        <label class="block text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">Vistoria de Entrega de referência (comparação)</label>
+                        <select id="iwBaseInspection" onchange="iwRenderComparison()" class="w-full p-2.5 text-sm rounded-xl border border-amber-300 dark:border-amber-700 bg-white dark:bg-gray-700 outline-none"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Hodômetro atual (km)</label>
+                        <input type="number" id="iwMileage" min="0" inputmode="numeric" placeholder="Ex: 54200" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Combustível / Carga</label>
+                        <select id="iwFuel" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <option value="Cheio">Cheio (4/4)</option>
+                            <option value="3/4">3/4</option>
+                            <option value="1/2">Meio tanque (1/2)</option>
+                            <option value="1/4">1/4</option>
+                            <option value="Reserva">Reserva</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Data e hora da vistoria</label>
+                        <input type="datetime-local" id="iwDate" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Local de assinatura</label>
+                        <input type="text" id="iwPlace" placeholder="Goiânia/GO" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                    </div>
+                </div>
+
+                <div id="iwLegalBanner" class="p-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-900/20 text-xs text-blue-900 dark:text-blue-200 leading-relaxed"></div>
+                <div id="iwComparisonBox" class="hidden"></div>
+
+                <!-- Fotos da vistoria (lote + reuso + análise IA + confirmação obrigatória de avarias) -->
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h4 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-images text-indigo-600"></i> Fotos da Vistoria (<span id="iwPhotosCount">0</span>)</h4>
+                            <p id="iwAiProgress" class="text-xs text-gray-500 dark:text-gray-400">Envie todas as fotos de uma vez ou importe as já salvas no veículo/motorista. A IA analisa e pergunta antes de nomear qualquer avaria.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5 shrink-0">
+                            <button type="button" onclick="iwImportSavedPhotos()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-rotate mr-1"></i> Puxar fotos salvas</button>
+                            <button type="button" onclick="iwAnalyzeWithAI(this, false)" class="px-3 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Analisar / Nomear com IA</button>
+                            <label class="cursor-pointer px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white inline-flex items-center gap-1">
+                                <i class="fa-solid fa-camera"></i> Tirar foto
+                                <input type="file" accept="image/*" capture="environment" multiple class="hidden" onchange="iwUploadPhotos(this)">
+                            </label>
+                            <label class="cursor-pointer px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Adicionar todas as fotos
+                                <input type="file" accept="image/*" multiple class="hidden" onchange="iwUploadPhotos(this)">
+                            </label>
+                        </div>
+                    </div>
+                    <div id="iwPhotosGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                </div>
+
+                <!-- Resumo de Avarias Confirmadas + Checklist Bilateral + Ressalvas -->
+                <div id="iwDamagesBox" class="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 space-y-2"></div>
+
+                <details open class="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 space-y-3">
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-list-check text-emerald-600 mr-1"></i> Checklist de Conferência Presencial (itens obrigatórios e estado geral)</summary>
+                    <div id="iwChecklistGrid" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-2"></div>
+                </details>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ressalva / Observação do Motorista (Locatário) — Direito de Contraditório</label>
+                        <textarea id="iwDriverReservation" rows="3" placeholder="Registre qualquer discordância, apontamento ou observação declarada pelo motorista antes de assinar (opcional)..." class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Observações gerais / Anexos / Orçamento (Locador)</label>
+                        <textarea id="iwNotes" rows="3" placeholder="Ex: Entregue com CRLV-e digital, chave reserva; eventual dano novo sujeito a orçamento idôneo..." class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-end gap-2 bg-gray-50 dark:bg-gray-800/80">
+                <button type="button" onclick="closeInspectionWizard()" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">Cancelar</button>
+                <button type="button" onclick="saveInspectionDraft(this)" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-700 hover:bg-slate-800 text-white"><i class="fa-regular fa-floppy-disk mr-1"></i> Salvar rascunho</button>
+                <button type="button" onclick="emitInspectionTerm(this)" class="px-5 py-2.5 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"><i class="fa-solid fa-file-pdf mr-1"></i> Emitir termo e gerar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETALHE E ASSINATURAS DO TERMO DE VISTORIA -->
+    <div id="modalInspectionTermDetail" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <div class="min-w-0">
+                    <h3 id="itdTitle" class="font-bold text-base sm:text-lg truncate">Termo de Vistoria</h3>
+                    <p id="itdSubtitle" class="text-xs text-gray-500 dark:text-gray-400 truncate"></p>
+                </div>
+                <button type="button" onclick="closeInspectionDetail()" aria-label="Fechar" class="w-10 h-10 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg shrink-0"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="itdBody" class="p-4 overflow-y-auto custom-scrollbar space-y-4 text-sm"></div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMAÇÃO DE DANO DETECTADO PELA IA (OBRIGATÓRIO ANTES DE NOMEAR) -->
+    <div id="modalInspDamageConfirm" class="hidden fixed inset-0 bg-black/80 z-[55] flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-xl w-full max-h-[94vh] flex flex-col shadow-2xl border border-amber-400 dark:border-amber-600 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/30 flex justify-between items-center gap-2">
+                <div>
+                    <h3 class="font-bold text-sm sm:text-base text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                        <span id="idcHeader">IA detectou possível avaria — confirme antes de nomear</span>
+                    </h3>
+                    <p id="idcCounter" class="text-xs text-amber-800/80 dark:text-amber-300/80"></p>
+                </div>
+            </div>
+            <div id="idcBody" class="p-4 overflow-y-auto custom-scrollbar space-y-3 text-sm"></div>
+        </div>
+    </div>
+
     <!-- MODAL VISUALIZADOR DE DOCUMENTOS/COMPROVANTES -->
     <div id="modalDocViewer" class="hidden fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -1894,7 +2088,7 @@
             let seed = 20261027;
             const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
             const pick = (a, b) => Math.round((a + rnd() * (b - a)) * 100) / 100;
-            const db = { profiles: [], vehicles: [], receipts: [], pix_history: [], vehicle_expenses: [], expense_types: [], inspection_photos: [],
+            const db = { profiles: [], vehicles: [], receipts: [], pix_history: [], vehicle_expenses: [], expense_types: [], inspection_photos: [], vehicle_inspections: [],
                 terms_acceptances: [], app_earnings: [], app_expenses: [], app_days_off: [], rental_contracts: [], rental_contract_history: [], app_settings: [{ key: 'design', value: { master: 'novo', motorista: 'novo' } }], __docs: [] };
             const doc = p => { db.__docs.push(p); return p; };
             const ago = days => now - days * 86400000;
@@ -2077,6 +2271,33 @@
             demoCtrBuild('demo-c1', 'CTR-2026-0001', 1, 1, 'ativo', 90, null, true);
             demoCtrBuild('demo-c2', 'CTR-2026-0002', 2, 2, 'aguardando_assinatura', 5, null, false);
             demoCtrBuild('demo-c3', 'CTR-2026-0003', 3, 3, 'encerrado', 120, 10, true);
+            const demoV1Photos = db.inspection_photos.filter(p => p.vehicle_id === 'demo-v1').map(p => ({
+                id: p.id, path: p.file_path, slot: p.slot, label: p.label,
+                has_damage: false, damage_status: 'none', damage_note: null, ai_summary: 'Sem avaria aparente', added_at: p.created_at
+            }));
+            const demoViIso = new Date(ago(90)).toISOString();
+            const demoViDrv = db.profiles.find(p => p.id === 'demo-d1');
+            const demoViVeh = db.vehicles.find(v => v.id === 'demo-v1');
+            db.vehicle_inspections.push({
+                id: 'demo-vi1', owner_id: 'demo-master', driver_id: 'demo-d1', vehicle_id: 'demo-v1', contract_id: 'demo-c1',
+                base_inspection_id: null, inspection_number: 'VST-2026-0001', inspection_type: 'entrega', status: 'concluido',
+                mileage: 45100, fuel_level: 'Cheio', inspection_date: demoViIso,
+                checklist: { crlv: { status: 'conforme', note: '' }, chaves: { status: 'conforme', note: '' }, estepe: { status: 'conforme', note: '' }, pneus: { status: 'conforme', note: '' }, iluminacao: { status: 'conforme', note: '' }, vidros: { status: 'conforme', note: '' }, lataria: { status: 'conforme', note: '' }, interior: { status: 'conforme', note: '' }, painel_alertas: { status: 'conforme', note: '' } },
+                photos: demoV1Photos, damages_summary: [],
+                driver_reservation: null, notes: 'Veículo entregue lavado, com CRLV-e digital e estepe em bom estado.',
+                signature_place: 'São Paulo/SP', signature_date: demoDay(ago(90)),
+                snapshot_data: {
+                    inspection_number: 'VST-2026-0001', inspection_type: 'entrega',
+                    locador: { name: master.name, cpf: master.cpf, rg: master.rg, phone: master.phone, email: master.email, address: master.address },
+                    locatario: { name: demoViDrv.name, cpf: demoViDrv.cpf, rg: demoViDrv.rg, cnh_number: demoViDrv.cnh_number, cnh_category: demoViDrv.cnh_category, phone: demoViDrv.phone, email: demoViDrv.email, address: demoViDrv.address },
+                    veiculo: { brand: demoViVeh.brand, model: demoViVeh.model, version: demoViVeh.version, manufacture_year: demoViVeh.manufacture_year, model_year: demoViVeh.model_year, color: demoViVeh.color, plate: demoViVeh.plate, renavam: demoViVeh.renavam, chassi: demoViVeh.chassi, fuel: demoViVeh.fuel, mileage: 45100 },
+                    contrato: { contract_number: 'CTR-2026-0001', start_date: demoDay(ago(90)) },
+                    testemunhas: [{ name: 'João Pereira (Demo)', cpf: '111.111.111-11' }, { name: 'Maria Souza (Demo)', cpf: '222.222.222-22' }]
+                },
+                pdf_path: null, signed_pdf_path: null, signature_mode: 'manual',
+                signature_data: { locador_at: demoViIso, locatario_at: demoViIso, witness1_at: demoViIso, witness2_at: demoViIso, witness1_name: 'João Pereira (Demo)', witness1_cpf: '111.111.111-11', witness2_name: 'Maria Souza (Demo)', witness2_cpf: '222.222.222-22' },
+                emitted_at: demoViIso, signed_at: demoViIso, created_at: demoViIso, updated_at: demoViIso
+            });
             return { db, userId: role === 'master' ? 'demo-master' : 'demo-d1' };
         }
 
@@ -2337,6 +2558,12 @@
                 const seq = (DEMO.db.rental_contracts || []).length + 1;
                 return `CTR-${y}-${String(seq).padStart(4, '0')}`;
             },
+            next_vehicle_inspection_number({ p_type } = {}) {
+                const y = new Date().getFullYear();
+                const pref = String(p_type || 'entrega') === 'devolucao' ? 'DEV' : 'VST';
+                const seq = (DEMO.db.vehicle_inspections || []).length + 1;
+                return `${pref}-${y}-${String(seq).padStart(4, '0')}`;
+            },
             master_delete_driver({ p_id }) {
                 // igual ao real: só bloqueia o acesso, nada de documento ou registro é apagado
                 const d = DEMO.db.profiles.find(p => p.id === p_id && p.role === 'driver');
@@ -2389,6 +2616,31 @@
                                 demoSave(); setTimeout(() => loadIA().catch(() => {}), 0);
                             }
                             return { data: { sent: 0 }, error: null };
+                        }
+                        if (name === 'motora-sync' && b.type === 'ai_analyze_inspection') {
+                            const paths = Array.isArray(b.paths) ? b.paths : [];
+                            const phase = b.phase === 'devolucao' ? 'devolucao' : 'entrega';
+                            const items = paths.map((p, index) => {
+                                const low = String(p || '').toLowerCase();
+                                let slot = 'outro', titulo = `Ângulo adicional ${index + 1}`, km = null, fuel = null;
+                                if (low.includes('dianteira') || low.includes('frente')) { slot = 'dianteira'; titulo = 'Dianteira'; }
+                                else if (low.includes('traseira')) { slot = 'traseira'; titulo = 'Traseira'; }
+                                else if (low.includes('lateral_esquerda') || low.includes('esquerda')) { slot = 'lateral_esquerda'; titulo = 'Lateral esquerda'; }
+                                else if (low.includes('lateral_direita') || low.includes('direita')) { slot = 'lateral_direita'; titulo = 'Lateral direita'; }
+                                else if (low.includes('painel') || low.includes('hodometro')) { slot = 'painel'; titulo = 'Painel e hodômetro'; km = 52400; fuel = '3/4'; }
+                                else if (low.includes('pneu') || low.includes('roda')) { slot = 'pneu_roda'; titulo = 'Pneu / Roda'; }
+                                const hasDmg = /(dano|risco|amassado|avaria|quebrado)/.test(low);
+                                if (hasDmg && slot === 'outro') { slot = 'avaria'; titulo = 'Detalhe da lataria / para-choque'; }
+                                return {
+                                    index, slot, titulo_sugerido: titulo, hodometro_km: km, combustivel_nivel: fuel,
+                                    tem_dano: hasDmg,
+                                    dano_observado: hasDmg ? 'Possível arranhão/amassado visível na superfície fotografada.' : null,
+                                    comparacao_entrega: hasDmg ? (phase === 'devolucao' ? 'possivel_dano_novo' : 'preexistente_a_confirmar') : 'sem_dano',
+                                    confianca: hasDmg ? 'media' : 'alta',
+                                    observacao_ia: hasDmg ? 'Confirmação presencial recomendada (verificar se não é reflexo ou sujeira).' : null
+                                };
+                            });
+                            return { data: { ok: true, model: 'demo-gemini-vision', items }, error: null };
                         }
                         return { data: { ok: false, error: 'A leitura por IA fica desligada na demonstração.' }, error: null };
                     },
@@ -2451,7 +2703,7 @@
         }
 
         // ESTADO EM MEMÓRIA (carregado do Supabase)
-        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [], contracts: [], contractHistory: [], locadorCfg: null, locadores: [], atrasoCfg: null };
+        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], inspections: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [], contracts: [], contractHistory: [], locadorCfg: null, locadores: [], atrasoCfg: null };
 
         function toEmail(login) {
             const l = String(login || '').trim().toLowerCase();
@@ -2851,6 +3103,7 @@
                     sb.from('app_expenses').select('*').order('expense_date', { ascending: false }),
                     sb.from('rental_contracts').select('*').order('created_at', { ascending: false }),
                     sb.from('rental_contract_history').select('*').order('created_at', { ascending: false }),
+                    sb.from('vehicle_inspections').select('*').order('created_at', { ascending: false }),
                     sb.from('app_settings').select('key,value').in('key', ['locador_config', 'locadores_list', 'atraso_config']),
                     termos
                 ]).then(rs => ({ master: true, rs }));
@@ -2862,13 +3115,14 @@
                 sb.from('pix_history').select('*').eq('driver_id', profile.id).order('sent_at'),
                 sb.from('rental_contracts').select('*').eq('driver_id', profile.id).order('created_at', { ascending: false }),
                 sb.from('rental_contract_history').select('*').eq('driver_id', profile.id).order('created_at', { ascending: false }),
+                sb.from('vehicle_inspections').select('*').eq('driver_id', profile.id).order('created_at', { ascending: false }),
                 loadDriverFeatures(),
                 termos
             ]).then(rs => ({ master: false, rs }));
         }
         function aplicarDados({ master, rs }) {
             if (master) {
-                const [veh, drv, rec, insp, exp, tipos, hist, earn, aexp, ctrs, ctrHist, locCfg] = rs;
+                const [veh, drv, rec, insp, exp, tipos, hist, earn, aexp, ctrs, ctrHist, insps, locCfg] = rs;
                 for (const x of [veh, drv, rec, insp, exp, tipos, hist]) if (x.error) throw x.error;
                 state.allVehicles = veh.data; state.vehicles = veh.data.filter(v => !v.deleted_at); state.allDrivers = drv.data;
                 const drvList = drv.data.filter(d => d.role === 'driver');
@@ -2880,6 +3134,7 @@
                 state.appExpenses = (aexp && !aexp.error && aexp.data) || [];
                 state.contracts = (ctrs && !ctrs.error && ctrs.data) || [];
                 state.contractHistory = (ctrHist && !ctrHist.error && ctrHist.data) || [];
+                state.inspections = (insps && !insps.error && insps.data) || [];
                 const locRows = (locCfg && !locCfg.error && Array.isArray(locCfg.data)) ? locCfg.data : [];
                 const singleLoc = locRows.find(r => r.key === 'locador_config');
                 const listLoc = locRows.find(r => r.key === 'locadores_list');
@@ -2888,11 +3143,12 @@
                 state.locadores = (listLoc && Array.isArray(listLoc.value)) ? listLoc.value : [];
                 state.atrasoCfg = (atrRow && atrRow.value) || { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: '2026-11-12' };
             } else {
-                const [veh, rec, insp, hist, ctrs, ctrHist, features] = rs;
+                const [veh, rec, insp, hist, ctrs, ctrHist, insps, features] = rs;
                 state.pixHistory = (hist && !hist.error && hist.data) || [];
                 state.appEarnings = []; state.appExpenses = [];
                 state.contracts = (ctrs && !ctrs.error && ctrs.data) || [];
                 state.contractHistory = (ctrHist && !ctrHist.error && ctrHist.data) || [];
+                state.inspections = (insps && !insps.error && insps.data) || [];
                 state.locadorCfg = null; state.locadores = [];
                 state.atrasoCfg = (features && features._atraso) || { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: '2026-11-12' };
                 if (veh.error) throw veh.error;
@@ -2922,7 +3178,7 @@
             const serve = adiantado && conhecido.role === profile.role && conhecido.vehicle_id === profile.vehicle_id;
             aplicarDados(await (serve ? adiantado : carregarDados(profile)));
             await aparencia;
-            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.contracts, state.contractHistory, state.locadorCfg, state.locadores, state.atrasoCfg, state.features, state.terms]);
+            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.inspections, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.contracts, state.contractHistory, state.locadorCfg, state.locadores, state.atrasoCfg, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
             state.sig = sig;
@@ -3206,14 +3462,40 @@
             showContractDoc(contractDocShown || 'contrato');
             renderCnhBanner();
 
-            // Vistoria
+            // Vistoria (unificada: mostra termos emitidos + fotos organizadas com status confirmado)
             const inspEl = document.getElementById('inspViewer');
-            if (contratoEnc) {
-                inspEl.innerHTML = deliveryInspectionHtml(driver, false);
+            const drvInsps = (state.inspections || []).filter(i => i.driver_id === driver.id && i.status !== 'rascunho' && i.status !== 'cancelado');
+            const termsHtml = drvInsps.length ? `<div class="space-y-2.5 mb-4">${drvInsps.map(ins => {
+                const isDev = ins.inspection_type === 'devolucao';
+                const dmgCnt = Array.isArray(ins.damages_summary) ? ins.damages_summary.length : 0;
+                const newDmg = Array.isArray(ins.damages_summary) ? ins.damages_summary.filter(x => x.damage_status === 'novo').length : 0;
+                return `<div class="p-3.5 rounded-xl border ${isDev ? 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/15' : 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/15'} flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div class="space-y-0.5">
+                        <div class="font-bold text-sm flex items-center gap-2 flex-wrap">
+                            <span>${esc(ins.inspection_number)} · ${isDev ? 'Termo de Devolução' : 'Vistoria de Entrega'}</span>
+                            ${inspectionStatusBadge(ins.status)}
+                        </div>
+                        <div class="text-gray-600 dark:text-gray-300">Data: <b>${fmtDate(ins.inspection_date)}</b> · KM: <b>${ins.mileage != null ? Number(ins.mileage).toLocaleString('pt-BR') + ' km' : '-'}</b> · Combustível: <b>${esc(ins.fuel_level || '-')}</b></div>
+                        <div class="text-gray-600 dark:text-gray-300">${dmgCnt ? `${dmgCnt} ocorrência(s) registrada(s)${newDmg ? ` (${newDmg} dano(s) novo(s))` : ''}` : 'Nenhuma avaria nova registrada.'}${ins.driver_reservation ? ` · <i>Ressalva: ${esc(ins.driver_reservation)}</i>` : ''}</div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 shrink-0">
+                        <button type="button" onclick="downloadInspectionPdf('${ins.id}', this)" class="px-3 py-1.5 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-file-pdf mr-1"></i> Baixar PDF</button>
+                    </div>
+                </div>`;
+            }).join('')}</div>` : '';
+            if (contratoEnc && !(vehicle && state.inspection.length)) {
+                inspEl.innerHTML = termsHtml + deliveryInspectionHtml(driver, false);
                 hydrateImages(inspEl);
-            } else if (!vehicle) inspEl.innerHTML = `<p class="text-sm text-gray-400 italic">Nenhum veículo vinculado.</p>`;
-            else if (!state.inspection.length) inspEl.innerHTML = `<p class="text-sm text-gray-400 italic">Nenhuma foto de vistoria cadastrada para este veículo.</p>`;
-            else { inspEl.innerHTML = inspectionHtml(vehicle.id, false); hydrateImages(inspEl); }
+            } else if (!vehicle && !drvInsps.length) {
+                inspEl.innerHTML = `<p class="text-sm text-gray-400 italic">Nenhum veículo vinculado.</p>`;
+            } else {
+                const photosPart = vehicle && state.inspection.length
+                    ? inspectionHtml(vehicle.id, false)
+                    : (drvInsps.length ? '' : `<p class="text-sm text-gray-400 italic">Nenhuma foto de vistoria cadastrada para este veículo.</p>`);
+                const legacyPart = contratoEnc ? `<div class="mt-4">${deliveryInspectionHtml(driver, false)}</div>` : '';
+                inspEl.innerHTML = termsHtml + photosPart + legacyPart;
+                hydrateImages(inspEl);
+            }
 
             const dueEl = document.getElementById('drvDueText');
             const banner = document.getElementById('drvPixBanner');
@@ -3822,6 +4104,20 @@
         function deliveryInspectionHtml(d, editable) {
             const enc = (d && d.pix_extra && d.pix_extra.contrato_encerrado) || {};
             const fotos = Array.isArray(enc.vistoria_entrega) ? enc.vistoria_entrega : [];
+            const devTerms = (state.inspections || []).filter(i => i.driver_id === d.id && i.inspection_type === 'devolucao' && (editable || i.status !== 'rascunho'));
+            const termRows = devTerms.map(ins => {
+                const newDmg = Array.isArray(ins.damages_summary) ? ins.damages_summary.filter(x => x.damage_status === 'novo').length : 0;
+                return `<div class="p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div>
+                        <div class="font-bold flex items-center gap-2">${esc(ins.inspection_number)} ${inspectionStatusBadge(ins.status)}</div>
+                        <div class="text-gray-500 dark:text-gray-400">Data: ${fmtDate(ins.inspection_date)} · KM: ${ins.mileage != null ? Number(ins.mileage).toLocaleString('pt-BR') + ' km' : '-'} · ${Array.isArray(ins.photos) ? ins.photos.length : 0} foto(s)${newDmg ? ` · <span class="text-red-600 font-semibold">${newDmg} dano(s) novo(s)</span>` : ''}</div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 shrink-0">
+                        ${editable ? `<button type="button" onclick="openInspectionDetail('${ins.id}')" class="px-2.5 py-1.5 rounded-lg font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">Gerenciar</button>` : ''}
+                        <button type="button" onclick="downloadInspectionPdf('${ins.id}', this)" class="px-2.5 py-1.5 rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-file-pdf mr-1"></i> PDF</button>
+                    </div>
+                </div>`;
+            }).join('');
             const cards = fotos.map((f, idx) => {
                 const titulo = f.label || `Entrega ${idx + 1}`;
                 const data = f.added_at ? fmtDate(f.added_at) : '';
@@ -3831,22 +4127,17 @@
                     ${editable ? `<button type="button" onclick="delDeliveryPhoto('${d.id}', '${f.id}', this)" class="w-full text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>` : ''}
                 </div>`;
             }).join('');
+            const encVehId = d.vehicle_id || enc.veiculo_id || '';
             return `<div class="p-3 sm:p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 space-y-3">
-                <div class="flex items-center justify-between gap-2">
-                    <h4 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-car-side text-amber-600"></i> Vistoria de entrega do veículo</h4>
-                    <span class="text-xs text-gray-500">${fotos.length} foto(s)</span>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h4 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-car-burst text-amber-600"></i> Vistoria / Termo de Devolução</h4>
+                        <p class="text-[11px] text-gray-500 dark:text-gray-400">Fluxo unificado: puxa fotos já salvas do veículo, compara com a entrega e gera o PDF assinado.</p>
+                    </div>
+                    ${editable ? `<button type="button" onclick="openInspectionWizard({ type: 'devolucao', driverId: '${d.id}', vehicleId: '${encVehId}' })" class="px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shrink-0"><i class="fa-solid fa-clipboard-check mr-1"></i> ${devTerms.length ? 'Novo termo de devolução' : 'Gerar Termo de Devolução com IA'}</button>` : ''}
                 </div>
-                ${cards ? `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">${cards}</div>` : '<p class="text-xs italic text-gray-500">Nenhuma foto da vistoria de entrega enviada ainda.</p>'}
-                ${editable ? `<div class="grid grid-cols-2 gap-2">
-                    <label class="cursor-pointer py-2.5 px-3 rounded-xl border border-emerald-400 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold text-center flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-camera"></i> Tirar foto
-                        <input type="file" accept="image/*" capture="environment" class="hidden" onchange="uploadDeliveryPhotos('${d.id}', this)">
-                    </label>
-                    <label class="cursor-pointer py-2.5 px-3 rounded-xl border border-blue-400 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-semibold text-center flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-images"></i> Galeria
-                        <input type="file" accept="image/*" multiple class="hidden" onchange="uploadDeliveryPhotos('${d.id}', this)">
-                    </label>
-                </div>` : ''}
+                ${termRows ? `<div class="space-y-2">${termRows}</div>` : '<p class="text-xs italic text-gray-500">Nenhum Termo de Devolução formal emitido ainda.</p>'}
+                ${cards ? `<details class="pt-1"><summary class="text-xs font-semibold text-gray-600 dark:text-gray-300 cursor-pointer">Fotos anteriores registradas na ficha (${fotos.length})</summary><div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-2">${cards}</div></details>` : ''}
             </div>`;
         }
         async function uploadDeliveryPhotos(driverId, input) {
@@ -6094,18 +6385,36 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             });
         }
 
-        // VISTORIA DO VEÍCULO
+        // VISTORIA DO VEÍCULO (unificada com IA assistiva e confirmação presencial de danos)
         const INSP_SLOTS = [
             { key: 'dianteira', label: 'Dianteira', icon: 'fa-car' },
             { key: 'traseira', label: 'Traseira', icon: 'fa-car-rear' },
             { key: 'lateral_esquerda', label: 'Lateral esquerda', icon: 'fa-car-side' },
             { key: 'lateral_direita', label: 'Lateral direita', icon: 'fa-car-side fa-flip-horizontal' },
-            { key: 'painel', label: 'Painel', icon: 'fa-gauge-high' }
+            { key: 'painel', label: 'Painel e hodômetro', icon: 'fa-gauge-high' }
         ];
+        const INSP_SLOT_LABELS = {
+            dianteira: 'Dianteira', traseira: 'Traseira', lateral_esquerda: 'Lateral esquerda',
+            lateral_direita: 'Lateral direita', painel: 'Painel e hodômetro', pneu_roda: 'Pneu / Roda',
+            interior: 'Interior', porta_malas: 'Porta-malas / Estepe', motor: 'Motor',
+            avaria: 'Detalhe / Avaria', documento: 'Documento / CRLV-e', outro: 'Outro ângulo', adicional: 'Foto sem nome'
+        };
+        const inspSlotLabel = k => INSP_SLOT_LABELS[k] || k || 'Foto';
         let inspVehicleId = null;
+
+        function photoDamageBadge(p) {
+            const st = p && p.damage_status;
+            if (st === 'novo') return '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200 text-[10px] font-bold">Dano novo</span>';
+            if (st === 'preexistente' || p?.has_damage) return '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 text-[10px] font-bold">Preexistente</span>';
+            if (st === 'descartado') return '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 text-[10px] font-semibold">Conferido OK</span>';
+            if (st === 'pendente_confirmacao') return '<span class="px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200 text-[10px] font-bold">Confirmar dano</span>';
+            return '';
+        }
 
         function photoCard(p, title, editable, slotKey) {
             const date = p ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
+            const badge = p ? photoDamageBadge(p) : '';
+            const note = p && (p.damage_note || p.ai_summary) ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 line-clamp-2" title="${esc(p.damage_note || p.ai_summary)}">${esc(p.damage_note || p.ai_summary)}</p>` : '';
             const img = p
                 ? `<button type="button" data-path="${esc(p.file_path)}" data-title="${esc(title)}" onclick="viewDoc(this.dataset.path, this.dataset.title)" class="block w-full aspect-[4/3] bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden">
                        <img data-path="${esc(p.file_path)}" class="w-full h-full object-cover" alt="${esc(title)}">
@@ -6122,40 +6431,68 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                         <i class="fa-solid fa-image mr-1"></i>${p ? 'Trocar' : 'Galeria'}
                         <input type="file" accept="image/*" class="hidden" onchange="uploadInspection('${slotKey}', this)">
                     </label>
-                    ${p ? `<button type="button" onclick="deleteInspectionPhoto('${p.id}', this)" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg" title="Excluir foto"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    ${p ? `<button type="button" onclick="renameInspectionPhoto('${p.id}')" class="text-xs bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-2.5 py-1.5 rounded-lg" title="Renomear foto"><i class="fa-solid fa-pen"></i></button><button type="button" onclick="deleteInspectionPhoto('${p.id}', this)" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg" title="Excluir foto"><i class="fa-solid fa-trash"></i></button>` : ''}
                 </div>`;
             } else if (editable && p) {
-                actions = `<button type="button" onclick="deleteInspectionPhoto('${p.id}', this)" class="mt-2 w-full text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1.5 rounded-lg"><i class="fa-solid fa-trash mr-1"></i> Excluir</button>`;
+                actions = `<div class="flex gap-1 mt-2">
+                    <button type="button" onclick="renameInspectionPhoto('${p.id}')" class="flex-1 text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1.5 rounded-lg"><i class="fa-solid fa-pen mr-1"></i> Renomear</button>
+                    <button type="button" onclick="deleteInspectionPhoto('${p.id}', this)" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg" title="Excluir foto"><i class="fa-solid fa-trash"></i></button>
+                </div>`;
             }
-            return `<div class="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                <div class="text-xs font-semibold mb-1.5 flex justify-between gap-1"><span class="truncate">${esc(title)}</span><span class="text-gray-400 font-normal">${date}</span></div>
-                ${img}${actions}
+            return `<div class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col justify-between">
+                <div>
+                    <div class="text-xs font-semibold mb-1.5 flex items-center justify-between gap-1"><span class="truncate">${esc(title)}</span><span class="text-gray-400 font-normal shrink-0">${date}</span></div>
+                    ${badge ? `<div class="mb-1.5">${badge}</div>` : ''}
+                    ${img}${note}
+                </div>
+                ${actions}
             </div>`;
         }
 
         function inspectionHtml(vehicleId, editable) {
             const photos = state.inspection.filter(p => p.vehicle_id === vehicleId);
-            const fixed = INSP_SLOTS.map(s => {
-                const p = photos.filter(x => x.slot === s.key).pop();
-                if (!p && !editable) return '';
-                return photoCard(p, s.label, editable, s.key);
-            }).join('');
-            const extras = photos.filter(x => x.slot === 'adicional');
-            const extraCards = extras.map((p, i) => photoCard(p, p.label || `Foto adicional ${i + 1}`, editable, null)).join('');
-            const plus = editable ? `<label class="cursor-pointer p-2 rounded-xl border-2 border-dashed border-emerald-400 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-gray-700/50 flex flex-col items-center justify-center text-emerald-600 dark:text-emerald-400 min-h-[150px]">
-                    <i class="fa-solid fa-camera text-3xl mb-1"></i><span class="text-xs font-semibold text-center">Tirar foto<br>com a câmera</span>
-                    <input type="file" accept="image/*" capture="environment" class="hidden" onchange="uploadInspection('adicional', this)">
-                </label><label class="cursor-pointer p-2 rounded-xl border-2 border-dashed border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-gray-700/50 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 min-h-[150px]">
-                    <i class="fa-solid fa-plus text-3xl mb-1"></i><span class="text-xs font-semibold text-center">Adicionar fotos<br>detalhadas</span>
-                    <input type="file" accept="image/*" multiple class="hidden" onchange="uploadInspection('adicional', this)">
-                </label>` : '';
+            const drvLinked = allDrv().find(d => d.vehicle_id === vehicleId);
+            const unnamedCount = photos.filter(p => !p.label && (p.slot === 'adicional' || !p.ai_summary)).length;
+            const toolbar = editable ? `<div class="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs text-gray-700 dark:text-gray-300">
+                        <b>${photos.length} foto(s) salva(s)</b>${unnamedCount ? ` · <span class="text-amber-700 dark:text-amber-300 font-semibold">${unnamedCount} sem nome/análise</span>` : ''}. Envie em lote para a IA reconhecer cada ângulo e confirmar possíveis avarias antes de nomear.
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <label class="cursor-pointer px-3 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Enviar várias fotos (IA nomeia)
+                        <input type="file" accept="image/*" multiple class="hidden" onchange="uploadInspection('lote', this)">
+                    </label>
+                    <label class="cursor-pointer px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-camera"></i> Tirar fotos
+                        <input type="file" accept="image/*" capture="environment" multiple class="hidden" onchange="uploadInspection('lote', this)">
+                    </label>
+                    ${photos.length ? `<button type="button" onclick="analyzeSavedInspectionPhotos('${vehicleId}', this)" class="px-3 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> ${unnamedCount ? `Nomear ${unnamedCount} foto(s) com IA` : 'Reanalisar fotos com IA'}
+                    </button>` : ''}
+                    <button type="button" onclick="closeInspection();openInspectionWizard({ type: 'entrega', vehicleId: '${vehicleId}', driverId: '${drvLinked ? drvLinked.id : ''}' })" class="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 text-white inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-signature"></i> Gerar Termo de Entrega
+                    </button>
+                    ${drvLinked ? `<button type="button" onclick="closeInspection();openInspectionWizard({ type: 'devolucao', vehicleId: '${vehicleId}', driverId: '${drvLinked.id}' })" class="px-3 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-car-burst"></i> Termo de Devolução
+                    </button>` : ''}
+                </div>
+            </div>` : '';
+            const cards = photos.map((p, i) => photoCard(p, p.label || inspSlotLabel(p.slot) || `Foto ${i + 1}`, editable, null)).join('');
+            const missingSlots = editable ? INSP_SLOTS.filter(s => !photos.some(p => p.slot === s.key)) : [];
+            const quickMissing = missingSlots.length ? `<div class="pt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                <span class="text-gray-500 dark:text-gray-400">Ângulos ainda sem foto:</span>
+                ${missingSlots.map(s => `<label class="cursor-pointer px-2.5 py-1 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium inline-flex items-center gap-1">
+                    <i class="fa-solid fa-plus text-[10px]"></i> ${esc(s.label)}
+                    <input type="file" accept="image/*" class="hidden" onchange="uploadInspection('${s.key}', this)">
+                </label>`).join('')}
+            </div>` : '';
             const grid = 'grid grid-cols-2 sm:grid-cols-3 gap-3';
-            return `<div class="space-y-5">
-                ${fixed ? `<div class="${grid}">${fixed}</div>` : ''}
-                ${(extraCards || editable) ? `<div>
-                    <h4 class="font-semibold text-sm mb-2">Fotos adicionais</h4>
-                    <div class="${grid}">${extraCards}${plus}</div>
-                </div>` : ''}
+            return `<div class="space-y-4">
+                ${toolbar}
+                ${cards ? `<div class="${grid}">${cards}</div>` : '<p class="text-sm text-gray-400 italic py-4 text-center">Nenhuma foto de vistoria enviada ainda. Use o botão acima para enviar todas de uma vez.</p>'}
+                ${quickMissing}
             </div>`;
         }
 
@@ -6185,33 +6522,51 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         }
 
         async function uploadInspection(slot, input) {
-            const files = Array.from(input.files || []);
+            const files = Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
             if (!files.length || !inspVehicleId) return;
             const vehicleId = inspVehicleId;
-            const label = input.closest('label');
+            const label = input.closest('label'), oldHtml = label ? label.innerHTML : '';
             if (label) label.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
             try {
-                const old = slot === 'adicional' ? null : state.inspection.filter(p => p.vehicle_id === vehicleId && p.slot === slot);
-                let n = 0;
-                for (const f of files) {
-                    if (!f.type.startsWith('image/')) continue;
-                    const path = await uploadFile(f, `vehicles/${vehicleId}/vistoria/${slot}-${Date.now()}-${n}`);
+                const isBatchAI = slot === 'lote' || slot === 'adicional' || files.length > 1;
+                const old = (!isBatchAI && INSP_SLOTS.some(s => s.key === slot))
+                    ? state.inspection.filter(p => p.vehicle_id === vehicleId && p.slot === slot)
+                    : null;
+                const inserted = [];
+                for (let idx = 0; idx < files.length; idx++) {
+                    const f = files[idx];
+                    const cleanBase = isBatchAI ? 'foto' : slot;
+                    const safeName = String(f.name || '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
+                    const path = await uploadFile(f, `vehicles/${vehicleId}/vistoria/${cleanBase}-${Date.now()}-${idx}-${safeName || 'img'}`);
                     if (!path) continue;
-                    const { error } = await sb.from('inspection_photos').insert({ vehicle_id: vehicleId, slot, file_path: path });
-                    if (error) throw error;
-                    n++;
+                    const initSlot = isBatchAI ? 'outro' : slot;
+                    const initLabel = isBatchAI ? null : inspSlotLabel(slot);
+                    const ins = await sb.from('inspection_photos').insert({ vehicle_id: vehicleId, slot: initSlot, label: initLabel, file_path: path }).select().single();
+                    if (ins.error) {
+                        const fallback = await sb.from('inspection_photos').insert({ vehicle_id: vehicleId, slot: initSlot, file_path: path }).select().single();
+                        if (fallback.error) throw fallback.error;
+                        if (fallback.data) inserted.push(fallback.data);
+                    } else if (ins.data) {
+                        inserted.push(ins.data);
+                    }
                 }
-                // na troca de foto, apaga a antiga
-                if (old && old.length && n) {
+                if (old && old.length && inserted.length) {
                     await sb.from('inspection_photos').delete().in('id', old.map(p => p.id));
                     await sb.storage.from(BUCKET).remove(old.map(p => p.file_path));
                 }
+                if (isBatchAI && inserted.length) {
+                    if (label) label.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> Analisando IA...';
+                    await processInspectionPhotosWithAI(inserted, vehicleId, 'entrega', []);
+                }
                 await loadAndRender();
                 renderInspectionModal();
-                showToast(n > 1 ? `${n} fotos enviadas!` : "Foto enviada!");
+                showToast(inserted.length > 1 ? `${inserted.length} fotos enviadas e organizadas!` : 'Foto enviada!');
             } catch (err) {
                 renderInspectionModal();
                 showToast(friendlyError(err), 'error');
+            } finally {
+                if (label && document.body.contains(label)) label.innerHTML = oldHtml;
+                input.value = '';
             }
         }
 
@@ -9436,8 +9791,45 @@ notify pgrst, 'reload schema';`;
             document.getElementById('btnDocContrato').className = kind === 'contrato' ? on : off;
             document.getElementById('btnDocVistoria').className = kind === 'vistoria' ? on : off;
             if (kind === 'vistoria') {
-                const fotos = state.inspection.length && feat('vistoria') ? ' As fotos da vistoria estão na aba <b>Vistoria</b>.' : '';
-                renderFilePreview('contractViewer', d.inspection_term_path, `Nenhum termo de vistoria cadastrado pela administração.${fotos}`, 'Termo de vistoria');
+                const terms = (state.inspections || []).filter(i => i.driver_id === d.id && i.status !== 'rascunho' && i.status !== 'cancelado');
+                if (!terms.length) {
+                    const fotos = state.inspection.length && feat('vistoria') ? ' As fotos da vistoria estão na aba <b>Vistoria</b>.' : '';
+                    renderFilePreview('contractViewer', d.inspection_term_path, `Nenhum termo de vistoria cadastrado pela administração.${fotos}`, 'Termo de vistoria');
+                    return;
+                }
+                const viewer = document.getElementById('contractViewer');
+                viewer.innerHTML = `<div class="w-full space-y-3">
+                    ${terms.map(ins => {
+                        const s = ins.snapshot_data || {};
+                        const v = s.veiculo || {};
+                        const sd = ins.signature_data || {};
+                        const isDev = ins.inspection_type === 'devolucao';
+                        const path = ins.signed_pdf_path || ins.pdf_path;
+                        const dmgCnt = Array.isArray(ins.damages_summary) ? ins.damages_summary.length : 0;
+                        const newDmg = Array.isArray(ins.damages_summary) ? ins.damages_summary.filter(x => x.damage_status === 'novo').length : 0;
+                        return `<div class="p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <div class="font-bold text-sm">${esc(ins.inspection_number)} · ${isDev ? 'Termo de Devolução' : 'Vistoria de Entrega'}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">${esc(v.model || '')}${v.plate ? ' · ' + esc(v.plate) : ''} · ${ins.mileage != null ? Number(ins.mileage).toLocaleString('pt-BR') + ' km' : 'KM não inf.'} · Comb.: ${esc(ins.fuel_level || '-')}</div>
+                                </div>
+                                ${inspectionStatusBadge(ins.status)}
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-3">
+                                <span>Data: <b>${fmtDate(ins.inspection_date)}</b></span>
+                                <span>Fotos: <b>${Array.isArray(ins.photos) ? ins.photos.length : 0}</b></span>
+                                <span>Avarias: <b>${dmgCnt}${newDmg ? ` (${newDmg} nova(s))` : ''}</b></span>
+                                ${sd.locatario_at ? `<span class="text-emerald-600"><i class="fa-solid fa-check mr-1"></i>Assinatura registrada em ${fmtDate(sd.locatario_at)}</span>` : '<span class="text-amber-600">Aguardando assinatura</span>'}
+                            </div>
+                            ${ins.driver_reservation ? `<div class="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/40 text-xs"><b>Sua ressalva registrada:</b> ${esc(ins.driver_reservation)}</div>` : ''}
+                            <div class="flex flex-wrap gap-2">
+                                ${path ? `<button type="button" onclick="viewDocIdx(${docRef(path, `${isDev ? 'Devolução' : 'Vistoria'} ${esc(ins.inspection_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-eye mr-1"></i> ${ins.signed_pdf_path ? 'Ver termo assinado' : 'Visualizar PDF'}</button>` : ''}
+                                <button type="button" onclick="downloadInspectionPdf('${ins.id}', this)" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                    ${d.inspection_term_path ? `<div class="text-right"><button type="button" onclick="viewDocIdx(${docRef(d.inspection_term_path, 'Termo anexado na ficha')})" class="text-xs text-blue-600 dark:text-blue-400 underline">Abrir termo complementar da ficha</button></div>` : ''}
+                </div>`;
                 return;
             }
             const ctrs = (state.contracts || []).filter(c => c.driver_id === d.id && c.status !== 'rascunho');
@@ -9785,6 +10177,7 @@ notify pgrst, 'reload schema';`;
                 </tr>`;
             }).join('');
             rotularTabelas(document.getElementById('subMasterContracts'));
+            if (typeof renderInspectionsTab === 'function') renderInspectionsTab();
         }
 
         function renderDriverRentalContractsBox(driverId) {
@@ -9792,10 +10185,15 @@ notify pgrst, 'reload schema';`;
             if (!box) return;
             const list = (state.contracts || []).filter(c => c.driver_id === driverId);
             const active = list.find(c => c.status === 'ativo' || c.status === 'aguardando_assinatura');
+            const drv = allDrv().find(x => x.id === driverId);
+            const vehId = (drv && (drv.vehicle_id || (drv.pix_extra && drv.pix_extra.contrato_encerrado && drv.pix_extra.contrato_encerrado.veiculo_id))) || (active && active.vehicle_id) || '';
+            const inspList = (state.inspections || []).filter(i => i.driver_id === driverId || (vehId && i.vehicle_id === vehId && !i.driver_id));
             box.innerHTML = `
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <h4 class="font-semibold text-sm"><i class="fa-solid fa-file-signature text-indigo-600 mr-1"></i> CONTRATO DE LOCAÇÃO</h4>
+                    <h4 class="font-semibold text-sm"><i class="fa-solid fa-file-signature text-indigo-600 mr-1"></i> CONTRATOS E VISTORIAS</h4>
                     <div class="flex flex-wrap gap-1.5">
+                        <button type="button" onclick="openInspectionWizard({ type: 'entrega', driverId: '${driverId}', vehicleId: '${vehId}' })" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"><i class="fa-solid fa-clipboard-check mr-1"></i> Vistoria Entrega</button>
+                        <button type="button" onclick="openInspectionWizard({ type: 'devolucao', driverId: '${driverId}', vehicleId: '${vehId}' })" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white"><i class="fa-solid fa-car-burst mr-1"></i> Termo Devolução</button>
                         <button type="button" onclick="openContractWizard({ driverId: '${driverId}' })" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Criar contrato</button>
                         ${active ? `<button type="button" onclick="openContractWizard({ renewFrom: '${active.id}' })" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-rotate mr-1"></i> Renovar</button>` : ''}
                     </div>
@@ -9818,6 +10216,27 @@ notify pgrst, 'reload schema';`;
                         </div>`;
                     }).join('')}
                 </div>` : '<p class="text-xs text-gray-500 dark:text-gray-400">Nenhum contrato estruturado gerado para este motorista ainda.</p>'}
+                ${inspList.length ? `<div class="space-y-2 pt-1">
+                    <div class="text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400">Termos de Vistoria e Devolução (${inspList.length})</div>
+                    ${inspList.map(ins => {
+                        const s = ins.snapshot_data || {};
+                        const v = s.veiculo || allVeh().find(x => x.id === ins.vehicle_id) || {};
+                        const isDev = ins.inspection_type === 'devolucao';
+                        const dmgCnt = Array.isArray(ins.damages_summary) ? ins.damages_summary.length : 0;
+                        const newDmg = Array.isArray(ins.damages_summary) ? ins.damages_summary.filter(x => x.damage_status === 'novo').length : 0;
+                        return `<div class="p-2.5 rounded-xl bg-white dark:bg-gray-800 border ${isDev ? 'border-amber-200 dark:border-amber-800/70' : 'border-emerald-200 dark:border-emerald-800/70'} flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="min-w-0 text-xs">
+                                <div class="flex items-center gap-2 flex-wrap"><span class="font-mono font-bold">${esc(ins.inspection_number)}</span>${inspectionTypeBadge(ins.inspection_type)}${inspectionStatusBadge(ins.status)}</div>
+                                <div class="text-gray-500 dark:text-gray-400 mt-0.5">${esc(v.model || '-')} (${esc(v.plate || '-')}) · ${ins.mileage != null ? Number(ins.mileage).toLocaleString('pt-BR') + ' km' : 'KM -'} · ${Array.isArray(ins.photos) ? ins.photos.length : 0} foto(s) · ${dmgCnt} avaria(s)${newDmg ? ` (${newDmg} nova)` : ''}</div>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 shrink-0">
+                                <button type="button" onclick="openInspectionDetail('${ins.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold ${isDev ? 'bg-amber-50 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'}">Gerenciar / Assinar</button>
+                                <button type="button" onclick="downloadInspectionPdf('${ins.id}', this)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-download mr-1"></i> PDF</button>
+                                <button type="button" onclick="printInspectionPdf('${ins.id}', this)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-print"></i></button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>` : ''}
             `;
         }
         function openContractForDriver(driverId) {
@@ -10503,6 +10922,1121 @@ notify pgrst, 'reload schema';`;
                 openContractDetail(id);
                 if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
                 showToast('Contrato cancelado!');
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+        }
+
+        // =====================================================================
+        // MÓDULO UNIFICADO DE VISTORIAS VEICULARES E DEVOLUÇÃO (IA + PDF A4)
+        // =====================================================================
+        const INSP_TYPE_META = {
+            entrega: { label: 'Vistoria de Entrega', short: 'Entrega', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' },
+            devolucao: { label: 'Termo de Devolução', short: 'Devolução', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' }
+        };
+        const INSP_STATUS_META = {
+            rascunho: { label: 'Rascunho', cls: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' },
+            aguardando_assinatura: { label: 'Aguardando assinatura', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200' },
+            concluido: { label: 'Concluído', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200' },
+            cancelado: { label: 'Cancelado', cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200' }
+        };
+        const INSP_CHECKLIST_ITEMS = [
+            { key: 'crlv', label: 'CRLV-e Digital e documentos' },
+            { key: 'chaves', label: 'Chave principal e reserva' },
+            { key: 'estepe', label: 'Estepe, macaco, chave de roda e triângulo' },
+            { key: 'pneus', label: 'Pneus (estado de rodagem e calibragem)' },
+            { key: 'iluminacao', label: 'Faróis, lanternas, setas e luz de freio' },
+            { key: 'vidros', label: 'Para-brisa, vidros, limpadores e retrovisores' },
+            { key: 'lataria', label: 'Lataria, portas e para-choques' },
+            { key: 'interior', label: 'Interior, bancos, cintos e ar-condicionado' },
+            { key: 'painel_alertas', label: 'Painel de instrumentos sem alertas graves' }
+        ];
+        const inspectionTypeBadge = t => {
+            const m = INSP_TYPE_META[t] || INSP_TYPE_META.entrega;
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${m.cls}">${esc(m.short)}</span>`;
+        };
+        const inspectionStatusBadge = st => {
+            const m = INSP_STATUS_META[st] || { label: st || '-', cls: 'bg-gray-100 text-gray-700' };
+            return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${m.cls}">${esc(m.label)}</span>`;
+        };
+        function inspectionPdfFileName(ins) {
+            const d = (ins.snapshot_data && ins.snapshot_data.locatario && ins.snapshot_data.locatario.name) || 'motorista';
+            const slug = String(d).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'vistoria';
+            const pref = ins.inspection_type === 'devolucao' ? 'termo-devolucao' : 'vistoria-entrega';
+            return `${pref}-${ins.inspection_number || 'rascunho'}-${slug}.pdf`;
+        }
+
+        function switchContractsSubtab(pane) {
+            const isInsp = pane === 'inspections';
+            const pc = document.getElementById('ctrPaneContracts'), pi = document.getElementById('ctrPaneInspections');
+            const bc = document.getElementById('subTabBtnContratos'), bi = document.getElementById('subTabBtnVistorias');
+            const onCls = 'px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-indigo-600 text-white';
+            const offCls = 'px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+            if (pc) pc.classList.toggle('hidden', isInsp);
+            if (pi) pi.classList.toggle('hidden', !isInsp);
+            if (bc) bc.className = isInsp ? offCls : onCls;
+            if (bi) bi.className = isInsp ? onCls : offCls;
+            if (isInsp) renderInspectionsTab(); else renderContractsTab();
+        }
+
+        function renderInspectionsTab() {
+            const tbody = document.getElementById('tblInspectionsList');
+            const chips = document.getElementById('inspTermSummaryChips');
+            if (!tbody) return;
+            const list = state.inspections || [];
+            const q = ((document.getElementById('inspTermSearch') && document.getElementById('inspTermSearch').value) || '').trim().toLowerCase();
+            const tpFilter = (document.getElementById('inspTermFilterType') && document.getElementById('inspTermFilterType').value) || '';
+            const stFilter = (document.getElementById('inspTermFilterStatus') && document.getElementById('inspTermFilterStatus').value) || '';
+            if (chips) {
+                const entCnt = list.filter(i => i.inspection_type === 'entrega').length;
+                const devCnt = list.filter(i => i.inspection_type === 'devolucao').length;
+                const pendCnt = list.filter(i => i.status === 'aguardando_assinatura').length;
+                chips.innerHTML = [
+                    `<button type="button" onclick="document.getElementById('inspTermFilterType').value='entrega';renderInspectionsTab()" class="px-2.5 py-1 rounded-full font-semibold ${INSP_TYPE_META.entrega.cls} ${tpFilter === 'entrega' ? 'ring-2 ring-emerald-500' : ''}">Entregas: ${entCnt}</button>`,
+                    `<button type="button" onclick="document.getElementById('inspTermFilterType').value='devolucao';renderInspectionsTab()" class="px-2.5 py-1 rounded-full font-semibold ${INSP_TYPE_META.devolucao.cls} ${tpFilter === 'devolucao' ? 'ring-2 ring-amber-500' : ''}">Devoluções: ${devCnt}</button>`,
+                    `<button type="button" onclick="document.getElementById('inspTermFilterStatus').value='aguardando_assinatura';renderInspectionsTab()" class="px-2.5 py-1 rounded-full font-semibold ${INSP_STATUS_META.aguardando_assinatura.cls} ${stFilter === 'aguardando_assinatura' ? 'ring-2 ring-amber-500' : ''}">Aguardando assinatura: ${pendCnt}</button>`,
+                    (tpFilter || stFilter) ? `<button type="button" onclick="document.getElementById('inspTermFilterType').value='';document.getElementById('inspTermFilterStatus').value='';renderInspectionsTab()" class="px-2.5 py-1 rounded-full bg-gray-200 dark:bg-gray-700 font-semibold">Limpar filtro</button>` : ''
+                ].join('');
+            }
+            const filtered = list.filter(ins => {
+                if (tpFilter && ins.inspection_type !== tpFilter) return false;
+                if (stFilter && ins.status !== stFilter) return false;
+                if (!q) return true;
+                const s = ins.snapshot_data || {};
+                const drv = allDrv().find(x => x.id === ins.driver_id);
+                const veh = allVeh().find(x => x.id === ins.vehicle_id);
+                const hay = [ins.inspection_number, s.locatario && s.locatario.name, drv && drv.name, s.veiculo && s.veiculo.model, s.veiculo && s.veiculo.plate, veh && veh.model, veh && veh.plate].filter(Boolean).join(' ').toLowerCase();
+                return hay.includes(q);
+            });
+            if (!filtered.length) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-6 text-center text-gray-400 italic">${list.length ? 'Nenhuma vistoria encontrada com esse filtro.' : 'Nenhum termo de vistoria ou devolução criado ainda. Clique em "Vistoria de Entrega" ou "Termo de Devolução" acima.'}</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = filtered.map(ins => {
+                const s = ins.snapshot_data || {};
+                const drvName = (s.locatario && s.locatario.name) || (allDrv().find(x => x.id === ins.driver_id) || {}).name || 'Sem motorista vinculado';
+                const vSnap = s.veiculo || allVeh().find(x => x.id === ins.vehicle_id) || {};
+                const dmgs = Array.isArray(ins.damages_summary) ? ins.damages_summary : [];
+                const newCnt = dmgs.filter(x => x.damage_status === 'novo').length;
+                const preCnt = dmgs.filter(x => x.damage_status === 'preexistente').length;
+                const avTxt = !dmgs.length ? '<span class="text-emerald-600 text-xs">Sem avarias</span>' : `<span class="text-xs font-semibold">${newCnt ? `<span class="text-red-600">${newCnt} nova(s)</span>` : ''}${newCnt && preCnt ? ' · ' : ''}${preCnt ? `<span class="text-amber-600">${preCnt} preexist.</span>` : ''}</span>`;
+                return `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                    <td class="p-3 font-mono text-xs font-bold">${esc(ins.inspection_number)}</td>
+                    <td class="p-3">${inspectionTypeBadge(ins.inspection_type)}</td>
+                    <td class="p-3"><div class="font-medium">${esc(vSnap.model || '-')}</div><div class="text-xs font-mono text-gray-400">${esc(vSnap.plate || '-')}</div></td>
+                    <td class="p-3">${esc(drvName)}</td>
+                    <td class="p-3 whitespace-nowrap text-xs"><div>${fmtDate(ins.inspection_date)}</div><div class="text-gray-400">${ins.mileage != null ? Number(ins.mileage).toLocaleString('pt-BR') + ' km' : '-'} · ${esc(ins.fuel_level || '-')}</div></td>
+                    <td class="p-3">${avTxt}</td>
+                    <td class="p-3">${inspectionStatusBadge(ins.status)}</td>
+                    <td class="p-3 text-right">
+                        <div class="flex justify-end gap-1.5 flex-wrap">
+                            <button type="button" onclick="openInspectionDetail('${ins.id}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200 hover:bg-indigo-100">Abrir</button>
+                            <button type="button" onclick="downloadInspectionPdf('${ins.id}', this)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 hover:bg-gray-200" title="Baixar PDF"><i class="fa-solid fa-file-pdf text-red-600"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+            rotularTabelas(document.getElementById('ctrPaneInspections'));
+        }
+
+        // ---- ANALISADOR DE IA EM LOTE + CONFIRMAÇÃO PRESENCIAL DE DANOS ----
+        async function runInspectionBatchAI(photoItems, phase, baselineItems, onProgress) {
+            const results = new Array(photoItems.length).fill(null);
+            const CHUNK = 4;
+            for (let start = 0; start < photoItems.length; start += CHUNK) {
+                const slice = photoItems.slice(start, start + CHUNK);
+                if (typeof onProgress === 'function') onProgress(`Analisando fotos ${start + 1}–${start + slice.length} de ${photoItems.length} com IA...`);
+                const paths = slice.map(x => x.path || x.file_path);
+                const { data, error } = await sb.functions.invoke('motora-sync', {
+                    body: { type: 'ai_analyze_inspection', paths, phase, baseline: baselineItems || [] }
+                });
+                if (!error && data && data.ok && Array.isArray(data.items)) {
+                    data.items.forEach((it, idx) => {
+                        const targetIdx = start + (typeof it.index === 'number' && it.index >= 0 && it.index < slice.length ? it.index : idx);
+                        if (targetIdx >= 0 && targetIdx < results.length) results[targetIdx] = it;
+                    });
+                } else {
+                    const errMsg = (error && error.message) || (data && data.error) || 'IA indisponível no momento';
+                    if (typeof onProgress === 'function') onProgress(`Aviso IA (${start + 1}–${start + slice.length}): ${errMsg}`);
+                }
+            }
+            return results;
+        }
+
+        function promptInspectionDamageConfirmation(photo, aiItem, phase, baselinePhotos, idxNum, totalDmg) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('modalInspDamageConfirm');
+                const body = document.getElementById('idcBody');
+                document.getElementById('idcHeader').textContent = phase === 'devolucao'
+                    ? 'IA observou possível dano na devolução — confirme antes de nomear'
+                    : 'IA observou possível dano na entrega — confirme antes de nomear';
+                document.getElementById('idcCounter').textContent = `Ocorrência ${idxNum} de ${totalDmg} identificada para conferência do proprietário`;
+                const isDev = phase === 'devolucao';
+                const path = photo.path || photo.file_path;
+                const sugLabel = aiItem.titulo_sugerido || inspSlotLabel(aiItem.slot) || photo.label || 'Detalhe do veículo';
+                const obsTxt = aiItem.dano_observado || 'Possível risco, amassado ou alteração visual detectada pela IA.';
+                const baseMatches = isDev ? (baselinePhotos || []).filter(b => b.has_damage || b.slot === aiItem.slot).slice(0, 3) : [];
+                const baseHtml = baseMatches.length ? `<div class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 space-y-1.5">
+                    <div class="text-[11px] font-bold uppercase text-gray-500">Referência na Vistoria de Entrega inicial:</div>
+                    <div class="grid grid-cols-3 gap-2">${baseMatches.map(b => `<div class="text-[10px]">
+                        <img data-path="${esc(b.path || b.file_path)}" onclick="viewDocIdx(${docRef(b.path || b.file_path, esc(b.label || 'Entrega'))})" class="w-full h-16 object-cover rounded cursor-pointer border border-gray-200 dark:border-gray-700">
+                        <div class="truncate font-semibold mt-0.5">${esc(b.label || inspSlotLabel(b.slot))}</div>
+                        ${b.damage_note ? `<div class="text-amber-700 dark:text-amber-300 truncate">${esc(b.damage_note)}</div>` : ''}
+                    </div>`).join('')}</div>
+                </div>` : '';
+                body.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                        <div class="space-y-1.5">
+                            <img data-path="${esc(path)}" onclick="viewDocIdx(${docRef(path, 'Conferência de dano')})" class="w-full h-44 object-cover rounded-xl bg-gray-100 dark:bg-gray-900 cursor-pointer border border-gray-200 dark:border-gray-700" title="Clique para ampliar">
+                            <p class="text-[11px] text-center text-gray-500">Clique na imagem para ampliar</p>
+                        </div>
+                        <div class="space-y-2 text-xs">
+                            <div class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 space-y-1">
+                                <div class="font-bold text-amber-900 dark:text-amber-200">O que a IA observou (${esc(aiItem.confianca || 'média')} confiança):</div>
+                                <p class="text-gray-800 dark:text-gray-100">${esc(obsTxt)}</p>
+                                ${aiItem.observacao_ia ? `<p class="text-[11px] text-amber-800 dark:text-amber-300 italic">${esc(aiItem.observacao_ia)}</p>` : ''}
+                                ${isDev && aiItem.comparacao_entrega ? `<div class="text-[11px] font-semibold">${aiItem.comparacao_entrega === 'compativel_com_preexistente' ? 'Comparação IA: parece compatível com avaria já existente na entrega.' : 'Comparação IA: possível dano novo ou agravamento.'}</div>` : ''}
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-gray-500 mb-1">Nome / Identificação da foto (editável)</label>
+                                <input id="idcLabelInput" type="text" value="${esc(sugLabel)}" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-gray-500 mb-1">Descrição objetiva do dano (se confirmado)</label>
+                                <textarea id="idcNoteInput" rows="2" class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">${esc(obsTxt)}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    ${baseHtml}
+                    <p class="text-[11px] text-gray-500 dark:text-gray-400"><i class="fa-solid fa-scale-balanced mr-1"></i> A IA apenas auxilia na triagem. A foto só recebe rótulo de avaria após a sua confirmação presencial.</p>
+                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                        ${isDev ? `
+                            <button type="button" id="idcBtnNovo" class="flex-1 px-3 py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Confirmar: Dano NOVO (pós-entrega)</button>
+                            <button type="button" id="idcBtnPre" class="flex-1 px-3 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Já existia (preexistente)</button>
+                        ` : `
+                            <button type="button" id="idcBtnPre" class="flex-1 px-3 py-2.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white"><i class="fa-solid fa-check mr-1"></i> Confirmar: Dano PREEXISTENTE</button>
+                        `}
+                        <button type="button" id="idcBtnNo" class="flex-1 px-3 py-2.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"><i class="fa-solid fa-sparkles mr-1"></i> Não é dano (reflexo / normal)</button>
+                    </div>
+                `;
+                hydrateImages(body);
+                const finish = (damageStatus, hasDamage) => {
+                    const customLabel = (document.getElementById('idcLabelInput').value || '').trim() || sugLabel;
+                    const customNote = (document.getElementById('idcNoteInput').value || '').trim();
+                    const finalLabel = hasDamage && !/avaria|dano|preexist|novo/i.test(customLabel)
+                        ? `${customLabel} (${damageStatus === 'novo' ? 'Dano novo' : 'Preexistente'})`
+                        : customLabel;
+                    modal.classList.add('hidden');
+                    resolve({
+                        label: finalLabel,
+                        has_damage: hasDamage,
+                        damage_status: damageStatus,
+                        damage_note: hasDamage ? (customNote || obsTxt) : null
+                    });
+                };
+                if (isDev) document.getElementById('idcBtnNovo').onclick = () => finish('novo', true);
+                document.getElementById('idcBtnPre').onclick = () => finish('preexistente', true);
+                document.getElementById('idcBtnNo').onclick = () => finish('descartado', false);
+                modal.classList.remove('hidden');
+            });
+        }
+
+        async function processInspectionPhotosWithAI(photoEntries, vehicleId, phase, baselinePhotos, onProgress) {
+            if (!photoEntries.length) return [];
+            const baselineSummary = (baselinePhotos || []).map(b => ({ label: b.label || inspSlotLabel(b.slot), slot: b.slot, damage_note: b.damage_note }));
+            const aiResults = await runInspectionBatchAI(photoEntries, phase, baselineSummary, onProgress);
+            const flagged = [];
+            for (let i = 0; i < photoEntries.length; i++) {
+                const item = photoEntries[i];
+                const ai = aiResults[i];
+                if (!ai) continue;
+                item.slot = ai.slot || item.slot || 'outro';
+                item.hodometro_km = ai.hodometro_km != null ? Number(ai.hodometro_km) : null;
+                item.combustivel_nivel = ai.combustivel_nivel || null;
+                item.ai_summary = [ai.titulo_sugerido, ai.observacao_ia].filter(Boolean).join(' · ') || null;
+                if (ai.tem_dano) {
+                    flagged.push({ item, ai });
+                } else {
+                    item.label = ai.titulo_sugerido || inspSlotLabel(item.slot);
+                    item.has_damage = false;
+                    item.damage_status = 'none';
+                    item.damage_note = null;
+                }
+            }
+            for (let f = 0; f < flagged.length; f++) {
+                const { item, ai } = flagged[f];
+                const dec = await promptInspectionDamageConfirmation(item, ai, phase, baselinePhotos, f + 1, flagged.length);
+                item.label = dec.label;
+                item.has_damage = dec.has_damage;
+                item.damage_status = dec.damage_status;
+                item.damage_note = dec.damage_note;
+            }
+            // Persiste atualizações para fotos vinculadas à tabela inspection_photos
+            const veh = vehicleId ? allVeh().find(v => v.id === vehicleId) : null;
+            let bestKm = null, bestFuel = null;
+            for (let i = 0; i < photoEntries.length; i++) {
+                const p = photoEntries[i];
+                if (p.hodometro_km != null && p.hodometro_km >= 0) bestKm = p.hodometro_km;
+                if (p.combustivel_nivel) bestFuel = p.combustivel_nivel;
+                if (p.id && (p.file_path || (!String(p.id).startsWith('ph-') && !String(p.id).startsWith('leg-'))) && aiResults[i]) {
+                    const fullUpd = {
+                        slot: p.slot, label: p.label, ai_summary: p.ai_summary,
+                        has_damage: !!p.has_damage, damage_status: p.damage_status || 'none', damage_note: p.damage_note || null
+                    };
+                    const res = await sb.from('inspection_photos').update(fullUpd).eq('id', p.id);
+                    if (res.error) await sb.from('inspection_photos').update({ slot: p.slot, label: p.label }).eq('id', p.id);
+                }
+            }
+            if (veh && (bestKm != null && !veh.mileage || bestFuel && !veh.fuel)) {
+                const vUpd = {};
+                if (bestKm != null && !veh.mileage) vUpd.mileage = bestKm;
+                if (bestFuel && !veh.fuel) vUpd.fuel = bestFuel;
+                if (Object.keys(vUpd).length) await sb.from('vehicles').update(vUpd).eq('id', veh.id);
+            }
+            return photoEntries;
+        }
+
+        async function analyzeSavedInspectionPhotos(vehicleId, btn) {
+            const allPhotos = state.inspection.filter(p => p.vehicle_id === vehicleId);
+            if (!allPhotos.length) { showToast('Nenhuma foto salva neste veículo.', 'error'); return; }
+            const unnamed = allPhotos.filter(p => !p.label && (p.slot === 'adicional' || !p.ai_summary));
+            const target = unnamed.length ? unnamed : allPhotos;
+            return withBtn(btn, 'Analisando IA...', async () => {
+                try {
+                    const cloned = target.map(p => ({ ...p, path: p.file_path }));
+                    await processInspectionPhotosWithAI(cloned, vehicleId, 'entrega', [], msg => showToast(msg, 'info'));
+                    await loadAndRender();
+                    renderInspectionModal();
+                    showToast(`${cloned.length} foto(s) analisada(s) e nomeada(s)!`);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+
+        async function renameInspectionPhoto(photoId) {
+            const p = state.inspection.find(x => x.id === photoId);
+            if (!p) return;
+            const novo = await uiPrompt('Renomear foto da vistoria', { label: 'Nome / ângulo da foto', value: p.label || inspSlotLabel(p.slot), okText: 'Salvar nome' });
+            if (novo === null) return;
+            const clean = novo.trim();
+            if (!clean) return;
+            try {
+                const { error } = await sb.from('inspection_photos').update({ label: clean }).eq('id', photoId);
+                if (error) throw error;
+                p.label = clean;
+                renderInspectionModal();
+                showToast('Nome da foto atualizado!');
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+        }
+
+        // ---- WIZARD DE TERMO DE VISTORIA (ENTREGA E DEVOLUÇÃO) ----
+        let iwState = null;
+
+        function closeInspectionWizard() { document.getElementById('modalInspectionTerm').classList.add('hidden'); }
+        function openInspectionWizard(opts = {}) {
+            const existing = opts.inspectionId ? (state.inspections || []).find(i => i.id === opts.inspectionId) : null;
+            const type = existing ? existing.inspection_type : (opts.type === 'devolucao' ? 'devolucao' : 'entrega');
+            const vehicles = state.vehicles || [];
+            const drivers = allDrv().filter(d => d.role === 'driver');
+            let driverId = existing ? (existing.driver_id || '') : (opts.driverId || '');
+            let vehicleId = existing ? existing.vehicle_id : (opts.vehicleId || '');
+            if (!vehicleId && driverId) {
+                const dr = drivers.find(d => d.id === driverId);
+                vehicleId = (dr && (dr.vehicle_id || (dr.pix_extra && dr.pix_extra.contrato_encerrado && dr.pix_extra.contrato_encerrado.veiculo_id))) || '';
+            }
+            if (!driverId && vehicleId) {
+                const dr = drivers.find(d => d.vehicle_id === vehicleId);
+                if (dr) driverId = dr.id;
+            }
+            if (!vehicleId && vehicles.length) vehicleId = vehicles[0].id;
+            const veh = vehicles.find(v => v.id === vehicleId) || {};
+            const drv = drivers.find(d => d.id === driverId) || null;
+            const defChecklist = {};
+            INSP_CHECKLIST_ITEMS.forEach(it => { defChecklist[it.key] = { status: 'conforme', note: '' }; });
+            const mergedChecklist = { ...defChecklist, ...((existing && existing.checklist) || {}) };
+
+            let initPhotos = existing && Array.isArray(existing.photos) ? existing.photos.map(x => ({ ...x })) : [];
+            if (!existing && vehicleId) {
+                initPhotos = iwCollectSavedPhotosFor(vehicleId, driverId, type);
+            }
+            const cfgLoc = locadorForVehicle(vehicleId) || {};
+            const nowLocalStr = (() => {
+                const d = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 16);
+                return existing && existing.inspection_date ? new Date(new Date(existing.inspection_date).getTime() - 3 * 3600000).toISOString().slice(0, 16) : d;
+            })();
+
+            iwState = {
+                id: existing ? existing.id : null,
+                inspection_number: existing ? existing.inspection_number : null,
+                type, vehicleId, driverId,
+                photos: initPhotos,
+                checklist: mergedChecklist
+            };
+
+            document.getElementById('iwType').value = type;
+            document.getElementById('iwVehicle').innerHTML = vehicles.map(v => `<option value="${v.id}">${esc(v.model)} (${esc(v.plate)})</option>`).join('') || '<option value="">Nenhum veículo cadastrado</option>';
+            document.getElementById('iwVehicle').value = vehicleId || '';
+            document.getElementById('iwDriver').innerHTML = `<option value="">-- Sem motorista vinculado --</option>` + drivers.map(d => `<option value="${d.id}">${esc(d.name)}${d.cpf ? ' (' + esc(d.cpf) + ')' : ''}</option>`).join('');
+            document.getElementById('iwDriver').value = driverId || '';
+
+            iwPopulateContractsAndBase(existing ? existing.contract_id : (opts.contractId || ''), existing ? existing.base_inspection_id : (opts.baseInspectionId || ''));
+            document.getElementById('iwMileage').value = existing && existing.mileage != null ? existing.mileage : (veh.mileage != null ? veh.mileage : '');
+            document.getElementById('iwFuel').value = (existing && existing.fuel_level) || 'Cheio';
+            document.getElementById('iwDate').value = nowLocalStr;
+            document.getElementById('iwPlace').value = (existing && existing.signature_place) || cfgLoc.foro_cidade_uf || 'Goiânia/GO';
+            document.getElementById('iwDriverReservation').value = (existing && existing.driver_reservation) || '';
+            document.getElementById('iwNotes').value = (existing && existing.notes) || '';
+
+            iwSyncHeaderAndLegal();
+            iwRenderChecklist();
+            iwRenderPhotos();
+            iwRenderComparison();
+            document.getElementById('modalInspectionTerm').classList.remove('hidden');
+        }
+
+        function iwCollectSavedPhotosFor(vehicleId, driverId, type) {
+            const out = [];
+            const seenPaths = new Set();
+            state.inspection.filter(p => p.vehicle_id === vehicleId).forEach((p, idx) => {
+                if (!p.file_path || seenPaths.has(p.file_path)) return;
+                seenPaths.add(p.file_path);
+                out.push({
+                    id: p.id, path: p.file_path, slot: p.slot || 'outro',
+                    label: p.label || (p.slot && p.slot !== 'adicional' ? inspSlotLabel(p.slot) : `Foto salva ${idx + 1}`),
+                    has_damage: !!p.has_damage, damage_status: p.damage_status || (p.has_damage ? 'preexistente' : 'none'),
+                    damage_note: p.damage_note || null, ai_summary: p.ai_summary || null,
+                    added_at: p.created_at || new Date().toISOString()
+                });
+            });
+            if (type === 'devolucao' && driverId) {
+                const drv = allDrv().find(x => x.id === driverId);
+                const legacy = drv && drv.pix_extra && drv.pix_extra.contrato_encerrado && drv.pix_extra.contrato_encerrado.vistoria_entrega;
+                if (Array.isArray(legacy)) {
+                    legacy.forEach((f, idx) => {
+                        if (!f.path || seenPaths.has(f.path)) return;
+                        seenPaths.add(f.path);
+                        out.push({
+                            id: f.id || 'leg-' + idx, path: f.path, slot: 'outro',
+                            label: f.label || `Foto da devolução ${idx + 1}`,
+                            has_damage: false, damage_status: 'none', damage_note: null, ai_summary: null,
+                            added_at: f.added_at || new Date().toISOString()
+                        });
+                    });
+                }
+            }
+            return out;
+        }
+
+        function iwPopulateContractsAndBase(prefCtrId, prefBaseId) {
+            if (!iwState) return;
+            const ctrs = (state.contracts || []).filter(c => (!iwState.driverId || c.driver_id === iwState.driverId) && (!iwState.vehicleId || c.vehicle_id === iwState.vehicleId));
+            const ctrSel = document.getElementById('iwContract');
+            ctrSel.innerHTML = `<option value="">-- Sem contrato vinculado --</option>` + ctrs.map(c => `<option value="${c.id}">${esc(c.contract_number)} (${esc(CONTRACT_STATUS_META[c.status]?.label || c.status)})</option>`).join('');
+            const autoCtr = prefCtrId || (ctrs.find(c => c.status === 'ativo' || c.status === 'aguardando_assinatura') || ctrs[0] || {}).id || '';
+            ctrSel.value = autoCtr;
+
+            const bases = (state.inspections || []).filter(i => i.inspection_type === 'entrega' && i.status !== 'cancelado' && (!iwState.vehicleId || i.vehicle_id === iwState.vehicleId));
+            const baseSel = document.getElementById('iwBaseInspection');
+            baseSel.innerHTML = `<option value="">-- Sem entrega anterior vinculada --</option>` + bases.map(b => `<option value="${b.id}">${esc(b.inspection_number)} · ${fmtDate(b.inspection_date)} (${b.mileage != null ? b.mileage + ' km' : 'KM -'})</option>`).join('');
+            const autoBase = prefBaseId || (bases.find(b => b.driver_id === iwState.driverId) || bases[0] || {}).id || '';
+            baseSel.value = autoBase;
+        }
+
+        function iwSyncHeaderAndLegal() {
+            const isDev = iwState.type === 'devolucao';
+            document.getElementById('iwIcon').className = isDev ? 'fa-solid fa-car-burst text-amber-600' : 'fa-solid fa-clipboard-check text-emerald-600';
+            document.getElementById('iwTitle').textContent = iwState.id
+                ? `Editar ${iwState.inspection_number || 'Rascunho'} (${isDev ? 'Devolução' : 'Entrega'})`
+                : (isDev ? 'Novo Termo de Devolução do Veículo' : 'Novo Termo de Vistoria de Entrega');
+            document.getElementById('iwBaseBox').classList.toggle('hidden', !isDev);
+            document.getElementById('iwLegalBanner').innerHTML = isDev
+                ? '<i class="fa-solid fa-scale-balanced mr-1"></i> <b>Segurança jurídica na Devolução:</b> A IA compara as fotos com a entrega inicial e pergunta antes de nomear qualquer dano. Desgaste natural de uso (Cláusula 6) não é cobrável; retenção ou desconto em caução por avaria nova exige orçamento idôneo ou nota fiscal.'
+                : '<i class="fa-solid fa-scale-balanced mr-1"></i> <b>Segurança jurídica na Entrega:</b> Todas as avarias preexistentes devem ser confirmadas antes da entrega ao motorista para proteção de ambos (evita cobrança indevida na devolução). O campo de ressalva garante bilateralidade.';
+        }
+
+        function iwOnTypeChange() {
+            iwState.type = document.getElementById('iwType').value === 'devolucao' ? 'devolucao' : 'entrega';
+            iwSyncHeaderAndLegal();
+            iwRenderComparison();
+            iwRenderPhotos();
+        }
+        function iwOnVehicleChange() {
+            iwState.vehicleId = document.getElementById('iwVehicle').value;
+            const veh = (state.vehicles || []).find(v => v.id === iwState.vehicleId);
+            if (veh && veh.mileage != null && !document.getElementById('iwMileage').value) document.getElementById('iwMileage').value = veh.mileage;
+            const linkedDrv = allDrv().find(d => d.role === 'driver' && d.vehicle_id === iwState.vehicleId);
+            if (linkedDrv && !iwState.driverId) {
+                iwState.driverId = linkedDrv.id;
+                document.getElementById('iwDriver').value = linkedDrv.id;
+            }
+            iwPopulateContractsAndBase('', '');
+            if (!iwState.photos.length) iwImportSavedPhotos();
+            iwRenderComparison();
+        }
+        function iwOnDriverChange() {
+            iwState.driverId = document.getElementById('iwDriver').value;
+            iwPopulateContractsAndBase('', '');
+            iwRenderComparison();
+        }
+        function iwOnContractChange() {
+            const ctr = (state.contracts || []).find(c => c.id === document.getElementById('iwContract').value);
+            if (ctr && ctr.vehicle_id && ctr.vehicle_id !== iwState.vehicleId) {
+                iwState.vehicleId = ctr.vehicle_id;
+                document.getElementById('iwVehicle').value = ctr.vehicle_id;
+            }
+        }
+        function iwImportSavedPhotos() {
+            if (!iwState || !iwState.vehicleId) { showToast('Selecione um veículo primeiro.', 'error'); return; }
+            const saved = iwCollectSavedPhotosFor(iwState.vehicleId, iwState.driverId, iwState.type);
+            if (!saved.length) { showToast('Nenhuma foto salva encontrada para este veículo ainda.', 'info'); return; }
+            const existingPaths = new Set(iwState.photos.map(x => x.path));
+            let added = 0;
+            saved.forEach(s => { if (!existingPaths.has(s.path)) { iwState.photos.push(s); added++; } });
+            iwRenderPhotos();
+            showToast(added ? `${added} foto(s) salva(s) adicionada(s) ao termo!` : 'Todas as fotos salvas já estão listadas.');
+        }
+
+        async function iwUploadPhotos(input) {
+            const files = Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
+            if (!files.length || !iwState) return;
+            if (!iwState.vehicleId) { showToast('Selecione o veículo antes de enviar fotos.', 'error'); input.value = ''; return; }
+            const prog = document.getElementById('iwAiProgress');
+            const labelEl = input.closest('label'), oldHtml = labelEl ? labelEl.innerHTML : '';
+            if (labelEl) labelEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+            try {
+                const newlyAdded = [];
+                for (let i = 0; i < files.length; i++) {
+                    const f = files[i];
+                    if (prog) prog.textContent = `Enviando foto ${i + 1} de ${files.length}...`;
+                    const safeName = String(f.name || '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
+                    const prefix = `vehicles/${iwState.vehicleId}/vistoria/${iwState.type}-${Date.now()}-${i}-${safeName || 'foto'}`;
+                    const path = await uploadFile(f, prefix);
+                    if (!path) continue;
+                    // Salva também em inspection_photos para reutilização futura na entrega
+                    let dbId = 'ph-' + Date.now().toString(36) + i;
+                    if (iwState.type === 'entrega') {
+                        const ins = await sb.from('inspection_photos').insert({ vehicle_id: iwState.vehicleId, phase: 'entrega', slot: 'outro', file_path: path }).select().single();
+                        if (!ins.error && ins.data) dbId = ins.data.id;
+                    }
+                    const entry = {
+                        id: dbId, path, slot: 'outro', label: `Foto ${iwState.photos.length + 1}`,
+                        has_damage: false, damage_status: 'none', damage_note: null, ai_summary: null,
+                        added_at: new Date().toISOString()
+                    };
+                    iwState.photos.push(entry);
+                    newlyAdded.push(entry);
+                }
+                iwRenderPhotos();
+                if (newlyAdded.length) {
+                    if (labelEl) labelEl.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles fa-spin"></i> IA...';
+                    await iwRunAIOnList(newlyAdded);
+                }
+            } catch (e) {
+                showToast(friendlyError(e), 'error');
+            } finally {
+                if (labelEl && document.body.contains(labelEl)) labelEl.innerHTML = oldHtml;
+                if (prog) prog.textContent = 'Envie todas as fotos de uma vez ou importe as já salvas no veículo/motorista. A IA analisa e pergunta antes de nomear qualquer avaria.';
+                input.value = '';
+            }
+        }
+
+        async function iwRunAIOnList(targetList) {
+            if (!iwState || !targetList.length) return;
+            const prog = document.getElementById('iwAiProgress');
+            const baseId = document.getElementById('iwBaseInspection').value;
+            const baseInsp = baseId ? (state.inspections || []).find(b => b.id === baseId) : null;
+            const basePhotos = (baseInsp && Array.isArray(baseInsp.photos)) ? baseInsp.photos : [];
+            await processInspectionPhotosWithAI(targetList, iwState.vehicleId, iwState.type, basePhotos, msg => {
+                if (prog) prog.textContent = msg;
+            });
+            // Preenche hodômetro e combustível automaticamente se detectados no painel
+            const withKm = targetList.find(p => p.hodometro_km != null && p.hodometro_km >= 0);
+            const kmEl = document.getElementById('iwMileage');
+            if (withKm && kmEl && (!kmEl.value || Number(kmEl.value) === 0 || iwState.type === 'devolucao')) {
+                kmEl.value = withKm.hodometro_km;
+            }
+            const withFuel = targetList.find(p => p.combustivel_nivel);
+            const fuelEl = document.getElementById('iwFuel');
+            if (withFuel && fuelEl) {
+                const opt = Array.from(fuelEl.options).find(o => withFuel.combustivel_nivel.toLowerCase().includes(o.value.toLowerCase()));
+                if (opt) fuelEl.value = opt.value;
+            }
+            iwRenderPhotos();
+            iwRenderComparison();
+            if (prog) prog.textContent = `Análise concluída para ${targetList.length} foto(s). Confira nomes e avarias antes de emitir.`;
+        }
+
+        async function iwAnalyzeWithAI(btn, onlyPending) {
+            if (!iwState || !iwState.photos.length) { showToast('Adicione ou puxe fotos antes de analisar.', 'error'); return; }
+            const list = onlyPending ? iwState.photos.filter(p => !p.ai_summary) : iwState.photos;
+            if (!list.length) { showToast('Todas as fotos já foram analisadas.', 'info'); return; }
+            return withBtn(btn, 'Analisando IA...', () => iwRunAIOnList(list));
+        }
+
+        function iwRenderPhotos() {
+            const grid = document.getElementById('iwPhotosGrid');
+            const cnt = document.getElementById('iwPhotosCount');
+            if (!grid || !iwState) return;
+            cnt.textContent = String(iwState.photos.length);
+            if (!iwState.photos.length) {
+                grid.innerHTML = `<div class="col-span-full p-6 text-center rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-500">Nenhuma foto no termo ainda. Use <b>Puxar fotos salvas</b> ou <b>Adicionar todas as fotos</b> acima.</div>`;
+                iwRenderDamagesSummary();
+                return;
+            }
+            grid.innerHTML = iwState.photos.map((p, idx) => {
+                const badge = p.damage_status === 'novo'
+                    ? '<span class="px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200 text-[10px] font-bold">Dano NOVO</span>'
+                    : (p.damage_status === 'preexistente' || p.has_damage
+                        ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 text-[10px] font-bold">Preexistente</span>'
+                        : (p.damage_status === 'descartado' ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-semibold">Conferido OK</span>' : ''));
+                return `<div class="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-2 text-xs">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="font-mono text-[10px] text-gray-400">#${idx + 1} · ${esc(inspSlotLabel(p.slot))}</span>
+                        ${badge}
+                    </div>
+                    <img data-path="${esc(p.path)}" onclick="viewDocIdx(${docRef(p.path, esc(p.label || 'Foto ' + (idx + 1)))})" class="w-full h-36 object-cover rounded-lg bg-gray-100 dark:bg-gray-900 cursor-pointer" title="Clique para ampliar">
+                    <input type="text" value="${esc(p.label || '')}" onchange="iwUpdatePhotoField(${idx}, 'label', this.value)" placeholder="Nome / ângulo" class="w-full p-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">
+                    <div class="flex items-center gap-1.5">
+                        <select onchange="iwUpdatePhotoDamage(${idx}, this.value)" class="flex-1 p-1.5 text-[11px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <option value="none" ${!p.has_damage && p.damage_status !== 'descartado' ? 'selected' : ''}>Sem avaria</option>
+                            <option value="descartado" ${p.damage_status === 'descartado' ? 'selected' : ''}>Conferido OK (descartado)</option>
+                            <option value="preexistente" ${p.damage_status === 'preexistente' ? 'selected' : ''}>Dano preexistente</option>
+                            ${iwState.type === 'devolucao' ? `<option value="novo" ${p.damage_status === 'novo' ? 'selected' : ''}>Dano NOVO (pós-entrega)</option>` : ''}
+                        </select>
+                        <button type="button" onclick="iwRemovePhoto(${idx})" class="px-2 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300" title="Remover deste termo"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    ${p.has_damage ? `<input type="text" value="${esc(p.damage_note || '')}" onchange="iwUpdatePhotoField(${idx}, 'damage_note', this.value)" placeholder="Descrição objetiva do dano..." class="w-full p-1.5 text-[11px] rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/20 outline-none">` : ''}
+                </div>`;
+            }).join('');
+            hydrateImages(grid);
+            iwRenderDamagesSummary();
+        }
+        function iwUpdatePhotoField(idx, field, val) {
+            if (!iwState || !iwState.photos[idx]) return;
+            iwState.photos[idx][field] = String(val || '').trim();
+            iwRenderDamagesSummary();
+        }
+        function iwUpdatePhotoDamage(idx, statusVal) {
+            if (!iwState || !iwState.photos[idx]) return;
+            const p = iwState.photos[idx];
+            p.damage_status = statusVal;
+            p.has_damage = statusVal === 'preexistente' || statusVal === 'novo';
+            if (!p.has_damage) p.damage_note = null;
+            iwRenderPhotos();
+        }
+        function iwRemovePhoto(idx) {
+            if (!iwState) return;
+            iwState.photos.splice(idx, 1);
+            iwRenderPhotos();
+        }
+
+        function iwRenderDamagesSummary() {
+            const box = document.getElementById('iwDamagesBox');
+            if (!box || !iwState) return;
+            const dmgs = iwState.photos.filter(p => p.has_damage);
+            if (!dmgs.length) {
+                box.innerHTML = `<div class="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-semibold"><i class="fa-solid fa-circle-check"></i> Nenhuma avaria confirmada nesta vistoria até o momento.</div>`;
+                return;
+            }
+            box.innerHTML = `<div class="font-bold text-xs uppercase text-gray-600 dark:text-gray-300 mb-1.5"><i class="fa-solid fa-clipboard-list text-amber-600 mr-1"></i> Avarias Confirmadas (${dmgs.length})</div>
+                <div class="space-y-1.5">${dmgs.map(d => `<div class="p-2 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2 ${d.damage_status === 'novo' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800'}">
+                    <div><b>${esc(d.label)}</b> — ${esc(d.damage_note || 'Avaria registrada')}</div>
+                    <span class="px-2 py-0.5 rounded-full font-bold text-[10px] ${d.damage_status === 'novo' ? 'bg-red-600 text-white' : 'bg-amber-600 text-white'}">${d.damage_status === 'novo' ? 'DANO NOVO' : 'PREEXISTENTE'}</span>
+                </div>`).join('')}</div>`;
+        }
+
+        function iwRenderComparison() {
+            const box = document.getElementById('iwComparisonBox');
+            if (!box || !iwState || iwState.type !== 'devolucao') { if (box) box.classList.add('hidden'); return; }
+            const baseId = document.getElementById('iwBaseInspection').value;
+            const base = baseId ? (state.inspections || []).find(b => b.id === baseId) : null;
+            if (!base) { box.classList.add('hidden'); return; }
+            const curKm = Number(document.getElementById('iwMileage').value);
+            const kmDiff = (base.mileage != null && !Number.isNaN(curKm) && curKm > 0) ? curKm - Number(base.mileage) : null;
+            const preDmgs = Array.isArray(base.damages_summary) ? base.damages_summary : [];
+            box.innerHTML = `<div class="p-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/20 text-xs space-y-1.5">
+                <div class="font-bold text-amber-900 dark:text-amber-200 flex items-center justify-between gap-2">
+                    <span><i class="fa-solid fa-code-compare mr-1"></i> Comparação com Entrega ${esc(base.inspection_number)} (${fmtDate(base.inspection_date)})</span>
+                    ${kmDiff != null ? `<span class="font-mono bg-white dark:bg-gray-800 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-700">${kmDiff >= 0 ? '+' : ''}${kmDiff.toLocaleString('pt-BR')} km rodados</span>` : ''}
+                </div>
+                <div>Entrega: <b>${base.mileage != null ? Number(base.mileage).toLocaleString('pt-BR') + ' km' : '-'}</b> · Combustível: <b>${esc(base.fuel_level || '-')}</b> · Avarias já existentes na entrega: <b>${preDmgs.length}</b>${preDmgs.length ? ' (' + preDmgs.map(x => esc(x.label)).join(', ') + ')' : ''}</div>
+            </div>`;
+            box.classList.remove('hidden');
+        }
+
+        function iwRenderChecklist() {
+            const grid = document.getElementById('iwChecklistGrid');
+            if (!grid || !iwState) return;
+            grid.innerHTML = INSP_CHECKLIST_ITEMS.map(it => {
+                const cur = iwState.checklist[it.key] || { status: 'conforme', note: '' };
+                return `<div class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-semibold">${esc(it.label)}</span>
+                        <select onchange="iwState.checklist['${it.key}'].status=this.value" class="p-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs font-semibold outline-none">
+                            <option value="conforme" ${cur.status === 'conforme' ? 'selected' : ''}>Conforme</option>
+                            <option value="ressalva" ${cur.status === 'ressalva' ? 'selected' : ''}>Com ressalva</option>
+                            <option value="defeito" ${cur.status === 'defeito' ? 'selected' : ''}>Ausente / Defeito</option>
+                        </select>
+                    </div>
+                    <input type="text" value="${esc(cur.note || '')}" onchange="iwState.checklist['${it.key}'].note=this.value" placeholder="Observação opcional..." class="w-full p-1.5 text-[11px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                </div>`;
+            }).join('');
+        }
+
+        async function persistInspectionTerm(targetStatus, btn) {
+            if (!iwState) return;
+            const vehId = document.getElementById('iwVehicle').value;
+            const drvId = document.getElementById('iwDriver').value || null;
+            if (!vehId) { showToast('Selecione o veículo da vistoria.', 'error'); return; }
+            if (targetStatus !== 'rascunho' && !iwState.photos.length) {
+                const okNoPhoto = await uiConfirm('Nenhuma foto foi adicionada ao termo. Deseja emitir mesmo assim apenas com o checklist e os dados?', { title: 'Emitir sem fotos', okText: 'Emitir assim mesmo' });
+                if (!okNoPhoto) return;
+            }
+            return withBtn(btn, targetStatus === 'rascunho' ? 'Salvando...' : 'Gerando PDF...', async () => {
+                try {
+                    const type = document.getElementById('iwType').value === 'devolucao' ? 'devolucao' : 'entrega';
+                    const ctrId = document.getElementById('iwContract').value || null;
+                    const baseId = type === 'devolucao' ? (document.getElementById('iwBaseInspection').value || null) : null;
+                    const mileageRaw = document.getElementById('iwMileage').value;
+                    const mileage = mileageRaw !== '' ? Math.max(0, Math.round(Number(mileageRaw))) : null;
+                    const fuel = document.getElementById('iwFuel').value || 'Cheio';
+                    const dtInput = document.getElementById('iwDate').value;
+                    const inspDate = dtInput ? new Date(dtInput + '-03:00').toISOString() : new Date().toISOString();
+                    const place = document.getElementById('iwPlace').value.trim() || 'Goiânia/GO';
+                    const drvRes = document.getElementById('iwDriverReservation').value.trim() || null;
+                    const notes = document.getElementById('iwNotes').value.trim() || null;
+
+                    const veh = allVeh().find(v => v.id === vehId) || {};
+                    const drv = drvId ? allDrv().find(d => d.id === drvId) : null;
+                    const ctr = ctrId ? (state.contracts || []).find(c => c.id === ctrId) : null;
+                    const base = baseId ? (state.inspections || []).find(b => b.id === baseId) : null;
+                    const loc = locadorForVehicle(vehId) || {};
+
+                    let num = iwState.inspection_number;
+                    if (!num) {
+                        const rpcNum = await sb.rpc('next_vehicle_inspection_number', { p_type: type });
+                        num = (!rpcNum.error && rpcNum.data) ? rpcNum.data : `${type === 'devolucao' ? 'DEV' : 'VST'}-${new Date().getFullYear()}-${String((state.inspections || []).length + 1).padStart(4, '0')}`;
+                    }
+
+                    const damagesSummary = iwState.photos.filter(p => p.has_damage).map(p => ({
+                        photo_id: p.id, label: p.label, slot: p.slot,
+                        damage_status: p.damage_status === 'novo' ? 'novo' : 'preexistente',
+                        damage_note: p.damage_note || ''
+                    }));
+
+                    const snapshot = {
+                        inspection_number: num, inspection_type: type,
+                        locador: { name: loc.name || '', cpf: loc.cpf || '', rg: loc.rg || '', phone: loc.phone || '', email: loc.email || '', address: loc.address || '' },
+                        locatario: drv ? { name: drv.name || '', cpf: drv.cpf || '', rg: drv.rg || '', cnh_number: drv.cnh_number || '', cnh_category: drv.cnh_category || '', phone: drv.phone || '', email: drv.email || '', address: drv.address || '' } : null,
+                        veiculo: { brand: veh.brand || '', model: veh.model || '', version: veh.version || '', manufacture_year: veh.manufacture_year || '', model_year: veh.model_year || '', color: veh.color || '', plate: veh.plate || '', renavam: veh.renavam || '', chassi: veh.chassi || '', fuel: veh.fuel || '', mileage },
+                        contrato: ctr ? { contract_number: ctr.contract_number, start_date: ctr.start_date } : null,
+                        base_entrega: base ? { inspection_number: base.inspection_number, inspection_date: base.inspection_date, mileage: base.mileage, fuel_level: base.fuel_level, damages_count: (base.damages_summary || []).length } : null,
+                        testemunhas: [{ name: '', cpf: '' }, { name: '', cpf: '' }]
+                    };
+
+                    const rowPayload = {
+                        owner_id: state.user.id,
+                        driver_id: drvId, vehicle_id: vehId, contract_id: ctrId, base_inspection_id: baseId,
+                        inspection_number: num, inspection_type: type, status: targetStatus,
+                        mileage, fuel_level: fuel, inspection_date: inspDate,
+                        checklist: iwState.checklist, photos: iwState.photos, damages_summary: damagesSummary,
+                        driver_reservation: drvRes, notes, signature_place: place, signature_date: inspDate.slice(0, 10),
+                        snapshot_data: snapshot
+                    };
+                    let saved;
+                    if (iwState.id) {
+                        const res = await sb.from('vehicle_inspections').update(rowPayload).eq('id', iwState.id).select().single();
+                        if (res.error) throw res.error;
+                        saved = res.data;
+                    } else {
+                        const res = await sb.from('vehicle_inspections').insert(rowPayload).select().single();
+                        if (res.error) throw res.error;
+                        saved = res.data;
+                    }
+                    if (mileage != null) await sb.from('vehicles').update({ mileage }).eq('id', vehId);
+
+                    if (targetStatus !== 'rascunho') {
+                        const pdfBytes = await generateInspectionPdfBytes(saved);
+                        const folderPrefix = drvId ? `${drvId}/vistorias/${saved.id}` : `vehicles/${vehId}/vistorias/${saved.id}`;
+                        const storagePath = `${folderPrefix}/${inspectionPdfFileName(saved)}`;
+                        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                        const up = await sb.storage.from(BUCKET).upload(storagePath, blob, { upsert: true, contentType: 'application/pdf' });
+                        if (up.error) throw up.error;
+                        const upd = await sb.from('vehicle_inspections').update({ pdf_path: storagePath, emitted_at: new Date().toISOString() }).eq('id', saved.id).select().single();
+                        if (!upd.error && upd.data) saved = upd.data;
+                        if (drvId && type === 'entrega') await sb.from('profiles').update({ inspection_term_path: storagePath }).eq('id', drvId);
+                    }
+                    closeInspectionWizard();
+                    await reload();
+                    if (fileDriverId) { renderDriverRentalContractsBox(fileDriverId); dfContratoRender(); }
+                    showToast(targetStatus === 'rascunho' ? `Rascunho ${num} salvo!` : `Termo ${num} emitido com PDF!`);
+                    openInspectionDetail(saved.id);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        function saveInspectionDraft(btn) { return persistInspectionTerm('rascunho', btn); }
+        function emitInspectionTerm(btn) { return persistInspectionTerm('aguardando_assinatura', btn); }
+
+        // ---- GERADOR DE PDF A4 DE VISTORIA E DEVOLUÇÃO (com grid real de fotos) ----
+        async function blobToEmbeddableJpeg(blob) {
+            if (!blob) return null;
+            const t = (blob.type || '').toLowerCase();
+            if (t === 'image/jpeg' || t === 'image/jpg') return { kind: 'jpg', bytes: new Uint8Array(await blob.arrayBuffer()) };
+            if (t === 'image/png') return { kind: 'png', bytes: new Uint8Array(await blob.arrayBuffer()) };
+            // SVG (demo) ou WebP/AVIF -> rasteriza via canvas para JPEG A4-safe
+            return new Promise(resolve => {
+                const url = URL.createObjectURL(blob);
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const maxW = 800, scale = Math.min(1, maxW / (img.naturalWidth || maxW));
+                        const c = document.createElement('canvas');
+                        c.width = Math.max(200, Math.round((img.naturalWidth || 800) * scale));
+                        c.height = Math.max(150, Math.round((img.naturalHeight || 600) * scale));
+                        const ctx = c.getContext('2d');
+                        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+                        ctx.drawImage(img, 0, 0, c.width, c.height);
+                        c.toBlob(async out => {
+                            URL.revokeObjectURL(url);
+                            resolve(out ? { kind: 'jpg', bytes: new Uint8Array(await out.arrayBuffer()) } : null);
+                        }, 'image/jpeg', 0.82);
+                    } catch (e) { URL.revokeObjectURL(url); resolve(null); }
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+                img.src = url;
+            });
+        }
+
+        async function generateInspectionPdfBytes(ins) {
+            if (!window.PDFLib) throw new Error('Biblioteca de PDF (pdf-lib) não carregada.');
+            const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+            const s = ins.snapshot_data || {};
+            const l = s.locador || {}, d = s.locatario || {}, v = s.veiculo || {}, ctr = s.contrato || {}, base = s.base_entrega || {}, sd = ins.signature_data || {};
+            const isDev = ins.inspection_type === 'devolucao';
+            const pdf = await PDFDocument.create();
+            const fontReg = await pdf.embedFont(StandardFonts.TimesRoman);
+            const fontBold = await pdf.embedFont(StandardFonts.TimesRomanBold);
+            const fontSans = await pdf.embedFont(StandardFonts.Helvetica);
+            const fontSansBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+            const W = 595.28, H = 841.89, ML = 48, MR = 48, CW = W - ML - MR, TOP = H - 64, BOT = 56;
+            const ink = rgb(0.1, 0.12, 0.16), muted = rgb(0.38, 0.42, 0.48), lineCol = rgb(0.8, 0.83, 0.88), boxBg = rgb(0.96, 0.97, 0.985), redCol = rgb(0.75, 0.12, 0.12), amberCol = rgb(0.72, 0.42, 0.04);
+            const pages = [];
+            let page = null, y = TOP;
+
+            const wrapLines = (text, font, size, maxW) => {
+                const safe = pdfSafeText(text).trim();
+                if (!safe) return [];
+                const out = [];
+                safe.split(/\r?\n/).forEach(para => {
+                    const words = para.trim().split(/\s+/).filter(Boolean);
+                    if (!words.length) return;
+                    let cur = [], curW = 0, sp = font.widthOfTextAtSize(' ', size);
+                    words.forEach(w => {
+                        const ww = font.widthOfTextAtSize(w, size);
+                        if (cur.length && curW + sp + ww > maxW) { out.push(cur.join(' ')); cur = [w]; curW = ww; }
+                        else { cur.push(w); curW += (cur.length > 1 ? sp : 0) + ww; }
+                    });
+                    if (cur.length) out.push(cur.join(' '));
+                });
+                return out;
+            };
+            const newPage = () => {
+                page = pdf.addPage([W, H]); pages.push(page);
+                const head = pdfSafeText(isDev ? 'TERMO DE DEVOLUÇÃO E VISTORIA VEICULAR' : 'TERMO DE VISTORIA DE ENTREGA DE VEÍCULO');
+                page.drawText(head, { x: ML, y: H - 34, size: 9, font: fontSansBold, color: ink });
+                const numStr = pdfSafeText(`Nº ${ins.inspection_number || 'RASCUNHO'}`);
+                page.drawText(numStr, { x: W - MR - fontSansBold.widthOfTextAtSize(numStr, 9), y: H - 34, size: 9, font: fontSansBold, color: muted });
+                page.drawLine({ start: { x: ML, y: H - 42 }, end: { x: W - MR, y: H - 42 }, thickness: 0.75, color: lineCol });
+                y = TOP;
+            };
+            const ensureSpace = pts => { if (!page || y - pts < BOT) newPage(); };
+
+            newPage();
+            const title = pdfSafeText(isDev ? 'TERMO DE DEVOLUÇÃO E CONFERÊNCIA DE VEÍCULO' : 'TERMO DE VISTORIA DE ENTREGA DE VEÍCULO');
+            page.drawText(title, { x: Math.max(ML, (W - fontBold.widthOfTextAtSize(title, 13)) / 2), y, size: 13, font: fontBold, color: ink });
+            y -= 16;
+            const sub = pdfSafeText(`${ins.inspection_number || 'RASCUNHO'} · Data: ${fmtDate(ins.inspection_date)}${ctr.contract_number ? ' · Contrato ' + ctr.contract_number : ''}`);
+            page.drawText(sub, { x: Math.max(ML, (W - fontSans.widthOfTextAtSize(sub, 9.5)) / 2), y, size: 9.5, font: fontSans, color: muted });
+            y -= 20;
+
+            const idBlocks = [
+                `LOCADOR: ${l.name || '-'}, CPF ${l.cpf || '-'}, Tel. ${l.phone || '-'}, endereço ${l.address || '-'}.`,
+                `LOCATÁRIO: ${d.name || 'Não vinculado'}, CPF ${d.cpf || '-'}, CNH ${d.cnh_number || '-'} (Cat. ${d.cnh_category || '-'}), Tel. ${d.phone || '-'}.`,
+                `VEÍCULO: ${[v.brand, v.model, v.version].filter(Boolean).join(' ') || '-'} | Ano ${v.manufacture_year || '-'}/${v.model_year || '-'} | Cor ${v.color || '-'} | Placa ${v.plate || '-'} | RENAVAM ${v.renavam || '-'} | Chassi ${v.chassi || '-'}.`,
+                `MEDIÇÃO ATUAL: Hodômetro ${ins.mileage != null ? Number(ins.mileage).toLocaleString('pt-BR') + ' km' : 'Não informado'} | Combustível/Carga: ${ins.fuel_level || '-'}${isDev && base.inspection_number ? ` | Referência de Entrega (${base.inspection_number} em ${fmtDate(base.inspection_date)}): ${base.mileage != null ? Number(base.mileage).toLocaleString('pt-BR') + ' km' : '-'}, Comb. ${base.fuel_level || '-'}${(ins.mileage != null && base.mileage != null) ? ', Percorrido: ' + (Number(ins.mileage) - Number(base.mileage)).toLocaleString('pt-BR') + ' km' : ''}` : ''}.`
+            ];
+            idBlocks.forEach(txt => {
+                const lines = wrapLines(txt, fontReg, 9.5, CW - 14);
+                const hBox = lines.length * 13 + 10;
+                ensureSpace(hBox + 6);
+                page.drawRectangle({ x: ML, y: y - hBox + 8, width: CW, height: hBox, color: boxBg, borderColor: lineCol, borderWidth: 0.6 });
+                lines.forEach((ln, idx) => page.drawText(ln, { x: ML + 7, y: y - 4 - idx * 13, size: 9.5, font: fontReg, color: ink }));
+                y -= hBox + 6;
+            });
+
+            // Checklist Bilateral
+            ensureSpace(140);
+            page.drawText(pdfSafeText('1. CHECKLIST DE CONFERÊNCIA PRESENCIAL'), { x: ML, y, size: 10.5, font: fontBold, color: ink });
+            y -= 15;
+            const stText = st => st === 'defeito' ? 'AUSENTE / DEFEITO' : st === 'ressalva' ? 'COM RESSALVA' : 'CONFORME';
+            INSP_CHECKLIST_ITEMS.forEach(it => {
+                const c = (ins.checklist && ins.checklist[it.key]) || { status: 'conforme', note: '' };
+                const rowStr = `- ${it.label}: ${stText(c.status)}${c.note ? ' (' + c.note + ')' : ''}`;
+                const lines = wrapLines(rowStr, fontReg, 9.2, CW);
+                ensureSpace(lines.length * 12 + 4);
+                lines.forEach(ln => {
+                    page.drawText(ln, { x: ML + 6, y, size: 9.2, font: fontReg, color: c.status === 'defeito' ? redCol : (c.status === 'ressalva' ? amberCol : ink) });
+                    y -= 12;
+                });
+            });
+            y -= 8;
+
+            // Quadro de Avarias
+            const dmgs = Array.isArray(ins.damages_summary) ? ins.damages_summary : [];
+            ensureSpace(50);
+            page.drawText(pdfSafeText(`2. REGISTRO DE AVARIAS CONFIRMADAS PELAS PARTES (${dmgs.length})`), { x: ML, y, size: 10.5, font: fontBold, color: ink });
+            y -= 14;
+            if (!dmgs.length) {
+                page.drawText(pdfSafeText('Nenhuma avaria confirmada neste termo.'), { x: ML + 6, y, size: 9.5, font: fontReg, color: ink });
+                y -= 16;
+            } else {
+                dmgs.forEach((dm, i) => {
+                    const tag = dm.damage_status === 'novo' ? '[DANO NOVO PÓS-ENTREGA]' : '[DANO PREEXISTENTE]';
+                    const lines = wrapLines(`${i + 1}. ${tag} ${dm.label || ''}: ${dm.damage_note || 'Sem descrição adicional.'}`, fontReg, 9.3, CW - 8);
+                    ensureSpace(lines.length * 13 + 6);
+                    lines.forEach(ln => {
+                        page.drawText(ln, { x: ML + 6, y, size: 9.3, font: fontReg, color: dm.damage_status === 'novo' ? redCol : amberCol });
+                        y -= 13;
+                    });
+                });
+                y -= 6;
+            }
+
+            // Ressalva + Observações + Nota Legal
+            const extraTexts = [
+                ['3. RESSALVA / OBSERVAÇÃO DO LOCATÁRIO (MOTORISTA):', ins.driver_reservation || 'Nenhuma ressalva declarada pelo locatário no ato da vistoria.'],
+                ['4. OBSERVAÇÕES E DIRETRIZ LEGAL:', (ins.notes ? ins.notes + ' ' : '') + 'A análise automatizada por imagem teve caráter exclusivamente auxiliar; cada fotografia, medição e eventual ocorrência acima foi conferida presencialmente pelas partes antes da emissão. Desgaste natural decorrente do uso regular (Cláusula 6) não gera cobrança adicional. Eventual ressarcimento por dano novo confirmado na devolução depende de comprovação por orçamento idôneo ou nota fiscal de reparo.']
+            ];
+            extraTexts.forEach(([hd, bodyTxt]) => {
+                const lines = wrapLines(bodyTxt, fontReg, 9.2, CW - 10);
+                ensureSpace(lines.length * 12 + 24);
+                page.drawText(pdfSafeText(hd), { x: ML, y, size: 10, font: fontBold, color: ink });
+                y -= 14;
+                lines.forEach(ln => { page.drawText(ln, { x: ML + 4, y, size: 9.2, font: fontReg, color: ink }); y -= 12; });
+                y -= 8;
+            });
+
+            // Registro Fotográfico (grid 2 colunas)
+            const photos = Array.isArray(ins.photos) ? ins.photos : [];
+            if (photos.length) {
+                ensureSpace(190);
+                page.drawText(pdfSafeText(`5. ANEXO FOTOGRÁFICO DA VISTORIA (${photos.length} foto(s))`), { x: ML, y, size: 10.5, font: fontBold, color: ink });
+                y -= 16;
+                const cardW = (CW - 14) / 2, imgH = 128, cardH = imgH + 34;
+                for (let i = 0; i < photos.length; i += 2) {
+                    ensureSpace(cardH + 10);
+                    for (let c = 0; c < 2; c++) {
+                        const ph = photos[i + c];
+                        if (!ph) break;
+                        const cx = ML + c * (cardW + 14);
+                        page.drawRectangle({ x: cx, y: y - cardH, width: cardW, height: cardH, color: boxBg, borderColor: lineCol, borderWidth: 0.6 });
+                        try {
+                            const f = await fileUrl(ph.path);
+                            const emb = f && f.blob ? await blobToEmbeddableJpeg(f.blob) : null;
+                            if (emb) {
+                                const imgObj = emb.kind === 'png' ? await pdf.embedPng(emb.bytes) : await pdf.embedJpg(emb.bytes);
+                                page.drawImage(imgObj, { x: cx + 4, y: y - imgH - 4, width: cardW - 8, height: imgH });
+                            }
+                        } catch (e) {}
+                        const tag = ph.damage_status === 'novo' ? ' [DANO NOVO]' : (ph.has_damage ? ' [PREEXISTENTE]' : '');
+                        const cap = pdfSafeText(`#${i + c + 1} ${ph.label || inspSlotLabel(ph.slot)}${tag}`).slice(0, 48);
+                        page.drawText(cap, { x: cx + 5, y: y - imgH - 16, size: 8, font: fontSansBold, color: ph.damage_status === 'novo' ? redCol : ink });
+                        const subCap = pdfSafeText(ph.damage_note || (ph.added_at ? fmtDate(ph.added_at) : 'Conferido')).slice(0, 54);
+                        page.drawText(subCap, { x: cx + 5, y: y - imgH - 27, size: 7.2, font: fontSans, color: muted });
+                    }
+                    y -= cardH + 10;
+                }
+            }
+
+            // Assinaturas
+            const localDt = `${ins.signature_place || 'Local'}, ${ins.signature_date ? fmtDate(ins.signature_date) : fmtDate(ins.inspection_date || todayISO())}.`;
+            ensureSpace(170);
+            y -= 8;
+            page.drawText(pdfSafeText(localDt), { x: ML, y, size: 10, font: fontBold, color: ink });
+            y -= 28;
+            const colW = (CW - 28) / 2;
+            const drawSig = (sx, sy, roleTitle, nome, cpf, signedAt) => {
+                page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
+                page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 12, size: 8.8, font: fontBold, color: ink });
+                page.drawText(pdfSafeText(`Nome: ${nome || '__________________________'}`), { x: sx, y: sy - 24, size: 8.2, font: fontReg, color: ink });
+                page.drawText(pdfSafeText(`CPF: ${cpf || '_______________'}`), { x: sx, y: sy - 35, size: 8.2, font: fontReg, color: ink });
+                page.drawText(pdfSafeText(signedAt ? `Assinado em: ${fmtDate(signedAt)}` : 'Data: ____/____/________'), { x: sx, y: sy - 46, size: 7.8, font: fontReg, color: muted });
+            };
+            drawSig(ML, y, 'LOCADOR / VISTORIADOR', l.name, l.cpf, sd.locador_at);
+            drawSig(ML + colW + 28, y, 'LOCATÁRIO (MOTORISTA)', d.name, d.cpf, sd.locatario_at);
+            y -= 78;
+            ensureSpace(75);
+            const wList = Array.isArray(s.testemunhas) ? s.testemunhas : [{}, {}];
+            drawSig(ML, y, 'TESTEMUNHA 1', wList[0]?.name || sd.witness1_name, wList[0]?.cpf || sd.witness1_cpf, sd.witness1_at);
+            drawSig(ML + colW + 28, y, 'TESTEMUNHA 2', wList[1]?.name || sd.witness2_name, wList[1]?.cpf || sd.witness2_cpf, sd.witness2_at);
+
+            const totalP = pages.length;
+            const footL = pdfSafeText(`${ins.inspection_number || 'RASCUNHO'} | ${v.plate || 'VEÍCULO'}`);
+            pages.forEach((p, idx) => {
+                p.drawLine({ start: { x: ML, y: 38 }, end: { x: W - MR, y: 38 }, thickness: 0.6, color: lineCol });
+                p.drawText(footL, { x: ML, y: 24, size: 8, font: fontSans, color: muted });
+                const pn = pdfSafeText(`Página ${idx + 1} de ${totalP}`);
+                p.drawText(pn, { x: W - MR - fontSans.widthOfTextAtSize(pn, 8), y: 24, size: 8, font: fontSans, color: muted });
+            });
+            return await pdf.save();
+        }
+
+        async function ensureInspectionPdfBlob(ins) {
+            if (ins.pdf_path) {
+                try {
+                    const f = await fileUrl(ins.pdf_path);
+                    if (f && f.blob && (f.blob.type === 'application/pdf' || !DEMO)) return f.blob;
+                } catch (e) {}
+            }
+            return new Blob([await generateInspectionPdfBytes(ins)], { type: 'application/pdf' });
+        }
+        async function downloadInspectionPdf(id, btn) {
+            const ins = (state.inspections || []).find(x => x.id === id);
+            if (!ins) return;
+            const run = async () => {
+                const blob = await ensureInspectionPdfBlob(ins);
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = inspectionPdfFileName(ins);
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+            };
+            return btn ? withBtn(btn, 'Baixando...', run) : run();
+        }
+        async function printInspectionPdf(id, btn) {
+            const ins = (state.inspections || []).find(x => x.id === id);
+            if (!ins) return;
+            const run = async () => {
+                const blob = await ensureInspectionPdfBlob(ins);
+                const url = URL.createObjectURL(blob);
+                const w = window.open(url, '_blank');
+                if (w) setTimeout(() => { try { w.print(); } catch (e) {} }, 700);
+                else showToast('Permita pop-ups para imprimir ou use Baixar PDF.', 'info');
+            };
+            return btn ? withBtn(btn, 'Preparando...', run) : run();
+        }
+
+        // ---- MODAL DETALHE E ASSINATURAS DO TERMO DE VISTORIA ----
+        function closeInspectionDetail() { document.getElementById('modalInspectionTermDetail').classList.add('hidden'); }
+        function openInspectionDetail(id) {
+            const ins = (state.inspections || []).find(x => x.id === id);
+            if (!ins) return;
+            const s = ins.snapshot_data || {}, v = s.veiculo || {}, d = s.locatario || {}, sd = ins.signature_data || {};
+            const isDev = ins.inspection_type === 'devolucao';
+            document.getElementById('itdTitle').innerHTML = `<i class="fa-solid ${isDev ? 'fa-car-burst text-amber-600' : 'fa-clipboard-check text-emerald-600'} mr-1"></i> ${esc(ins.inspection_number)}`;
+            document.getElementById('itdSubtitle').textContent = `${isDev ? 'Termo de Devolução' : 'Vistoria de Entrega'} · ${d.name || 'Sem motorista'} · ${v.model || '-'} (${v.plate || '-'})`;
+            const sigBox = (label, checked, dtVal, idCb, idDt) => `
+                <label class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 text-xs">
+                    <span class="flex items-center gap-2 font-semibold"><input type="checkbox" id="${idCb}" ${checked ? 'checked' : ''} class="rounded"> ${label}</span>
+                    <input type="date" id="${idDt}" value="${dtVal ? String(dtVal).slice(0, 10) : todayISO()}" class="p-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs">
+                </label>`;
+            const dmgs = Array.isArray(ins.damages_summary) ? ins.damages_summary : [];
+            const photos = Array.isArray(ins.photos) ? ins.photos : [];
+            document.getElementById('itdBody').innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">${inspectionTypeBadge(ins.inspection_type)} ${inspectionStatusBadge(ins.status)} <span class="text-xs text-gray-500">KM: <b>${ins.mileage != null ? Number(ins.mileage).toLocaleString('pt-BR') + ' km' : '-'}</b> · Comb.: <b>${esc(ins.fuel_level || '-')}</b></span></div>
+                    <div class="flex flex-wrap gap-1.5">
+                        ${ins.status === 'rascunho' ? `<button type="button" onclick="closeInspectionDetail();openInspectionWizard({ inspectionId: '${ins.id}' })" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"><i class="fa-solid fa-pen mr-1"></i> Editar rascunho</button>` : ''}
+                        ${!isDev && ins.status !== 'cancelado' ? `<button type="button" onclick="closeInspectionDetail();openInspectionWizard({ type: 'devolucao', driverId: '${ins.driver_id || ''}', vehicleId: '${ins.vehicle_id}', contractId: '${ins.contract_id || ''}', baseInspectionId: '${ins.id}' })" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white"><i class="fa-solid fa-car-burst mr-1"></i> Gerar Termo de Devolução</button>` : ''}
+                        <button type="button" onclick="downloadInspectionPdf('${ins.id}', this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
+                        <button type="button" onclick="printInspectionPdf('${ins.id}', this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-gray-700"><i class="fa-solid fa-print mr-1"></i> Imprimir</button>
+                    </div>
+                </div>
+                <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/30 text-xs space-y-1">
+                    <div><b>Avarias registradas:</b> ${dmgs.length ? dmgs.map(x => `${esc(x.label)} (${x.damage_status === 'novo' ? 'DANO NOVO' : 'Preexistente'})`).join('; ') : 'Nenhuma avaria registrada.'}</div>
+                    ${ins.driver_reservation ? `<div><b>Ressalva do motorista:</b> ${esc(ins.driver_reservation)}</div>` : ''}
+                    ${ins.notes ? `<div><b>Observações:</b> ${esc(ins.notes)}</div>` : ''}
+                </div>
+                ${photos.length ? `<div class="grid grid-cols-3 sm:grid-cols-4 gap-2">${photos.map((p, i) => `<div class="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-[10px]">
+                    <img data-path="${esc(p.path)}" onclick="viewDocIdx(${docRef(p.path, esc(p.label || 'Foto ' + (i + 1)))})" class="w-full h-20 object-cover rounded cursor-pointer bg-gray-100 dark:bg-gray-800">
+                    <div class="truncate font-semibold mt-1">${esc(p.label || inspSlotLabel(p.slot))}</div>
+                </div>`).join('')}</div>` : ''}
+                ${ins.status !== 'cancelado' ? `<div class="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 space-y-2.5">
+                    <div class="font-bold text-xs uppercase text-gray-500">Controle de Assinaturas e Documentos</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        ${sigBox('Locador / Vistoriador', !!sd.locador_at, sd.locador_at, 'itdSigLoc', 'itdSigLocDt')}
+                        ${sigBox('Locatário (Motorista)', !!sd.locatario_at, sd.locatario_at, 'itdSigDrv', 'itdSigDrvDt')}
+                        ${sigBox('Testemunha 1', !!sd.witness1_at, sd.witness1_at, 'itdSigW1', 'itdSigW1Dt')}
+                        ${sigBox('Testemunha 2', !!sd.witness2_at, sd.witness2_at, 'itdSigW2', 'itdSigW2Dt')}
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <label class="text-xs flex items-center gap-1.5"><input type="checkbox" id="itdConcludeOnSign" checked class="rounded"> Marcar como <b>Concluído</b> quando Locador + Locatário assinarem</label>
+                        <button type="button" onclick="saveInspectionSignatures('${ins.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"><i class="fa-solid fa-signature mr-1"></i> Salvar assinaturas</button>
+                    </div>
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-2.5 flex flex-col sm:flex-row sm:items-center gap-2">
+                        <div class="flex-1"><label class="block text-xs font-semibold mb-1">Anexar termo assinado digitalizado (PDF/foto)</label><input type="file" id="itdSignedFile" accept="application/pdf,image/*" class="w-full text-xs"></div>
+                        <button type="button" onclick="uploadSignedInspectionFile('${ins.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shrink-0"><i class="fa-solid fa-upload mr-1"></i> Enviar assinado</button>
+                        ${ins.signed_pdf_path ? `<button type="button" onclick="viewDocIdx(${docRef(ins.signed_pdf_path, `Termo assinado ${esc(ins.inspection_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 shrink-0"><i class="fa-solid fa-eye mr-1"></i> Ver assinado</button>` : ''}
+                    </div>
+                    <div class="pt-1 flex justify-end"><button type="button" onclick="cancelInspectionPrompt('${ins.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">Cancelar termo</button></div>
+                </div>` : ''}
+            `;
+            const bod = document.getElementById('itdBody');
+            hydrateImages(bod);
+            document.getElementById('modalInspectionTermDetail').classList.remove('hidden');
+        }
+        async function saveInspectionSignatures(id, btn) {
+            const ins = (state.inspections || []).find(x => x.id === id);
+            if (!ins) return;
+            const rd = (cbId, dtId) => document.getElementById(cbId).checked ? ((document.getElementById(dtId).value || todayISO()) + 'T12:00:00Z') : null;
+            const locAt = rd('itdSigLoc', 'itdSigLocDt'), drvAt = rd('itdSigDrv', 'itdSigDrvDt');
+            const w1At = rd('itdSigW1', 'itdSigW1Dt'), w2At = rd('itdSigW2', 'itdSigW2Dt');
+            const conclude = document.getElementById('itdConcludeOnSign')?.checked && locAt && drvAt;
+            const nextStatus = conclude && (ins.status === 'aguardando_assinatura' || ins.status === 'rascunho') ? 'concluido' : ins.status;
+            return withBtn(btn, 'Salvando...', async () => {
+                try {
+                    const nextSigData = { ...(ins.signature_data || {}), locador_at: locAt, locatario_at: drvAt, witness1_at: w1At, witness2_at: w2At };
+                    const { error } = await sb.from('vehicle_inspections').update({
+                        signature_data: nextSigData,
+                        signed_at: (locAt && drvAt) ? (ins.signed_at || new Date().toISOString()) : null,
+                        status: nextStatus
+                    }).eq('id', id);
+                    if (error) throw error;
+                    await reload();
+                    openInspectionDetail(id);
+                    if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
+                    showToast('Assinaturas da vistoria salvas!');
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        async function uploadSignedInspectionFile(id, btn) {
+            const ins = (state.inspections || []).find(x => x.id === id);
+            const inp = document.getElementById('itdSignedFile');
+            const file = inp && inp.files && inp.files[0];
+            if (!ins) return;
+            if (!file) { showToast('Selecione o arquivo digitalizado primeiro.', 'error'); return; }
+            return withBtn(btn, 'Enviando...', async () => {
+                try {
+                    const folderPrefix = ins.driver_id ? `${ins.driver_id}/vistorias/${ins.id}` : `vehicles/${ins.vehicle_id}/vistorias/${ins.id}`;
+                    const path = await uploadFile(file, `${folderPrefix}/assinado-${Date.now()}`);
+                    if (!path) return;
+                    const { error } = await sb.from('vehicle_inspections').update({ signed_pdf_path: path, signature_mode: 'digitalizado' }).eq('id', id);
+                    if (error) throw error;
+                    if (ins.driver_id && ins.inspection_type === 'entrega') await sb.from('profiles').update({ inspection_term_path: path }).eq('id', ins.driver_id);
+                    await reload();
+                    openInspectionDetail(id);
+                    showToast('Termo assinado digitalizado anexado!');
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        async function cancelInspectionPrompt(id) {
+            const ins = (state.inspections || []).find(x => x.id === id);
+            if (!ins) return;
+            const ok = await uiConfirm(`Deseja cancelar o termo ${ins.inspection_number}? Ele permanecerá apenas no histórico.`, { title: 'Cancelar termo de vistoria', okText: 'Sim, cancelar', danger: true });
+            if (!ok) return;
+            try {
+                const { error } = await sb.from('vehicle_inspections').update({ status: 'cancelado' }).eq('id', id);
+                if (error) throw error;
+                await reload();
+                openInspectionDetail(id);
+                if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
+                showToast('Termo cancelado!');
             } catch (e) { showToast(friendlyError(e), 'error'); }
         }
     </script>
