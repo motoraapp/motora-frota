@@ -1776,19 +1776,45 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor do aluguel (R$) *</label><input id="cwRentAmount" inputmode="decimal" placeholder="Ex: 550,00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Periodicidade *</label>
-                            <select id="cwPeriodicity" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <select id="cwPeriodicity" onchange="cwDepCalc(false)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                                 <option value="diaria">Diária</option>
                                 <option value="semanal" selected>Semanal</option>
                                 <option value="quinzenal">Quinzenal</option>
                                 <option value="mensal">Mensal</option>
                             </select>
                         </div>
-                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Dia / Regra de vencimento</label><input id="cwDueDay" placeholder="Ex: Toda segunda-feira" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Dia / Regra de vencimento</label><input id="cwDueDay" oninput="cwDepCalc(false)" placeholder="Ex: Toda segunda-feira" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data de início *</label><input id="cwStartDate" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data de término</label><input id="cwEndDate" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="flex items-end pb-2"><label class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer"><input type="checkbox" id="cwIndeterminate" onchange="document.getElementById('cwEndDate').disabled = this.checked; if(this.checked) document.getElementById('cwEndDate').value = '';" class="rounded"> Prazo indeterminado</label></div>
-                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor da caução (R$)</label><input id="cwDepositAmount" inputmode="decimal" placeholder="Ex: 1.000,00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
-                        <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Forma de pagamento</label><input id="cwPaymentMethod" placeholder="Pix / Transferência bancária / Asaas" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Forma de pagamento do aluguel</label><input id="cwPaymentMethod" oninput="cwDepCalc(false)" placeholder="Pix / Transferência bancária / Asaas" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10 p-3 space-y-2.5">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-amber-800 dark:text-amber-300"><i class="fa-solid fa-shield-halved mr-1"></i> Caução contratual (pré-preenchida da ficha do motorista)</span>
+                                <span id="cwDepositInfo" class="text-[11px] text-amber-700 dark:text-amber-200"></span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Forma de cobrança</label>
+                                    <select id="cwDepositMode" onchange="cwDepCalc(true)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                        <option value="">Sem caução</option>
+                                        <option value="paga">À vista / Já paga (completa)</option>
+                                        <option value="parcelada">Parcelada</option>
+                                    </select>
+                                </div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor total da caução (R$)</label><input id="cwDepositAmount" inputmode="decimal" placeholder="Ex: 1.000,00" oninput="cwDepCalc(true)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Já pago até o contrato (R$)</label><input id="cwDepositAlreadyPaid" inputmode="decimal" placeholder="0,00" oninput="this.dataset.touched='1';cwDepCalc(false)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            </div>
+                            <div id="cwDepParcBox" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Entrada (R$)</label><input id="cwDepositEntry" inputmode="decimal" placeholder="Ex: 200,00" oninput="cwDepCalc(true)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:border-gray-400 mb-1">Vezes</label><input id="cwDepositInstallments" inputmode="numeric" placeholder="Ex: 8" oninput="cwDepCalc(true)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor da parcela (R$)</label><input id="cwDepositInstallmentVal" inputmode="decimal" placeholder="Ex: 100,00" oninput="this.dataset.touched='1';cwDepCalc(false)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Parcelas já pagas</label><input id="cwDepositPaidCount" inputmode="numeric" placeholder="0" oninput="cwDepCalc(false)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Descrição da cobrança da caução (vai na Cláusula 6 do contrato)</label>
+                                <input id="cwDepositChargeDesc" oninput="this.dataset.touched='1';cwSyncDepositClauseOnly()" placeholder="Ex: Entrada de R$ 200,00 + 8x de R$ 100,00 junto ao aluguel semanal" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            </div>
+                        </div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Multa por atraso (%)</label><input id="cwLateFinePct" type="number" step="0.01" min="0" max="100" value="10" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Juros de mora (% ao mês)</label><input id="cwLateInterestPct" type="number" step="0.01" min="0" max="100" value="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Limite de km (se aplicável)</label><input id="cwKmLimit" type="number" min="0" inputmode="numeric" placeholder="Livre se vazio" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -9908,11 +9934,60 @@ notify pgrst, 'reload schema';`;
             return `CONTRATO_LOCACAO_${drv}_${plate}_${dateStr}.pdf`;
         }
 
+        function cwBuildDepositChargeText(cm, drv) {
+            cm = cm || {};
+            const mode = cm.deposit_mode || (Number(cm.deposit_amount) > 0 ? 'paga' : '');
+            const total = Number(cm.deposit_amount || 0);
+            const entrada = Number(cm.deposit_entry || 0);
+            const n = parseInt(cm.deposit_installments || 0, 10) || 0;
+            const vp = Number(cm.deposit_installment_amount || 0);
+            const pagas = parseInt(cm.deposit_paid_installments || 0, 10) || 0;
+            const alreadyPaid = Number(cm.deposit_already_paid || 0);
+            if (!mode && !(total > 0)) return '';
+            const payMeth = String(cm.payment_method || '').trim();
+            const viaAsaas = (drv && cobOf(drv).auto) || /asaas/i.test(payMeth);
+            if (mode === 'paga') {
+                return 'paga integralmente à vista pelo LOCATÁRIO' + (payMeth ? ` (${payMeth})` : '');
+            }
+            if (mode === 'parcelada') {
+                const perLbl = contractPeriodLabel(cm.periodicity || 'semanal').toLowerCase();
+                const dueTxt = cm.due_day ? ` (${cm.due_day.trim().toLowerCase()})` : '';
+                const viaTxt = (viaAsaas ? 'via Asaas / Pix ' : 'via Pix / transferência ') + `juntamente com o aluguel ${perLbl}${dueTxt}`;
+                const parcTxt = (n > 0 && vp > 0)
+                    ? cauParcelasTexto({ total: total || (entrada + n * vp), entrada, parcelas: n, valor_parcela: vp })
+                    : (n > 0 ? `${n}x` : '');
+                let base = '';
+                if (entrada > 0 && parcTxt) base = `entrada de ${fmtMoney(entrada)} + saldo parcelado em ${parcTxt}, cobrado ${viaTxt}`;
+                else if (parcTxt) base = `parcelada em ${parcTxt}, cobrada ${viaTxt}`;
+                else if (entrada > 0) base = `entrada de ${fmtMoney(entrada)}, com saldo parcelado ${viaTxt}`;
+                else base = `parcelada ${viaTxt}`;
+                if (alreadyPaid > 0 && total > 0 && alreadyPaid >= total - 0.005) {
+                    base += ' (saldo integralmente quitado até a emissão deste contrato)';
+                } else if (alreadyPaid > 0 && pagas > 0) {
+                    base += ` (já adimplido até a emissão deste contrato o total de ${fmtMoney(alreadyPaid)}, correspondente à entrada e/ou ${pagas} parcela(s))`;
+                }
+                return base;
+            }
+            return payMeth ? `com pagamento via ${payMeth}` : 'a ser constituída conforme ajustado entre as partes';
+        }
+
+        function cwBuildDepositClauseText(c) {
+            c = c || {};
+            const total = Number(c.deposit_amount || 0);
+            const hasDep = total > 0 || c.deposit_mode === 'paga' || c.deposit_mode === 'parcelada';
+            if (!hasDep) {
+                return 'não haverá exigência de caução (garantia contratual) neste instrumento, permanecendo o LOCATÁRIO integralmente responsável por eventuais débitos, multas de trânsito, franquias ou avarias apuradas durante a locação';
+            }
+            const valTxt = total > 0 ? `ajusta-se o valor total de ${fmtMoney(total)}` : 'ajusta-se garantia contratual (caução)';
+            const desc = String(c.deposit_charge_desc || cwBuildDepositChargeText(c)).trim();
+            return desc ? `${valTxt}, na seguinte forma de cobrança: ${desc}` : valTxt;
+        }
+
         function buildDefaultClauses(snap) {
             const l = snap.locador || {}, d = snap.locatario || {}, v = snap.veiculo || {}, c = snap.comercial || {};
             const valFmt = c.rent_amount != null ? fmtMoney(c.rent_amount) : 'a definir';
             const perLbl = contractPeriodLabel(c.periodicity).toLowerCase();
-            const depFmt = Number(c.deposit_amount) > 0 ? fmtMoney(c.deposit_amount) : 'sem caução exigida neste instrumento';
+            const depFmt = cwBuildDepositClauseText(c);
             const kmTxt = c.km_limit ? `fica estabelecido o limite de ${c.km_limit} km por período, incidindo o valor de ${fmtMoney(c.km_extra_price || 0)} por quilômetro excedente` : 'não há limite contratual de quilometragem, salvo uso abusivo incompatível com a conservação regular do bem';
             const vigTxt = c.is_indeterminate
                 ? `prazo indeterminado, com início em ${fmtDate(c.start_date)}, podendo ser encerrado mediante aviso prévio escrito conforme a Cláusula 13`
@@ -9941,7 +10016,7 @@ notify pgrst, 'reload schema';`;
                 { num: 3, title: 'CLÁUSULA 3 — DO VALOR E PAGAMENTO', body: `Pela locação do veículo, o LOCATÁRIO pagará ao LOCADOR o valor de ${valFmt}, com periodicidade ${perLbl}, vencimento ${c.due_day || 'conforme calendário ajustado entre as partes'}, por meio de ${c.payment_method || 'Pix ou transferência bancária indicada pelo LOCADOR'}.\nParágrafo único. Quanto à rodagem contratada, ${kmTxt}. Em caso de atraso no pagamento, aplicam-se os encargos previstos na Cláusula 4 e os procedimentos da Cláusula 5.` },
                 { num: 4, title: 'CLÁUSULA 4 — DO ATRASO NO PAGAMENTO E DA INADIMPLÊNCIA', body: `O não pagamento do aluguel na data de vencimento constituirá o LOCATÁRIO em mora, independentemente de notificação, ficando sujeito aos seguintes encargos:\nI – Juros moratórios de ${pctExt(jurosMesPct, 2, 'dois por cento')} ao mês, calculados proporcionalmente aos dias de atraso (mês comercial de 30 dias), sobre o valor vencido e não pago;\nII – Multa moratória de ${pctExt(multaPct, 10, 'dez por cento')} sobre o valor da obrigação vencida, observados os limites legais aplicáveis;\nIII – Atualização monetária pelo IPCA, quando cabível, observadas as disposições legais e contratuais aplicáveis.\nParágrafo único. Os encargos serão calculados até a data do efetivo pagamento, observada a prorrogação sem encargos apenas quando o vencimento recair em sábado, domingo ou feriado até o primeiro dia útil subsequente (incidindo desde o vencimento original se não quitado nesse dia útil), sem prejuízo das demais medidas legais e contratuais cabíveis em caso de inadimplência.` },
                 { num: 5, title: 'CLÁUSULA 5 — DA INADIMPLÊNCIA, SUSPENSÃO DA LOCAÇÃO E DEVOLUÇÃO DO VEÍCULO', body: `O atraso no pagamento do aluguel superior a 3 (três) dias corridos, contados do vencimento, caracterizará inadimplência contratual, facultando ao LOCADOR notificar formalmente o LOCATÁRIO para regularização do débito ou devolução voluntária do veículo, no prazo adicional de 24 (vinte e quatro) horas.\nParágrafo 1º. Não regularizada a situação, poderá o LOCADOR promover a rescisão contratual e adotar as medidas extrajudiciais e judiciais legalmente cabíveis para recuperação do veículo.\nParágrafo 2º. O sistema de rastreamento poderá ser utilizado para proteção patrimonial e localização do veículo, observadas as normas de segurança, privacidade e proteção de dados.\nParágrafo 3º. Qualquer recurso de imobilização remota deverá observar a legislação aplicável, não podendo ser utilizado como instrumento de coação para cobrança de dívida ou executado de maneira que coloque em risco o LOCATÁRIO, passageiros ou terceiros.` },
-                { num: 6, title: 'CLÁUSULA 6 — DA CAUÇÃO', body: `A título de garantia contratual (caução), ajusta-se o valor de ${depFmt}. Quando constituída, a caução destina-se exclusivamente a assegurar o adimplemento de aluguéis vencidos, multas de trânsito, franquias de sinistro, avarias comprovadas ou pendências apuradas na devolução.\nParágrafo único. Encerrada a locação e concluída a vistoria final, eventuais retenções deverão ser objeto de prestação de contas discriminada com comprovantes ao LOCATÁRIO, restituindo-se o saldo remanescente no prazo ajustado entre as partes.` },
+                { num: 6, title: 'CLÁUSULA 6 — DA CAUÇÃO', body: `A título de garantia contratual (caução), ${depFmt}. Quando constituída, a caução destina-se exclusivamente a assegurar o adimplemento de aluguéis vencidos, multas de trânsito, franquias de sinistro, avarias comprovadas ou pendências apuradas na devolução.\nParágrafo único. Encerrada a locação e concluída a vistoria final, eventuais retenções deverão ser objeto de prestação de contas discriminada com comprovantes ao LOCATÁRIO, restituindo-se o saldo remanescente no prazo de até 30 (trinta) dias corridos após o encerramento do contrato ou conforme ajustado entre as partes.` },
                 { num: 7, title: 'CLÁUSULA 7 — DAS OBRIGAÇÕES DO LOCATÁRIO', body: `São obrigações irrenunciáveis do LOCATÁRIO durante toda a posse do veículo:\n- Utilizar o veículo de maneira prudente, zelosa e estritamente compatível com a sua destinação;\n- Respeitar rigorosamente a restrição geográfica de circulação à Região Metropolitana de Goiânia/GO prevista na Cláusula 1, abstendo-se de realizar viagens além dessa região sem autorização prévia e expressa do LOCADOR após revisão veicular, devendo retornar imediatamente ao perímetro permitido caso notificado de saída não autorizada;\n- Manter sua Carteira Nacional de Habilitação (CNH) e documentação obrigatória em situação regular e válida;\n- Possuir e manter ativa a observação "Exerce Atividade Remunerada (EAR)" na CNH sempre que exigido para transporte remunerado de passageiros;\n- Cumprir rigorosamente o Código de Trânsito Brasileiro (CTB) e as normas dos órgãos de trânsito e plataformas;\n- Não emprestar, ceder, sublocar, penhorar ou transferir a posse do veículo a terceiros sem autorização prévia e por escrito do LOCADOR;\n- Comunicar imediatamente ao LOCADOR quaisquer acidentes, sinistros, panes, alertas no painel, furtos, roubos ou danos mecânicos;\n- Não utilizar o veículo para atividades ilícitas, corridas ilegais, transporte de cargas perigosas ou rebocamento indevido;\n- Manter o veículo limpo e em condições adequadas de conservação interna e externa.` },
                 { num: 8, title: 'CLÁUSULA 8 — DAS MULTAS E INFRAÇÕES', body: `As infrações de trânsito praticadas durante o período em que o veículo estiver sob a posse do LOCATÁRIO serão de sua inteira responsabilidade financeira e administrativa, cabendo-lhe assumir a pontuação na CNH.\nParágrafo único. Recebida a notificação de autuação, o LOCADOR informará o LOCATÁRIO em tempo hábil para assinatura do formulário de indicação do real condutor infrator junto ao órgão de trânsito, observados os prazos e procedimentos legais do Código de Trânsito Brasileiro (CTB).` },
                 { num: 9, title: 'CLÁUSULA 9 — DA MANUTENÇÃO', body: `A manutenção preventiva ordinária decorrente do desgaste natural pelo uso regular (troca programada de óleo, filtros, pastilhas e lonas de freio, pneus e revisões periódicas de fábrica) obedecerá ao plano preventivo definido pelo LOCADOR, devendo o LOCATÁRIO comparecer pontualmente às paradas agendadas.\nParágrafo 1º. Defeitos preexistentes devidamente registrados na vistoria de entrega não serão imputados ao LOCATÁRIO.\nParágrafo 2º. Danos mecânicos, elétricos ou estéticos decorrentes de mau uso, negligência, direção imprudente, circulação em alagamentos, falta de comunicação tempestiva de avarias ou manutenção realizada sem autorização serão integralmente custeados pelo LOCATÁRIO.\nParágrafo 3º. Toda solicitação de viagem para fora da Região Metropolitana de Goiânia/GO depende de inspeção e revisão veicular preventiva prévia realizada pelo LOCADOR ou oficina por ele autorizada.` },
@@ -10285,6 +10360,111 @@ notify pgrst, 'reload schema';`;
             if (!document.getElementById('cwForo').value && src.foro_cidade_uf) document.getElementById('cwForo').value = src.foro_cidade_uf;
             if (!document.getElementById('cwLocalAssinatura').value && src.foro_cidade_uf) document.getElementById('cwLocalAssinatura').value = src.foro_cidade_uf;
         }
+        function cwFillDepositFromDriver(d) {
+            d = d || {};
+            const cau = cauOf(d);
+            const st = d.id ? cauStatus(d) : null;
+            const descEl = document.getElementById('cwDepositChargeDesc');
+            const paidEl = document.getElementById('cwDepositAlreadyPaid');
+            const valEl = document.getElementById('cwDepositInstallmentVal');
+            if (descEl) delete descEl.dataset.touched;
+            if (paidEl) delete paidEl.dataset.touched;
+            if (valEl) { if (cau && cau.valor_parcela != null) valEl.dataset.touched = '1'; else delete valEl.dataset.touched; }
+            const totalNum = cau ? (cau.total != null ? Number(cau.total) : (cau.forma === 'parcelada' ? Number(cau.entrada || 0) + Number(cau.parcelas || 0) * Number(cau.valor_parcela || 0) : null)) : null;
+            document.getElementById('cwDepositMode').value = cau ? (cau.forma || '') : '';
+            document.getElementById('cwDepositAmount').value = totalNum != null ? totalNum.toFixed(2).replace('.', ',').replace(/,00$/, '') : '';
+            document.getElementById('cwDepositEntry').value = cau && cau.entrada ? String(cau.entrada).replace('.', ',') : '';
+            document.getElementById('cwDepositInstallments').value = cau && cau.parcelas ? String(cau.parcelas) : '';
+            document.getElementById('cwDepositInstallmentVal').value = cau && cau.valor_parcela != null ? String(cau.valor_parcela).replace('.', ',') : '';
+            document.getElementById('cwDepositPaidCount').value = cau && cau.cobradas != null ? String(cau.cobradas) : '';
+            const alreadyNum = st ? st.pago : (cau && cau.forma === 'paga' ? Number(totalNum || 0) : Number((cau && cau.entrada) || 0));
+            if (paidEl) paidEl.value = alreadyNum > 0 ? alreadyNum.toFixed(2).replace('.', ',').replace(/,00$/, '') : '';
+            const info = document.getElementById('cwDepositInfo');
+            if (info) {
+                if (!cau) info.textContent = d.id ? 'Ficha do motorista: Sem caução' : '';
+                else if (cau.forma === 'paga') info.textContent = `Ficha: Paga${totalNum ? ' (' + fmtMoney(totalNum) + ')' : ''}`;
+                else info.textContent = `Ficha: Parcelada${st ? ` · ${fmtMoney(st.pago)} pagos de ${fmtMoney(st.total)}` : ''}`;
+            }
+            cwDepCalc(false);
+        }
+
+        function cwFillDepositFromComercial(cm, drv) {
+            cm = cm || {};
+            const descEl = document.getElementById('cwDepositChargeDesc');
+            const paidEl = document.getElementById('cwDepositAlreadyPaid');
+            const valEl = document.getElementById('cwDepositInstallmentVal');
+            if (cm.deposit_charge_desc && descEl) descEl.dataset.touched = '1'; else if (descEl) delete descEl.dataset.touched;
+            if (cm.deposit_already_paid != null && paidEl) paidEl.dataset.touched = '1'; else if (paidEl) delete paidEl.dataset.touched;
+            if (cm.deposit_installment_amount != null && valEl) valEl.dataset.touched = '1'; else if (valEl) delete valEl.dataset.touched;
+            const mode = cm.deposit_mode != null ? cm.deposit_mode : (Number(cm.deposit_amount) > 0 ? 'paga' : '');
+            document.getElementById('cwDepositMode').value = mode;
+            document.getElementById('cwDepositAmount').value = cm.deposit_amount != null ? String(cm.deposit_amount).replace('.', ',') : '';
+            document.getElementById('cwDepositEntry').value = cm.deposit_entry ? String(cm.deposit_entry).replace('.', ',') : '';
+            document.getElementById('cwDepositInstallments').value = cm.deposit_installments ? String(cm.deposit_installments) : '';
+            document.getElementById('cwDepositInstallmentVal').value = cm.deposit_installment_amount ? String(cm.deposit_installment_amount).replace('.', ',') : '';
+            document.getElementById('cwDepositPaidCount').value = cm.deposit_paid_installments != null ? String(cm.deposit_paid_installments) : '';
+            if (paidEl) paidEl.value = cm.deposit_already_paid ? String(cm.deposit_already_paid).replace('.', ',') : '';
+            if (descEl) descEl.value = cm.deposit_charge_desc || '';
+            const info = document.getElementById('cwDepositInfo');
+            if (info) info.textContent = drv && cauOf(drv) ? 'Carregado do rascunho/contrato anterior' : '';
+            cwDepCalc(false);
+        }
+
+        function cwSyncDepositClauseOnly() {
+            const ta = document.querySelector('#cwClausesBox textarea[data-clause-idx="5"]');
+            if (ta && !ta.dataset.touched) {
+                const snap = cwReadSnapshot();
+                const clauses = buildDefaultClauses(snap);
+                if (clauses[5]) ta.value = clauses[5].body;
+            }
+            if (document.getElementById('cwPreviewArea') && !document.getElementById('cwPreviewArea').classList.contains('hidden')) cwRenderPreview();
+        }
+
+        function cwDepCalc(auto) {
+            const modeEl = document.getElementById('cwDepositMode');
+            if (!modeEl) return;
+            const mode = modeEl.value;
+            const parcBox = document.getElementById('cwDepParcBox');
+            if (parcBox) parcBox.classList.toggle('hidden', mode !== 'parcelada');
+            const total = parseMoney(document.getElementById('cwDepositAmount').value) || 0;
+            const ent = parseMoney(document.getElementById('cwDepositEntry').value) || 0;
+            const nEl = document.getElementById('cwDepositInstallments');
+            const valEl = document.getElementById('cwDepositInstallmentVal');
+            const paidEl = document.getElementById('cwDepositAlreadyPaid');
+            const n = parseInt(nEl.value, 10) || 0;
+            if (auto && mode === 'parcelada' && total > 0 && n > 0 && !valEl.dataset.touched) {
+                const plano = cauPlano(total, ent, n);
+                if (plano) {
+                    valEl.value = plano.valor_parcela.toFixed(2).replace('.', ',');
+                    if (plano.parcelas !== n) nEl.value = String(plano.parcelas);
+                }
+            }
+            const vp = parseMoney(valEl.value) || 0;
+            const pagas = parseInt(document.getElementById('cwDepositPaidCount').value, 10) || 0;
+            if (paidEl && !paidEl.dataset.touched) {
+                const calcPaid = mode === 'paga' ? total : (mode === 'parcelada' ? Math.min(total || Infinity, ent + pagas * vp) : 0);
+                paidEl.value = calcPaid > 0 ? calcPaid.toFixed(2).replace('.', ',').replace(/,00$/, '') : '';
+            }
+            const descEl = document.getElementById('cwDepositChargeDesc');
+            if (descEl && !descEl.dataset.touched) {
+                const drv = allDrv().find(x => x.id === (document.getElementById('cwDriverId') && document.getElementById('cwDriverId').value));
+                const cmTmp = {
+                    deposit_mode: mode,
+                    deposit_amount: total,
+                    deposit_entry: ent,
+                    deposit_installments: parseInt(nEl.value, 10) || 0,
+                    deposit_installment_amount: vp,
+                    deposit_paid_installments: pagas,
+                    deposit_already_paid: parseMoney(paidEl && paidEl.value) || 0,
+                    periodicity: (document.getElementById('cwPeriodicity') && document.getElementById('cwPeriodicity').value) || 'semanal',
+                    due_day: (document.getElementById('cwDueDay') && document.getElementById('cwDueDay').value) || '',
+                    payment_method: (document.getElementById('cwPaymentMethod') && document.getElementById('cwPaymentMethod').value) || ''
+                };
+                descEl.value = cwBuildDepositChargeText(cmTmp, drv);
+            }
+            cwSyncDepositClauseOnly();
+        }
+
         function cwFillDriver(d) {
             d = d || {};
             const map = { cwDrvName: 'name', cwDrvCpf: 'cpf', cwDrvRg: 'rg', cwDrvBirth: 'birth_date', cwDrvNat: 'nationality', cwDrvCiv: 'marital_status', cwDrvProf: 'profession', cwDrvPhone: 'phone', cwDrvEmail: 'email', cwDrvCnh: 'cnh_number', cwDrvCnhCat: 'cnh_category', cwDrvAddr: 'address' };
@@ -10296,8 +10476,10 @@ notify pgrst, 'reload schema';`;
                 const dias = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
                 if (dias[dayIdx]) document.getElementById('cwDueDay').value = ((dayIdx === 0 || dayIdx === 6) ? 'Todo ' : 'Toda ') + dias[dayIdx];
             }
-            const cau = d.pix_extra && d.pix_extra.caucao;
-            if (cau && cau.total && !cwState.id) document.getElementById('cwDepositAmount').value = String(cau.total).replace('.', ',');
+            if (!cwState.id) {
+                document.getElementById('cwPaymentMethod').value = (d.id && cobOf(d).auto) ? 'Pix / Boleto automático via Asaas' : 'Pix / Transferência bancária';
+                cwFillDepositFromDriver(d);
+            }
         }
         const cwCrlvCache = {};
         let cwCrlvLoadingKey = null;
@@ -10429,7 +10611,22 @@ notify pgrst, 'reload schema';`;
                 locador: { name: gv('cwLocName'), cpf: gv('cwLocCpf'), rg: gv('cwLocRg'), nationality: gv('cwLocNat'), marital_status: gv('cwLocCiv'), profession: gv('cwLocProf'), phone: gv('cwLocPhone'), email: gv('cwLocEmail'), address: gv('cwLocAddr') },
                 locatario: { name: gv('cwDrvName'), cpf: gv('cwDrvCpf'), rg: gv('cwDrvRg'), birth_date: gv('cwDrvBirth'), nationality: gv('cwDrvNat'), marital_status: gv('cwDrvCiv'), profession: gv('cwDrvProf'), phone: gv('cwDrvPhone'), email: gv('cwDrvEmail'), cnh_number: gv('cwDrvCnh'), cnh_category: gv('cwDrvCnhCat'), cnh_ear: !!(earEl && earEl.checked), address: gv('cwDrvAddr') },
                 veiculo: { brand: gv('cwVehBrand'), model: gv('cwVehModel'), version: gv('cwVehVersion'), manufacture_year: gv('cwVehMfgYear'), model_year: gv('cwVehModelYear'), color: gv('cwVehColor'), plate: gv('cwVehPlate').toUpperCase(), renavam: gv('cwVehRenavam'), chassi: gv('cwVehChassi').toUpperCase(), fuel: gv('cwVehFuel'), mileage: gv('cwVehMileage') ? parseInt(gv('cwVehMileage'), 10) : null },
-                comercial: { rent_amount: numOrNull('cwRentAmount'), periodicity: gv('cwPeriodicity') || 'semanal', due_day: gv('cwDueDay'), start_date: gv('cwStartDate'), end_date: isInd ? null : (gv('cwEndDate') || null), is_indeterminate: isInd, deposit_amount: numOrNull('cwDepositAmount'), payment_method: gv('cwPaymentMethod'), late_fine_pct: numOrNull('cwLateFinePct') != null ? numOrNull('cwLateFinePct') : Number(getAtrasoCfg().multa_pct ?? 10), late_interest_month_pct: numOrNull('cwLateInterestPct') != null ? numOrNull('cwLateInterestPct') : Number(getAtrasoCfg().juros_mes_pct ?? 2), km_limit: gv('cwKmLimit') ? parseInt(gv('cwKmLimit'), 10) : null, km_extra_price: numOrNull('cwKmExtraPrice'), purpose: gv('cwPurpose'), notes: gv('cwNotes'), local_assinatura: gv('cwLocalAssinatura'), data_assinatura: gv('cwDataAssinatura') || todayISO(), foro_cidade_uf: gv('cwForo') },
+                comercial: {
+                    rent_amount: numOrNull('cwRentAmount'), periodicity: gv('cwPeriodicity') || 'semanal', due_day: gv('cwDueDay'),
+                    start_date: gv('cwStartDate'), end_date: isInd ? null : (gv('cwEndDate') || null), is_indeterminate: isInd,
+                    deposit_amount: numOrNull('cwDepositAmount'), deposit_mode: gv('cwDepositMode'),
+                    deposit_entry: numOrNull('cwDepositEntry') || 0,
+                    deposit_installments: gv('cwDepositInstallments') ? parseInt(gv('cwDepositInstallments'), 10) : 0,
+                    deposit_installment_amount: numOrNull('cwDepositInstallmentVal') || 0,
+                    deposit_paid_installments: gv('cwDepositPaidCount') ? parseInt(gv('cwDepositPaidCount'), 10) : 0,
+                    deposit_already_paid: numOrNull('cwDepositAlreadyPaid') || 0,
+                    deposit_charge_desc: gv('cwDepositChargeDesc'),
+                    payment_method: gv('cwPaymentMethod'),
+                    late_fine_pct: numOrNull('cwLateFinePct') != null ? numOrNull('cwLateFinePct') : Number(getAtrasoCfg().multa_pct ?? 10),
+                    late_interest_month_pct: numOrNull('cwLateInterestPct') != null ? numOrNull('cwLateInterestPct') : Number(getAtrasoCfg().juros_mes_pct ?? 2),
+                    km_limit: gv('cwKmLimit') ? parseInt(gv('cwKmLimit'), 10) : null, km_extra_price: numOrNull('cwKmExtraPrice'),
+                    purpose: gv('cwPurpose'), notes: gv('cwNotes'), local_assinatura: gv('cwLocalAssinatura'), data_assinatura: gv('cwDataAssinatura') || todayISO(), foro_cidade_uf: gv('cwForo')
+                },
                 testemunhas: [{ name: gv('cwWit1Name'), cpf: gv('cwWit1Cpf') }, { name: gv('cwWit2Name'), cpf: gv('cwWit2Cpf') }],
                 clauses: null
             };
@@ -10451,7 +10648,7 @@ notify pgrst, 'reload schema';`;
             box.innerHTML = clauses.map((cl, i) => `
                 <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 space-y-1.5">
                     <input type="text" data-clause-title="${i}" value="${esc(cl.title)}" class="w-full px-2.5 py-1.5 text-xs font-bold rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
-                    <textarea rows="3" data-clause-idx="${i}" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">${esc(cl.body)}</textarea>
+                    <textarea rows="3" data-clause-idx="${i}" oninput="this.dataset.touched='1'" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">${esc(cl.body)}</textarea>
                 </div>
             `).join('');
         }
@@ -10477,6 +10674,7 @@ notify pgrst, 'reload schema';`;
                     <p><b>LOCADOR:</b> ${esc(l.name || '-')} | CPF ${esc(l.cpf || '-')} | RG ${esc(l.rg || '-')} | ${esc(l.address || '-')}</p>
                     <p><b>LOCATÁRIO:</b> ${esc(d.name || '-')} | CPF ${esc(d.cpf || '-')} | CNH ${esc(d.cnh_number || '-')} (${esc(d.cnh_category || '-')}) | ${esc(d.address || '-')}</p>
                     <p><b>VEÍCULO:</b> ${esc([v.brand, v.model, v.version].filter(Boolean).join(' ') || '-')} | Placa ${esc(v.plate || '-')} | RENAVAM ${esc(v.renavam || '-')} | Chassi ${esc(v.chassi || '-')}</p>
+                    <p><b>CONDIÇÕES:</b> Aluguel ${c.rent_amount != null ? fmtMoney(c.rent_amount) : '-'} (${esc(contractPeriodLabel(c.periodicity))}) | Caução: ${Number(c.deposit_amount) > 0 ? fmtMoney(c.deposit_amount) + (c.deposit_charge_desc ? ' (' + esc(c.deposit_charge_desc) + ')' : '') : 'Sem caução'}</p>
                 </div>
                 <div class="space-y-3 text-justify text-xs">
                     ${clauses.map(cl => `<div><div class="font-bold mb-0.5">${esc(cl.title)}</div><div class="whitespace-pre-line">${esc(cl.body)}</div></div>`).join('')}
@@ -10545,19 +10743,21 @@ notify pgrst, 'reload schema';`;
                 const pickedLoc = cwPopulateLocadores((matchedLoc && matchedLoc.id) || null, vehId);
                 const locData = (existing && s.locador && s.locador.cpf) ? s.locador : (pickedLoc || s.locador);
                 cwFillLocador(locData);
+                document.getElementById('cwPeriodicity').value = cm.periodicity || 'semanal';
+                document.getElementById('cwDueDay').value = cm.due_day || '';
+                document.getElementById('cwPaymentMethod').value = cm.payment_method || ((drv && cobOf(drv).auto) ? 'Pix / Boleto automático via Asaas' : 'Pix / Transferência bancária');
                 cwFillDriver(existing ? s.locatario : (drv || s.locatario));
+                if (existing) cwFillDepositFromComercial(cm, drv);
+                else if (drv && cauOf(drv)) cwFillDepositFromDriver(drv);
+                else cwFillDepositFromComercial(cm, drv);
                 const curVeh = state.vehicles.find(x => x.id === vehId);
                 cwFillVehicle(existing ? s.veiculo : (curVeh || s.veiculo));
                 document.getElementById('cwRentAmount').value = cm.rent_amount != null ? String(cm.rent_amount).replace('.', ',') : '';
-                document.getElementById('cwPeriodicity').value = cm.periodicity || 'semanal';
-                document.getElementById('cwDueDay').value = cm.due_day || '';
                 document.getElementById('cwStartDate').value = renewSrc ? todayISO() : (cm.start_date || todayISO());
                 const isInd = !!cm.is_indeterminate;
                 document.getElementById('cwIndeterminate').checked = isInd;
                 document.getElementById('cwEndDate').disabled = isInd;
                 document.getElementById('cwEndDate').value = (!isInd && !renewSrc && cm.end_date) ? cm.end_date : '';
-                document.getElementById('cwDepositAmount').value = cm.deposit_amount != null ? String(cm.deposit_amount).replace('.', ',') : '';
-                document.getElementById('cwPaymentMethod').value = cm.payment_method || 'Pix / Transferência bancária';
                 document.getElementById('cwLateFinePct').value = String(cm.late_fine_pct != null ? cm.late_fine_pct : (getAtrasoCfg().multa_pct ?? 10));
                 document.getElementById('cwLateInterestPct').value = String(cm.late_interest_month_pct != null ? cm.late_interest_month_pct : (getAtrasoCfg().juros_mes_pct ?? 2));
                 document.getElementById('cwKmLimit').value = cm.km_limit != null ? String(cm.km_limit) : '';
@@ -10579,15 +10779,14 @@ notify pgrst, 'reload schema';`;
             } else {
                 const pickedLoc = cwPopulateLocadores(null, vehId);
                 cwFillLocador(pickedLoc || locadorForVehicle(vehId));
+                document.getElementById('cwPeriodicity').value = 'semanal';
+                document.getElementById('cwDueDay').value = 'Toda segunda-feira';
                 cwFillDriver(drv || {});
                 const v = state.vehicles.find(x => x.id === vehId);
                 cwFillVehicle(v || {});
-                document.getElementById('cwPeriodicity').value = 'semanal';
-                if (!document.getElementById('cwDueDay').value) document.getElementById('cwDueDay').value = 'Toda segunda-feira';
                 document.getElementById('cwStartDate').value = todayISO();
                 document.getElementById('cwIndeterminate').checked = true;
                 document.getElementById('cwEndDate').disabled = true; document.getElementById('cwEndDate').value = '';
-                document.getElementById('cwPaymentMethod').value = 'Pix / Transferência bancária';
                 document.getElementById('cwLateFinePct').value = String(getAtrasoCfg().multa_pct ?? 10);
                 document.getElementById('cwLateInterestPct').value = String(getAtrasoCfg().juros_mes_pct ?? 2);
                 document.getElementById('cwKmLimit').value = ''; document.getElementById('cwKmExtraPrice').value = '';
@@ -10809,7 +11008,7 @@ notify pgrst, 'reload schema';`;
                     <div><b>Locador:</b> ${esc(l.name || '-')} (${esc(l.cpf || '-')})</div>
                     <div><b>Locatário:</b> ${esc(d.name || '-')} (${esc(d.cpf || '-')})</div>
                     <div><b>Veículo:</b> ${esc([v.brand, v.model].filter(Boolean).join(' ') || '-')} · ${esc(v.plate || '-')} · RENAVAM ${esc(v.renavam || '-')}</div>
-                    <div><b>Aluguel:</b> ${fmtMoney(c.rent_amount)} (${esc(contractPeriodLabel(per))}) · Caução ${c.deposit_amount ? fmtMoney(c.deposit_amount) : 'Sem caução'}</div>
+                    <div><b>Aluguel:</b> ${fmtMoney(c.rent_amount)} (${esc(contractPeriodLabel(per))}) · Caução ${c.deposit_amount ? fmtMoney(c.deposit_amount) + (cm.deposit_charge_desc ? ` — ${esc(cm.deposit_charge_desc)}` : '') : 'Sem caução'}</div>
                     <div><b>Vigência:</b> ${fmtDate(c.start_date)} até ${ind ? 'Prazo indeterminado' : fmtDate(c.end_date)}</div>
                     <div><b>Foro:</b> ${esc(cm.foro_cidade_uf || sd.foro_cidade_uf || '-')}</div>
                 </div>
