@@ -10359,12 +10359,34 @@ notify pgrst, 'reload schema';`;
             cwRefreshMissingBoxIfVisible();
             if (document.getElementById('cwPreviewArea') && !document.getElementById('cwPreviewArea').classList.contains('hidden')) cwRenderPreview();
         }
+        function defaultWitness1ForLocador(loc) {
+            loc = loc || {};
+            const digits = String(loc.cpf || '').replace(/\D/g, '');
+            const isDara = digits === '04074229196' || /\bdara\b/i.test(String(loc.name || ''));
+            return isDara
+                ? { name: 'Thiago Gomes Borges', cpf: '031.288.121-52' }
+                : { name: 'Dara Rakel Moreira Fortes', cpf: '040.742.291-96' };
+        }
+        function cwApplyDefaultWitness1(loc, force) {
+            const nameEl = document.getElementById('cwWit1Name');
+            const cpfEl = document.getElementById('cwWit1Cpf');
+            if (!nameEl || !cpfEl) return;
+            const curName = nameEl.value.trim();
+            const curDigits = cpfEl.value.replace(/\D/g, '');
+            const isAutoOrEmpty = !curName || /^(dara rakel moreira fortes|thiago gomes borges)$/i.test(curName) || curDigits === '04074229196' || curDigits === '03128812152';
+            if (force || isAutoOrEmpty) {
+                const w1 = defaultWitness1ForLocador(loc);
+                nameEl.value = w1.name;
+                cpfEl.value = w1.cpf;
+            }
+        }
         function cwFillLocador(l) {
             const src = l || locadorMerged();
             const map = { cwLocName: 'name', cwLocCpf: 'cpf', cwLocRg: 'rg', cwLocNat: 'nationality', cwLocCiv: 'marital_status', cwLocProf: 'profession', cwLocPhone: 'phone', cwLocEmail: 'email', cwLocAddr: 'address' };
             for (const [id, k] of Object.entries(map)) document.getElementById(id).value = src[k] || '';
             if (!document.getElementById('cwForo').value && src.foro_cidade_uf) document.getElementById('cwForo').value = src.foro_cidade_uf;
             if (!document.getElementById('cwLocalAssinatura').value && src.foro_cidade_uf) document.getElementById('cwLocalAssinatura').value = src.foro_cidade_uf;
+            cwApplyDefaultWitness1(src, false);
         }
         function cwFillDepositFromDriver(d) {
             d = d || {};
@@ -10784,8 +10806,9 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwDataAssinatura').value = renewSrc ? todayISO() : (cm.data_assinatura || todayISO());
                 document.getElementById('cwForo').value = cm.foro_cidade_uf || cm.local_assinatura || '';
                 document.getElementById('cwSignatureMode').value = src.signature_mode || 'manual';
-                document.getElementById('cwWit1Name').value = (tw[0] && tw[0].name) || '';
-                document.getElementById('cwWit1Cpf').value = (tw[0] && tw[0].cpf) || '';
+                const defW1 = defaultWitness1ForLocador(locData);
+                document.getElementById('cwWit1Name').value = (tw[0] && tw[0].name) || defW1.name;
+                document.getElementById('cwWit1Cpf').value = (tw[0] && tw[0].cpf) || defW1.cpf;
                 document.getElementById('cwWit2Name').value = (tw[1] && tw[1].name) || '';
                 document.getElementById('cwWit2Cpf').value = (tw[1] && tw[1].cpf) || '';
                 const cls = (existing && Array.isArray(s.clauses) && s.clauses.length) ? s.clauses : buildDefaultClauses(cwReadSnapshot());
@@ -10810,7 +10833,7 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwNotes').value = '';
                 document.getElementById('cwDataAssinatura').value = todayISO();
                 document.getElementById('cwSignatureMode').value = 'manual';
-                document.getElementById('cwWit1Name').value = ''; document.getElementById('cwWit1Cpf').value = '';
+                cwApplyDefaultWitness1(pickedLoc || locadorForVehicle(vehId), true);
                 document.getElementById('cwWit2Name').value = ''; document.getElementById('cwWit2Cpf').value = '';
                 cwRenderClausesEditor(buildDefaultClauses(cwReadSnapshot()));
                 if (v && cwNeedsCrlvFill(v)) cwReadVehicleCrlv(v, { auto: true });
@@ -11843,7 +11866,7 @@ notify pgrst, 'reload schema';`;
                         veiculo: { brand: veh.brand || '', model: veh.model || '', version: veh.version || '', manufacture_year: veh.manufacture_year || '', model_year: veh.model_year || '', color: veh.color || '', plate: veh.plate || '', renavam: veh.renavam || '', chassi: veh.chassi || '', fuel: veh.fuel || '', mileage },
                         contrato: ctr ? { contract_number: ctr.contract_number, start_date: ctr.start_date } : null,
                         base_entrega: base ? { inspection_number: base.inspection_number, inspection_date: base.inspection_date, mileage: base.mileage, fuel_level: base.fuel_level, damages_count: (base.damages_summary || []).length } : null,
-                        testemunhas: [{ name: '', cpf: '' }, { name: '', cpf: '' }]
+                        testemunhas: [defaultWitness1ForLocador(loc), { name: '', cpf: '' }]
                     };
 
                     const rowPayload = {
