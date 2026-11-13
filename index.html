@@ -2814,6 +2814,16 @@
                                 db.signature_invites.push(inv); demoSave();
                                 return { data: { ok: true, token: tok, expires_at: inv.expires_at, signer_role: inv.signer_role, signer_name: inv.signer_name }, error: null };
                             }
+                            if (act === 'delete_contract') {
+                                const idx = (db.rental_contracts || []).findIndex(c => c.id === b.contract_id && (c.status === 'rascunho' || c.status === 'cancelado'));
+                                if (idx < 0) return { data: { ok: false, error: 'Contrato não encontrado ou não pode ser excluído.' }, error: null };
+                                db.rental_contracts.splice(idx, 1);
+                                if (Array.isArray(db.rental_contract_history)) {
+                                    db.rental_contract_history = db.rental_contract_history.filter(h => h.contract_id !== b.contract_id);
+                                }
+                                demoSave();
+                                return { data: { ok: true, deleted_id: b.contract_id }, error: null };
+                            }
                             if (act === 'get_invite') {
                                 const inv = db.signature_invites.find(i => i.token === b.token);
                                 if (!inv) return { data: { ok: false, error: 'Link de assinatura não encontrado.' }, error: null };
@@ -12345,9 +12355,18 @@ notify pgrst, 'reload schema';`;
             if (!ok) return;
             try {
                 await clearDriverPathsIfMatching(c);
-                const { error } = await sb.from('rental_contracts').delete().eq('id', id);
-                if (error) throw error;
                 const storagePaths = [c.pdf_path, c.signed_pdf_path].filter(Boolean);
+                let deletedOk = false;
+                const { data: delRows, error: delErr } = await sb.from('rental_contracts').delete().eq('id', id).select('id');
+                if (!delErr && Array.isArray(delRows) && delRows.length > 0) {
+                    deletedOk = true;
+                } else {
+                    const res = await sb.functions.invoke('motora-assinatura', { body: { action: 'delete_contract', contract_id: id } });
+                    if (res.error) throw res.error;
+                    if (!res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Não foi possível excluir o registro no banco.');
+                    deletedOk = true;
+                }
+                if (!deletedOk) throw new Error('Nenhum registro foi excluído no banco de dados.');
                 if (storagePaths.length) sb.storage.from(BUCKET).remove(storagePaths).catch(() => {});
                 closeContractDetail();
                 await reload();

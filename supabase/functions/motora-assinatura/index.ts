@@ -213,6 +213,57 @@ Deno.serve(async (req) => {
       });
     }
 
+    // 1B) EXCLUIR DEFINITIVAMENTE CONTRATO RASCUNHO OU CANCELADO (apenas Master dono)
+    if (action === "delete_contract") {
+      const auth = await authUser(req);
+      if (!auth || auth.profile.role !== "master") {
+        return json({ ok: false, error: "Apenas o administrador pode excluir contratos." }, 403);
+      }
+      const contractId = String(body.contract_id || "").trim();
+      if (!contractId) return json({ ok: false, error: "ID do contrato não informado." }, 400);
+
+      const found = await resolveDoc("contract", contractId);
+      if (!found || found.doc.owner_id !== auth.user.id) {
+        return json({ ok: false, error: "Contrato não encontrado." }, 404);
+      }
+      const st = String(found.doc.status || "");
+      if (st !== "rascunho" && st !== "cancelado") {
+        return json({ ok: false, error: "Apenas contratos em rascunho ou cancelados podem ser excluídos." }, 400);
+      }
+
+      const paths = [found.doc.pdf_path, found.doc.signed_pdf_path].filter(Boolean).map(String);
+      if (found.doc.driver_id && paths.length) {
+        const { data: drv } = await admin
+          .from("profiles")
+          .select("contract_path, inspection_term_path")
+          .eq("id", found.doc.driver_id)
+          .maybeSingle();
+        if (drv) {
+          const patch: Record<string, null> = {};
+          if (drv.contract_path && paths.includes(String(drv.contract_path))) patch.contract_path = null;
+          if (drv.inspection_term_path && paths.includes(String(drv.inspection_term_path))) patch.inspection_term_path = null;
+          if (Object.keys(patch).length) await admin.from("profiles").update(patch).eq("id", found.doc.driver_id);
+        }
+      }
+
+      await admin.from("signature_invites").delete().eq("doc_type", "contract").eq("doc_id", contractId);
+      const { data: delData, error: delErr } = await admin
+        .from("rental_contracts")
+        .delete()
+        .eq("id", contractId)
+        .eq("owner_id", auth.user.id)
+        .in("status", ["rascunho", "cancelado"])
+        .select("id");
+      if (delErr) throw delErr;
+      if (!delData || !delData.length) {
+        return json({ ok: false, error: "Não foi possível excluir o contrato." }, 409);
+      }
+      if (paths.length) {
+        await admin.storage.from(BUCKET).remove(paths).catch(() => {});
+      }
+      return json({ ok: true, deleted_id: contractId });
+    }
+
     // 2) CONSULTAR CONVITE PÚBLICO (sem login — via token secreto)
     if (action === "get_invite") {
       const token = String(body.token || "").trim();
