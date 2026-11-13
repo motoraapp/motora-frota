@@ -29,7 +29,9 @@ const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 const LIMITE_GRATIS = 100; // Pix por chave ou QR estático sem tarifa por mês; passou disso, para e avisa o dono
 const brl = (v: unknown) => Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const r2 = (v: number) => Math.round(v * 100) / 100;
 const DIAS_ANTES = 1;
+const DEFAULT_ATRASO: Record<string, unknown> = { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: "2026-11-12" };
 
 async function secret(key: string) {
   const { data } = await admin.from("app_secrets").select("value").eq("key", key).maybeSingle();
@@ -96,6 +98,44 @@ function tirarAjustes(ex: Extra, usados: Extra[]) {
   if (resto.length) ex.ajustes = resto; else delete ex.ajustes;
 }
 
+// Regra de multa e juros no atraso alinhada ao Asaas (mês comercial de 30 dias pro rata die + prorrogação de fim de semana para próximo dia útil;
+// se passar do dia útil, conta desde o vencimento original). Padrão: 10% multa + 2% ao mês.
+async function getAtrasoConfig(): Promise<Extra> {
+  const { data } = await admin.from("app_settings").select("value").eq("key", "atraso_config").maybeSingle();
+  return { ...DEFAULT_ATRASO, ...(data?.value || {}) };
+}
+function atrasoDataBR(v: unknown): string {
+  if (!v) return "";
+  const t = typeof v === "number" ? v : Date.parse(String(v));
+  return Number.isNaN(t) ? "" : new Date(t - 3 * 3600000).toISOString().slice(0, 10);
+}
+function atrasoPrazoUtil(dueDateStr: string): string {
+  const d = new Date(dueDateStr + "T12:00:00Z");
+  const dow = d.getUTCDay();
+  if (dow === 6) d.setUTCDate(d.getUTCDate() + 2);
+  else if (dow === 0) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+function calcEncargosAtraso(principal: number, dueAtIso: unknown, nowMs?: number, cfg?: Extra) {
+  const base = r2(Number(principal || 0));
+  if (!(base > 0.005) || !dueAtIso || (cfg && cfg.ativo === false)) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+  const dueDate = atrasoDataBR(dueAtIso);
+  if (!dueDate || (cfg && cfg.vigencia_desde && dueDate < String(cfg.vigencia_desde))) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+  const ref = nowMs != null ? Number(nowMs) : Date.now();
+  const prazoUtil = atrasoPrazoUtil(dueDate);
+  const limiteMs = Math.max(Date.parse(String(dueAtIso)), Date.parse(prazoUtil + "T23:59:59.999-03:00"));
+  if (!(ref > limiteMs)) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+  const refDate = atrasoDataBR(ref);
+  const dias = Math.max(1, Math.round((Date.parse(refDate + "T12:00:00Z") - Date.parse(dueDate + "T12:00:00Z")) / 86400000));
+  const multaPct = Number(cfg && cfg.multa_pct != null ? cfg.multa_pct : 10);
+  const jurosMesPct = Number(cfg && cfg.juros_mes_pct != null ? cfg.juros_mes_pct : 2);
+  const multa = (cfg && cfg.sem_multa) ? 0 : r2(base * (multaPct / 100));
+  const juros = r2(base * ((jurosMesPct / 100) / 30) * dias);
+  const encargos = r2(multa + juros);
+  return { dias, multa, juros, encargos, total: r2(base + encargos) };
+}
+const ehLinhaEncargo = (desc: unknown) => /^Multa\b/i.test(String(desc || "").trim()) || /\[atraso:/i.test(String(desc || ""));
+
 async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line @typescript-eslint/no-explicit-any
   const dia = d.payment_day_of_week ?? 1;
   const venc = proximoDia(dia);
@@ -143,7 +183,7 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   // ----- atualiza o motorista (o banco cria o histórico e a data de pagamento sozinho) -----
   tirarAjustes(ex, ajustes);
   delete ex.repetir; delete ex.descricao; delete ex.valor; delete ex.ultimo_enviado;
-  delete ex.parcial; delete ex.parcial_pendente;
+  delete ex.parcial; delete ex.parcial_pendente; delete ex.atraso_qr;
   if (novoRepetir) Object.assign(ex, { repetir: true, descricao: novoRepetir.descricao, valor: d.pix_extra.valor, ultimo_enviado: true });
   if (cauCobrada) ex.caucao = { ...cau, cobradas: Number(cau.cobradas || 0) + 1 };
   if (multas.length) { const ids = new Set(multas.map((i: Extra) => i.id)); ex.multas = { ...ex.multas, itens: ex.multas.itens.map((i: Extra) => ids.has(i.id) ? { ...i, cobrada: hojeBR() } : i) }; }
@@ -160,8 +200,6 @@ async function cobrarMotorista(d: Record<string, any>) { // eslint-disable-line 
   await avisar({ type: "driver_alert", driver_id: d.id, title: "Novo Pix disponível", body: `Valor: ${brl(total)}. Pagamento até ${prazo}, 23:59. O pagamento é conferido sozinho: não precisa enviar comprovante.`, url: "/?aba=pagamento" });
   return { motorista: d.name, qr: qr.id, valor: total, vencimento: venc.iso };
 }
-
-const r2 = (v: number) => Math.round(v * 100) / 100;
 
 async function criarQrAsaasEUpload(d: Extra, valor: number, desc: string) {
   let chave = await secret("asaas_chave_pix");
@@ -186,9 +224,10 @@ async function criarQrAsaasEUpload(d: Extra, valor: number, desc: string) {
   return { qr, qrPath };
 }
 
-async function saldoAbertoMotorista(d: Extra) {
+async function saldoAbertoMotorista(d: Extra, cfg?: Extra) {
+  const atrasoCfg = cfg || await getAtrasoConfig();
   const [{ data: cobs }, { data: recs }] = await Promise.all([
-    admin.from("pix_history").select("amount, sent_at, due_at").eq("driver_id", d.id).order("sent_at"),
+    admin.from("pix_history").select("id, amount, sent_at, due_at, description").eq("driver_id", d.id).order("sent_at"),
     admin.from("receipts").select("id, created_at, confirmed_at, rejected_at, ai_status, ai_result").eq("driver_id", d.id).order("created_at"),
   ]);
   const vistos = new Set<string>();
@@ -198,6 +237,11 @@ async function saldoAbertoMotorista(d: Extra) {
     const tid = r.ai_result?.id_transacao;
     if (tid) { if (vistos.has(tid)) continue; vistos.add(tid); }
     pays.push(r);
+  }
+  const multaJaLancada = new Set<string>();
+  for (const h of cobs ?? []) {
+    const m = String(h.description || "").match(/\[atraso:([^\]]+)\]/i);
+    if (m) multaJaLancada.add(m[1]);
   }
   const charges = (cobs ?? [])
     .filter((h) => h.amount != null)
@@ -216,13 +260,28 @@ async function saldoAbertoMotorista(d: Extra) {
   const curCharge = d.pix_sent_at
     ? charges.find((c) => c.h.sent_at && Math.abs(new Date(c.h.sent_at).getTime() - new Date(d.pix_sent_at).getTime()) < 2000) || null
     : null;
-  const restanteTotal = r2(charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0));
+  const principalTotal = r2(charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0));
+  let multaTotal = 0, jurosTotal = 0, diasMax = 0;
+  const atrasoCharges: Extra[] = [];
+  const agora = Date.now();
+  for (const c of charges) {
+    if (!(c.remaining > 0.005) || !c.h.due_at || ehLinhaEncargo(c.h.description)) continue;
+    const enc = calcEncargosAtraso(c.remaining, c.h.due_at, agora, { ...atrasoCfg, sem_multa: multaJaLancada.has(String(c.h.id)) });
+    if (enc.encargos > 0.005) {
+      multaTotal = r2(multaTotal + enc.multa);
+      jurosTotal = r2(jurosTotal + enc.juros);
+      if (enc.dias > diasMax) diasMax = enc.dias;
+      atrasoCharges.push({ id: c.h.id, sent_at: c.h.sent_at, due_at: c.h.due_at, principal: c.remaining, ...enc });
+    }
+  }
+  const encargosTotal = r2(multaTotal + jurosTotal);
+  const restanteTotal = r2(principalTotal + encargosTotal);
   const temReciboAtual = d.pix_sent_at
     ? (recs ?? []).some((r) => !r.rejected_at && new Date(r.created_at).getTime() >= new Date(d.pix_sent_at).getTime())
     : false;
   const jaPagouParte = temReciboAtual || (!!curCharge && curCharge.paid > 0.005);
-  const temAtraso = charges.some((c) => c.remaining > 0.005 && c.h.due_at && Date.now() > new Date(c.h.due_at).getTime());
-  return { restanteTotal, curCharge, jaPagouParte, temAtraso };
+  const temAtraso = charges.some((c) => c.remaining > 0.005 && c.h.due_at && agora > new Date(c.h.due_at).getTime());
+  return { restanteTotal, principalTotal, multaTotal, jurosTotal, encargosTotal, diasMax, atrasoCharges, curCharge, jaPagouParte, temAtraso, temReciboAtual, atrasoCfg };
 }
 
 async function salvarQrParcialNoPerfil(dId: string, qr: Extra, qrPath: string | null, valor: number, ex: Extra) {
@@ -236,6 +295,40 @@ async function salvarQrParcialNoPerfil(dId: string, qr: Extra, qrPath: string | 
   if (error) throw new Error("salvar Pix parcial: " + error.message);
 }
 
+async function atualizarQrAtrasoMotorista(d: Extra, cfg: Extra, forcar = false) {
+  if (cfg.ativo === false || d.pix_extra?.sem_cobranca || d.pix_extra?.contrato_encerrado) return null;
+  const saldo = await saldoAbertoMotorista(d, cfg);
+  if (!(saldo.encargosTotal > 0.005) || !(saldo.restanteTotal > 0.005)) return null;
+  if (!forcar && (saldo.temReciboAtual || d.pix_extra?.parcial)) return { motorista: d.name, pulou: "aguardando conferência ou parcial ativo" };
+  const hoje = hojeBR();
+  const prev = d.pix_extra?.atraso_qr;
+  if (!forcar && prev?.data === hoje && Math.abs(Number(prev?.total || 0) - saldo.restanteTotal) <= 0.01) {
+    return { motorista: d.name, pulou: "QR de atraso já atualizado hoje" };
+  }
+  const { qr, qrPath } = await criarQrAsaasEUpload(d, saldo.restanteTotal, `MOTORA ${String(d.name).split(/\s+/)[0]} atraso`);
+  const ex: Extra = { ...(d.pix_extra || {}) };
+  const asx: Extra = ex.asaas || {};
+  ex.asaas = { ...asx, qr: qr.id, qrs: [qr.id, ...(asx.qrs || [])].slice(0, 12), criada_em: new Date().toISOString() };
+  ex.atraso_qr = {
+    data: hoje,
+    principal: saldo.principalTotal,
+    multa: saldo.multaTotal,
+    juros: saldo.jurosTotal,
+    encargos: saldo.encargosTotal,
+    dias: saldo.diasMax,
+    total: saldo.restanteTotal,
+  };
+  await salvarQrParcialNoPerfil(d.id, qr, qrPath, saldo.restanteTotal, ex);
+  if (!prev || prev.principal !== saldo.principalTotal || forcar) {
+    await avisar({
+      type: "driver_alert", driver_id: d.id, url: "/?aba=pagamento",
+      title: "Pix atualizado com multa e juros",
+      body: `Valor atualizado para ${brl(saldo.restanteTotal)} (principal ${brl(saldo.principalTotal)} + multa ${brl(saldo.multaTotal)} + juros ${brl(saldo.jurosTotal)}). Pague pelo QR Code atualizado no app.`,
+    });
+  }
+  return { motorista: d.name, qr_atraso: qr.id, principal: saldo.principalTotal, multa: saldo.multaTotal, juros: saldo.jurosTotal, total: saldo.restanteTotal };
+}
+
 async function cobrarTodos() {
   const { data: lista } = await admin.from("profiles").select("*").eq("role", "driver").eq("asaas_auto_charge_enabled", true);
   const ativos = (lista ?? []).filter((d) => !d.pix_extra?.sem_cobranca && !d.pix_extra?.contrato_encerrado);
@@ -246,9 +339,20 @@ async function cobrarTodos() {
     await avisar({ type: "master_alert", title: "Asaas: limite grátis do mês", body: `Já são ${count} Pix neste mês. Para não pagar tarifa, as cobranças automáticas pararam até o mês que vem. Use o Novo Pix.`, url: "/" });
     return [{ pulou: "limite de Pix sem tarifa do mês" }];
   }
+  const atrasoCfg = await getAtrasoConfig();
   const out: unknown[] = [];
   for (const d of ativos) {
-    try { out.push(await cobrarMotorista(d)); } catch (e) {
+    try {
+      const res = await cobrarMotorista(d);
+      out.push(res);
+      if (atrasoCfg.ativo !== false) {
+        const atual = await admin.from("profiles").select("*").eq("id", d.id).maybeSingle();
+        if (atual.data) {
+          const atr = await atualizarQrAtrasoMotorista(atual.data, atrasoCfg, false);
+          if (atr) out.push(atr);
+        }
+      }
+    } catch (e) {
       out.push({ motorista: d.name, erro: String((e as Error).message || e) });
       await avisar({ type: "master_alert", title: `Asaas: erro na cobrança de ${d.name}`, body: String((e as Error).message || e).slice(0, 180), url: "/" });
     }
@@ -297,6 +401,29 @@ async function pagamentoRecebido(aviso: Record<string, any>) { // eslint-disable
   if (ja) return { ignorado: "pagamento já registrado" };
 
   const quando = p.clientPaymentDate || p.paymentDate || hojeBR();
+  // Se havia multa/juros em aberto antes deste pagamento, registra a cobrança dos encargos no histórico antes do recibo
+  // para que o abatimento automático não transforme multa/juros pagos em crédito da próxima semana.
+  const saldoAntes = await saldoAbertoMotorista(d);
+  if (saldoAntes.encargosTotal > 0.005) {
+    const mPct = Number(saldoAntes.atrasoCfg?.multa_pct ?? 10);
+    const jPct = Number(saldoAntes.atrasoCfg?.juros_mes_pct ?? 2);
+    for (const oc of saldoAntes.atrasoCharges) {
+      const sentTs = new Date(oc.sent_at).getTime();
+      const feeSentAt = new Date(Math.min(Date.now() - 3000, sentTs + 5000)).toISOString();
+      const partes: string[] = [];
+      if (oc.multa > 0.005) partes.push(`Multa (${mPct}%): ${brl(oc.multa)}`);
+      if (oc.juros > 0.005) partes.push(`Juros (${jPct}% a.m. · ${oc.dias} dia${oc.dias > 1 ? "s" : ""}): ${brl(oc.juros)}`);
+      await admin.from("pix_history").insert({
+        driver_id: d.id,
+        vehicle_id: d.vehicle_id || null,
+        sent_at: feeSentAt,
+        due_at: oc.due_at,
+        amount: oc.encargos,
+        description: `${partes.join(" + ")} [atraso:${oc.id}]`,
+      });
+    }
+  }
+
   const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Pagamento confirmado</title></head><body style="font-family:sans-serif">
 <h2>MOTORA – Pagamento confirmado pelo Asaas</h2>
 <p><b>Motorista:</b> ${String(d.name).replace(/[<>&]/g, "")}<br><b>Valor:</b> ${brl(p.value)}<br><b>Data:</b> ${quando}<br><b>Código da cobrança:</b> ${p.id}</p>
@@ -320,6 +447,7 @@ async function pagamentoRecebido(aviso: Record<string, any>) { // eslint-disable
   const ex: Extra = { ...(d.pix_extra || {}) };
   delete ex.parcial;
   delete ex.parcial_pendente;
+  delete ex.atraso_qr;
 
   if (restanteTotal > 0.005) {
     let novoQrCriado = false;
@@ -338,7 +466,7 @@ async function pagamentoRecebido(aviso: Record<string, any>) { // eslint-disable
     return { ok: true, motorista: d.name, valor: p.value, restante: restanteTotal, novoQrCriado };
   }
 
-  if (d.pix_extra?.parcial || d.pix_extra?.parcial_pendente) {
+  if (d.pix_extra?.parcial || d.pix_extra?.parcial_pendente || d.pix_extra?.atraso_qr) {
     await admin.from("profiles").update({ pix_extra: ex }).eq("id", d.id);
   }
   await avisar({ type: "master_alert", title: `${d.name} pagou ${brl(p.value)}`, body: "Pagamento conferido pelo Asaas. O recibo vai para o WhatsApp dele.", url: "/" });
@@ -506,6 +634,16 @@ Deno.serve(async (req) => {
     const doBanco = !!cronTok && cronTok === (await secret("cron_token"));
     if (body.acao === "preparar" && (doBanco || await ehMaster(req))) {
       try { return json(await preparar()); } catch (e) { return json({ ok: false, error: String((e as Error).message || e) }); }
+    }
+    if (body.acao === "atualizar_atraso" && (doBanco || await ehMaster(req))) {
+      try {
+        const cfg = await getAtrasoConfig();
+        const q = admin.from("profiles").select("*").eq("role", "driver");
+        const { data: list } = body.driver_id ? await q.eq("id", String(body.driver_id)) : await q.eq("asaas_auto_charge_enabled", true);
+        const out = [];
+        for (const drv of list ?? []) { const r = await atualizarQrAtrasoMotorista(drv, cfg, true); if (r) out.push(r); }
+        return json({ ok: true, out });
+      } catch (e) { return json({ ok: false, error: String((e as Error).message || e) }); }
     }
     if (!doBanco) return json({ error: "proibido" }, 403);
     if (body.acao === "cobrar") { const out = await cobrarTodos(); console.log("asaas cobrar", JSON.stringify(out)); return json({ ok: true, out }); }

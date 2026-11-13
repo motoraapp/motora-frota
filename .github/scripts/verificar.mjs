@@ -111,5 +111,52 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
   }
 }
 
+// 6. Regra de multa (10%) e juros (2% ao mês pro rata die, mês 30d, prorrogação fim de semana): app e servidor calculam igual.
+{
+  const pegar = (texto, inicio) => {
+    const i = texto.indexOf(inicio); if (i < 0) return null;
+    let j = texto.indexOf('{', i + inicio.length), n = 0;
+    for (let k = j; k < texto.length; k++) { if (texto[k] === '{') n++; else if (texto[k] === '}' && --n === 0) return texto.slice(j, k + 1); }
+    return null;
+  };
+  const htmlTxt = readFileSync(join(raiz, 'index.html'), 'utf8');
+  const lemTxt = readFileSync(join(raiz, 'supabase/functions/motora-lembretes/index.ts'), 'utf8');
+  const asaasTxt = readFileSync(join(raiz, 'supabase/functions/motora-asaas/index.ts'), 'utf8');
+  const buildFn = (src, sigData, sigPrazo, sigCalc) => {
+    const c1 = pegar(src, sigData), c2 = pegar(src, sigPrazo), c3 = pegar(src, sigCalc);
+    if (!c1 || !c2 || !c3) return null;
+    return new Function('principal', 'dueAtIso', 'nowMs', 'cfg', `
+      const r2 = n => Math.round(n * 100) / 100;
+      function atrasoDataBR(v) ${c1}
+      function atrasoPrazoUtil(dueDateStr) ${c2}
+      function calcEncargosAtraso(principal, dueAtIso, nowMs, cfg) ${c3}
+      return calcEncargosAtraso(principal, dueAtIso, nowMs, cfg);
+    `);
+  };
+  const cfg = { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: '2026-11-12' };
+  const casosAtr = [
+    // Segunda 16/11 23:59 -> antes do prazo: 0
+    [500, '2026-11-16T23:59:59-03:00', Date.parse('2026-11-16T23:50:00-03:00'), cfg, { dias: 0, multa: 0, juros: 0, encargos: 0, total: 500 }],
+    // Terça 17/11 08:00 (1 dia): 10% multa (50) + 1 dia de 2%/30 (0.33) = 550.33
+    [500, '2026-11-16T23:59:59-03:00', Date.parse('2026-11-17T08:00:00-03:00'), cfg, { dias: 1, multa: 50, juros: 0.33, encargos: 50.33, total: 550.33 }],
+    // 30 dias exatos: 10% multa (50) + 2% juros (10) = 560.00
+    [500, '2026-11-16T23:59:59-03:00', Date.parse('2026-12-16T10:00:00-03:00'), cfg, { dias: 30, multa: 50, juros: 10, encargos: 60, total: 560 }],
+    // Sábado 14/11 -> domingo 15 e segunda 16 são isentos (prorrogação dia útil); terça 17 cobra 3 dias retroativos
+    [500, '2026-11-14T23:59:59-03:00', Date.parse('2026-11-16T20:00:00-03:00'), cfg, { dias: 0, multa: 0, juros: 0, encargos: 0, total: 500 }],
+    [500, '2026-11-14T23:59:59-03:00', Date.parse('2026-11-17T08:00:00-03:00'), cfg, { dias: 3, multa: 50, juros: 1, encargos: 51, total: 551 }],
+  ];
+  const imps = {
+    'index.html': buildFn(htmlTxt, 'function atrasoDataBR(v)', 'function atrasoPrazoUtil(dueDateStr)', 'function calcEncargosAtraso(principal, dueAtIso, nowMs, cfg)'),
+    'motora-lembretes': buildFn(lemTxt, 'function atrasoDataBR(v: unknown): string', 'function atrasoPrazoUtil(dueDateStr: string): string', 'function calcEncargosAtraso(principal: number, dueAtIso: unknown, nowMs?: number, cfg?: Extra)'),
+    'motora-asaas': buildFn(asaasTxt, 'function atrasoDataBR(v: unknown): string', 'function atrasoPrazoUtil(dueDateStr: string): string', 'function calcEncargosAtraso(principal: number, dueAtIso: unknown, nowMs?: number, cfg?: Extra)'),
+  };
+  for (const [nome, fnAtr] of Object.entries(imps)) {
+    if (!fnAtr) { erros++; console.log(`ERRO ${nome}: calcEncargosAtraso não encontrada`); continue; }
+    const f = casosAtr.find(([p, due, now, c, esp]) => JSON.stringify(fnAtr(p, due, now, c)) !== JSON.stringify(esp));
+    if (f) { erros++; console.log(`ERRO ${nome}: calcEncargosAtraso(${f[0]}, ${f[1]}) -> ${JSON.stringify(fnAtr(f[0], f[1], f[2], f[3]))}, esperado ${JSON.stringify(f[4])}`); }
+    else console.log(`ok   ${nome}: regra de multa 10% + juros 2% ao mês`);
+  }
+}
+
 console.log(erros ? `\n${erros} problema(s) encontrado(s).` : '\nTudo certo.');
 process.exit(erros ? 1 : 0);

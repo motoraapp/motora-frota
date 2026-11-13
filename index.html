@@ -910,6 +910,16 @@
                         <button type="button" onclick="saveAsaas('asaas_chave_pix', 'asaasChavePix')" class="mt-2 w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl text-sm">Salvar chave Pix</button>
                         <button type="button" onclick="testarAsaas()" class="mt-2 w-full py-2.5 bg-gray-200 dark:bg-gray-600 font-semibold rounded-xl text-sm">Testar e deixar pronto</button>
                         <p id="asaasTeste" class="text-xs text-gray-500 mt-1"></p></div>
+                    <div class="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">5. Multa e juros por atraso (regra Asaas, sem tarifa)</label>
+                        <p class="text-xs text-gray-500">Calcula pelo MOTORA mantendo o QR estático grátis até 100 Pix/mês (mês de 30 dias proporcional aos dias de atraso; vencimento em sábado/domingo vale até o próximo dia útil).</p>
+                        <label class="flex items-center gap-2 text-xs font-semibold cursor-pointer"><input type="checkbox" id="atrasoAtivo" checked class="rounded"> Aplicar multa e juros automáticos no atraso</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Multa (%)</label><input id="atrasoMultaPct" type="number" step="0.01" min="0" max="100" value="10" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Juros (% ao mês)</label><input id="atrasoJurosMesPct" type="number" step="0.01" min="0" max="100" value="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        </div>
+                        <button type="button" onclick="saveAtrasoCfg(this)" class="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl text-sm">Salvar multa e juros</button>
+                    </div>
                 </div>
             </details>
             <div class="space-y-1 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -1727,6 +1737,8 @@
                         <div class="flex items-end pb-2"><label class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer"><input type="checkbox" id="cwIndeterminate" onchange="document.getElementById('cwEndDate').disabled = this.checked; if(this.checked) document.getElementById('cwEndDate').value = '';" class="rounded"> Prazo indeterminado</label></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor da caução (R$)</label><input id="cwDepositAmount" inputmode="decimal" placeholder="Ex: 1.000,00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Forma de pagamento</label><input id="cwPaymentMethod" placeholder="Pix / Transferência bancária / Asaas" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Multa por atraso (%)</label><input id="cwLateFinePct" type="number" step="0.01" min="0" max="100" value="10" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Juros de mora (% ao mês)</label><input id="cwLateInterestPct" type="number" step="0.01" min="0" max="100" value="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Limite de km (se aplicável)</label><input id="cwKmLimit" type="number" min="0" inputmode="numeric" placeholder="Livre se vazio" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor por km excedente (R$)</label><input id="cwKmExtraPrice" inputmode="decimal" placeholder="Ex: 0,80" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Foro competente *</label><input id="cwForo" placeholder="Comarca de Goiânia/GO" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -2439,7 +2451,7 @@
         }
 
         // ESTADO EM MEMÓRIA (carregado do Supabase)
-        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [], contracts: [], contractHistory: [], locadorCfg: null, locadores: [] };
+        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [], contracts: [], contractHistory: [], locadorCfg: null, locadores: [], atrasoCfg: null };
 
         function toEmail(login) {
             const l = String(login || '').trim().toLowerCase();
@@ -2839,7 +2851,7 @@
                     sb.from('app_expenses').select('*').order('expense_date', { ascending: false }),
                     sb.from('rental_contracts').select('*').order('created_at', { ascending: false }),
                     sb.from('rental_contract_history').select('*').order('created_at', { ascending: false }),
-                    sb.from('app_settings').select('key,value').in('key', ['locador_config', 'locadores_list']),
+                    sb.from('app_settings').select('key,value').in('key', ['locador_config', 'locadores_list', 'atraso_config']),
                     termos
                 ]).then(rs => ({ master: true, rs }));
             }
@@ -2871,8 +2883,10 @@
                 const locRows = (locCfg && !locCfg.error && Array.isArray(locCfg.data)) ? locCfg.data : [];
                 const singleLoc = locRows.find(r => r.key === 'locador_config');
                 const listLoc = locRows.find(r => r.key === 'locadores_list');
+                const atrRow = locRows.find(r => r.key === 'atraso_config');
                 state.locadorCfg = (singleLoc && singleLoc.value) || null;
                 state.locadores = (listLoc && Array.isArray(listLoc.value)) ? listLoc.value : [];
+                state.atrasoCfg = (atrRow && atrRow.value) || { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: '2026-11-12' };
             } else {
                 const [veh, rec, insp, hist, ctrs, ctrHist, features] = rs;
                 state.pixHistory = (hist && !hist.error && hist.data) || [];
@@ -2880,6 +2894,7 @@
                 state.contracts = (ctrs && !ctrs.error && ctrs.data) || [];
                 state.contractHistory = (ctrHist && !ctrHist.error && ctrHist.data) || [];
                 state.locadorCfg = null; state.locadores = [];
+                state.atrasoCfg = (features && features._atraso) || { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: '2026-11-12' };
                 if (veh.error) throw veh.error;
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
@@ -2907,7 +2922,7 @@
             const serve = adiantado && conhecido.role === profile.role && conhecido.vehicle_id === profile.vehicle_id;
             aplicarDados(await (serve ? adiantado : carregarDados(profile)));
             await aparencia;
-            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.contracts, state.contractHistory, state.locadorCfg, state.locadores, state.features, state.terms]);
+            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.contracts, state.contractHistory, state.locadorCfg, state.locadores, state.atrasoCfg, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
             state.sig = sig;
@@ -3205,28 +3220,31 @@
             const weekRecs = driver.pix_sent_at ? state.receipts.filter(r => new Date(r.created_at) >= new Date(driver.pix_sent_at)) : [];
             const lastWeekRec = weekRecs[weekRecs.length - 1];
             const alDrv = allocatePix(driver.id);
-            const restanteTotal = Math.round(alDrv.charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0) * 100) / 100;
+            const atrDrv = calcAtrasoMotorista(driver.id);
+            const restanteBase = Math.round(alDrv.charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0) * 100) / 100;
+            const restanteTotal = Math.round((restanteBase + atrDrv.encargos) * 100) / 100;
             // Pix já quitado por um pagamento anterior (ex.: pagou duas cobranças num Pix só)
             const curCharge = driver.pix_sent_at ? alDrv.charges.find(c => c.h.sent_at && Math.abs(new Date(c.h.sent_at) - new Date(driver.pix_sent_at)) < 2000) : null;
             const curPaid = curCharge ? curCharge.paidBy.reduce((t, p) => t + Number(p.amt || 0), 0) : 0;
             const curRemaining = curCharge ? Math.max(0, Math.round(curCharge.remaining * 100) / 100) : (driver.pix_amount != null ? Number(driver.pix_amount) : 0);
-            const hasOpenDebt = curCharge ? curCharge.remaining > 0.005 : restanteTotal > 0.005;
+            const hasOpenDebt = (curCharge ? curCharge.remaining > 0.005 : restanteBase > 0.005) || atrDrv.encargos > 0.005;
             const paidEarlier = !lastWeekRec && !!curCharge && curCharge.remaining <= 0.005 && curCharge.paidBy.length > 0;
             const paidThisPix = paidEarlier || (!!lastWeekRec && !lastWeekRec.rejected_at);
             const exDrv = driver.pix_extra || {};
             const parcial = exDrv.parcial && Number(exDrv.parcial.valor) > 0 ? exDrv.parcial : null;
             const pendParcial = exDrv.parcial_pendente && Number(exDrv.parcial_pendente.valor) > 0 ? exDrv.parcial_pendente : null;
             const hasPendingRec = weekRecs.some(r => !r.rejected_at && !r.confirmed_at && r.ai_status !== 'ok' && r.ai_status !== 'confere');
-            const deveExibirSaldo = restanteTotal > 0.005 ? (curCharge ? curRemaining : restanteTotal) : (driver.pix_amount != null ? Number(driver.pix_amount) : 0);
+            const deveExibirSaldo = atrDrv.encargos > 0.005 ? restanteTotal : (restanteTotal > 0.005 ? (curCharge ? curRemaining : restanteTotal) : (driver.pix_amount != null ? Number(driver.pix_amount) : 0));
             if (driver.pix_due_at) {
                 dueEl.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Data de pagamento: ${fmtDue(driver.pix_due_at)} até 23:59${driver.asaas_auto_charge_enabled ? '<br><i class="fa-solid fa-robot mr-1"></i> Pagamento conferido sozinho: depois de pagar não precisa enviar comprovante.' : ''}`;
             } else {
                 dueEl.innerHTML = '';
             }
             const dueGone = !!driver.pix_due_at && Date.now() > new Date(driver.pix_due_at).getTime();
+            const atrasoLinha = atrDrv.encargos > 0.005 ? `<br><b>Total atualizado com atraso: ${fmtMoney(deveExibirSaldo)}</b> (principal ${fmtMoney(atrDrv.principal)} + multa ${atrDrv.cfg.multa_pct}%: ${fmtMoney(atrDrv.multa)} + juros ${atrDrv.cfg.juros_mes_pct}% a.m. · ${atrDrv.diasMax}d: ${fmtMoney(atrDrv.juros)}).` : '';
             if (driver.pix_due_at && (!paidThisPix || hasOpenDebt) && !hasPendingRec && dueGone) {
                 banner.className = "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-900 dark:text-red-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
-                banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-clock mr-1"></i> Prazo de pagamento encerrado</b><br>O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59.${curPaid > 0.005 ? ` Já pago: <b>${fmtMoney(curPaid)}</b> · Falta: <b>${fmtMoney(deveExibirSaldo)}</b>.` : ''} Se já pagou, envie o comprovante; se não, fale com o locador.</div>
+                banner.innerHTML = `<div class="text-sm"><b><i class="fa-solid fa-clock mr-1"></i> Prazo de pagamento encerrado</b><br>O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59.${curPaid > 0.005 ? ` Já pago: <b>${fmtMoney(curPaid)}</b> · Falta: <b>${fmtMoney(deveExibirSaldo)}</b>.` : ''}${atrasoLinha} Se já pagou, envie o comprovante; se não, pague pelo Pix atualizado ou fale com o locador.</div>
                     <button onclick="switchDriverTab('payment'); document.getElementById('drvTabs').scrollIntoView({ behavior: 'smooth' })" class="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold whitespace-nowrap">${pendParcial ? 'Ver pedido de Pix' : 'Ver pagamento'}</button>`;
             } else if (driver.pix_due_at && hasPendingRec && (!paidEarlier)) {
                 if (lastWeekRec && lastWeekRec.ai_status === 'alerta') {
@@ -3284,8 +3302,9 @@
             const hasCode = !!driver.pix_code;
             const hasKey = feat('linkbb') && !!pkInfo;
             const expired = !!driver.pix_due_at && Date.now() > new Date(driver.pix_due_at).getTime();
+            const atrasoQrHoje = !!(exDrv.atraso_qr && exDrv.atraso_qr.data === todayISO() && Math.abs(Number(exDrv.atraso_qr.total || 0) - deveExibirSaldo) <= 0.05);
             const noMethod = !hasQr && !hasCode && !hasKey;
-            const hidePay = !!receiptOk || (expired && !parcial) || noMethod;
+            const hidePay = !!receiptOk || (expired && !parcial && !atrasoQrHoje) || noMethod;
             document.getElementById('drvPixKey').classList.toggle('hidden', hidePay);
             document.getElementById('drvPixDone').classList.toggle('hidden', !hidePay);
             const pNotice = document.getElementById('drvParcialNotice');
@@ -3295,6 +3314,9 @@
             } else if (parcial && !hidePay) {
                 pNotice.className = 'w-full mb-3 p-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 text-xs text-left';
                 pNotice.innerHTML = `<i class="fa-brands fa-pix mr-1 text-blue-600"></i> <b>Pix parcial de ${fmtMoney(parcial.valor)}</b> gerado pelo Asaas. Depois que este pagamento cair, um novo Pix será gerado com o restante (<b>${fmtMoney(Math.max(0, (restanteTotal || deveExibirSaldo) - parcial.valor))}</b>).`;
+            } else if (atrasoQrHoje && atrDrv.encargos > 0.005 && !hidePay) {
+                pNotice.className = 'w-full mb-3 p-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100 text-xs text-left';
+                pNotice.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> <b>Pix atualizado com multa e juros (${atrDrv.diasMax}d de atraso)</b><br>Principal: <b>${fmtMoney(atrDrv.principal)}</b> + Multa (${atrDrv.cfg.multa_pct}%): <b>${fmtMoney(atrDrv.multa)}</b> + Juros (${atrDrv.cfg.juros_mes_pct}% a.m.): <b>${fmtMoney(atrDrv.juros)}</b> = <b>${fmtMoney(deveExibirSaldo)}</b>.`;
             } else if (curPaid > 0.005 && hasOpenDebt && !hidePay) {
                 pNotice.className = 'w-full mb-3 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 text-xs text-left';
                 pNotice.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i> Parte já paga: <b>${fmtMoney(curPaid)}</b>. O QR Code abaixo já está com o valor restante (<b>${fmtMoney(deveExibirSaldo)}</b>).`;
@@ -3310,11 +3332,11 @@
                 document.getElementById('drvPixDoneIcon').className = 'fa-solid fa-circle-check text-4xl mb-2';
                 document.getElementById('drvPixDoneTitle').innerText = paidEarlier ? 'Este Pix já está pago' : 'Comprovante aceito';
                 document.getElementById('drvPixDoneText').innerText = 'As formas de pagamento desta semana foram retiradas. As próximas aparecem aqui quando forem enviadas.';
-            } else if (expired && !parcial) {
+            } else if (expired && !parcial && !atrasoQrHoje) {
                 doneBox.className = 'w-full py-8 text-sm text-red-600 dark:text-red-300';
                 document.getElementById('drvPixDoneIcon').className = 'fa-solid fa-clock text-4xl mb-2';
                 document.getElementById('drvPixDoneTitle').innerText = 'Prazo de pagamento encerrado';
-                document.getElementById('drvPixDoneText').innerText = `O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59. Se você já pagou, envie o comprovante ao lado. Se não pagou, você pode solicitar um pagamento parcial abaixo ou falar com o locador.`;
+                document.getElementById('drvPixDoneText').innerText = `O prazo terminou em ${fmtDue(driver.pix_due_at)} às 23:59.${atrDrv.encargos > 0.005 ? ` Total atualizado com multa (${atrDrv.cfg.multa_pct}%) e juros (${atrDrv.cfg.juros_mes_pct}% a.m.): ${fmtMoney(deveExibirSaldo)}.` : ''} Se você já pagou, envie o comprovante ao lado. Se não pagou, você pode solicitar um pagamento parcial abaixo ou falar com o locador.`;
             } else {
                 doneBox.className = 'w-full py-8 text-sm text-gray-500 dark:text-gray-400';
                 document.getElementById('drvPixDoneIcon').className = 'fa-brands fa-pix text-4xl mb-2';
@@ -3498,6 +3520,22 @@
             if (!await uiConfirm('Isso encerra a cobrança e avisa ' + quem + ' que o pagamento foi recebido.' + (r.rejected_at ? '\n\nEste comprovante tinha sido recusado.' : ''),
                 { titulo: valor ? `Confirmar ${valor} de ${quem}?` : `Confirmar o Pix de ${quem}?`, sim: 'Confirmar Pix' })) return;
             return receiptAction(btn, async () => {
+                const paidVal = receiptValue(r);
+                const atr = d ? calcAtrasoMotorista(d.id, r.created_at ? new Date(r.created_at).getTime() : Date.now()) : null;
+                if (!DEMO && d && atr && atr.encargos > 0.005 && paidVal != null && paidVal > atr.principal + 0.005) {
+                    const mPct = atr.cfg.multa_pct ?? 10, jPct = atr.cfg.juros_mes_pct ?? 2;
+                    for (const oc of atr.itens) {
+                        const feeSentAt = new Date(Math.min(Date.now() - 3000, new Date(oc.sent_at).getTime() + 5000)).toISOString();
+                        const partes = [];
+                        if (oc.multa > 0.005) partes.push(`Multa (${mPct}%): ${fmtMoney(oc.multa)}`);
+                        if (oc.juros > 0.005) partes.push(`Juros (${jPct}% a.m. · ${oc.dias} dia${oc.dias > 1 ? 's' : ''}): ${fmtMoney(oc.juros)}`);
+                        await sb.from('pix_history').insert({
+                            driver_id: d.id, vehicle_id: d.vehicle_id || null,
+                            sent_at: feeSentAt, due_at: oc.due_at, amount: oc.encargos,
+                            description: `${partes.join(' + ')} [atraso:${oc.id}]`,
+                        });
+                    }
+                }
                 const { error } = await sb.rpc('master_confirm_receipt', { p_receipt: id });
                 if (error) throw error;
                 showToast('Pix confirmado! O motorista foi avisado.');
@@ -4828,6 +4866,7 @@
             if (ownerNameEl) ownerNameEl.textContent = (state.profile && state.profile.name) || 'Proprietário';
             fillOwnerVehicleSelect('cfgOwnerVehicle');
             fillLocadorSettings();
+            fillAtrasoCfg();
             document.getElementById('cfgGemini').value = '';
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
@@ -4906,6 +4945,109 @@
             } finally {
                 if (inputEl) inputEl.disabled = false;
             }
+        }
+        function getAtrasoCfg() {
+            const def = { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: '2026-11-12' };
+            return state.atrasoCfg ? { ...def, ...state.atrasoCfg } : def;
+        }
+        function fillAtrasoCfg() {
+            const cfg = getAtrasoCfg();
+            const chk = document.getElementById('atrasoAtivo'), fm = document.getElementById('atrasoMultaPct'), fj = document.getElementById('atrasoJurosMesPct');
+            if (chk) chk.checked = cfg.ativo !== false;
+            if (fm) fm.value = String(cfg.multa_pct ?? 10);
+            if (fj) fj.value = String(cfg.juros_mes_pct ?? 2);
+        }
+        async function saveAtrasoCfg(btn) {
+            const cur = getAtrasoCfg();
+            const ativo = !!document.getElementById('atrasoAtivo').checked;
+            const multa_pct = Math.max(0, Math.min(100, Number(document.getElementById('atrasoMultaPct').value || 0)));
+            const juros_mes_pct = Math.max(0, Math.min(100, Number(document.getElementById('atrasoJurosMesPct').value || 0)));
+            const next = { ...cur, ativo, multa_pct, juros_mes_pct, vigencia_desde: cur.vigencia_desde || '2026-11-12' };
+            return withBtn(btn, 'Salvando...', async () => {
+                try {
+                    const { error } = await sb.from('app_settings').upsert({ key: 'atraso_config', value: next, updated_at: new Date().toISOString() });
+                    if (error) throw error;
+                    const featCur = await loadDriverFeatures().catch(() => allFeaturesOn());
+                    await sb.from('app_settings').upsert({ key: 'driver_features', value: { ...featCur, _atraso: next }, updated_at: new Date().toISOString() });
+                    state.atrasoCfg = next;
+                    showToast(`Juros e multa salvos: ${multa_pct}% multa + ${juros_mes_pct}% ao mês.`);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        function atrasoDataBR(v) {
+            if (!v) return '';
+            const t = new Date(v).getTime();
+            return Number.isNaN(t) ? '' : new Date(t - 3 * 3600000).toISOString().slice(0, 10);
+        }
+        function atrasoPrazoUtil(dueDateStr) {
+            const d = new Date(dueDateStr + 'T12:00:00Z');
+            const dow = d.getUTCDay();
+            if (dow === 6) d.setUTCDate(d.getUTCDate() + 2);
+            else if (dow === 0) d.setUTCDate(d.getUTCDate() + 1);
+            return d.toISOString().slice(0, 10);
+        }
+        function calcEncargosAtraso(principal, dueAtIso, nowMs, cfg) {
+            const r2 = n => Math.round(n * 100) / 100;
+            const base = r2(Number(principal || 0));
+            if (!(base > 0.005) || !dueAtIso || (cfg && cfg.ativo === false)) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+            const dueDate = atrasoDataBR(dueAtIso);
+            if (!dueDate || (cfg && cfg.vigencia_desde && dueDate < String(cfg.vigencia_desde))) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+            const ref = nowMs != null ? Number(nowMs) : Date.now();
+            const prazoUtil = atrasoPrazoUtil(dueDate);
+            const limiteMs = Math.max(new Date(dueAtIso).getTime(), new Date(prazoUtil + 'T23:59:59.999-03:00').getTime());
+            if (!(ref > limiteMs)) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+            const refDate = atrasoDataBR(ref);
+            const dias = Math.max(1, Math.round((Date.parse(refDate + 'T12:00:00Z') - Date.parse(dueDate + 'T12:00:00Z')) / 86400000));
+            const multaPct = Number(cfg && cfg.multa_pct != null ? cfg.multa_pct : 10);
+            const jurosMesPct = Number(cfg && cfg.juros_mes_pct != null ? cfg.juros_mes_pct : 2);
+            const multa = (cfg && cfg.sem_multa) ? 0 : r2(base * (multaPct / 100));
+            const juros = r2(base * ((jurosMesPct / 100) / 30) * dias);
+            const encargos = r2(multa + juros);
+            return { dias, multa, juros, encargos, total: r2(base + encargos) };
+        }
+        function ehLinhaEncargo(desc) { return /^Multa\b/i.test(String(desc || '').trim()) || /\[atraso:/i.test(String(desc || '')); }
+        function calcAtrasoMotorista(driverId, nowMs) {
+            const cfg = getAtrasoCfg();
+            const r2 = n => Math.round(n * 100) / 100;
+            const al = allocatePix(driverId);
+            const multaTags = new Set();
+            state.pixHistory.filter(h => h.driver_id === driverId).forEach(h => {
+                const m = String(h.description || '').match(/\[atraso:([^\]]+)\]/i);
+                if (m) multaTags.add(m[1]);
+            });
+            const ref = nowMs != null ? Number(nowMs) : Date.now();
+            const venc = al.charges.filter(c => c.remaining > 0.005 && c.h.due_at && new Date(c.h.due_at).getTime() < ref);
+            const principal = r2(venc.reduce((t, c) => t + c.remaining, 0));
+            let multa = 0, juros = 0, diasMax = 0;
+            const itens = [];
+            venc.forEach(c => {
+                if (ehLinhaEncargo(c.h.description)) return;
+                const enc = calcEncargosAtraso(c.remaining, c.h.due_at, ref, { ...cfg, sem_multa: multaTags.has(String(c.h.id)) });
+                if (enc.encargos > 0.005) {
+                    multa = r2(multa + enc.multa);
+                    juros = r2(juros + enc.juros);
+                    if (enc.dias > diasMax) diasMax = enc.dias;
+                    itens.push({ id: c.h.id, sent_at: c.h.sent_at, due_at: c.h.due_at, principal: c.remaining, ...enc });
+                }
+            });
+            const encargos = r2(multa + juros);
+            const total = r2(principal + encargos);
+            const abertoTotal = r2(al.charges.reduce((t, c) => t + (c.remaining > 0.005 ? c.remaining : 0), 0) + encargos);
+            const datas = venc.map(c => new Date(c.h.due_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }));
+            return { principal, multa, juros, encargos, total, abertoTotal, diasMax, datas, itens, cfg };
+        }
+        async function atualizarPixAtraso(driverId, btn) {
+            if (DEMO) { showToast('Na demonstração o QR Code não é gerado no Asaas.'); return; }
+            return withBtn(btn, 'Atualizando...', async () => {
+                try {
+                    const { data, error } = await sb.functions.invoke('motora-asaas', { body: { acao: 'atualizar_atraso', driver_id: driverId } });
+                    if (error || !data || !data.ok) throw (error || new Error((data && data.error) || 'Não foi possível atualizar o QR.'));
+                    const res = Array.isArray(data.out) && data.out[0];
+                    await loadAndRender({ silent: false });
+                    renderPixArea();
+                    showToast(res && res.total ? `QR Code atualizado para ${fmtMoney(res.total)} (com multa e juros).` : 'Nenhum encargo pendente para atualizar.');
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
         }
         async function loadAsaasInfo() {
             try {
@@ -6865,21 +7007,19 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
         function receiptValue(x) { return x.paid_amount != null ? Number(x.paid_amount) : ((x.ai_result || {}).valor != null ? Number(x.ai_result.valor) : null); }
         // ===== COBRAR ATRASO: a IA escreve a mensagem de cobrança e abre na Área IA, pronta para enviar no WhatsApp =====
         function atrasoDados(driverId) {
-            const now = Date.now();
-            const venc = allocatePix(driverId).charges.filter(c => c.remaining > 0.005 && new Date(c.h.due_at).getTime() < now);
-            const total = Math.round(venc.reduce((t, c) => t + c.remaining, 0) * 100) / 100;
-            const datas = venc.map(c => new Date(c.h.due_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }));
-            return { total, datas };
+            const atr = calcAtrasoMotorista(driverId);
+            return { total: atr.total, principal: atr.principal, multa: atr.multa, juros: atr.juros, encargos: atr.encargos, diasMax: atr.diasMax, datas: atr.datas, cfg: atr.cfg };
         }
         async function cobrarAtraso(driverId, btn) {
             const d = state.drivers.find(x => x.id === driverId);
             if (!d) return;
-            let { total, datas } = atrasoDados(driverId);
+            let { total, principal, multa, juros, encargos, diasMax, datas, cfg } = atrasoDados(driverId);
             if (!total && d.pix_amount != null) { total = Number(d.pix_amount); if (d.pix_due_at) datas = [fmtDue(d.pix_due_at, true)]; }
+            const detalhe = encargos > 0.005 ? `Detalhamento: principal ${fmtMoney(principal)} + multa (${cfg.multa_pct}%): ${fmtMoney(multa)} + juros (${cfg.juros_mes_pct}% a.m. · ${diasMax} dia${diasMax > 1 ? 's' : ''}): ${fmtMoney(juros)}` : '';
             const old = btn ? btn.innerHTML : '';
             if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> A IA está escrevendo...'; }
             try {
-                const { data, error } = await sb.functions.invoke('motora-push', { body: { type: 'cobranca', driver_id: driverId, valor: total, vencimentos: datas } });
+                const { data, error } = await sb.functions.invoke('motora-push', { body: { type: 'cobranca', driver_id: driverId, valor: total, vencimentos: datas, detalhe } });
                 if (error || !data || !data.id) throw (error || new Error((data && data.error) || 'Não foi possível criar a mensagem.'));
                 closeAreas();
                 await openIA(data.id); // abre a Área IA com a mensagem em destaque: é só tocar em Enviar
@@ -6945,7 +7085,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                 L.push('Referente a:');
                 const item = t => { const m = t.match(/^([+−-])\s*(.*):\s*(R\$.*)$/); return m ? (m[1] === '+' ? m[2] + ': ' + m[3] : m[2] + ': − ' + m[3]) : t; };
                 charges.forEach(c => {
-                    const lines = pixDesc(c.h).split(/\n/).map(t => t.trim()).filter(t => t && !/^Total:/i.test(t));
+                    const lines = pixDesc(c.h).replace(/\s*\[atraso:[^\]]+\]/gi, '').split(/\n/).map(t => t.trim()).filter(t => t && !/^Total:/i.test(t));
                     if (charges.length === 1 && lines.length) {
                         lines.forEach(t => L.push('• ' + item(t)));
                         if (lines.length > 1 || !/R\$/.test(lines[0])) { if (!/R\$/.test(lines[0]) && lines.length === 1) L[L.length - 1] += ': ' + fmtMoney(c.h.amount); else L.push('Total cobrado: ' + fmtMoney(c.h.amount)); }
@@ -7563,6 +7703,14 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             } else {
                 html += `<p class="mt-3 text-sm text-gray-400 italic">Nenhum Pix em aberto para este motorista.</p>`;
             }
+            const atr = late ? calcAtrasoMotorista(d.id) : null;
+            if (late && atr && atr.encargos > 0.005) {
+                html += `<div class="mt-2 p-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-xs text-red-900 dark:text-red-100 space-y-1">
+                    <div class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Em atraso há ${atr.diasMax} dia${atr.diasMax > 1 ? 's' : ''} · Total atualizado: ${fmtMoney(atr.total)}</div>
+                    <div>Principal: ${fmtMoney(atr.principal)} · Multa (${atr.cfg.multa_pct}%): ${fmtMoney(atr.multa)} · Juros (${atr.cfg.juros_mes_pct}% a.m.): ${fmtMoney(atr.juros)}</div>
+                    ${d.asaas_auto_charge_enabled ? `<button onclick="atualizarPixAtraso('${d.id}', this)" class="mt-1.5 w-full py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg text-xs font-semibold"><i class="fa-solid fa-rotate mr-1"></i> Atualizar QR Pix no Asaas (com multa e juros)</button>` : ''}
+                </div>`;
+            }
             if (late) html += `<button onclick="cobrarAtraso('${d.id}', this)" class="w-full mt-2 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold"><i class="fa-brands fa-whatsapp mr-1"></i> Cobrar atraso pelo WhatsApp</button>`;
             html += `<button onclick="openNewPix('${d.id}')" class="w-full mt-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold"><i class="fa-brands fa-pix mr-1"></i> Enviar novo Pix</button>`;
             box.innerHTML = html;
@@ -7905,7 +8053,8 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
             } catch (e) { return allFeaturesOn(); } // em caso de erro mostra tudo (nunca esconde por engano)
         }
         async function saveDriverFeatures(cfg) {
-            const { error } = await sb.from('app_settings').upsert({ key: 'driver_features', value: cfg, updated_at: new Date().toISOString() });
+            const payload = state.atrasoCfg ? { ...cfg, _atraso: state.atrasoCfg } : cfg;
+            const { error } = await sb.from('app_settings').upsert({ key: 'driver_features', value: payload, updated_at: new Date().toISOString() });
             if (error) throw error;
         }
         async function drawFeatureToggles() {
@@ -9389,10 +9538,14 @@ notify pgrst, 'reload schema';`;
                 v.mileage != null && v.mileage !== '' && `Quilometragem inicial ${v.mileage} km`
             ].filter(Boolean).join(', ');
             const purpose = c.purpose || CONTRACT_PURPOSE_DEFAULT;
+            const cfgAtr = getAtrasoCfg();
+            const multaPct = c.late_fine_pct != null ? Number(c.late_fine_pct) : Number(cfgAtr.multa_pct ?? 10);
+            const jurosMesPct = c.late_interest_month_pct != null ? Number(c.late_interest_month_pct) : Number(cfgAtr.juros_mes_pct ?? 2);
+            const pctStr = n => String(Number(n.toFixed(2))).replace('.', ',');
             return [
                 { num: 1, title: 'CLÁUSULA 1 — DO OBJETO', body: `O LOCADOR dá em locação ao LOCATÁRIO, livre de ônus que impeçam a posse regular, o veículo automotor com as seguintes especificações: ${vehSpec}.\nParágrafo único. O veículo destina-se exclusivamente à finalidade declarada pelas partes: ${purpose}` },
                 { num: 2, title: 'CLÁUSULA 2 — DA VIGÊNCIA', body: `A presente locação vigerá por ${vigTxt}. A eventual permanência do LOCATÁRIO na posse do veículo após o termo final sem formalização de novo contrato não implica renúncia às obrigações de pagamento, conservação e restituição imediata do bem.` },
-                { num: 3, title: 'CLÁUSULA 3 — DO VALOR E PAGAMENTO', body: `Pela locação do veículo, o LOCATÁRIO pagará ao LOCADOR o valor de ${valFmt}, com periodicidade ${perLbl}, vencimento ${c.due_day || 'conforme calendário ajustado entre as partes'}, por meio de ${c.payment_method || 'Pix ou transferência bancária indicada pelo LOCADOR'}.\nParágrafo 1º. Em caso de atraso no pagamento, incidirá multa moratória de 2% (dois por cento), juros de mora de 1% (um por cento) ao mês pro rata die e atualização monetária aplicável, podendo o LOCADOR notificar o LOCATÁRIO para regularização ou rescisão.\nParágrafo 2º. Quanto à rodagem contratada, ${kmTxt}.` },
+                { num: 3, title: 'CLÁUSULA 3 — DO VALOR E PAGAMENTO', body: `Pela locação do veículo, o LOCATÁRIO pagará ao LOCADOR o valor de ${valFmt}, com periodicidade ${perLbl}, vencimento ${c.due_day || 'conforme calendário ajustado entre as partes'}, por meio de ${c.payment_method || 'Pix ou transferência bancária indicada pelo LOCADOR'}.\nParágrafo 1º. Em caso de atraso no pagamento, incidirá multa moratória de ${pctStr(multaPct)}%, juros de mora de ${pctStr(jurosMesPct)}% ao mês calculados pro rata die (mês comercial de 30 dias) e atualização monetária aplicável, observada a prorrogação sem encargos apenas quando o vencimento recair em sábado, domingo ou feriado até o primeiro dia útil subsequente (incidindo desde o vencimento original se não quitado nesse dia útil), podendo o LOCADOR notificar o LOCATÁRIO para regularização ou rescisão.\nParágrafo 2º. Quanto à rodagem contratada, ${kmTxt}.` },
                 { num: 4, title: 'CLÁUSULA 4 — DA CAUÇÃO', body: `A título de garantia contratual (caução), ajusta-se o valor de ${depFmt}. Quando constituída, a caução destina-se exclusivamente a assegurar o adimplemento de aluguéis vencidos, multas de trânsito, franquias de sinistro, avarias comprovadas ou pendências apuradas na devolução.\nParágrafo único. Encerrada a locação e concluída a vistoria final, eventuais retenções deverão ser objeto de prestação de contas discriminada com comprovantes ao LOCATÁRIO, restituindo-se o saldo remanescente no prazo ajustado entre as partes.` },
                 { num: 5, title: 'CLÁUSULA 5 — DAS OBRIGAÇÕES DO LOCATÁRIO', body: `São obrigações irrenunciáveis do LOCATÁRIO durante toda a posse do veículo:\n- Utilizar o veículo de maneira prudente, zelosa e estritamente compatível com a sua destinação;\n- Manter sua Carteira Nacional de Habilitação (CNH) e documentação obrigatória em situação regular e válida;\n- Possuir e manter ativa a observação "Exerce Atividade Remunerada (EAR)" na CNH sempre que exigido para transporte remunerado de passageiros;\n- Cumprir rigorosamente o Código de Trânsito Brasileiro (CTB) e as normas dos órgãos de trânsito e plataformas;\n- Não emprestar, ceder, sublocar, penhorar ou transferir a posse do veículo a terceiros sem autorização prévia e por escrito do LOCADOR;\n- Comunicar imediatamente ao LOCADOR quaisquer acidentes, sinistros, panes, alertas no painel, furtos, roubos ou danos mecânicos;\n- Não utilizar o veículo para atividades ilícitas, corridas ilegais, transporte de cargas perigosas ou rebocamento indevido;\n- Manter o veículo limpo e em condições adequadas de conservação interna e externa.` },
                 { num: 6, title: 'CLÁUSULA 6 — DAS MULTAS E INFRAÇÕES', body: `As infrações de trânsito praticadas durante o período em que o veículo estiver sob a posse do LOCATÁRIO serão de sua inteira responsabilidade financeira e administrativa, cabendo-lhe assumir a pontuação na CNH.\nParágrafo único. Recebida a notificação de autuação, o LOCADOR informará o LOCATÁRIO em tempo hábil para assinatura do formulário de indicação do real condutor infrator junto ao órgão de trânsito, observados os prazos e procedimentos legais do Código de Trânsito Brasileiro (CTB).` },
@@ -9854,7 +10007,7 @@ notify pgrst, 'reload schema';`;
                 locador: { name: gv('cwLocName'), cpf: gv('cwLocCpf'), rg: gv('cwLocRg'), nationality: gv('cwLocNat'), marital_status: gv('cwLocCiv'), profession: gv('cwLocProf'), phone: gv('cwLocPhone'), email: gv('cwLocEmail'), address: gv('cwLocAddr') },
                 locatario: { name: gv('cwDrvName'), cpf: gv('cwDrvCpf'), rg: gv('cwDrvRg'), birth_date: gv('cwDrvBirth'), nationality: gv('cwDrvNat'), marital_status: gv('cwDrvCiv'), profession: gv('cwDrvProf'), phone: gv('cwDrvPhone'), email: gv('cwDrvEmail'), cnh_number: gv('cwDrvCnh'), cnh_category: gv('cwDrvCnhCat'), cnh_ear: !!(earEl && earEl.checked), address: gv('cwDrvAddr') },
                 veiculo: { brand: gv('cwVehBrand'), model: gv('cwVehModel'), version: gv('cwVehVersion'), manufacture_year: gv('cwVehMfgYear'), model_year: gv('cwVehModelYear'), color: gv('cwVehColor'), plate: gv('cwVehPlate').toUpperCase(), renavam: gv('cwVehRenavam'), chassi: gv('cwVehChassi').toUpperCase(), fuel: gv('cwVehFuel'), mileage: gv('cwVehMileage') ? parseInt(gv('cwVehMileage'), 10) : null },
-                comercial: { rent_amount: numOrNull('cwRentAmount'), periodicity: gv('cwPeriodicity') || 'semanal', due_day: gv('cwDueDay'), start_date: gv('cwStartDate'), end_date: isInd ? null : (gv('cwEndDate') || null), is_indeterminate: isInd, deposit_amount: numOrNull('cwDepositAmount'), payment_method: gv('cwPaymentMethod'), km_limit: gv('cwKmLimit') ? parseInt(gv('cwKmLimit'), 10) : null, km_extra_price: numOrNull('cwKmExtraPrice'), purpose: gv('cwPurpose'), notes: gv('cwNotes'), local_assinatura: gv('cwLocalAssinatura'), data_assinatura: gv('cwDataAssinatura') || todayISO(), foro_cidade_uf: gv('cwForo') },
+                comercial: { rent_amount: numOrNull('cwRentAmount'), periodicity: gv('cwPeriodicity') || 'semanal', due_day: gv('cwDueDay'), start_date: gv('cwStartDate'), end_date: isInd ? null : (gv('cwEndDate') || null), is_indeterminate: isInd, deposit_amount: numOrNull('cwDepositAmount'), payment_method: gv('cwPaymentMethod'), late_fine_pct: numOrNull('cwLateFinePct') != null ? numOrNull('cwLateFinePct') : Number(getAtrasoCfg().multa_pct ?? 10), late_interest_month_pct: numOrNull('cwLateInterestPct') != null ? numOrNull('cwLateInterestPct') : Number(getAtrasoCfg().juros_mes_pct ?? 2), km_limit: gv('cwKmLimit') ? parseInt(gv('cwKmLimit'), 10) : null, km_extra_price: numOrNull('cwKmExtraPrice'), purpose: gv('cwPurpose'), notes: gv('cwNotes'), local_assinatura: gv('cwLocalAssinatura'), data_assinatura: gv('cwDataAssinatura') || todayISO(), foro_cidade_uf: gv('cwForo') },
                 testemunhas: [{ name: gv('cwWit1Name'), cpf: gv('cwWit1Cpf') }, { name: gv('cwWit2Name'), cpf: gv('cwWit2Cpf') }],
                 clauses: null
             };
@@ -9983,6 +10136,8 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwEndDate').value = (!isInd && !renewSrc && cm.end_date) ? cm.end_date : '';
                 document.getElementById('cwDepositAmount').value = cm.deposit_amount != null ? String(cm.deposit_amount).replace('.', ',') : '';
                 document.getElementById('cwPaymentMethod').value = cm.payment_method || 'Pix / Transferência bancária';
+                document.getElementById('cwLateFinePct').value = String(cm.late_fine_pct != null ? cm.late_fine_pct : (getAtrasoCfg().multa_pct ?? 10));
+                document.getElementById('cwLateInterestPct').value = String(cm.late_interest_month_pct != null ? cm.late_interest_month_pct : (getAtrasoCfg().juros_mes_pct ?? 2));
                 document.getElementById('cwKmLimit').value = cm.km_limit != null ? String(cm.km_limit) : '';
                 document.getElementById('cwKmExtraPrice').value = cm.km_extra_price != null ? String(cm.km_extra_price).replace('.', ',') : '';
                 document.getElementById('cwPurpose').value = cm.purpose || CONTRACT_PURPOSE_DEFAULT;
@@ -10011,6 +10166,8 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwIndeterminate').checked = true;
                 document.getElementById('cwEndDate').disabled = true; document.getElementById('cwEndDate').value = '';
                 document.getElementById('cwPaymentMethod').value = 'Pix / Transferência bancária';
+                document.getElementById('cwLateFinePct').value = String(getAtrasoCfg().multa_pct ?? 10);
+                document.getElementById('cwLateInterestPct').value = String(getAtrasoCfg().juros_mes_pct ?? 2);
                 document.getElementById('cwKmLimit').value = ''; document.getElementById('cwKmExtraPrice').value = '';
                 document.getElementById('cwPurpose').value = CONTRACT_PURPOSE_DEFAULT;
                 document.getElementById('cwNotes').value = '';

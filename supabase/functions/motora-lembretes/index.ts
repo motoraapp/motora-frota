@@ -118,33 +118,85 @@ async function avisoMotorista(d: Extra) {
   return { ...base, title: "Seu Pix vence hoje", body: `Pagamento até hoje, 23:59.${d.pix_amount != null ? ` Valor: ${brl(d.pix_amount)}.` : ""}${comprovante}` };
 }
 
+// Regra de multa e juros no atraso alinhada ao Asaas (mês comercial 30 dias pro rata die + prorrogação de fim de semana;
+// padrão: 10% multa + 2% ao mês). Mesma função no index.html e no motora-asaas; conferida no verificar.mjs.
+const DEFAULT_ATRASO: Extra = { ativo: true, multa_pct: 10, juros_mes_pct: 2, vigencia_desde: "2026-11-12" };
+const r2 = (n: number) => Math.round(n * 100) / 100;
+function atrasoDataBR(v: unknown): string {
+  if (!v) return "";
+  const t = typeof v === "number" ? v : Date.parse(String(v));
+  return Number.isNaN(t) ? "" : new Date(t - 3 * 3600000).toISOString().slice(0, 10);
+}
+function atrasoPrazoUtil(dueDateStr: string): string {
+  const d = new Date(dueDateStr + "T12:00:00Z");
+  const dow = d.getUTCDay();
+  if (dow === 6) d.setUTCDate(d.getUTCDate() + 2);
+  else if (dow === 0) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+function calcEncargosAtraso(principal: number, dueAtIso: unknown, nowMs?: number, cfg?: Extra) {
+  const base = r2(Number(principal || 0));
+  if (!(base > 0.005) || !dueAtIso || (cfg && cfg.ativo === false)) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+  const dueDate = atrasoDataBR(dueAtIso);
+  if (!dueDate || (cfg && cfg.vigencia_desde && dueDate < String(cfg.vigencia_desde))) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+  const ref = nowMs != null ? Number(nowMs) : Date.now();
+  const prazoUtil = atrasoPrazoUtil(dueDate);
+  const limiteMs = Math.max(Date.parse(String(dueAtIso)), Date.parse(prazoUtil + "T23:59:59.999-03:00"));
+  if (!(ref > limiteMs)) return { dias: 0, multa: 0, juros: 0, encargos: 0, total: base };
+  const refDate = atrasoDataBR(ref);
+  const dias = Math.max(1, Math.round((Date.parse(refDate + "T12:00:00Z") - Date.parse(dueDate + "T12:00:00Z")) / 86400000));
+  const multaPct = Number(cfg && cfg.multa_pct != null ? cfg.multa_pct : 10);
+  const jurosMesPct = Number(cfg && cfg.juros_mes_pct != null ? cfg.juros_mes_pct : 2);
+  const multa = (cfg && cfg.sem_multa) ? 0 : r2(base * (multaPct / 100));
+  const juros = r2(base * ((jurosMesPct / 100) / 30) * dias);
+  const encargos = r2(multa + juros);
+  return { dias, multa, juros, encargos, total: r2(base + encargos) };
+}
+const ehLinhaEncargo = (desc: unknown) => /^Multa\b/i.test(String(desc || "").trim()) || /\[atraso:/i.test(String(desc || ""));
+
 // mesma distribuição do app (allocatePix): pagamentos aceitos quitam as cobranças da mais antiga para a mais nova
-function emAberto(cobrancas: Extra[], pagos: Extra[], agora: number) {
-  const ch = cobrancas.filter((h) => h.amount != null).sort((a, b) => +new Date(a.sent_at) - +new Date(b.sent_at)).map((h) => ({ due: h.due_at, rest: Number(h.amount) }));
+function emAberto(cobrancas: Extra[], pagos: Extra[], agora: number, cfg?: Extra) {
+  const multaJaLancada = new Set<string>();
+  for (const h of cobrancas) { const m = String(h.description || "").match(/\[atraso:([^\]]+)\]/i); if (m) multaJaLancada.add(m[1]); }
+  const ch = cobrancas.filter((h) => h.amount != null).sort((a, b) => +new Date(a.sent_at) - +new Date(b.sent_at)).map((h) => ({ id: h.id, due: h.due_at, desc: h.description, rest: Number(h.amount) }));
   for (const r of pagos.filter((x) => !x.rejected_at && (x.confirmed_at || x.ai_status === "ok")).sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at))) {
     const lido = Number(r.ai_result?.valor);
     let v = lido > 0 ? lido : (ch.find((c) => c.rest > 0.005)?.rest ?? 0);
     for (const c of ch) { if (v <= 0.005) break; const m = Math.min(v, c.rest); c.rest -= m; v -= m; }
   }
   const venc = ch.filter((c) => c.rest > 0.005 && new Date(c.due).getTime() < agora);
-  return { total: Math.round(venc.reduce((t, c) => t + c.rest, 0) * 100) / 100, datas: venc.map((c) => new Date(c.due).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" })) };
+  const principal = r2(venc.reduce((t, c) => t + c.rest, 0));
+  let multa = 0, juros = 0;
+  for (const c of venc) {
+    if (ehLinhaEncargo(c.desc)) continue;
+    const e = calcEncargosAtraso(c.rest, c.due, agora, { ...cfg, sem_multa: multaJaLancada.has(String(c.id)) });
+    multa = r2(multa + e.multa);
+    juros = r2(juros + e.juros);
+  }
+  const encargos = r2(multa + juros);
+  return { principal, multa, juros, encargos, total: r2(principal + encargos), datas: venc.map((c) => new Date(c.due).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" })) };
 }
 
 // 3) MOTORISTA EM ATRASO: uma mensagem por dia (09:00) até regularizar. Não envia se há comprovante aguardando conferência.
-async function avisoAtraso(d: Extra) {
+async function avisoAtraso(d: Extra, cfg?: Extra, rec?: Extra) {
   if (d.payment_status !== "Em atraso" || d.pix_extra?.sem_cobranca) return null;
-  const { data: cobs } = await admin.from("pix_history").select("amount, sent_at, due_at").eq("driver_id", d.id);
+  const { data: cobs } = await admin.from("pix_history").select("id, amount, sent_at, due_at, description").eq("driver_id", d.id);
   const { data: recs } = await admin.from("receipts").select("confirmed_at, rejected_at, ai_status, ai_result, created_at").eq("driver_id", d.id);
   if ((recs ?? []).some((r) => !r.rejected_at && !r.confirmed_at && r.ai_status !== "ok")) return null;
-  const { total, datas } = emAberto(cobs ?? [], recs ?? [], Date.now());
+  const { principal, multa, juros, encargos, total, datas } = emAberto(cobs ?? [], recs ?? [], Date.now(), cfg);
   if (!(total > 0)) return null;
   const auto = d.asaas_auto_charge_enabled || d.picpay_auto_charge_enabled;
   const chave = String(d.pix_link || "").match(/^chave:[^|]+\|(.*)$/)?.[1];
-  const pagar = chave ? `Chave Pix: ${chave}` : d.pix_code ? `Pix copia e cola: ${d.pix_code}` : "";
-  const must = [brl(total), ...(chave ? [chave] : d.pix_code ? [d.pix_code] : [])];
+  let pixCode = d.pix_code || "";
+  if (!auto && encargos > 0.005 && rec?.chave && rec?.tipo) {
+    pixCode = codigoPix(chaveNormal(String(rec.tipo), rec.chave), total, String(rec.nome || ""), String(rec.cidade || ""), "MTRATR" + hojeBR().replace(/-/g, "") + String(d.id).replace(/[^A-Za-z0-9]/g, "").slice(0, 6));
+  }
+  const pagar = chave ? `Chave Pix: ${chave}` : pixCode ? `Pix copia e cola: ${pixCode}` : "";
+  const must = [brl(total), ...(chave ? [chave] : pixCode ? [pixCode] : [])];
+  const detalhe = encargos > 0.005 ? ` (principal ${brl(principal)} + multa ${brl(multa)} + juros ${brl(juros)})` : "";
   return {
     type: "driver_alert", driver_id: d.id, url: "/?aba=pagamento", title: "Pagamento em atraso",
-    body: `Seu pagamento de ${brl(total)} está em atraso (vencimento: ${datas.join(", ")}). Regularize o quanto antes.${auto ? "" : " Depois de pagar, envie o comprovante pelo app."}`,
+    body: `Seu pagamento de ${brl(total)}${detalhe} está em atraso (vencimento: ${datas.join(", ")}). Regularize o quanto antes.${auto ? "" : " Depois de pagar, envie o comprovante pelo app."}`,
     extra: pagar, must, tom: "firme, educada e respeitosa",
   };
 }
@@ -276,9 +328,14 @@ async function lembrar(simular: boolean, quem: string, testar = ""): Promise<Ext
     return simular ? out : avisos;
   }
   if (quem === "atraso") {
-    const { data: lista } = await admin.from("profiles").select("*").eq("role", "driver").eq("payment_status", "Em atraso");
+    const [{ data: lista }, { data: sAtr }, { data: sRec }] = await Promise.all([
+      admin.from("profiles").select("*").eq("role", "driver").eq("payment_status", "Em atraso"),
+      admin.from("app_settings").select("value").eq("key", "atraso_config").maybeSingle(),
+      admin.from("app_settings").select("value").eq("key", "pix_recebedor").maybeSingle(),
+    ]);
+    const cfg: Extra = { ...DEFAULT_ATRASO, ...(sAtr?.value || {}) };
     const avisos: Extra[] = [];
-    for (const d of lista ?? []) { try { const a = await avisoAtraso(d); if (a) avisos.push(a); } catch (e) { console.error("atraso", d.name, e); } }
+    for (const d of lista ?? []) { try { const a = await avisoAtraso(d, cfg, sRec?.value || {}); if (a) avisos.push(a); } catch (e) { console.error("atraso", d.name, e); } }
     if (!simular) await enviar(avisos);
     return avisos;
   }

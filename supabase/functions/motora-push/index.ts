@@ -418,6 +418,7 @@ Deno.serve(async (req) => {
       const datas = (Array.isArray(body.vencimentos) ? body.vencimentos : []).map(String).slice(0, 10);
       const lines: string[] = [], must: string[] = [];
       if (valor > 0) { lines.push(`Valor em atraso: ${brl(valor)}`); must.push(brl(valor)); }
+      if (body.detalhe) lines.push(String(body.detalhe));
       if (datas.length) lines.push(`Vencimento(s): ${datas.join(", ")}`);
       const k = pixKey(d.pix_link);
       if (k) { lines.push(`Chave Pix (${k.type}): ${k.key}`); must.push(k.key); }
