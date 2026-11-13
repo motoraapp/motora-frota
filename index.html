@@ -12235,6 +12235,7 @@ notify pgrst, 'reload schema';`;
                     ${(c.status === 'ativo' || c.status === 'encerrado') && s.vistoria_entrega && s.vistoria_entrega.included ? `<button type="button" onclick="closeContractDetail();openInspectionWizard({ type: 'devolucao', driverId: '${c.driver_id}', vehicleId: '${c.vehicle_id}', contractId: '${c.id}', baseInspectionId: 'contract:${c.id}' })" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white"><i class="fa-solid fa-car-burst mr-1"></i> Termo de Devolução</button>` : ''}
                     ${canAct ? `<button type="button" onclick="terminateContractPrompt('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white"><i class="fa-solid fa-flag-checkered mr-1"></i> Encerrar contrato</button>` : ''}
                     ${c.status === 'rascunho' || c.status === 'aguardando_assinatura' ? `<button type="button" onclick="cancelContractPrompt('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-ban mr-1"></i> Cancelar</button>` : ''}
+                    ${c.status === 'rascunho' || c.status === 'cancelado' ? `<button type="button" onclick="deleteContractPrompt('${c.id}')" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white"><i class="fa-solid fa-trash mr-1"></i> Excluir registro</button>` : ''}
                 </div>
                 <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
                     <h4 class="font-bold text-sm"><i class="fa-solid fa-clock-rotate-left text-gray-500 mr-1"></i> Histórico do contrato</h4>
@@ -12307,6 +12308,16 @@ notify pgrst, 'reload schema';`;
                 showToast('Contrato encerrado!');
             } catch (e) { showToast(friendlyError(e), 'error'); }
         }
+        async function clearDriverPathsIfMatching(contract) {
+            if (!contract || !contract.driver_id) return;
+            const paths = [contract.pdf_path, contract.signed_pdf_path].filter(Boolean);
+            if (!paths.length) return;
+            const drv = allDrv().find(x => x.id === contract.driver_id);
+            const patch = {};
+            if (!drv || paths.includes(drv.contract_path)) patch.contract_path = null;
+            if (!drv || paths.includes(drv.inspection_term_path)) patch.inspection_term_path = null;
+            if (Object.keys(patch).length) await sb.from('profiles').update(patch).eq('id', contract.driver_id);
+        }
         async function cancelContractPrompt(id) {
             const c = (state.contracts || []).find(x => x.id === id);
             if (!c) return;
@@ -12315,11 +12326,33 @@ notify pgrst, 'reload schema';`;
             try {
                 const { error } = await sb.from('rental_contracts').update({ status: 'cancelado', updated_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw error;
+                await clearDriverPathsIfMatching(c);
                 await logContractHistory(id, c.driver_id, 'cancelado', `Contrato ${c.contract_number} cancelado`, null);
                 await reload();
                 openContractDetail(id);
                 if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
                 showToast('Contrato cancelado!');
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+        }
+        async function deleteContractPrompt(id) {
+            const c = (state.contracts || []).find(x => x.id === id);
+            if (!c) return;
+            if (c.status !== 'rascunho' && c.status !== 'cancelado') {
+                showToast('Apenas contratos em rascunho ou cancelados podem ser excluídos.', 'error');
+                return;
+            }
+            const ok = await uiConfirm(`Deseja excluir definitivamente o contrato ${c.contract_number || 'RASCUNHO'} e seu PDF dos registros? Esta ação não pode ser desfeita.`, { title: 'Excluir contrato', okText: 'Sim, excluir registro', danger: true });
+            if (!ok) return;
+            try {
+                await clearDriverPathsIfMatching(c);
+                const { error } = await sb.from('rental_contracts').delete().eq('id', id);
+                if (error) throw error;
+                const storagePaths = [c.pdf_path, c.signed_pdf_path].filter(Boolean);
+                if (storagePaths.length) sb.storage.from(BUCKET).remove(storagePaths).catch(() => {});
+                closeContractDetail();
+                await reload();
+                if (fileDriverId) renderDriverRentalContractsBox(fileDriverId);
+                showToast(`Contrato ${c.contract_number || ''} excluído dos registros!`);
             } catch (e) { showToast(friendlyError(e), 'error'); }
         }
 

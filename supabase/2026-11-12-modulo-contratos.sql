@@ -181,7 +181,7 @@ create policy master_atualiza_seus_contratos on public.rental_contracts
 drop policy if exists master_exclui_rascunho_contrato on public.rental_contracts;
 create policy master_exclui_rascunho_contrato on public.rental_contracts
   for delete to authenticated
-  using (public.is_master() and owner_id = (select auth.uid()) and status = 'rascunho');
+  using (public.is_master() and owner_id = (select auth.uid()) and status in ('rascunho', 'cancelado'));
 
 drop policy if exists motorista_le_seus_contratos on public.rental_contracts;
 create policy motorista_le_seus_contratos on public.rental_contracts
