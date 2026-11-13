@@ -1774,7 +1774,7 @@
                 <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3" open>
                     <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-sliders text-teal-600 mr-1"></i> 4. Configuração Comercial e Testemunhas</summary>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
-                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor do aluguel (R$) *</label><input id="cwRentAmount" inputmode="decimal" placeholder="Ex: 550,00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor do aluguel (R$) *</label><input id="cwRentAmount" inputmode="decimal" placeholder="Ex: 550,00" oninput="cwUpdateTrialPreview(true)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Periodicidade *</label>
                             <select id="cwPeriodicity" onchange="cwDepCalc(false)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                                 <option value="diaria">Diária</option>
@@ -1788,6 +1788,16 @@
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data de término</label><input id="cwEndDate" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="flex items-end pb-2"><label class="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-200 cursor-pointer"><input type="checkbox" id="cwIndeterminate" onchange="document.getElementById('cwEndDate').disabled = this.checked; if(this.checked) document.getElementById('cwEndDate').value = '';" class="rounded"> Prazo indeterminado</label></div>
                         <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Forma de pagamento do aluguel</label><input id="cwPaymentMethod" oninput="cwDepCalc(false)" placeholder="Pix / Transferência bancária / Asaas" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/10 p-3 space-y-2">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-indigo-800 dark:text-indigo-300"><i class="fa-solid fa-tag mr-1"></i> Período experimental / Desconto inicial temporário (opcional)</span>
+                                <span id="cwTrialPreview" class="text-[11px] text-indigo-700 dark:text-indigo-200"></span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Desconto por cobrança (R$)</label><input id="cwTrialDiscountAmount" inputmode="decimal" placeholder="Ex: 100,00 (vazio se não houver)" oninput="cwUpdateTrialPreview(true)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                                <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Durante quantas semanas/períodos?</label><input id="cwTrialDiscountPeriods" inputmode="numeric" placeholder="Ex: 4" oninput="cwUpdateTrialPreview(true)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            </div>
+                        </div>
                         <div class="sm:col-span-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10 p-3 space-y-2.5">
                             <div class="flex flex-wrap items-center justify-between gap-2">
                                 <span class="text-xs font-bold text-amber-800 dark:text-amber-300"><i class="fa-solid fa-shield-halved mr-1"></i> Caução contratual (pré-preenchida da ficha do motorista)</span>
@@ -10016,10 +10026,15 @@ notify pgrst, 'reload schema';`;
             const jurosMesPct = c.late_interest_month_pct != null ? Number(c.late_interest_month_pct) : Number(cfgAtr.juros_mes_pct ?? 2);
             const pctStr = n => String(Number(n.toFixed(2))).replace('.', ',');
             const pctExt = (n, defNum, ext) => Math.abs(n - defNum) < 1e-6 ? `${pctStr(n)}% (${ext})` : `${pctStr(n)}%`;
+            const trDisc = Number(c.trial_discount_amount || 0), trPer = parseInt(c.trial_discount_periods || 0, 10) || 0;
+            const trNet = c.rent_amount != null ? Math.max(0, Number(c.rent_amount) - trDisc) : 0;
+            const trialParagraphs = (trDisc > 0 && trPer > 0 && c.rent_amount != null)
+                ? `\nParágrafo 4º (Período Experimental e Desconto Temporário). As partes convencionam que os ${trPer} primeiros períodos (${perLbl === 'semanal' ? `${trPer} primeiras semanas` : `${trPer} primeiras cobranças`}) constituirão período experimental de adaptação, durante o qual o LOCADOR concede ao LOCATÁRIO, em caráter estritamente temporário, desconto promocional de ${fmtMoney(trDisc)} por período, resultando no pagamento líquido de ${fmtMoney(trNet)} exclusivamente nesses ${trPer} primeiros períodos.\nParágrafo 5º (Retorno Automático ao Valor Integral). A partir do ${trPer + 1}º período${perLbl === 'semanal' ? ` (${trPer + 1}ª semana)` : ''}, cessará automaticamente e independentemente de notificação prévia o desconto temporário previsto no parágrafo anterior, passando a incidir integralmente o valor contratual ordinário de ${valFmt} por período, sem que tal retorno caracterize reajuste, alteração unilateral ou onerosidade excessiva.\nParágrafo 6º (Condições do Período Experimental). Durante os ${trPer} primeiros períodos aplicam-se integralmente todas as demais cláusulas deste contrato (inclusive restrição geográfica, responsabilidade por multas, conservação, vistorias e garantia de caução), facultado a qualquer das partes encerrar a locação ao término do período experimental sem multa rescisória mediante restituição imediata do veículo e quitação proporcional.`
+                : '';
             return [
                 { num: 1, title: 'CLÁUSULA 1 — DO OBJETO E ÁREA DE CIRCULAÇÃO', body: `O LOCADOR dá em locação ao LOCATÁRIO, livre de ônus que impeçam a posse regular, o veículo automotor com as seguintes especificações: ${vehSpec}.\nParágrafo 1º. O veículo destina-se exclusivamente à finalidade declarada pelas partes: ${purpose}\nParágrafo 2º. RESTRIÇÃO GEOGRÁFICA: Fica expressamente convencionado que a utilização regular do veículo restringe-se à Região Metropolitana de Goiânia/GO. Viagens para além dessa região somente poderão ser realizadas mediante autorização prévia e expressa do LOCADOR, condicionada à realização prévia de revisão veicular para aferição das condições de segurança do bem (freios, pneus, óleo, arrefecimento e documentação).` },
                 { num: 2, title: 'CLÁUSULA 2 — DA VIGÊNCIA', body: `A presente locação vigerá por ${vigTxt}. A eventual permanência do LOCATÁRIO na posse do veículo após o termo final sem formalização de novo contrato não implica renúncia às obrigações de pagamento, conservação e restituição imediata do bem.` },
-                { num: 3, title: 'CLÁUSULA 3 — DO VALOR, PAGAMENTO E USO DO APLICATIVO MOTORA', body: `Pela locação do veículo, o LOCATÁRIO pagará ao LOCADOR o valor de ${valFmt}, com periodicidade ${perLbl}, vencimento ${c.due_day || 'conforme calendário ajustado entre as partes'}, por meio de ${c.payment_method || 'Pix gerado no aplicativo MOTORA ou transferência bancária oficial indicada pelo LOCADOR'}.\nParágrafo 1º (Geração de Pix no App MOTORA e Credenciais Próprias). Os códigos Pix (QR Code e "copia e cola") referentes ao aluguel e demais encargos contratuais serão gerados e disponibilizados diretamente no aplicativo MOTORA, fornecido ao LOCATÁRIO no ato da locação mediante login e senha próprios, pessoais e intransferíveis${d.email ? ` (cadastro vinculado a ${d.email})` : ''}. O LOCATÁRIO declara ciência e recebimento do acesso no ato da contratação, responsabilizando-se pelo sigilo de sua senha, pela conferência regular das cobranças e avisos no aplicativo e pela guarda do aparelho de acesso.\nParágrafo 2º (Segurança Antifraude e Canal Alternativo em Falha Técnica). Para segurança de ambas as partes, somente quitam a obrigação os pagamentos efetuados para cobrança Pix emitida nativamente dentro da área autenticada do aplicativo MOTORA ou conta oficial confirmada diretamente pelo LOCADOR. Em caso de dificuldade de acesso, troca de aparelho ou falha técnica no aplicativo, o LOCATÁRIO deverá acionar o LOCADOR antes do vencimento pelos contatos oficiais deste contrato (WhatsApp/telefone) para envio de guia ou código Pix alternativo; a ausência de comunicação prévia antes do vencimento não afasta a mora.\nParágrafo 3º (Comprovação e Rodagem). A efetiva quitação dar-se-á mediante compensação bancária e registro de baixa ou envio do comprovante no aplicativo MOTORA. Quanto à rodagem contratada, ${kmTxt}. Em caso de atraso no pagamento, aplicam-se os encargos previstos na Cláusula 4 e os procedimentos da Cláusula 5.` },
+                { num: 3, title: 'CLÁUSULA 3 — DO VALOR, PAGAMENTO E USO DO APLICATIVO MOTORA', body: `Pela locação do veículo, o LOCATÁRIO pagará ao LOCADOR o valor de ${valFmt}, com periodicidade ${perLbl}, vencimento ${c.due_day || 'conforme calendário ajustado entre as partes'}, por meio de ${c.payment_method || 'Pix gerado no aplicativo MOTORA ou transferência bancária oficial indicada pelo LOCADOR'}.\nParágrafo 1º (Geração de Pix no App MOTORA e Credenciais Próprias). Os códigos Pix (QR Code e "copia e cola") referentes ao aluguel e demais encargos contratuais serão gerados e disponibilizados diretamente no aplicativo MOTORA, fornecido ao LOCATÁRIO no ato da locação mediante login e senha próprios, pessoais e intransferíveis${d.email ? ` (cadastro vinculado a ${d.email})` : ''}. O LOCATÁRIO declara ciência e recebimento do acesso no ato da contratação, responsabilizando-se pelo sigilo de sua senha, pela conferência regular das cobranças e avisos no aplicativo e pela guarda do aparelho de acesso.\nParágrafo 2º (Segurança Antifraude e Canal Alternativo em Falha Técnica). Para segurança de ambas as partes, somente quitam a obrigação os pagamentos efetuados para cobrança Pix emitida nativamente dentro da área autenticada do aplicativo MOTORA ou conta oficial confirmada diretamente pelo LOCADOR. Em caso de dificuldade de acesso, troca de aparelho ou falha técnica no aplicativo, o LOCATÁRIO deverá acionar o LOCADOR antes do vencimento pelos contatos oficiais deste contrato (WhatsApp/telefone) para envio de guia ou código Pix alternativo; a ausência de comunicação prévia antes do vencimento não afasta a mora.\nParágrafo 3º (Comprovação e Rodagem). A efetiva quitação dar-se-á mediante compensação bancária e registro de baixa ou envio do comprovante no aplicativo MOTORA. Quanto à rodagem contratada, ${kmTxt}. Em caso de atraso no pagamento, aplicam-se os encargos previstos na Cláusula 4 e os procedimentos da Cláusula 5.${trialParagraphs}` },
                 { num: 4, title: 'CLÁUSULA 4 — DO ATRASO NO PAGAMENTO E DA INADIMPLÊNCIA', body: `O não pagamento do aluguel na data de vencimento constituirá o LOCATÁRIO em mora, independentemente de notificação, ficando sujeito aos seguintes encargos:\nI – Juros moratórios de ${pctExt(jurosMesPct, 2, 'dois por cento')} ao mês, calculados proporcionalmente aos dias de atraso (mês comercial de 30 dias), sobre o valor vencido e não pago;\nII – Multa moratória de ${pctExt(multaPct, 10, 'dez por cento')} sobre o valor da obrigação vencida, observados os limites legais aplicáveis;\nIII – Atualização monetária pelo IPCA, quando cabível, observadas as disposições legais e contratuais aplicáveis.\nParágrafo único. Os encargos serão calculados até a data do efetivo pagamento, observada a prorrogação sem encargos apenas quando o vencimento recair em sábado, domingo ou feriado até o primeiro dia útil subsequente (incidindo desde o vencimento original se não quitado nesse dia útil), sem prejuízo das demais medidas legais e contratuais cabíveis em caso de inadimplência.` },
                 { num: 5, title: 'CLÁUSULA 5 — DA INADIMPLÊNCIA, SUSPENSÃO DA LOCAÇÃO E DEVOLUÇÃO DO VEÍCULO', body: `O atraso no pagamento do aluguel superior a 3 (três) dias corridos, contados do vencimento, caracterizará inadimplência contratual, facultando ao LOCADOR notificar formalmente o LOCATÁRIO para regularização do débito ou devolução voluntária do veículo, no prazo adicional de 24 (vinte e quatro) horas.\nParágrafo 1º. Não regularizada a situação, poderá o LOCADOR promover a rescisão contratual e adotar as medidas extrajudiciais e judiciais legalmente cabíveis para recuperação do veículo.\nParágrafo 2º. O sistema de rastreamento poderá ser utilizado para proteção patrimonial e localização do veículo, observadas as normas de segurança, privacidade e proteção de dados.\nParágrafo 3º. Qualquer recurso de imobilização remota deverá observar a legislação aplicável, não podendo ser utilizado como instrumento de coação para cobrança de dívida ou executado de maneira que coloque em risco o LOCATÁRIO, passageiros ou terceiros.` },
                 { num: 6, title: 'CLÁUSULA 6 — DA CAUÇÃO', body: `A título de garantia contratual (caução), ${depFmt}. Quando constituída, a caução destina-se exclusivamente a assegurar o adimplemento de aluguéis vencidos, multas de trânsito, franquias de sinistro, avarias comprovadas ou pendências apuradas na devolução.\nParágrafo único. Encerrada a locação e concluída a vistoria final, eventuais retenções deverão ser objeto de prestação de contas discriminada com comprovantes ao LOCATÁRIO, restituindo-se o saldo remanescente no prazo de até 30 (trinta) dias corridos após o encerramento do contrato ou conforme ajustado entre as partes.` },
@@ -10438,14 +10453,30 @@ notify pgrst, 'reload schema';`;
             cwDepCalc(false);
         }
 
-        function cwSyncDepositClauseOnly() {
-            const ta = document.querySelector('#cwClausesBox textarea[data-clause-idx="5"]');
+        function cwSyncClauseIdx(idx) {
+            const ta = document.querySelector(`#cwClausesBox textarea[data-clause-idx="${idx}"]`);
             if (ta && !ta.dataset.touched) {
                 const snap = cwReadSnapshot();
                 const clauses = buildDefaultClauses(snap);
-                if (clauses[5]) ta.value = clauses[5].body;
+                if (clauses[idx]) ta.value = clauses[idx].body;
             }
             if (document.getElementById('cwPreviewArea') && !document.getElementById('cwPreviewArea').classList.contains('hidden')) cwRenderPreview();
+        }
+        function cwSyncDepositClauseOnly() { cwSyncClauseIdx(5); }
+        function cwUpdateTrialPreview(syncClause) {
+            const box = document.getElementById('cwTrialPreview');
+            const rent = parseMoney(document.getElementById('cwRentAmount') && document.getElementById('cwRentAmount').value) || 0;
+            const disc = parseMoney(document.getElementById('cwTrialDiscountAmount') && document.getElementById('cwTrialDiscountAmount').value) || 0;
+            const pers = parseInt(document.getElementById('cwTrialDiscountPeriods') && document.getElementById('cwTrialDiscountPeriods').value, 10) || 0;
+            if (box) {
+                if (disc > 0 && pers > 0 && rent > 0) {
+                    const net = Math.max(0, rent - disc);
+                    box.textContent = `${pers} primeiras: ${fmtMoney(net)} → a partir da ${pers + 1}ª: ${fmtMoney(rent)}`;
+                } else {
+                    box.textContent = '';
+                }
+            }
+            if (syncClause) cwSyncClauseIdx(2);
         }
 
         function cwDepCalc(auto) {
@@ -10641,6 +10672,8 @@ notify pgrst, 'reload schema';`;
                 veiculo: { brand: gv('cwVehBrand'), model: gv('cwVehModel'), version: gv('cwVehVersion'), manufacture_year: gv('cwVehMfgYear'), model_year: gv('cwVehModelYear'), color: gv('cwVehColor'), plate: gv('cwVehPlate').toUpperCase(), renavam: gv('cwVehRenavam'), chassi: gv('cwVehChassi').toUpperCase(), fuel: gv('cwVehFuel'), mileage: gv('cwVehMileage') ? parseInt(gv('cwVehMileage'), 10) : null },
                 comercial: {
                     rent_amount: numOrNull('cwRentAmount'), periodicity: gv('cwPeriodicity') || 'semanal', due_day: gv('cwDueDay'),
+                    trial_discount_amount: numOrNull('cwTrialDiscountAmount') || 0,
+                    trial_discount_periods: gv('cwTrialDiscountPeriods') ? parseInt(gv('cwTrialDiscountPeriods'), 10) : 0,
                     start_date: gv('cwStartDate'), end_date: isInd ? null : (gv('cwEndDate') || null), is_indeterminate: isInd,
                     deposit_amount: numOrNull('cwDepositAmount'), deposit_mode: gv('cwDepositMode'),
                     deposit_entry: numOrNull('cwDepositEntry') || 0,
@@ -10702,7 +10735,7 @@ notify pgrst, 'reload schema';`;
                     <p><b>LOCADOR:</b> ${esc(l.name || '-')} | CPF ${esc(l.cpf || '-')} | RG ${esc(l.rg || '-')} | ${esc(l.address || '-')}</p>
                     <p><b>LOCATÁRIO:</b> ${esc(d.name || '-')} | CPF ${esc(d.cpf || '-')} | CNH ${esc(d.cnh_number || '-')} (${esc(d.cnh_category || '-')}) | ${esc(d.address || '-')}</p>
                     <p><b>VEÍCULO:</b> ${esc([v.brand, v.model, v.version].filter(Boolean).join(' ') || '-')} | Placa ${esc(v.plate || '-')} | RENAVAM ${esc(v.renavam || '-')} | Chassi ${esc(v.chassi || '-')}</p>
-                    <p><b>CONDIÇÕES:</b> Aluguel ${c.rent_amount != null ? fmtMoney(c.rent_amount) : '-'} (${esc(contractPeriodLabel(c.periodicity))}) | Caução: ${Number(c.deposit_amount) > 0 ? fmtMoney(c.deposit_amount) + (c.deposit_charge_desc ? ' (' + esc(c.deposit_charge_desc) + ')' : '') : 'Sem caução'}</p>
+                    <p><b>CONDIÇÕES:</b> Aluguel ${c.rent_amount != null ? fmtMoney(c.rent_amount) : '-'} (${esc(contractPeriodLabel(c.periodicity))})${c.trial_discount_amount > 0 && c.trial_discount_periods > 0 && c.rent_amount != null ? ` · Desconto inicial de ${fmtMoney(c.trial_discount_amount)} nas ${c.trial_discount_periods} primeiras (${fmtMoney(Math.max(0, Number(c.rent_amount) - Number(c.trial_discount_amount)))})` : ''} | Caução: ${Number(c.deposit_amount) > 0 ? fmtMoney(c.deposit_amount) + (c.deposit_charge_desc ? ' (' + esc(c.deposit_charge_desc) + ')' : '') : 'Sem caução'}</p>
                 </div>
                 <div class="space-y-3 text-justify text-xs">
                     ${clauses.map(cl => `<div><div class="font-bold mb-0.5">${esc(cl.title)}</div><div class="whitespace-pre-line">${esc(cl.body)}</div></div>`).join('')}
@@ -10791,6 +10824,9 @@ notify pgrst, 'reload schema';`;
                 const curVeh = state.vehicles.find(x => x.id === vehId);
                 cwFillVehicle(existing ? s.veiculo : (curVeh || s.veiculo));
                 document.getElementById('cwRentAmount').value = cm.rent_amount != null ? String(cm.rent_amount).replace('.', ',') : '';
+                document.getElementById('cwTrialDiscountAmount').value = cm.trial_discount_amount ? String(cm.trial_discount_amount).replace('.', ',') : '';
+                document.getElementById('cwTrialDiscountPeriods').value = cm.trial_discount_periods ? String(cm.trial_discount_periods) : '';
+                cwUpdateTrialPreview(false);
                 document.getElementById('cwStartDate').value = renewSrc ? todayISO() : (cm.start_date || todayISO());
                 const isInd = !!cm.is_indeterminate;
                 document.getElementById('cwIndeterminate').checked = isInd;
@@ -10814,7 +10850,7 @@ notify pgrst, 'reload schema';`;
                 const cls = (existing && Array.isArray(s.clauses) && s.clauses.length) ? s.clauses : buildDefaultClauses(cwReadSnapshot());
                 cwRenderClausesEditor(cls);
                 cwUpdateCrlvBar(curVeh);
-                if (curVeh && !existing && cwNeedsCrlvFill(curVeh)) cwReadVehicleCrlv(curVeh, { auto: true });
+                if (curVeh && (!existing || !(s.veiculo && s.veiculo.renavam && s.veiculo.chassi)) && cwNeedsCrlvFill(curVeh)) cwReadVehicleCrlv(curVeh, { auto: true });
             } else {
                 const pickedLoc = cwPopulateLocadores(null, vehId);
                 cwFillLocador(pickedLoc || locadorForVehicle(vehId));
@@ -10823,6 +10859,9 @@ notify pgrst, 'reload schema';`;
                 cwFillDriver(drv || {});
                 const v = state.vehicles.find(x => x.id === vehId);
                 cwFillVehicle(v || {});
+                document.getElementById('cwTrialDiscountAmount').value = '';
+                document.getElementById('cwTrialDiscountPeriods').value = '';
+                cwUpdateTrialPreview(false);
                 document.getElementById('cwStartDate').value = todayISO();
                 document.getElementById('cwIndeterminate').checked = true;
                 document.getElementById('cwEndDate').disabled = true; document.getElementById('cwEndDate').value = '';
@@ -11047,7 +11086,7 @@ notify pgrst, 'reload schema';`;
                     <div><b>Locador:</b> ${esc(l.name || '-')} (${esc(l.cpf || '-')})</div>
                     <div><b>Locatário:</b> ${esc(d.name || '-')} (${esc(d.cpf || '-')})</div>
                     <div><b>Veículo:</b> ${esc([v.brand, v.model].filter(Boolean).join(' ') || '-')} · ${esc(v.plate || '-')} · RENAVAM ${esc(v.renavam || '-')}</div>
-                    <div><b>Aluguel:</b> ${fmtMoney(c.rent_amount)} (${esc(contractPeriodLabel(per))}) · Caução ${c.deposit_amount ? fmtMoney(c.deposit_amount) + (cm.deposit_charge_desc ? ` — ${esc(cm.deposit_charge_desc)}` : '') : 'Sem caução'}</div>
+                    <div><b>Aluguel:</b> ${fmtMoney(c.rent_amount)} (${esc(contractPeriodLabel(per))})${cm.trial_discount_amount > 0 && cm.trial_discount_periods > 0 ? ` · ${cm.trial_discount_periods} primeiras c/ desc. ${fmtMoney(cm.trial_discount_amount)}` : ''} · Caução ${c.deposit_amount ? fmtMoney(c.deposit_amount) + (cm.deposit_charge_desc ? ` — ${esc(cm.deposit_charge_desc)}` : '') : 'Sem caução'}</div>
                     <div><b>Vigência:</b> ${fmtDate(c.start_date)} até ${ind ? 'Prazo indeterminado' : fmtDate(c.end_date)}</div>
                     <div><b>Foro:</b> ${esc(cm.foro_cidade_uf || sd.foro_cidade_uf || '-')}</div>
                 </div>
