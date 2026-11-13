@@ -9920,7 +9920,7 @@ notify pgrst, 'reload schema';`;
                 if (Object.keys(patch).length) {
                     Object.assign(v, patch);
                     if (document.getElementById('cwSyncVehProfile').checked) {
-                        sb.from('vehicles').update(patch).eq('id', v.id).catch(() => {});
+                        Promise.resolve(sb.from('vehicles').update(patch).eq('id', v.id)).catch(() => {});
                     }
                 }
                 cwRebuildClauses(false);
