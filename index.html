@@ -820,7 +820,23 @@
                     <select id="cfgOwnerVehicle" onchange="saveOwnerVehicle(this.value, this)" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></select>
                 </div>
                 <details class="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-white/70 dark:bg-gray-800/70 p-3 text-sm">
-                    <summary class="font-semibold text-xs uppercase text-indigo-700 dark:text-indigo-300 cursor-pointer"><i class="fa-solid fa-file-signature mr-1"></i> Dados do Locador para contratos (preenchimento automático)</summary>
+                    <summary class="font-semibold text-xs uppercase text-indigo-700 dark:text-indigo-300 cursor-pointer"><i class="fa-solid fa-file-signature mr-1"></i> Dados dos Locadores para contratos (preenchimento automático)</summary>
+                    <div class="mt-3 space-y-2.5">
+                        <div class="flex flex-wrap items-end gap-2">
+                            <div class="flex-1 min-w-[200px]">
+                                <label for="cfgLocSelect" class="block text-xs font-semibold text-indigo-700 dark:text-indigo-300 mb-1">Proprietário / Locador selecionado</label>
+                                <select id="cfgLocSelect" onchange="cfgOnLocadorChange(this.value)" class="w-full p-2 text-sm rounded-xl border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-700 outline-none"></select>
+                            </div>
+                            <button type="button" id="cfgLocDelBtn" onclick="deleteLocadorSetting(this)" class="hidden px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
+                            <label class="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" id="cfgLocDefault" class="rounded"> Usar como Locador padrão</label>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Veículos em nome deste proprietário (seleciona automaticamente no contrato)</span>
+                            <div id="cfgLocVehiclesBox" class="flex flex-wrap gap-2 text-xs"></div>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
                         <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nome completo</label><input id="cfgLocName" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">CPF</label><input id="cfgLocCpf" placeholder="000.000.000-00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -1630,6 +1646,10 @@
                 <!-- Locador -->
                 <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3" open>
                     <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-user-tie text-indigo-600 mr-1"></i> 1. Dados do Locador (Proprietário)</summary>
+                    <div class="mt-2.5 p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
+                        <label for="cwLocSelect" class="block text-xs font-semibold text-indigo-800 dark:text-indigo-200 mb-1">Escolher proprietário / locador salvo</label>
+                        <select id="cwLocSelect" onchange="cwOnLocadorChange(this.value)" class="w-full p-2 text-sm rounded-xl border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-700 outline-none font-medium"></select>
+                    </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mt-3">
                         <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Nome completo *</label><input id="cwLocName" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">CPF *</label><input id="cwLocCpf" placeholder="000.000.000-00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -1641,7 +1661,7 @@
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">E-mail *</label><input id="cwLocEmail" type="email" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Endereço completo *</label><input id="cwLocAddr" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     </div>
-                    <label class="mt-2.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="cwSaveLocDefault" checked class="rounded"> Salvar estes dados como padrão do Locador nas configurações</label>
+                    <label class="mt-2.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="cwSaveLocDefault" checked class="rounded"> Salvar alterações neste cadastro de Locador</label>
                 </details>
 
                 <!-- Locatário -->
@@ -1871,7 +1891,11 @@
                 phone: '(11) 99999-0000', email: 'locador.demo@exemplo.com', address: 'Av. Demonstração, 500 – Centro – São Paulo/SP',
                 created_at: new Date(ago(130)).toISOString() };
             db.profiles.push(master);
-            db.app_settings.push({ key: 'locador_config', value: { name: master.name, cpf: master.cpf, rg: master.rg, nationality: master.nationality, marital_status: master.marital_status, profession: master.profession, phone: master.phone, email: master.email, address: master.address, foro_cidade_uf: 'São Paulo/SP' } });
+            db.app_settings.push({ key: 'locador_config', value: { id: 'demo-loc1', name: master.name, cpf: master.cpf, rg: master.rg, nationality: master.nationality, marital_status: master.marital_status, profession: master.profession, phone: master.phone, email: master.email, address: master.address, foro_cidade_uf: 'São Paulo/SP' } });
+            db.app_settings.push({ key: 'locadores_list', value: [
+                { id: 'demo-loc1', is_default: true, vehicle_ids: ['demo-v1', 'demo-v2', 'demo-v3'], name: master.name, cpf: master.cpf, rg: master.rg, nationality: master.nationality, marital_status: master.marital_status, profession: master.profession, phone: master.phone, email: master.email, address: master.address, foro_cidade_uf: 'São Paulo/SP' },
+                { id: 'demo-loc2', is_default: false, vehicle_ids: ['demo-v4'], name: 'Co-proprietária (demonstração)', cpf: '111.111.111-11', rg: '11.111.111-1 SSP/SP', nationality: 'Brasileira', marital_status: 'Casada', profession: 'Autônoma', phone: '(11) 98888-0000', email: 'coprop.demo@exemplo.com', address: master.address, foro_cidade_uf: 'São Paulo/SP' }
+            ] });
 
             const V = [
                 { id: 'demo-v1', brand: 'Fiat', model: 'FIAT/ARGO DRIVE 1.0', version: 'Drive 1.0 Flex', plate: 'DMO1A11', color: 'Prata', year: '2022/2023', manufacture_year: '2022', model_year: '2023', renavam: '01234567891', chassi: '9BD358A1HNY000001', fuel: 'Flex', mileage: 48200 },
@@ -2415,7 +2439,7 @@
         }
 
         // ESTADO EM MEMÓRIA (carregado do Supabase)
-        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [], contracts: [], contractHistory: [], locadorCfg: null };
+        let state = { user: null, profile: null, vehicles: [], drivers: [], receipts: [], inspection: [], expenses: [], expenseTypes: [], pixHistory: [], appEarnings: [], appExpenses: [], contracts: [], contractHistory: [], locadorCfg: null, locadores: [] };
 
         function toEmail(login) {
             const l = String(login || '').trim().toLowerCase();
@@ -2815,7 +2839,7 @@
                     sb.from('app_expenses').select('*').order('expense_date', { ascending: false }),
                     sb.from('rental_contracts').select('*').order('created_at', { ascending: false }),
                     sb.from('rental_contract_history').select('*').order('created_at', { ascending: false }),
-                    sb.from('app_settings').select('key,value').eq('key', 'locador_config').maybeSingle(),
+                    sb.from('app_settings').select('key,value').in('key', ['locador_config', 'locadores_list']),
                     termos
                 ]).then(rs => ({ master: true, rs }));
             }
@@ -2844,14 +2868,18 @@
                 state.appExpenses = (aexp && !aexp.error && aexp.data) || [];
                 state.contracts = (ctrs && !ctrs.error && ctrs.data) || [];
                 state.contractHistory = (ctrHist && !ctrHist.error && ctrHist.data) || [];
-                state.locadorCfg = (locCfg && !locCfg.error && locCfg.data && locCfg.data.value) || null;
+                const locRows = (locCfg && !locCfg.error && Array.isArray(locCfg.data)) ? locCfg.data : [];
+                const singleLoc = locRows.find(r => r.key === 'locador_config');
+                const listLoc = locRows.find(r => r.key === 'locadores_list');
+                state.locadorCfg = (singleLoc && singleLoc.value) || null;
+                state.locadores = (listLoc && Array.isArray(listLoc.value)) ? listLoc.value : [];
             } else {
                 const [veh, rec, insp, hist, ctrs, ctrHist, features] = rs;
                 state.pixHistory = (hist && !hist.error && hist.data) || [];
                 state.appEarnings = []; state.appExpenses = [];
                 state.contracts = (ctrs && !ctrs.error && ctrs.data) || [];
                 state.contractHistory = (ctrHist && !ctrHist.error && ctrHist.data) || [];
-                state.locadorCfg = null;
+                state.locadorCfg = null; state.locadores = [];
                 if (veh.error) throw veh.error;
                 if (rec.error) throw rec.error;
                 if (insp.error) throw insp.error;
@@ -2879,7 +2907,7 @@
             const serve = adiantado && conhecido.role === profile.role && conhecido.vehicle_id === profile.vehicle_id;
             aplicarDados(await (serve ? adiantado : carregarDados(profile)));
             await aparencia;
-            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.contracts, state.contractHistory, state.locadorCfg, state.features, state.terms]);
+            const sig = JSON.stringify([state.profile, state.vehicles, state.drivers, state.receipts, state.inspection, state.expenses, state.expenseTypes, state.pixHistory, state.appEarnings, state.appExpenses, state.contracts, state.contractHistory, state.locadorCfg, state.locadores, state.features, state.terms]);
             markUpdated();
             if (silent && sig === state.sig) return; // nada mudou: não redesenha a tela
             state.sig = sig;
@@ -4666,6 +4694,9 @@
         function locadorMerged() {
             const p = state.profile || {}, c = state.locadorCfg || {};
             return {
+                id: c.id || 'loc-default',
+                is_default: true,
+                vehicle_ids: Array.isArray(c.vehicle_ids) ? c.vehicle_ids : [],
                 name: c.name || p.name || '', cpf: c.cpf || p.cpf || '', rg: c.rg || p.rg || '',
                 nationality: c.nationality || p.nationality || '', marital_status: c.marital_status || p.marital_status || '',
                 profession: c.profession || p.profession || '', phone: c.phone || p.phone || '',
@@ -4673,38 +4704,120 @@
                 foro_cidade_uf: c.foro_cidade_uf || ''
             };
         }
-        function fillLocadorSettings() {
-            const l = locadorMerged(), map = { cfgLocName: 'name', cfgLocCpf: 'cpf', cfgLocRg: 'rg', cfgLocNat: 'nationality', cfgLocCiv: 'marital_status', cfgLocProf: 'profession', cfgLocPhone: 'phone', cfgLocEmail: 'email', cfgLocAddr: 'address', cfgLocForo: 'foro_cidade_uf' };
-            for (const [id, k] of Object.entries(map)) { const el = document.getElementById(id); if (el) el.value = l[k] || ''; }
+        function getLocadoresList() {
+            const list = Array.isArray(state.locadores) ? state.locadores.filter(x => x && typeof x === 'object') : [];
+            if (list.length) return list.map((x, idx) => ({
+                id: x.id || `loc-${idx + 1}`,
+                label: x.label || '',
+                is_default: !!x.is_default,
+                vehicle_ids: Array.isArray(x.vehicle_ids) ? x.vehicle_ids : [],
+                name: x.name || '', cpf: x.cpf || '', rg: x.rg || '',
+                nationality: x.nationality || '', marital_status: x.marital_status || '',
+                profession: x.profession || '', phone: x.phone || '', email: x.email || '',
+                address: x.address || '', foro_cidade_uf: x.foro_cidade_uf || ''
+            }));
+            return [locadorMerged()];
+        }
+        function locadorForVehicle(vehId) {
+            const list = getLocadoresList();
+            if (vehId) {
+                const match = list.find(l => Array.isArray(l.vehicle_ids) && l.vehicle_ids.includes(vehId));
+                if (match) return match;
+            }
+            return list.find(l => l.is_default) || list[0] || locadorMerged();
+        }
+        const CFG_LOC_FIELDS = { cfgLocName: 'name', cfgLocCpf: 'cpf', cfgLocRg: 'rg', cfgLocNat: 'nationality', cfgLocCiv: 'marital_status', cfgLocProf: 'profession', cfgLocPhone: 'phone', cfgLocEmail: 'email', cfgLocAddr: 'address', cfgLocForo: 'foro_cidade_uf' };
+        function fillLocadorSettings(selectedId) {
+            const list = getLocadoresList();
+            const sel = document.getElementById('cfgLocSelect');
+            const chosen = (selectedId && selectedId !== '__new__') ? (list.find(l => l.id === selectedId) || list[0]) : (selectedId === '__new__' ? null : (list.find(l => l.is_default) || list[0]));
+            if (sel) {
+                sel.innerHTML = list.map(l => `<option value="${esc(l.id)}">${esc(l.label || l.name || 'Locador sem nome')}${l.is_default ? ' (Padrão)' : ''}</option>`).join('') + `<option value="__new__">+ Cadastrar outro proprietário / locador...</option>`;
+                sel.value = chosen ? chosen.id : '__new__';
+            }
+            const delBtn = document.getElementById('cfgLocDelBtn');
+            if (delBtn) delBtn.classList.toggle('hidden', !chosen || list.length <= 1);
+            const defEl = document.getElementById('cfgLocDefault');
+            if (defEl) defEl.checked = !!(chosen ? chosen.is_default : false);
+            const vBox = document.getElementById('cfgLocVehiclesBox');
+            if (vBox) {
+                const vIds = chosen ? (chosen.vehicle_ids || []) : [];
+                vBox.innerHTML = (state.vehicles || []).map(v => `<label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-pointer"><input type="checkbox" class="cfgLocVehChk rounded" value="${esc(v.id)}" ${vIds.includes(v.id) ? 'checked' : ''}> <span>${esc(v.plate || v.model)}</span></label>`).join('') || '<span class="text-gray-400">Nenhum veículo cadastrado</span>';
+            }
+            const src = chosen || { address: (list[0] && list[0].address) || '' };
+            for (const [id, k] of Object.entries(CFG_LOC_FIELDS)) { const el = document.getElementById(id); if (el) el.value = src[k] || ''; }
+        }
+        function cfgOnLocadorChange(val) { fillLocadorSettings(val); }
+        async function upsertLocadorInList(item, makeDefault) {
+            let list = getLocadoresList().map(x => ({ ...x }));
+            if (makeDefault) list.forEach(x => { x.is_default = false; });
+            const idx = item.id ? list.findIndex(x => x.id === item.id) : -1;
+            const vehSet = new Set(item.vehicle_ids || []);
+            if (vehSet.size) list.forEach(x => { if (x.id !== item.id) x.vehicle_ids = (x.vehicle_ids || []).filter(vid => !vehSet.has(vid)); });
+            if (idx >= 0) list[idx] = { ...list[idx], ...item, is_default: makeDefault || list[idx].is_default };
+            else list.push({ ...item, id: item.id || ('loc-' + Date.now().toString(36)), is_default: makeDefault || list.length === 0 });
+            if (!list.some(x => x.is_default) && list[0]) list[0].is_default = true;
+            await sb.from('app_settings').upsert({ key: 'locadores_list', value: list, updated_at: new Date().toISOString() });
+            state.locadores = list;
+            const def = list.find(x => x.is_default) || list[0];
+            if (def && (makeDefault || idx === 0 || (item.id && def.id === item.id))) {
+                const singleVal = { id: def.id, name: def.name, cpf: def.cpf, rg: def.rg, nationality: def.nationality, marital_status: def.marital_status, profession: def.profession, phone: def.phone, email: def.email, address: def.address, foro_cidade_uf: def.foro_cidade_uf || '' };
+                const r1 = await sb.from('app_settings').upsert({ key: 'locador_config', value: singleVal, updated_at: new Date().toISOString() });
+                if (r1.error) throw r1.error;
+                state.locadorCfg = singleVal;
+                const profUp = {
+                    name: singleVal.name || null, cpf: singleVal.cpf || null, rg: singleVal.rg || null,
+                    nationality: singleVal.nationality || null, marital_status: singleVal.marital_status || null,
+                    profession: singleVal.profession || null, phone: singleVal.phone || null, email: singleVal.email || null, address: singleVal.address || null
+                };
+                if (state.profile) {
+                    const r2 = await sb.from('profiles').update(profUp).eq('id', state.profile.id);
+                    if (r2.error && !/column .* does not exist/i.test(r2.error.message || '')) throw r2.error;
+                    Object.assign(state.profile, profUp);
+                }
+            }
+            return list;
+        }
+        async function deleteLocadorSetting(btn) {
+            const sel = document.getElementById('cfgLocSelect');
+            const id = sel && sel.value;
+            let list = getLocadoresList();
+            if (!id || id === '__new__' || list.length <= 1) return;
+            return withBtn(btn, 'Removendo...', async () => {
+                try {
+                    list = list.filter(x => x.id !== id);
+                    if (!list.some(x => x.is_default) && list[0]) list[0].is_default = true;
+                    await sb.from('app_settings').upsert({ key: 'locadores_list', value: list, updated_at: new Date().toISOString() });
+                    state.locadores = list;
+                    fillLocadorSettings();
+                    showToast('Locador removido.');
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
         }
         async function saveLocadorSettings(btn) {
             if (!state.profile) return;
             const g = id => (document.getElementById(id) && document.getElementById(id).value.trim()) || '';
-            const val = {
-                name: g('cfgLocName') || state.profile.name || '', cpf: g('cfgLocCpf'), rg: g('cfgLocRg'),
+            const sel = document.getElementById('cfgLocSelect');
+            const rawId = sel ? sel.value : '';
+            const cur = rawId && rawId !== '__new__' ? getLocadoresList().find(x => x.id === rawId) : null;
+            const makeDef = !!(document.getElementById('cfgLocDefault') && document.getElementById('cfgLocDefault').checked);
+            const vehIds = [...document.querySelectorAll('.cfgLocVehChk:checked')].map(c => c.value);
+            const item = {
+                id: (cur && cur.id) || ('loc-' + Date.now().toString(36)),
+                label: cur && cur.label ? cur.label : '',
+                vehicle_ids: vehIds,
+                name: g('cfgLocName') || (cur ? '' : state.profile.name || ''), cpf: g('cfgLocCpf'), rg: g('cfgLocRg'),
                 nationality: g('cfgLocNat'), marital_status: g('cfgLocCiv'), profession: g('cfgLocProf'),
                 phone: g('cfgLocPhone'), email: g('cfgLocEmail'), address: g('cfgLocAddr'), foro_cidade_uf: g('cfgLocForo')
             };
+            if (!item.name) { showToast('Informe o nome completo do proprietário/locador.', 'error'); return; }
             return withBtn(btn, 'Salvando...', async () => {
                 try {
-                    const profUp = {
-                        name: val.name || null, cpf: val.cpf || null, rg: val.rg || null,
-                        nationality: val.nationality || null, marital_status: val.marital_status || null,
-                        profession: val.profession || null, phone: val.phone || null, email: val.email || null, address: val.address || null
-                    };
-                    if (!DEMO) {
-                        const r1 = await sb.from('app_settings').upsert({ key: 'locador_config', value: val, updated_at: new Date().toISOString() });
-                        if (r1.error) throw r1.error;
-                        const r2 = await sb.from('profiles').update(profUp).eq('id', state.profile.id);
-                        if (r2.error && !/column .* does not exist/i.test(r2.error.message || '')) throw r2.error;
-                    } else {
-                        await sb.from('app_settings').upsert({ key: 'locador_config', value: val, updated_at: new Date().toISOString() });
-                        await sb.from('profiles').update(profUp).eq('id', state.profile.id);
-                    }
-                    state.locadorCfg = val;
-                    Object.assign(state.profile, profUp);
+                    await upsertLocadorInList(item, makeDef || getLocadoresList().length === 0);
+                    const def = getLocadoresList().find(x => x.is_default) || getLocadoresList()[0];
                     const ownerNameEl = document.getElementById('cfgOwnerName');
-                    if (ownerNameEl) ownerNameEl.textContent = val.name || 'Proprietário';
+                    if (ownerNameEl && def) ownerNameEl.textContent = def.name || 'Proprietário';
+                    fillLocadorSettings(item.id);
                     showToast('Dados do Locador salvos!');
                 } catch (e) { showToast(friendlyError(e), 'error'); }
             });
@@ -9569,6 +9682,27 @@ notify pgrst, 'reload schema';`;
             if (drvId) drvSel.value = drvId;
             if (vehId) vehSel.value = vehId;
         }
+        function cwPopulateLocadores(preferredId, vehId) {
+            const sel = document.getElementById('cwLocSelect');
+            if (!sel) return null;
+            const list = getLocadoresList();
+            sel.innerHTML = list.map(l => {
+                const tag = l.is_default ? ' (Padrão)' : (l.vehicle_ids && l.vehicle_ids.length ? ' (Veículo vinculado)' : '');
+                return `<option value="${esc(l.id)}">${esc(l.label || l.name || 'Locador')}${tag}</option>`;
+            }).join('') + `<option value="__custom__">Outro proprietário / preencher manualmente</option>`;
+            const pick = (preferredId && list.find(l => l.id === preferredId)) || locadorForVehicle(vehId) || list[0];
+            sel.value = pick ? pick.id : '__custom__';
+            return pick || null;
+        }
+        function cwOnLocadorChange(val) {
+            if (!val || val === '__custom__') return;
+            const l = getLocadoresList().find(x => x.id === val);
+            if (!l) return;
+            cwFillLocador(l);
+            cwRebuildClauses(false);
+            cwRefreshMissingBoxIfVisible();
+            if (document.getElementById('cwPreviewArea') && !document.getElementById('cwPreviewArea').classList.contains('hidden')) cwRenderPreview();
+        }
         function cwFillLocador(l) {
             const src = l || locadorMerged();
             const map = { cwLocName: 'name', cwLocCpf: 'cpf', cwLocRg: 'rg', cwLocNat: 'nationality', cwLocCiv: 'marital_status', cwLocProf: 'profession', cwLocPhone: 'phone', cwLocEmail: 'email', cwLocAddr: 'address' };
@@ -9703,6 +9837,10 @@ notify pgrst, 'reload schema';`;
             const v = state.vehicles.find(x => x.id === vehId);
             if (v && v.rent_amount != null) document.getElementById('cwRentAmount').value = String(v.rent_amount).replace('.', ',');
             cwFillVehicle(v || {});
+            if (!cwState.id) {
+                const picked = cwPopulateLocadores(null, vehId);
+                if (picked) cwFillLocador(picked);
+            }
             cwRebuildClauses(false);
             if (v && cwNeedsCrlvFill(v)) cwReadVehicleCrlv(v, { auto: true });
         }
@@ -9828,7 +9966,10 @@ notify pgrst, 'reload schema';`;
 
             if (src && src.snapshot_data) {
                 const s = src.snapshot_data, cm = s.comercial || {}, tw = s.testemunhas || [];
-                cwFillLocador(s.locador);
+                const matchedLoc = getLocadoresList().find(x => (s.locador && s.locador.cpf && x.cpf === s.locador.cpf) || (s.locador && s.locador.name && x.name && x.name.toLowerCase().startsWith(s.locador.name.trim().toLowerCase())));
+                const pickedLoc = cwPopulateLocadores((matchedLoc && matchedLoc.id) || null, vehId);
+                const locData = (existing && s.locador && s.locador.cpf) ? s.locador : (pickedLoc || s.locador);
+                cwFillLocador(locData);
                 cwFillDriver(existing ? s.locatario : (drv || s.locatario));
                 const curVeh = state.vehicles.find(x => x.id === vehId);
                 cwFillVehicle(existing ? s.veiculo : (curVeh || s.veiculo));
@@ -9859,7 +10000,8 @@ notify pgrst, 'reload schema';`;
                 cwUpdateCrlvBar(curVeh);
                 if (curVeh && !existing && cwNeedsCrlvFill(curVeh)) cwReadVehicleCrlv(curVeh, { auto: true });
             } else {
-                cwFillLocador();
+                const pickedLoc = cwPopulateLocadores(null, vehId);
+                cwFillLocador(pickedLoc || locadorForVehicle(vehId));
                 cwFillDriver(drv || {});
                 const v = state.vehicles.find(x => x.id === vehId);
                 cwFillVehicle(v || {});
@@ -9885,11 +10027,18 @@ notify pgrst, 'reload schema';`;
         async function cwSyncSources(drvId, vehId, snap) {
             if (document.getElementById('cwSaveLocDefault').checked && state.profile) {
                 const l = snap.locador;
-                const val = { ...l, foro_cidade_uf: snap.comercial.foro_cidade_uf || '' };
+                const sel = document.getElementById('cwLocSelect');
+                const selId = sel ? sel.value : '';
+                const existing = selId && selId !== '__custom__' ? getLocadoresList().find(x => x.id === selId) : null;
+                const item = {
+                    id: (existing && existing.id) || ('loc-' + Date.now().toString(36)),
+                    label: (existing && existing.label) || '',
+                    vehicle_ids: (existing && existing.vehicle_ids) || [],
+                    ...l,
+                    foro_cidade_uf: snap.comercial.foro_cidade_uf || ''
+                };
                 try {
-                    await sb.from('app_settings').upsert({ key: 'locador_config', value: val, updated_at: new Date().toISOString() });
-                    state.locadorCfg = val;
-                    await sb.from('profiles').update({ cpf: l.cpf || null, rg: l.rg || null, nationality: l.nationality || null, marital_status: l.marital_status || null, profession: l.profession || null, phone: l.phone || null, email: l.email || null, address: l.address || null }).eq('id', state.profile.id);
+                    await upsertLocadorInList(item, existing ? !!existing.is_default : getLocadoresList().length === 0);
                 } catch (e) {}
             }
             if (document.getElementById('cwSyncDrvProfile').checked && drvId) {
