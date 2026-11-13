@@ -10876,14 +10876,11 @@ notify pgrst, 'reload schema';`;
                                 page.drawRectangle({ x: sx, y: y - cellH - 22, width: cellW, height: cellH + 22, color: PDFLib.rgb(0.99, 0.99, 1), borderColor: lineCol, borderWidth: 0.7 });
                                 try {
                                     const f = await fileUrl(ph.path);
-                                    if (f && f.blob) {
-                                        const jpgBytes = await blobToEmbeddableJpeg(f.blob);
-                                        if (jpgBytes) {
-                                            const emb = await pdf.embedJpg(jpgBytes);
-                                            const sc = Math.min((cellW - 8) / emb.width, (cellH - 8) / emb.height);
-                                            const dw = emb.width * sc, dh = emb.height * sc;
-                                            page.drawImage(emb, { x: sx + (cellW - dw) / 2, y: y - cellH + 4 + (cellH - 8 - dh) / 2, width: dw, height: dh });
-                                        }
+                                    const emb = f && f.blob ? await embedBlobIntoPdf(pdf, f.blob) : null;
+                                    if (emb) {
+                                        const sc = Math.min((cellW - 8) / emb.width, (cellH - 8) / emb.height);
+                                        const dw = emb.width * sc, dh = emb.height * sc;
+                                        page.drawImage(emb, { x: sx + (cellW - dw) / 2, y: y - cellH + 4 + (cellH - 8 - dh) / 2, width: dw, height: dh });
                                     }
                                 } catch (e) {}
                                 const cap = `#${i + col + 1} ${ph.label || inspSlotLabel(ph.slot)}`;
@@ -13018,12 +13015,14 @@ notify pgrst, 'reload schema';`;
         function emitInspectionTerm(btn) { return persistInspectionTerm('aguardando_assinatura', btn); }
 
         // ---- GERADOR DE PDF A4 DE VISTORIA E DEVOLUÇÃO (com grid real de fotos) ----
-        async function blobToEmbeddableJpeg(blob) {
+        async function blobToEmbeddableJpeg(blob, forceRaster) {
             if (!blob) return null;
             const t = (blob.type || '').toLowerCase();
-            if (t === 'image/jpeg' || t === 'image/jpg') return { kind: 'jpg', bytes: new Uint8Array(await blob.arrayBuffer()) };
-            if (t === 'image/png') return { kind: 'png', bytes: new Uint8Array(await blob.arrayBuffer()) };
-            // SVG (demo) ou WebP/AVIF -> rasteriza via canvas para JPEG A4-safe
+            if (!forceRaster) {
+                if (t === 'image/jpeg' || t === 'image/jpg') return { kind: 'jpg', bytes: new Uint8Array(await blob.arrayBuffer()) };
+                if (t === 'image/png') return { kind: 'png', bytes: new Uint8Array(await blob.arrayBuffer()) };
+            }
+            // SVG (demo), WebP/AVIF, MIME desconhecido ou fallback JPEG incompatível -> rasteriza via canvas
             return new Promise(resolve => {
                 const url = URL.createObjectURL(blob);
                 const img = new Image();
@@ -13045,6 +13044,18 @@ notify pgrst, 'reload schema';`;
                 img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
                 img.src = url;
             });
+        }
+        async function embedBlobIntoPdf(pdf, blob) {
+            if (!pdf || !blob) return null;
+            const emb = await blobToEmbeddableJpeg(blob, false);
+            if (emb && emb.bytes) {
+                try {
+                    return emb.kind === 'png' ? await pdf.embedPng(emb.bytes) : await pdf.embedJpg(emb.bytes);
+                } catch (e) {}
+            }
+            const raster = await blobToEmbeddableJpeg(blob, true);
+            if (!raster || !raster.bytes) return null;
+            return await pdf.embedJpg(raster.bytes);
         }
 
         async function generateInspectionPdfBytes(ins) {
@@ -13182,9 +13193,8 @@ notify pgrst, 'reload schema';`;
                         page.drawRectangle({ x: cx, y: y - cardH, width: cardW, height: cardH, color: boxBg, borderColor: lineCol, borderWidth: 0.6 });
                         try {
                             const f = await fileUrl(ph.path);
-                            const emb = f && f.blob ? await blobToEmbeddableJpeg(f.blob) : null;
-                            if (emb) {
-                                const imgObj = emb.kind === 'png' ? await pdf.embedPng(emb.bytes) : await pdf.embedJpg(emb.bytes);
+                            const imgObj = f && f.blob ? await embedBlobIntoPdf(pdf, f.blob) : null;
+                            if (imgObj) {
                                 page.drawImage(imgObj, { x: cx + 4, y: y - imgH - 4, width: cardW - 8, height: imgH });
                             }
                         } catch (e) {}
