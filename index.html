@@ -5060,17 +5060,23 @@
             };
         }
         function getLocadoresList() {
+            const p = state.profile || {};
             const list = Array.isArray(state.locadores) ? state.locadores.filter(x => x && typeof x === 'object') : [];
-            if (list.length) return list.map((x, idx) => ({
-                id: x.id || `loc-${idx + 1}`,
-                label: x.label || '',
-                is_default: !!x.is_default,
-                vehicle_ids: Array.isArray(x.vehicle_ids) ? x.vehicle_ids : [],
-                name: x.name || '', cpf: x.cpf || '', rg: x.rg || '',
-                nationality: x.nationality || '', marital_status: x.marital_status || '',
-                profession: x.profession || '', phone: x.phone || '', email: x.email || '',
-                address: x.address || '', foro_cidade_uf: x.foro_cidade_uf || ''
-            }));
+            if (list.length) return list.map((x, idx) => {
+                const sameOwner = !!(p.id && ((p.cpf && x.cpf === p.cpf) || (x.is_default && (!x.cpf || !x.name || x.name === p.name))));
+                const fb = k => x[k] || (sameOwner ? (p[k] || '') : '') || '';
+                return {
+                    id: x.id || `loc-${idx + 1}`,
+                    label: x.label || '',
+                    is_default: !!x.is_default,
+                    vehicle_ids: Array.isArray(x.vehicle_ids) ? x.vehicle_ids : [],
+                    name: fb('name'), cpf: fb('cpf'), rg: fb('rg'),
+                    nationality: fb('nationality'), marital_status: fb('marital_status'),
+                    profession: fb('profession'), phone: fb('phone'),
+                    email: fb('email'), address: fb('address'),
+                    foro_cidade_uf: x.foro_cidade_uf || ''
+                };
+            });
             return [locadorMerged()];
         }
         function locadorForVehicle(vehId) {
@@ -10741,7 +10747,17 @@ notify pgrst, 'reload schema';`;
                 const s = src.snapshot_data, cm = s.comercial || {}, tw = s.testemunhas || [];
                 const matchedLoc = getLocadoresList().find(x => (s.locador && s.locador.cpf && x.cpf === s.locador.cpf) || (s.locador && s.locador.name && x.name && x.name.toLowerCase().startsWith(s.locador.name.trim().toLowerCase())));
                 const pickedLoc = cwPopulateLocadores((matchedLoc && matchedLoc.id) || null, vehId);
-                const locData = (existing && s.locador && s.locador.cpf) ? s.locador : (pickedLoc || s.locador);
+                const baseLoc = pickedLoc || locadorForVehicle(vehId) || {};
+                const draftLoc = s.locador || {};
+                const sameOrPartialLoc = !draftLoc.cpf || (baseLoc.cpf && draftLoc.cpf === baseLoc.cpf) || (baseLoc.name && draftLoc.name && baseLoc.name.toLowerCase().startsWith(draftLoc.name.trim().toLowerCase()));
+                const mergedDraftLoc = sameOrPartialLoc ? {
+                    name: draftLoc.name && draftLoc.cpf ? draftLoc.name : (baseLoc.name || draftLoc.name || ''),
+                    cpf: draftLoc.cpf || baseLoc.cpf || '', rg: draftLoc.rg || baseLoc.rg || '',
+                    nationality: draftLoc.nationality || baseLoc.nationality || '', marital_status: draftLoc.marital_status || baseLoc.marital_status || '',
+                    profession: draftLoc.profession || baseLoc.profession || '', phone: draftLoc.phone || baseLoc.phone || '',
+                    email: draftLoc.email || baseLoc.email || '', address: draftLoc.address || baseLoc.address || ''
+                } : draftLoc;
+                const locData = (existing && draftLoc.cpf) ? mergedDraftLoc : (sameOrPartialLoc && existing ? mergedDraftLoc : (pickedLoc || draftLoc));
                 cwFillLocador(locData);
                 document.getElementById('cwPeriodicity').value = cm.periodicity || 'semanal';
                 document.getElementById('cwDueDay').value = cm.due_day || '';
