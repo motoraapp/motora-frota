@@ -1844,7 +1844,7 @@
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Juros de mora (% ao mês)</label><input id="cwLateInterestPct" type="number" step="0.01" min="0" max="100" value="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Limite de km (se aplicável)</label><input id="cwKmLimit" type="number" min="0" inputmode="numeric" placeholder="Livre se vazio" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Valor por km excedente (R$)</label><input id="cwKmExtraPrice" inputmode="decimal" placeholder="Ex: 0,80" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
-                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Foro competente *</label><input id="cwForo" placeholder="Comarca de Goiânia/GO" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Foro competente *</label><input id="cwForo" oninput="cwSyncClauseIdx(15)" placeholder="Comarca de Goiânia/GO" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Local da assinatura</label><input id="cwLocalAssinatura" placeholder="Cidade/UF" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data da assinatura</label><input id="cwDataAssinatura" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Modo de assinatura</label>
@@ -1853,8 +1853,8 @@
                                 <option value="digitalizado">Legado / PDF já digitalizado (permite migrar para GOV.BR)</option>
                             </select>
                         </div>
-                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Finalidade da locação *</label><textarea id="cwPurpose" rows="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
-                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Observações adicionais</label><textarea id="cwNotes" rows="2" placeholder="Condições particulares, acessórios entregues, observações..." class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
+                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Finalidade da locação *</label><textarea id="cwPurpose" rows="2" oninput="cwSyncClauseIdx(0)" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
+                        <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Observações adicionais</label><textarea id="cwNotes" rows="2" oninput="cwSyncClauseIdx(15)" placeholder="Condições particulares, acessórios entregues, observações..." class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
                         <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 1 — Nome completo</label><input id="cwWit1Name" placeholder="Opcional no rascunho; pode preencher na assinatura" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 1 — CPF</label><input id="cwWit1Cpf" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 2 — Nome completo</label><input id="cwWit2Name" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
@@ -11120,8 +11120,9 @@ notify pgrst, 'reload schema';`;
             const src = l || locadorMerged();
             const map = { cwLocName: 'name', cwLocCpf: 'cpf', cwLocRg: 'rg', cwLocNat: 'nationality', cwLocCiv: 'marital_status', cwLocProf: 'profession', cwLocPhone: 'phone', cwLocEmail: 'email', cwLocAddr: 'address' };
             for (const [id, k] of Object.entries(map)) document.getElementById(id).value = src[k] || '';
-            if (!document.getElementById('cwForo').value && src.foro_cidade_uf) document.getElementById('cwForo').value = src.foro_cidade_uf;
-            if (!document.getElementById('cwLocalAssinatura').value && src.foro_cidade_uf) document.getElementById('cwLocalAssinatura').value = src.foro_cidade_uf;
+            const foroDef = src.foro_cidade_uf || locadorMerged().foro_cidade_uf || 'Goiânia/GO';
+            if (!document.getElementById('cwForo').value) document.getElementById('cwForo').value = foroDef;
+            if (!document.getElementById('cwLocalAssinatura').value) document.getElementById('cwLocalAssinatura').value = foroDef;
             cwApplyDefaultWitness1(src, false);
         }
         function cwFillDepositFromDriver(d) {
@@ -11245,6 +11246,23 @@ notify pgrst, 'reload schema';`;
             cwSyncDepositClauseOnly();
         }
 
+        function cwApplyDriverContractDefaults(d) {
+            const cp = d && d.pix_extra && d.pix_extra.contrato_padrao && typeof d.pix_extra.contrato_padrao === 'object'
+                ? d.pix_extra.contrato_padrao
+                : null;
+            const discEl = document.getElementById('cwTrialDiscountAmount');
+            const perEl = document.getElementById('cwTrialDiscountPeriods');
+            const notesEl = document.getElementById('cwNotes');
+            const rentEl = document.getElementById('cwRentAmount');
+            const startEl = document.getElementById('cwStartDate');
+            if (discEl) discEl.value = (cp && Number(cp.trial_discount_amount) > 0) ? String(cp.trial_discount_amount).replace('.', ',') : '';
+            if (perEl) perEl.value = (cp && parseInt(cp.trial_discount_periods, 10) > 0) ? String(parseInt(cp.trial_discount_periods, 10)) : '';
+            if (notesEl) notesEl.value = (cp && cp.notes) ? String(cp.notes) : '';
+            if (cp && cp.rent_amount != null && rentEl) rentEl.value = String(cp.rent_amount).replace('.', ',');
+            if (cp && cp.start_date && startEl) startEl.value = String(cp.start_date);
+            if (typeof cwUpdateTrialPreview === 'function') cwUpdateTrialPreview(false);
+        }
+
         function cwFillDriver(d) {
             d = d || {};
             const map = { cwDrvName: 'name', cwDrvCpf: 'cpf', cwDrvRg: 'rg', cwDrvBirth: 'birth_date', cwDrvNat: 'nationality', cwDrvCiv: 'marital_status', cwDrvProf: 'profession', cwDrvPhone: 'phone', cwDrvEmail: 'email', cwDrvCnh: 'cnh_number', cwDrvCnhCat: 'cnh_category', cwDrvAddr: 'address' };
@@ -11259,6 +11277,7 @@ notify pgrst, 'reload schema';`;
             if (!cwState.id) {
                 document.getElementById('cwPaymentMethod').value = (d.id && cobOf(d).auto) ? 'Pix / Boleto automático via Asaas' : 'Pix / Transferência bancária';
                 cwFillDepositFromDriver(d);
+                if (!cwState.renewed_from_id) cwApplyDriverContractDefaults(d);
             }
         }
         const cwCrlvCache = {};
@@ -11364,10 +11383,18 @@ notify pgrst, 'reload schema';`;
         }
         function cwOnDriverChange(drvId) {
             const d = allDrv().find(x => x.id === drvId);
+            if (!cwState.id && !cwState.renewed_from_id) {
+                document.getElementById('cwStartDate').value = todayISO();
+                document.getElementById('cwDueDay').value = 'Toda segunda-feira';
+            }
             cwFillDriver(d || {});
             if (d && d.vehicle_id) {
                 document.getElementById('cwVehicleId').value = d.vehicle_id;
                 cwOnVehicleChange(d.vehicle_id);
+                if (!cwState.id && !cwState.renewed_from_id) {
+                    cwApplyDriverContractDefaults(d);
+                    cwRebuildClauses(false);
+                }
             } else { cwRebuildClauses(false); }
         }
         function cwOnVehicleChange(vehId) {
@@ -11793,15 +11820,13 @@ notify pgrst, 'reload schema';`;
                 if (curVeh && (!existing || !(s.veiculo && s.veiculo.renavam && s.veiculo.chassi)) && cwNeedsCrlvFill(curVeh)) cwReadVehicleCrlv(curVeh, { auto: true });
             } else {
                 const pickedLoc = cwPopulateLocadores(null, vehId);
+                document.getElementById('cwForo').value = '';
+                document.getElementById('cwLocalAssinatura').value = '';
                 cwFillLocador(pickedLoc || locadorForVehicle(vehId));
                 document.getElementById('cwPeriodicity').value = 'semanal';
                 document.getElementById('cwDueDay').value = 'Toda segunda-feira';
-                cwFillDriver(drv || {});
-                const v = state.vehicles.find(x => x.id === vehId);
-                cwFillVehicle(v || {});
                 document.getElementById('cwTrialDiscountAmount').value = '';
                 document.getElementById('cwTrialDiscountPeriods').value = '';
-                cwUpdateTrialPreview(false);
                 document.getElementById('cwStartDate').value = todayISO();
                 document.getElementById('cwIndeterminate').checked = true;
                 document.getElementById('cwEndDate').disabled = true; document.getElementById('cwEndDate').value = '';
@@ -11812,6 +11837,10 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwNotes').value = '';
                 document.getElementById('cwDataAssinatura').value = todayISO();
                 document.getElementById('cwSignatureMode').value = 'eletronica_pendente';
+                cwFillDriver(drv || {});
+                const v = state.vehicles.find(x => x.id === vehId);
+                cwFillVehicle(v || {});
+                cwApplyDriverContractDefaults(drv || {});
                 cwApplyDefaultWitness1(pickedLoc || locadorForVehicle(vehId), true);
                 document.getElementById('cwWit2Name').value = ''; document.getElementById('cwWit2Cpf').value = '';
                 const incV = document.getElementById('cwIncludeVistoria');
@@ -11852,13 +11881,28 @@ notify pgrst, 'reload schema';`;
             }
             if (document.getElementById('cwSyncDrvProfile').checked && drvId) {
                 const d = snap.locatario;
+                const cm = snap.comercial || {};
+                const drvObj = allDrv().find(x => x.id === drvId);
+                const profPatch = {
+                    name: d.name || undefined, cpf: d.cpf || null, rg: d.rg || null, birth_date: d.birth_date || null,
+                    nationality: d.nationality || null, marital_status: d.marital_status || null, profession: d.profession || null,
+                    phone: d.phone || null, email: d.email || null, cnh_number: d.cnh_number || null, cnh_category: d.cnh_category || null,
+                    cnh_ear: !!d.cnh_ear, address: d.address || null
+                };
+                if ((cm.trial_discount_amount > 0 && cm.trial_discount_periods > 0) || cm.notes || (drvObj && drvObj.pix_extra && drvObj.pix_extra.contrato_padrao)) {
+                    const nextExtra = (drvObj && drvObj.pix_extra && typeof drvObj.pix_extra === 'object') ? JSON.parse(JSON.stringify(drvObj.pix_extra)) : {};
+                    nextExtra.contrato_padrao = {
+                        rent_amount: cm.rent_amount != null ? Number(cm.rent_amount) : null,
+                        trial_discount_amount: Number(cm.trial_discount_amount || 0),
+                        trial_discount_periods: parseInt(cm.trial_discount_periods || 0, 10) || 0,
+                        start_date: cm.start_date || null,
+                        notes: cm.notes || ''
+                    };
+                    profPatch.pix_extra = nextExtra;
+                    if (drvObj) drvObj.pix_extra = nextExtra;
+                }
                 try {
-                    await sb.from('profiles').update({
-                        name: d.name || undefined, cpf: d.cpf || null, rg: d.rg || null, birth_date: d.birth_date || null,
-                        nationality: d.nationality || null, marital_status: d.marital_status || null, profession: d.profession || null,
-                        phone: d.phone || null, email: d.email || null, cnh_number: d.cnh_number || null, cnh_category: d.cnh_category || null,
-                        cnh_ear: !!d.cnh_ear, address: d.address || null
-                    }).eq('id', drvId);
+                    await sb.from('profiles').update(profPatch).eq('id', drvId);
                 } catch (e) {}
             }
             if (document.getElementById('cwSyncVehProfile').checked && vehId) {
