@@ -10983,14 +10983,25 @@ notify pgrst, 'reload schema';`;
                     y -= 6;
                 }
 
-                ensureSpace(195);
+                ensureSpace(365);
+                y -= 6;
                 page.drawText(pdfSafeText(localDt), { x: ML, y, size: 10.5, font: fontBold, color: ink });
-                y -= 28;
+                y -= 18;
 
-                const colW = (CW - 28) / 2;
+                const sigGap = 36;
+                const colW = (CW - sigGap) / 2;
+                const sealH = 92;
                 const isGovMode = contract.signature_mode !== 'digitalizado';
-                const drawSigBox = (sx, sy, roleTitle, nome, cpf, signedAt, method) => {
-                    page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
+                const drawSigBox = (sx, topY, roleTitle, nome, cpf, signedAt, method) => {
+                    const sy = topY - sealH;
+                    if (isGovMode) {
+                        page.drawRectangle({
+                            x: sx, y: sy + 3, width: colW, height: sealH - 6,
+                            borderColor: lineCol, borderWidth: 0.7, borderDashArray: [3, 3]
+                        });
+                        page.drawText(pdfSafeText('Espaço reservado ao selo GOV.BR'), { x: sx + 6, y: topY - 12, size: 6.8, font: fontSans, color: muted });
+                    }
+                    page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.9, color: ink });
                     page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 13, size: 9, font: fontBold, color: ink });
                     page.drawText(pdfSafeText(`Nome: ${nome || '____________________________'}`), { x: sx, y: sy - 25, size: 8.5, font: fontReg, color: ink });
                     page.drawText(pdfSafeText(`CPF: ${cpf || '_________________'}`), { x: sx, y: sy - 37, size: 8.5, font: fontReg, color: ink });
@@ -11001,15 +11012,15 @@ notify pgrst, 'reload schema';`;
                 };
 
                 drawSigBox(ML, y, 'LOCADOR', l.name, l.cpf, sd.locador_at, sd.locador_method);
-                drawSigBox(ML + colW + 28, y, 'LOCATÁRIO', d.name, d.cpf, sd.locatario_at, sd.locatario_method);
-                y -= 86;
+                drawSigBox(ML + colW + sigGap, y, 'LOCATÁRIO', d.name, d.cpf, sd.locatario_at, sd.locatario_method);
+                y -= (sealH + 74);
 
-                ensureSpace(98);
+                ensureSpace(sealH + 76);
                 const w1 = wList[0] || {}, w2 = wList[1] || {};
                 drawSigBox(ML, y, 'TESTEMUNHA 1', w1.name || sd.witness1_name, w1.cpf || sd.witness1_cpf, sd.witness1_at, sd.witness1_method);
-                drawSigBox(ML + colW + 28, y, 'TESTEMUNHA 2', w2.name || sd.witness2_name, w2.cpf || sd.witness2_cpf, sd.witness2_at, sd.witness2_method);
+                drawSigBox(ML + colW + sigGap, y, 'TESTEMUNHA 2', w2.name || sd.witness2_name, w2.cpf || sd.witness2_cpf, sd.witness2_at, sd.witness2_method);
                 if (isGovMode) {
-                    page.drawText(pdfSafeText('TODOS os 4 participantes (Locador, Locatário, Testemunha 1 e Testemunha 2) devem assinar via https://assinador.iti.br no mesmo PDF — valida Contrato e Anexo I (https://validar.iti.gov.br).'), { x: ML, y: y - 64, size: 7.2, font: fontSans, color: muted });
+                    page.drawText(pdfSafeText('TODOS os 4 participantes (Locador, Locatário, Testemunha 1 e Testemunha 2) devem assinar via https://assinador.iti.br no mesmo PDF — valida Contrato e Anexo I (https://validar.iti.gov.br).'), { x: ML, y: y - sealH - 64, size: 7.2, font: fontSans, color: muted });
                 }
 
                 // Rodapés com paginação exata "Página X de Y"
@@ -13309,14 +13320,24 @@ notify pgrst, 'reload schema';`;
 
             // Assinaturas
             const localDt = `${ins.signature_place || 'Local'}, ${ins.signature_date ? fmtDate(ins.signature_date) : fmtDate(ins.inspection_date || todayISO())}.`;
-            ensureSpace(170);
+            ensureSpace(360);
             y -= 8;
             page.drawText(pdfSafeText(localDt), { x: ML, y, size: 10, font: fontBold, color: ink });
-            y -= 28;
-            const colW = (CW - 28) / 2;
+            y -= 18;
+            const sigGap = 36;
+            const colW = (CW - sigGap) / 2;
+            const sealH = 92;
             const isGovMode = ins.signature_mode !== 'digitalizado';
-            const drawSig = (sx, sy, roleTitle, nome, cpf, signedAt, method) => {
-                page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
+            const drawSig = (sx, topY, roleTitle, nome, cpf, signedAt, method) => {
+                const sy = topY - sealH;
+                if (isGovMode) {
+                    page.drawRectangle({
+                        x: sx, y: sy + 3, width: colW, height: sealH - 6,
+                        borderColor: lineCol, borderWidth: 0.7, borderDashArray: [3, 3]
+                    });
+                    page.drawText(pdfSafeText('Espaço reservado ao selo GOV.BR'), { x: sx + 6, y: topY - 12, size: 6.8, font: fontSans, color: muted });
+                }
+                page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.9, color: ink });
                 page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 12, size: 8.8, font: fontBold, color: ink });
                 page.drawText(pdfSafeText(`Nome: ${nome || '__________________________'}`), { x: sx, y: sy - 24, size: 8.2, font: fontReg, color: ink });
                 page.drawText(pdfSafeText(`CPF: ${cpf || '_______________'}`), { x: sx, y: sy - 35, size: 8.2, font: fontReg, color: ink });
@@ -13326,14 +13347,14 @@ notify pgrst, 'reload schema';`;
                 page.drawText(pdfSafeText(stTxt), { x: sx, y: sy - 46, size: 7.8, font: fontReg, color: muted });
             };
             drawSig(ML, y, 'LOCADOR / VISTORIADOR', l.name, l.cpf, sd.locador_at, sd.locador_method);
-            drawSig(ML + colW + 28, y, 'LOCATÁRIO (MOTORISTA)', d.name, d.cpf, sd.locatario_at, sd.locatario_method);
-            y -= 78;
-            ensureSpace(90);
+            drawSig(ML + colW + sigGap, y, 'LOCATÁRIO (MOTORISTA)', d.name, d.cpf, sd.locatario_at, sd.locatario_method);
+            y -= (sealH + 72);
+            ensureSpace(sealH + 74);
             const wList = Array.isArray(s.testemunhas) ? s.testemunhas : [{}, {}];
             drawSig(ML, y, 'TESTEMUNHA 1', wList[0]?.name || sd.witness1_name, wList[0]?.cpf || sd.witness1_cpf, sd.witness1_at, sd.witness1_method);
-            drawSig(ML + colW + 28, y, 'TESTEMUNHA 2', wList[1]?.name || sd.witness2_name, wList[1]?.cpf || sd.witness2_cpf, sd.witness2_at, sd.witness2_method);
+            drawSig(ML + colW + sigGap, y, 'TESTEMUNHA 2', wList[1]?.name || sd.witness2_name, wList[1]?.cpf || sd.witness2_cpf, sd.witness2_at, sd.witness2_method);
             if (isGovMode) {
-                page.drawText(pdfSafeText('TODOS os 4 participantes (Locador, Locatário, Testemunha 1 e Testemunha 2) devem assinar em cadeia no mesmo PDF em https://assinador.iti.br (https://validar.iti.gov.br).'), { x: ML, y: y - 62, size: 7.2, font: fontSans, color: muted });
+                page.drawText(pdfSafeText('TODOS os 4 participantes (Locador, Locatário, Testemunha 1 e Testemunha 2) devem assinar em cadeia no mesmo PDF em https://assinador.iti.br (https://validar.iti.gov.br).'), { x: ML, y: y - sealH - 62, size: 7.2, font: fontSans, color: muted });
             }
 
             const totalP = pages.length;
