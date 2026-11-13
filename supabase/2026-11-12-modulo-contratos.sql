@@ -154,10 +154,11 @@ create index if not exists idx_rental_contract_history_driver
   on public.rental_contract_history (driver_id);
 
 -- 6) Permissões e RLS estrita (isolamento por conta/owner e por motorista)
-grant select, insert, update, delete on public.rental_contracts to authenticated;
+grant select, insert, update, delete on public.rental_contracts to authenticated, service_role;
 grant select, insert on public.rental_contract_history to authenticated;
-grant usage, select on sequence public.rental_contracts_seq to authenticated;
-grant execute on function public.next_rental_contract_number() to authenticated;
+grant select, insert, update, delete on public.rental_contract_history to service_role;
+grant usage, select on sequence public.rental_contracts_seq to authenticated, service_role;
+grant execute on function public.next_rental_contract_number() to authenticated, service_role;
 
 alter table public.rental_contracts enable row level security;
 alter table public.rental_contract_history enable row level security;

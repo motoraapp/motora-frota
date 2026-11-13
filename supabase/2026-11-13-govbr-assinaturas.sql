@@ -30,7 +30,7 @@ create index if not exists idx_signature_invites_owner
 
 alter table public.signature_invites enable row level security;
 
-grant select, insert, update, delete on public.signature_invites to authenticated;
+grant select, insert, update, delete on public.signature_invites to authenticated, service_role;
 
 drop policy if exists master_gerencia_convites_assinatura on public.signature_invites;
 create policy master_gerencia_convites_assinatura on public.signature_invites

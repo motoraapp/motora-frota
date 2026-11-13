@@ -84,7 +84,8 @@ function makeToken() {
 async function resolveDoc(docType: string, docId: string) {
   const table = docType === "inspection" ? "vehicle_inspections" : "rental_contracts";
   const { data, error } = await admin.from(table).select("*").eq("id", docId).maybeSingle();
-  if (error || !data) return null;
+  if (error) throw new Error(`Erro ao consultar ${table}: ${error.message}`);
+  if (!data) return null;
   return { table, doc: data as Record<string, unknown> };
 }
 

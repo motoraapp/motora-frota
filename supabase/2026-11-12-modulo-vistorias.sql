@@ -119,9 +119,9 @@ create trigger trg_vehicle_inspections_updated
   for each row execute function public.vehicle_inspections_before_update();
 
 -- 5) Permissões e RLS estrita (isolamento por proprietário e acesso restrito do motorista aos termos emitidos)
-grant select, insert, update, delete on public.vehicle_inspections to authenticated;
-grant usage, select on sequence public.vehicle_inspections_seq to authenticated;
-grant execute on function public.next_vehicle_inspection_number(text) to authenticated;
+grant select, insert, update, delete on public.vehicle_inspections to authenticated, service_role;
+grant usage, select on sequence public.vehicle_inspections_seq to authenticated, service_role;
+grant execute on function public.next_vehicle_inspection_number(text) to authenticated, service_role;
 
 alter table public.vehicle_inspections enable row level security;
 

@@ -3057,6 +3057,26 @@
             return m || 'Ocorreu um erro. Tente de novo.';
         }
 
+        // Extrai a mensagem JSON real quando uma Edge Function responde HTTP 4xx/5xx
+        async function unwrapInvokeResult(res, fallbackMsg) {
+            if (res && res.data && res.data.ok) return res.data;
+            let errMsg = (res && res.data && res.data.error) || '';
+            const err = res && res.error;
+            if (!errMsg && err && err.context && typeof err.context.clone === 'function') {
+                try {
+                    const j = await err.context.clone().json();
+                    if (j && (j.error || j.message)) errMsg = j.error || j.message;
+                } catch (_) {
+                    try {
+                        const t = await err.context.clone().text();
+                        if (t) errMsg = t;
+                    } catch (__) {}
+                }
+            }
+            if (!errMsg && err && err.message && !/non-2xx/i.test(err.message)) errMsg = err.message;
+            throw new Error(errMsg || (err && err.message) || fallbackMsg || 'Falha na operação.');
+        }
+
         // Preferências guardadas só neste aparelho (status online e primeiro acesso)
         function devicePrefs() {
             try { return JSON.parse(lsGet('motora_prefs_' + state.user.id)) || {}; } catch (e) { return {}; }
@@ -10402,10 +10422,10 @@ notify pgrst, 'reload schema';`;
             const sg = govBrSignersList(docType, doc).find(x => x.role === signerRole) || {};
             return withBtn(btn, 'Gerando...', async () => {
                 try {
-                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                    const res = await sb.functions.invoke('motora-assinatura', {
                         body: { action: 'create_invite', doc_type: docType, doc_id: docId, signer_role: signerRole, signer_name: sg.name || '', signer_cpf: sg.cpf || '' }
                     });
-                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Não foi possível gerar o link.');
+                    const data = await unwrapInvokeResult(res, 'Não foi possível gerar o link.');
                     const link = `${govBrPublicAppBaseUrl()}?assinar=${encodeURIComponent(data.token)}`;
                     const docNum = docType === 'inspection' ? doc.inspection_number : doc.contract_number;
                     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).catch(() => {});
@@ -10436,10 +10456,10 @@ notify pgrst, 'reload schema';`;
             return withBtn(btn, 'Validando GOV.BR...', async () => {
                 try {
                     const { base64 } = await readPdfFileAsBase64AndInspect(file);
-                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                    const res = await sb.functions.invoke('motora-assinatura', {
                         body: { action: 'submit_govbr_pdf', doc_type: docType, doc_id: docId, signer_roles: roles, pdf_base64: base64, file_name: file.name }
                     });
-                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Falha ao validar PDF.');
+                    const data = await unwrapInvokeResult(res, 'Falha ao validar PDF.');
                     await reload();
                     if (docType === 'inspection') { openInspectionDetail(docId); if (fileDriverId) renderDriverRentalContractsBox(fileDriverId); }
                     else { openContractDetail(docId); if (fileDriverId) renderDriverRentalContractsBox(fileDriverId); }
@@ -10455,10 +10475,10 @@ notify pgrst, 'reload schema';`;
             return withBtn(btn, 'Validando GOV.BR...', async () => {
                 try {
                     const { base64 } = await readPdfFileAsBase64AndInspect(file);
-                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                    const res = await sb.functions.invoke('motora-assinatura', {
                         body: { action: 'submit_govbr_pdf', doc_type: docType, doc_id: docId, signer_role: 'locatario', pdf_base64: base64, file_name: file.name }
                     });
-                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Falha ao validar PDF.');
+                    const data = await unwrapInvokeResult(res, 'Falha ao validar PDF.');
                     await reload();
                     showContractDoc(docType === 'inspection' ? 'vistoria' : 'contrato');
                     showToast(`Sua assinatura GOV.BR foi validada (${data.sig_count} selo(s) no PDF)!`);
@@ -10477,8 +10497,8 @@ notify pgrst, 'reload schema';`;
                 if (!DEMO && demoPrev && String(token).startsWith('demo-')) {
                     demoStart(demoPrev.role || 'master', demoPrev);
                 }
-                const { data, error } = await sb.functions.invoke('motora-assinatura', { body: { action: 'get_invite', token } });
-                if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Link inválido ou expirado.');
+                const res = await sb.functions.invoke('motora-assinatura', { body: { action: 'get_invite', token } });
+                const data = await unwrapInvokeResult(res, 'Link inválido ou expirado.');
                 const inv = data.invite, doc = data.doc, sd = doc.signature_data || {};
                 const docTitle = doc.doc_type === 'inspection' ? `${doc.inspection_type === 'devolucao' ? 'Termo de Devolução' : 'Termo de Vistoria'} ${doc.doc_number}` : `Contrato de Locação ${doc.doc_number}`;
                 const roleNames = { locador: 'Locador', locatario: 'Locatário (Motorista)', witness1: 'Testemunha 1', witness2: 'Testemunha 2' };
@@ -10547,10 +10567,10 @@ notify pgrst, 'reload schema';`;
             return withBtn(btn, 'Validando assinatura GOV.BR...', async () => {
                 try {
                     const { base64 } = await readPdfFileAsBase64AndInspect(file);
-                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                    const res = await sb.functions.invoke('motora-assinatura', {
                         body: { action: 'submit_govbr_pdf', token, signer_name, signer_cpf, pdf_base64: base64, file_name: file.name }
                     });
-                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Não foi possível validar o PDF.');
+                    const data = await unwrapInvokeResult(res, 'Não foi possível validar o PDF.');
                     await loadGovBrInvitePage(token);
                     showToast(`Assinatura GOV.BR confirmada (${data.sig_count} selo(s) no PDF)!`);
                 } catch (e) { showToast(friendlyError(e), 'error'); }
@@ -12362,8 +12382,7 @@ notify pgrst, 'reload schema';`;
                     deletedOk = true;
                 } else {
                     const res = await sb.functions.invoke('motora-assinatura', { body: { action: 'delete_contract', contract_id: id } });
-                    if (res.error) throw res.error;
-                    if (!res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Não foi possível excluir o registro no banco.');
+                    await unwrapInvokeResult(res, 'Não foi possível excluir o registro no banco.');
                     deletedOk = true;
                 }
                 if (!deletedOk) throw new Error('Nenhum registro foi excluído no banco de dados.');
