@@ -395,7 +395,11 @@ Deno.serve(async (req) => {
       // Atualiza atalho na ficha do motorista se concluiu todas as 4 assinaturas
       if (allSigned && doc.driver_id) {
         if (docType === "contract") {
-          await admin.from("profiles").update({ contract_path: storagePath }).eq("id", doc.driver_id);
+          const hasUnifiedInsp = Boolean(((doc.snapshot_data as Record<string, unknown> | undefined)?.vistoria_entrega as Record<string, unknown> | undefined)?.included);
+          await admin
+            .from("profiles")
+            .update(hasUnifiedInsp ? { contract_path: storagePath, inspection_term_path: storagePath } : { contract_path: storagePath })
+            .eq("id", doc.driver_id);
         } else if (docType === "inspection" && doc.inspection_type === "entrega") {
           await admin.from("profiles").update({ inspection_term_path: storagePath }).eq("id", doc.driver_id);
         }

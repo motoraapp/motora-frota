@@ -578,7 +578,7 @@
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                             <h3 class="font-bold text-lg flex items-center gap-2"><i class="fa-solid fa-file-signature text-indigo-600"></i> Contratos e Vistorias</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Gerencie contratos A4, termos de vistoria de entrega e termos de devolução com análise por IA.</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Contrato único A4 (com Anexo I — Vistoria de Entrega integrada para 1 assinatura GOV.BR por pessoa) e Termos de Devolução com análise por IA.</p>
                         </div>
                         <div class="flex flex-wrap gap-2 shrink-0">
                             <button type="button" onclick="openInspectionWizard({ type: 'entrega' })" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm flex items-center gap-1.5">
@@ -1780,7 +1780,7 @@
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">RENAVAM *</label><input id="cwVehRenavam" inputmode="numeric" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div class="sm:col-span-2"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Chassi *</label><input id="cwVehChassi" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none uppercase"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Combustível</label><input id="cwVehFuel" placeholder="Flex" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
-                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Quilometragem atual</label><input id="cwVehMileage" type="number" min="0" inputmode="numeric" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Quilometragem atual</label><input id="cwVehMileage" type="number" min="0" inputmode="numeric" oninput="const im=document.getElementById('cwInspMileage');if(im)im.value=this.value" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     </div>
                     <label class="mt-2.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer"><input type="checkbox" id="cwSyncVehProfile" checked class="rounded"> Atualizar cadastro do veículo com os dados complementados</label>
                 </details>
@@ -1849,8 +1849,8 @@
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data da assinatura</label><input id="cwDataAssinatura" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Modo de assinatura</label>
                             <select id="cwSignatureMode" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
-                                <option value="eletronica_pendente">Assinatura Eletrônica GOV.BR (Partes e Testemunhas)</option>
-                                <option value="manual">Legado / PDF físico digitalizado</option>
+                                <option value="eletronica_pendente">Assinatura Eletrônica GOV.BR (Obrigatória — 1x por pessoa)</option>
+                                <option value="digitalizado">Legado / PDF já digitalizado (permite migrar para GOV.BR)</option>
                             </select>
                         </div>
                         <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Finalidade da locação *</label><textarea id="cwPurpose" rows="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
@@ -1862,9 +1862,77 @@
                     </div>
                 </details>
 
+                <!-- Anexo I: Termo de Vistoria e Entrega Integrado -->
+                <details class="rounded-xl border border-emerald-300 dark:border-emerald-800 p-3 bg-emerald-50/20 dark:bg-emerald-900/10" open>
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-clipboard-check text-emerald-600 mr-1"></i> 5. Anexo I — Termo de Vistoria e Entrega (Contrato Único · 1 Assinatura GOV.BR por Pessoa)</summary>
+                    <div class="mt-3 space-y-3">
+                        <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                            <label class="flex items-center gap-2 font-semibold text-emerald-900 dark:text-emerald-200 cursor-pointer">
+                                <input type="checkbox" id="cwIncludeVistoria" checked onchange="cwToggleVistoriaFields();cwRebuildClauses(false)" class="rounded">
+                                Incluir Termo de Vistoria de Entrega como Anexo I neste mesmo PDF (assinatura única via GOV.BR)
+                            </label>
+                            <span class="text-[11px] text-emerald-700 dark:text-emerald-300">Validade jurídica plena (CC, Lei 14.063/20 e CPC art. 784 § 4º)</span>
+                        </div>
+                        <div id="cwVistoriaFields" class="space-y-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data e hora da entrega</label>
+                                    <input type="datetime-local" id="cwInspDate" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Combustível / Carga na entrega</label>
+                                    <select id="cwInspFuel" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                        <option value="Cheio">Cheio (4/4)</option>
+                                        <option value="3/4">3/4</option>
+                                        <option value="1/2">Meio tanque (1/2)</option>
+                                        <option value="1/4">1/4</option>
+                                        <option value="Reserva">Reserva</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Hodômetro na entrega (km)</label>
+                                    <input type="number" id="cwInspMileage" min="0" inputmode="numeric" oninput="document.getElementById('cwVehMileage').value=this.value" placeholder="Mesmo da seção 3" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                                </div>
+                            </div>
+                            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/60 p-3 space-y-2.5">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <div class="font-bold text-xs uppercase text-gray-700 dark:text-gray-200"><i class="fa-solid fa-images text-indigo-600 mr-1"></i> Fotos da Vistoria no Anexo I (<span id="cwInspPhotosCount">0</span>)</div>
+                                        <p id="cwInspAiProgress" class="text-[11px] text-gray-500 dark:text-gray-400">As fotos já salvas no veículo são puxadas automaticamente e seladas junto com o contrato no GOV.BR.</p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1.5 shrink-0">
+                                        <button type="button" onclick="cwImportSavedPhotos()" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-rotate mr-1"></i> Puxar fotos salvas</button>
+                                        <button type="button" onclick="cwAnalyzeInspWithAI(this)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Analisar com IA</button>
+                                        <label class="cursor-pointer px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i> Adicionar fotos
+                                            <input type="file" accept="image/*" multiple class="hidden" onchange="cwUploadInspPhotos(this)">
+                                        </label>
+                                    </div>
+                                </div>
+                                <div id="cwInspPhotosGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5"></div>
+                                <div id="cwInspDamagesBox" class="pt-1"></div>
+                            </div>
+                            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/60 p-3 space-y-2">
+                                <div class="font-bold text-xs uppercase text-gray-700 dark:text-gray-200"><i class="fa-solid fa-list-check text-emerald-600 mr-1"></i> Checklist de Conferência na Entrega</div>
+                                <div id="cwInspChecklistGrid" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Ressalva do Locatário / Contraditório (opcional)</label>
+                                    <textarea id="cwInspDriverReservation" rows="2" placeholder="Registre qualquer apontamento declarado pelo motorista antes da assinatura única..." class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Observações da Vistoria de Entrega (acessórios/itens)</label>
+                                    <textarea id="cwInspNotes" rows="2" placeholder="Ex: Entregue com CRLV-e digital, carregador/chave reserva, estepe e macaco conferidos..." class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
                 <!-- Cláusulas editáveis -->
                 <details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
-                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-gavel text-indigo-600 mr-1"></i> 5. Minuta e Cláusulas do Contrato (1 a 16 — Editáveis)</summary>
+                    <summary class="font-bold text-sm cursor-pointer"><i class="fa-solid fa-gavel text-indigo-600 mr-1"></i> 6. Minuta e Cláusulas do Contrato (1 a 16 — Editáveis)</summary>
                     <div class="mt-3 space-y-3">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <p class="text-xs text-gray-500 dark:text-gray-400">Edite qualquer cláusula se necessário antes da emissão definitiva.</p>
@@ -2308,12 +2376,27 @@
                     veiculo: { brand: veh.brand, model: veh.model, version: veh.version, manufacture_year: veh.manufacture_year, model_year: veh.model_year, color: veh.color, plate: veh.plate, renavam: veh.renavam, chassi: veh.chassi, fuel: veh.fuel, mileage: veh.mileage },
                     comercial: { rent_amount: veh.rent_amount, periodicity: 'semanal', due_day: 'Toda segunda-feira', start_date: sDate, end_date: eDate, is_indeterminate: eDate == null, deposit_amount: 1000, payment_method: 'Pix / Transferência bancária', km_limit: null, km_extra_price: null, purpose: 'Utilização do veículo para atividades remuneradas de transporte de passageiros por meio de aplicativos, plataformas digitais e serviços de transporte executivo, observadas as exigências legais aplicáveis.', notes: 'Entregue com CRLV-e digital, chave reserva e estepe.', local_assinatura: 'São Paulo/SP', data_assinatura: sDate, foro_cidade_uf: 'São Paulo/SP' },
                     testemunhas: [{ name: 'João Pereira (Demo)', cpf: '111.111.111-11' }, { name: 'Maria Souza (Demo)', cpf: '222.222.222-22' }],
+                    vistoria_entrega: {
+                        included: true,
+                        inspection_date: new Date(ago(startDays)).toISOString(),
+                        mileage: veh.mileage,
+                        fuel_level: 'Cheio',
+                        checklist: { crlv: { status: 'conforme', note: '' }, chaves: { status: 'conforme', note: '' }, estepe: { status: 'conforme', note: '' }, pneus: { status: 'conforme', note: '' }, iluminacao: { status: 'conforme', note: '' }, vidros: { status: 'conforme', note: '' }, lataria: { status: 'conforme', note: '' }, interior: { status: 'conforme', note: '' }, painel_alertas: { status: 'conforme', note: '' } },
+                        photos: db.inspection_photos.filter(p => p.vehicle_id === veh.id).map(p => ({ id: p.id, path: p.file_path, slot: p.slot, label: p.label, has_damage: false, damage_status: 'none', damage_note: null, ai_summary: 'Sem avaria aparente', added_at: p.created_at })),
+                        damages_summary: [],
+                        driver_reservation: null,
+                        notes: 'Veículo entregue conferido com CRLV-e digital e acessórios obrigatórios.'
+                    },
                     clauses: null
                 };
                 const sIso = new Date(ago(startDays)).toISOString();
                 const sigData = {
+                    provider: 'govbr',
                     locador_at: signed ? sIso : null, locatario_at: signed ? sIso : null,
                     witness1_at: signed ? sIso : null, witness2_at: signed ? sIso : null,
+                    locador_method: signed ? 'govbr' : null, locatario_method: signed ? 'govbr' : null,
+                    witness1_method: signed ? 'govbr' : null, witness2_method: signed ? 'govbr' : null,
+                    pdf_sig_count: signed ? 4 : 0, govbr_detected: !!signed,
                     witness1_name: snap.testemunhas[0].name, witness1_cpf: snap.testemunhas[0].cpf,
                     witness2_name: snap.testemunhas[1].name, witness2_cpf: snap.testemunhas[1].cpf
                 };
@@ -2322,7 +2405,7 @@
                     rent_amount: veh.rent_amount, payment_periodicity: 'semanal', due_day: 'Toda segunda-feira', start_date: sDate, end_date: eDate, indefinite_term: eDate == null,
                     deposit_amount: 1000, payment_method: 'Pix / Transferência bancária', km_limit: null, excess_km_fee: null,
                     purpose: snap.comercial.purpose, notes: snap.comercial.notes, signature_place: 'São Paulo/SP', signature_date: sDate,
-                    signature_mode: signed ? 'digitalizado' : 'manual', signature_data: sigData,
+                    signature_mode: signed ? 'eletronica_assinada' : 'eletronica_pendente', signature_data: sigData,
                     signed_at: signed ? sIso : null, emitted_at: sIso, snapshot_data: snap,
                     pdf_path: doc(`demo/${drv.id}/contrato-${cid}.svg`), signed_pdf_path: signed ? doc(`demo/${drv.id}/contrato.svg`) : null,
                     terminated_at: status === 'encerrado' ? new Date(ago(10)).toISOString() : null,
@@ -2330,7 +2413,7 @@
                     created_at: sIso, updated_at: sIso
                 });
                 db.rental_contract_history.push({ id: demoId(), owner_id: 'demo-master', contract_id: cid, driver_id: drv.id, event_type: 'emitido', description: `Contrato ${num} gerado (demonstração)`, metadata: { status }, created_at: sIso });
-                if (signed) db.rental_contract_history.push({ id: demoId(), owner_id: 'demo-master', contract_id: cid, driver_id: drv.id, event_type: 'assinado', description: 'Assinaturas manuais registradas', metadata: {}, created_at: new Date(ago(startDays - 1)).toISOString() });
+                if (signed) db.rental_contract_history.push({ id: demoId(), owner_id: 'demo-master', contract_id: cid, driver_id: drv.id, event_type: 'assinatura_govbr', description: 'Assinaturas GOV.BR registradas (Contrato + Anexo I)', metadata: {}, created_at: new Date(ago(startDays - 1)).toISOString() });
             };
             demoCtrBuild('demo-c1', 'CTR-2026-0001', 1, 1, 'ativo', 90, null, true);
             demoCtrBuild('demo-c2', 'CTR-2026-0002', 2, 2, 'aguardando_assinatura', 5, null, false);
@@ -2358,8 +2441,8 @@
                     contrato: { contract_number: 'CTR-2026-0001', start_date: demoDay(ago(90)) },
                     testemunhas: [{ name: 'João Pereira (Demo)', cpf: '111.111.111-11' }, { name: 'Maria Souza (Demo)', cpf: '222.222.222-22' }]
                 },
-                pdf_path: null, signed_pdf_path: null, signature_mode: 'manual',
-                signature_data: { locador_at: demoViIso, locatario_at: demoViIso, witness1_at: demoViIso, witness2_at: demoViIso, witness1_name: 'João Pereira (Demo)', witness1_cpf: '111.111.111-11', witness2_name: 'Maria Souza (Demo)', witness2_cpf: '222.222.222-22' },
+                pdf_path: null, signed_pdf_path: null, signature_mode: 'eletronica_assinada',
+                signature_data: { provider: 'govbr', locador_at: demoViIso, locatario_at: demoViIso, witness1_at: demoViIso, witness2_at: demoViIso, pdf_sig_count: 4, govbr_detected: true, witness1_name: 'João Pereira (Demo)', witness1_cpf: '111.111.111-11', witness2_name: 'Maria Souza (Demo)', witness2_cpf: '222.222.222-22' },
                 emitted_at: demoViIso, signed_at: demoViIso, created_at: demoViIso, updated_at: demoViIso
             });
             return { db, userId: role === 'master' ? 'demo-master' : 'demo-d1' };
@@ -9979,13 +10062,37 @@ notify pgrst, 'reload schema';`;
             document.getElementById('btnDocVistoria').className = kind === 'vistoria' ? on : off;
             if (kind === 'vistoria') {
                 const terms = (state.inspections || []).filter(i => i.driver_id === d.id && i.status !== 'rascunho' && i.status !== 'cancelado');
-                if (!terms.length) {
+                const unifiedCtrs = (state.contracts || []).filter(c => c.driver_id === d.id && c.status !== 'rascunho' && c.status !== 'cancelado' && c.snapshot_data && c.snapshot_data.vistoria_entrega && c.snapshot_data.vistoria_entrega.included);
+                if (!terms.length && !unifiedCtrs.length) {
                     const fotos = state.inspection.length && feat('vistoria') ? ' As fotos da vistoria estão na aba <b>Vistoria</b>.' : '';
                     renderFilePreview('contractViewer', d.inspection_term_path, `Nenhum termo de vistoria cadastrado pela administração.${fotos}`, 'Termo de vistoria');
                     return;
                 }
                 const viewer = document.getElementById('contractViewer');
+                const unifiedHtml = unifiedCtrs.map(uc => {
+                    const ve = (uc.snapshot_data && uc.snapshot_data.vistoria_entrega) || {};
+                    const v = (uc.snapshot_data && uc.snapshot_data.veiculo) || {};
+                    const path = uc.signed_pdf_path || uc.pdf_path;
+                    const dmgCnt = Array.isArray(ve.damages_summary) ? ve.damages_summary.length : 0;
+                    const pCnt = Array.isArray(ve.photos) ? ve.photos.length : 0;
+                    return `<div class="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/15 border border-emerald-200 dark:border-emerald-800 space-y-2.5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <div class="font-bold text-sm">Anexo I · Vistoria de Entrega integrada ao ${esc(uc.contract_number)}</div>
+                                <div class="text-xs text-gray-600 dark:text-gray-300">${esc(v.model || '')}${v.plate ? ' · ' + esc(v.plate) : ''} · ${ve.mileage != null ? Number(ve.mileage).toLocaleString('pt-BR') + ' km' : 'KM não inf.'} · Comb.: ${esc(ve.fuel_level || '-')} · ${pCnt} foto(s) · ${dmgCnt} avaria(s)</div>
+                            </div>
+                            ${contractStatusBadge(uc.status)}
+                        </div>
+                        <p class="text-xs text-emerald-900 dark:text-emerald-200">Este Termo de Vistoria de Entrega faz parte do Contrato <b>${esc(uc.contract_number)}</b> (assinatura única via GOV.BR — basta assinar o contrato uma única vez).</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${path ? `<button type="button" onclick="viewDocIdx(${docRef(path, `Contrato + Anexo I ${esc(uc.contract_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-eye mr-1"></i> ${uc.signed_pdf_path ? 'Ver PDF assinado' : 'Visualizar PDF único'}</button>` : ''}
+                            <button type="button" onclick="downloadContractPdf('${uc.id}', this)" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
+                            <button type="button" onclick="showContractDoc('contrato')" class="px-3 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-signature mr-1"></i> Assinar 1x via GOV.BR</button>
+                        </div>
+                    </div>`;
+                }).join('');
                 viewer.innerHTML = `<div class="w-full space-y-3">
+                    ${unifiedHtml}
                     ${terms.map(ins => {
                         const s = ins.snapshot_data || {};
                         const v = s.veiculo || {};
@@ -10501,8 +10608,9 @@ notify pgrst, 'reload schema';`;
             const foroClauseHead = c.foro_cidade_uf
                 ? `Fica eleito o foro da Comarca de ${c.foro_cidade_uf}`
                 : 'Fica eleito o foro do domicílio competente, conforme a legislação vigente,';
+            const hasVistoria = !!(snap.vistoria_entrega && snap.vistoria_entrega.included);
             return [
-                { num: 1, title: 'CLÁUSULA 1 — DO OBJETO E ÁREA DE CIRCULAÇÃO', body: `O LOCADOR dá em locação ao LOCATÁRIO, livre de ônus que impeçam a posse regular, o veículo automotor com as seguintes especificações: ${vehSpec}.\nParágrafo 1º. O veículo destina-se exclusivamente à finalidade declarada pelas partes: ${purpose}\nParágrafo 2º. RESTRIÇÃO GEOGRÁFICA: Fica expressamente convencionado que a utilização regular do veículo restringe-se à Região Metropolitana de Goiânia/GO. Viagens para além dessa região somente poderão ser realizadas mediante autorização prévia e expressa do LOCADOR, condicionada à realização prévia de revisão veicular para aferição das condições de segurança do bem (freios, pneus, óleo, arrefecimento e documentação).` },
+                { num: 1, title: 'CLÁUSULA 1 — DO OBJETO E ÁREA DE CIRCULAÇÃO', body: `O LOCADOR dá em locação ao LOCATÁRIO, livre de ônus que impeçam a posse regular, o veículo automotor com as seguintes especificações: ${vehSpec}.\nParágrafo 1º. O veículo destina-se exclusivamente à finalidade declarada pelas partes: ${purpose}\nParágrafo 2º. RESTRIÇÃO GEOGRÁFICA: Fica expressamente convencionado que a utilização regular do veículo restringe-se à Região Metropolitana de Goiânia/GO. Viagens para além dessa região somente poderão ser realizadas mediante autorização prévia e expressa do LOCADOR, condicionada à realização prévia de revisão veicular para aferição das condições de segurança do bem (freios, pneus, óleo, arrefecimento e documentação).${hasVistoria ? '\nParágrafo 3º (Anexo I — Termo de Vistoria e Entrega Integrado). Integra este contrato, como parte indissociável e vinculante, o ANEXO I — TERMO DE VISTORIA E ENTREGA DO VEÍCULO, contendo a conferência presencial inicial, quilometragem, combustível/carga, checklist de itens obrigatórios, eventual registro de avarias preexistentes, ressalvas e acervo fotográfico da entrega.' : ''}` },
                 { num: 2, title: 'CLÁUSULA 2 — DA VIGÊNCIA', body: `A presente locação vigerá por ${vigTxt}. A eventual permanência do LOCATÁRIO na posse do veículo após o termo final sem formalização de novo contrato não implica renúncia às obrigações de pagamento, conservação e restituição imediata do bem.` },
                 { num: 3, title: 'CLÁUSULA 3 — DO VALOR, PAGAMENTO E USO DO APLICATIVO MOTORA', body: `Pela locação do veículo, o LOCATÁRIO pagará ao LOCADOR o valor de ${valFmt}, com periodicidade ${perLbl}, vencimento ${dueTxt}, por meio de ${payTxt}.\nParágrafo 1º (Geração de Pix no App MOTORA e Credenciais Próprias). Os códigos Pix (QR Code e "copia e cola") referentes ao aluguel e demais encargos contratuais serão gerados e disponibilizados diretamente no aplicativo MOTORA, fornecido ao LOCATÁRIO no ato da locação mediante login e senha próprios, pessoais e intransferíveis${d.email ? ` (cadastro vinculado a ${d.email})` : ''}. O LOCATÁRIO declara ciência e recebimento do acesso no ato da contratação, responsabilizando-se pelo sigilo de sua senha, pela conferência regular das cobranças e avisos no aplicativo e pela guarda do aparelho de acesso.\nParágrafo 2º (Segurança Antifraude e Canal Alternativo em Falha Técnica). Para segurança de ambas as partes, somente quitam a obrigação os pagamentos efetuados por meio de cobrança Pix emitida nativamente dentro da área autenticada do aplicativo MOTORA ou para conta oficial confirmada diretamente pelo LOCADOR. Em caso de dificuldade de acesso, troca de aparelho ou falha técnica no aplicativo, o LOCATÁRIO deverá acionar o LOCADOR antes do vencimento pelos contatos oficiais deste contrato (WhatsApp/telefone) para envio de guia ou código Pix alternativo; a ausência de comunicação prévia antes do vencimento não afasta a mora.\nParágrafo 3º (Comprovação e Rodagem). A efetiva quitação dar-se-á mediante compensação bancária e registro de baixa ou envio do comprovante no aplicativo MOTORA. Quanto à rodagem contratada, ${kmTxt}. Em caso de atraso no pagamento, aplicam-se os encargos previstos na Cláusula 4 e os procedimentos da Cláusula 5.${trialParagraphs}` },
                 { num: 4, title: 'CLÁUSULA 4 — DO ATRASO NO PAGAMENTO E DA INADIMPLÊNCIA', body: `O não pagamento do aluguel na data de vencimento constituirá o LOCATÁRIO em mora, independentemente de notificação, sujeitando o débito aos seguintes encargos:\nI – Juros moratórios de ${pctExt(jurosMesPct, 2, 'dois por cento')} ao mês, calculados proporcionalmente aos dias de atraso (mês comercial de 30 dias), sobre o valor vencido e não pago;\nII – Multa moratória de ${pctExt(multaPct, 10, 'dez por cento')} sobre o valor da obrigação vencida, observados os limites legais aplicáveis;\nIII – Atualização monetária pelo IPCA, quando cabível, observadas as disposições legais e contratuais aplicáveis.\nParágrafo único. Os encargos serão calculados até a data do efetivo pagamento, observada a prorrogação do vencimento sem encargos até o primeiro dia útil subsequente apenas quando a data recair em sábado, domingo ou feriado (incidindo os encargos desde o vencimento original caso não haja quitação nesse dia útil), sem prejuízo das demais medidas legais e contratuais cabíveis em caso de inadimplência.` },
@@ -10513,11 +10621,11 @@ notify pgrst, 'reload schema';`;
                 { num: 9, title: 'CLÁUSULA 9 — DA MANUTENÇÃO', body: `A manutenção preventiva ordinária decorrente do desgaste natural pelo uso regular (troca programada de óleo, filtros, pastilhas e lonas de freio, pneus e revisões periódicas programadas) obedecerá ao plano preventivo definido pelo LOCADOR, devendo o LOCATÁRIO comparecer pontualmente às paradas agendadas.\nParágrafo 1º. Defeitos preexistentes devidamente registrados na vistoria de entrega não serão imputados ao LOCATÁRIO.\nParágrafo 2º. Danos mecânicos, elétricos ou estéticos decorrentes de mau uso, negligência, direção imprudente, circulação em vias alagadas, falta de comunicação tempestiva de avarias ou manutenção realizada sem autorização serão integralmente custeados pelo LOCATÁRIO.\nParágrafo 3º. Toda solicitação de viagem para fora da Região Metropolitana de Goiânia/GO depende de inspeção e revisão veicular preventiva prévia realizada pelo LOCADOR ou oficina por ele autorizada.` },
                 { num: 10, title: 'CLÁUSULA 10 — DO SEGURO E SINISTROS', body: `Em caso de colisão, incêndio, roubo, furto ou dano a terceiros, o LOCATÁRIO deverá acionar imediatamente as autoridades policiais (Boletim de Ocorrência) e comunicar o LOCADOR no menor prazo possível, fornecendo fotos e informações completas do ocorrido.\nParágrafo 1º. Não se presume que apólices de seguro particulares convencionais cubram o transporte remunerado de passageiros; cabe às partes verificar expressamente a existência de cobertura específica e endosso para atividade em aplicativos na apólice vigente do veículo.\nParágrafo 2º. Quando houver cobertura securitária acionável em sinistro culposo atribuível ao LOCATÁRIO, este arcará com a franquia da apólice ou participação financeira prevista, respondendo pelos prejuízos integrais caso aja com dolo, embriaguez ou grave violação que exclua a cobertura.` },
                 { num: 11, title: 'CLÁUSULA 11 — DO RASTREAMENTO', body: `O LOCATÁRIO declara ciência e autoriza o funcionamento de sistema de rastreamento e telemetria instalado no veículo, com finalidade exclusiva de segurança patrimonial, localização em hipóteses de furto, roubo, fraude ou apropriação indébita e apuração de violação grave de segurança, observados integralmente os limites da Cláusula 5.\nParágrafo único. O tratamento dos dados de geolocalização respeitará a finalidade de segurança e a legislação vigente de proteção de dados pessoais, sendo vedado o bloqueio remoto com o veículo em movimento ou como instrumento de coação de dívida.` },
-                { num: 12, title: 'CLÁUSULA 12 — DA DEVOLUÇÃO', body: `Ao término ou à rescisão da locação, o LOCATÁRIO restituirá o veículo no local e horário combinados, acompanhado de todas as chaves (inclusive reserva, se entregue), documentação do veículo, estepe e demais acessórios originais.\nParágrafo único. Será realizada vistoria final confrontando o estado de conservação com a vistoria de entrega, registrando-se a quilometragem final e o nível de combustível ou carga de bateria equivalente ao registrado no recebimento.` },
+                { num: 12, title: 'CLÁUSULA 12 — DA DEVOLUÇÃO', body: `Ao término ou à rescisão da locação, o LOCATÁRIO restituirá o veículo no local e horário combinados, acompanhado de todas as chaves (inclusive reserva, se entregue), documentação do veículo, estepe e demais acessórios originais.\nParágrafo único. Será realizada vistoria final (Termo de Devolução) confrontando o estado de conservação com o ${hasVistoria ? 'Anexo I (Termo de Vistoria e Entrega) integrante deste contrato' : 'estado registrado na vistoria de entrega'}, registrando-se a quilometragem final e o nível de combustível ou carga de bateria equivalente ao registrado no recebimento.` },
                 { num: 13, title: 'CLÁUSULA 13 — DA RESCISÃO', body: `O contrato poderá ser rescindido por mútuo acordo ou por iniciativa de qualquer das partes, mediante aviso prévio por escrito com antecedência mínima combinada (recomendando-se de 7 a 15 dias corridos), ou imediatamente nos casos de inadimplência não regularizada após a notificação da Cláusula 5, descumprimento grave de cláusula contratual (inclusive saída não autorizada da Região Metropolitana de Goiânia/GO prevista na Cláusula 1), suspensão/cassação da CNH ou exposição do veículo a risco ilícito, obrigando-se o LOCATÁRIO à devolução imediata do bem, sem prejuízo dos valores devidos até a efetiva entrega e de eventuais custos de remoção ou guincho ocorridos fora da área de circulação autorizada.` },
                 { num: 14, title: 'CLÁUSULA 14 — DA RESPONSABILIDADE CIVIL', body: `O LOCATÁRIO responde civilmente por danos materiais, morais e estéticos causados ao veículo ou a terceiros durante o período de posse, nos termos da legislação civil aplicável, sem prejuízo das responsabilidades legais solidárias ou objetivas eventualmente atribuíveis perante terceiros e do consequente direito de regresso do LOCADOR.` },
                 { num: 15, title: 'CLÁUSULA 15 — DA PROTEÇÃO DE DADOS', body: `As partes comprometem-se a tratar os dados pessoais coletados (identificação, CNH, contato, endereço, dados financeiros e registros de condução) exclusivamente para a execução do presente contrato, o cumprimento de obrigações legais e regulatórias (como indicação de infratores no CTB), a cobrança e a tutela de direitos, em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD).` },
-                { num: 16, title: 'CLÁUSULA 16 — DO FORO E DA ASSINATURA ELETRÔNICA GOV.BR', body: `${foroClauseHead} para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato, observadas as normas legais de competência aplicáveis.\nParágrafo único (Assinatura Eletrônica Oficial GOV.BR — Partes e Testemunhas). As Partes e as 2 (duas) Testemunhas convencionam que este instrumento será assinado eletronicamente por meio do Portal oficial GOV.BR (assinador.iti.br — Assinatura Eletrônica Avançada com conta Prata ou Ouro ou Qualificada ICP-Brasil), de forma sequencial no mesmo arquivo PDF (padrão PAdES), cuja autenticidade pode ser conferida gratuitamente em validar.iti.gov.br, possuindo plena validade jurídica e eficácia de título executivo extrajudicial, nos termos da Lei nº 14.063/2020, da Medida Provisória nº 2.200-2/2001 e do art. 784, § 4º, do Código de Processo Civil.${c.notes ? '\n\nOBSERVAÇÕES PARTICULARES AJUSTADAS PELAS PARTES: ' + c.notes : ''}` }
+                { num: 16, title: 'CLÁUSULA 16 — DO FORO E DA ASSINATURA ELETRÔNICA GOV.BR', body: `${foroClauseHead} para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato, observadas as normas legais de competência aplicáveis.\nParágrafo 1º (Assinatura Eletrônica Oficial GOV.BR — Partes e Testemunhas). As Partes e as 2 (duas) Testemunhas convencionam que este instrumento será assinado eletronicamente por meio do Portal oficial GOV.BR (assinador.iti.br — Assinatura Eletrônica Avançada com conta Prata ou Ouro ou Qualificada ICP-Brasil), de forma sequencial no mesmo arquivo PDF (padrão PAdES), cuja autenticidade pode ser conferida gratuitamente em validar.iti.gov.br, possuindo plena validade jurídica e eficácia de título executivo extrajudicial, nos termos da Lei nº 14.063/2020, da Medida Provisória nº 2.200-2/2001 e do art. 784, § 4º, do Código de Processo Civil.${hasVistoria ? '\nParágrafo 2º (Assinatura Única Abrangendo Contrato e Anexo I). Fica expressamente ajustado que a assinatura eletrônica única aposta por cada signatário (Locador, Locatário e 2 Testemunhas) ao final deste arquivo PDF valida conjuntamente todas as cláusulas do Contrato de Locação e integralmente o Anexo I — Termo de Vistoria e Entrega (medições, checklist, avarias preexistentes, ressalvas e fotografias), dispensando nova assinatura apartada.' : ''}${c.notes ? '\n\nOBSERVAÇÕES PARTICULARES AJUSTADAS PELAS PARTES: ' + c.notes : ''}` }
             ];
         }
 
@@ -10657,11 +10765,147 @@ notify pgrst, 'reload schema';`;
                 const localDt = `${c.local_assinatura || c.foro_cidade_uf || 'Local'}, ${c.data_assinatura ? fmtDate(c.data_assinatura) : fmtDate(c.start_date || todayISO())}.`;
                 ensureSpace(160);
                 y -= 6;
+                const snapAx = (contract && contract.snapshot_data) || {};
+                const veAx = snapAx.vistoria_entrega && snapAx.vistoria_entrega.included ? snapAx.vistoria_entrega : null;
+                if (veAx) {
+                    const axPageH = 841.89;
+                    const axNewPage = () => {
+                        page = pdf.addPage([W, axPageH]);
+                        pages.push(page);
+                        y = axPageH - 52;
+                    };
+                    const axEnsure = need => { if (y - need < 58) axNewPage(); };
+                    const axWrap = (txt, size, maxW, fnt) => {
+                        const words = pdfSafeText(txt || '').replace(/\r/g, '').split(/\s+/);
+                        const lines = []; let cur = '';
+                        words.forEach(w => {
+                            if (!w) return;
+                            const test = cur ? cur + ' ' + w : w;
+                            if (fnt.widthOfTextAtSize(test, size) <= maxW) cur = test;
+                            else { if (cur) lines.push(cur); cur = w; }
+                        });
+                        if (cur) lines.push(cur);
+                        return lines;
+                    };
+                    const axDrawWrapped = (txt, size = 9.5, fnt = fontReg, col = ink, gap = 13) => {
+                        for (const para of String(txt || '').split('\n')) {
+                            if (!para.trim()) { y -= 5; continue; }
+                            for (const ln of axWrap(para, size, CW, fnt)) {
+                                axEnsure(gap + 4);
+                                page.drawText(ln, { x: ML, y, size, font: fnt, color: col });
+                                y -= gap;
+                            }
+                        }
+                    };
+                    if (y < 240) axNewPage();
+                    else {
+                        y -= 8;
+                        page.drawLine({ start: { x: ML, y }, end: { x: W - MR, y }, thickness: 1.2, color: PDFLib.rgb(0.06, 0.45, 0.34) });
+                        y -= 18;
+                    }
+                    const axBrand = PDFLib.rgb(0.06, 0.45, 0.34);
+                    const axTitle = pdfSafeText('ANEXO I — TERMO DE VISTORIA E ENTREGA DO VEÍCULO');
+                    page.drawText(axTitle, { x: ML + Math.max(0, (CW - fontBold.widthOfTextAtSize(axTitle, 12.5)) / 2), y, size: 12.5, font: fontBold, color: axBrand });
+                    y -= 14;
+                    const axSub = pdfSafeText(`Parte integrante e indissociável do ${contract.contract_number || 'Contrato'} · Validado pela assinatura única GOV.BR ao final`);
+                    page.drawText(axSub, { x: ML + Math.max(0, (CW - fontSans.widthOfTextAtSize(axSub, 8.5)) / 2), y, size: 8.5, font: fontSans, color: muted });
+                    y -= 16;
+
+                    const vehAx = snapAx.veiculo || {};
+                    const kmTxt = veAx.mileage != null ? `${Number(veAx.mileage).toLocaleString('pt-BR')} km` : (vehAx.mileage != null ? `${Number(vehAx.mileage).toLocaleString('pt-BR')} km` : 'Não informado');
+                    const dtEntrega = veAx.inspection_date ? dataHoraBR(veAx.inspection_date) : fmtDate(c.start_date || todayISO());
+                    axEnsure(48);
+                    page.drawRectangle({ x: ML, y: y - 40, width: CW, height: 42, color: PDFLib.rgb(0.95, 0.98, 0.96), borderColor: lineCol, borderWidth: 0.7 });
+                    page.drawText(pdfSafeText(`Veículo: ${[vehAx.brand, vehAx.model].filter(Boolean).join(' ') || '-'} · Placa: ${vehAx.plate || '-'} · Cor: ${vehAx.color || '-'}`), { x: ML + 8, y: y - 14, size: 8.8, font: fontBold, color: ink });
+                    page.drawText(pdfSafeText(`Data/Hora entrega: ${dtEntrega} | Hodômetro inicial: ${kmTxt} | Combustível/Carga: ${veAx.fuel_level || '-'}`), { x: ML + 8, y: y - 27, size: 8.5, font: fontReg, color: ink });
+                    y -= 50;
+
+                    axEnsure(30);
+                    page.drawText(pdfSafeText('1. CHECKLIST DE CONFERÊNCIA NA ENTREGA'), { x: ML, y, size: 9.8, font: fontBold, color: axBrand });
+                    y -= 13;
+                    const chkObj = veAx.checklist || {};
+                    const halfW = (CW - 14) / 2;
+                    for (let i = 0; i < INSP_CHECKLIST_ITEMS.length; i += 2) {
+                        axEnsure(16);
+                        [INSP_CHECKLIST_ITEMS[i], INSP_CHECKLIST_ITEMS[i + 1]].forEach((it, colIdx) => {
+                            if (!it) return;
+                            const val = chkObj[it.key] || { status: 'conforme', note: '' };
+                            const stLbl = val.status === 'defeito' ? 'DEFEITO/AUSENTE' : (val.status === 'ressalva' ? 'COM RESSALVA' : 'Conforme');
+                            const rowTxt = `${it.label}: ${stLbl}${val.note ? ' (' + val.note + ')' : ''}`;
+                            const sx = colIdx === 0 ? ML : ML + halfW + 14;
+                            page.drawText(pdfSafeText(rowTxt).slice(0, 56), { x: sx, y, size: 8.2, font: val.status === 'conforme' ? fontReg : fontBold, color: val.status === 'defeito' ? PDFLib.rgb(0.75, 0.1, 0.1) : ink });
+                        });
+                        y -= 12;
+                    }
+                    y -= 6;
+
+                    const preDmgs = Array.isArray(veAx.damages_summary) ? veAx.damages_summary : [];
+                    axEnsure(32);
+                    page.drawText(pdfSafeText(`2. REGISTRO DE AVARIAS PREEXISTENTES (${preDmgs.length})`), { x: ML, y, size: 9.8, font: fontBold, color: axBrand });
+                    y -= 13;
+                    if (!preDmgs.length) {
+                        axDrawWrapped('Nenhuma avaria estrutural ou estética registrada como preexistente na entrega do veículo, ressalvado o disposto nas fotografias abaixo e na eventual ressalva do Locatário.', 8.8, fontReg, ink, 12);
+                    } else {
+                        preDmgs.forEach((dm, idx) => {
+                            axDrawWrapped(`${idx + 1}. [PREEXISTENTE] ${dm.label || inspSlotLabel(dm.slot)}: ${dm.damage_note || 'Avaria constatada na entrega.'}`, 8.8, fontReg, ink, 12);
+                        });
+                    }
+                    if (veAx.driver_reservation) {
+                        y -= 4;
+                        axDrawWrapped(`Ressalva declarada pelo Locatário (Contraditório): ${veAx.driver_reservation}`, 8.8, fontBold, ink, 12);
+                    }
+                    if (veAx.notes) {
+                        y -= 2;
+                        axDrawWrapped(`Observações da entrega: ${veAx.notes}`, 8.8, fontReg, ink, 12);
+                    }
+
+                    const axPhotos = Array.isArray(veAx.photos) ? veAx.photos : [];
+                    if (axPhotos.length) {
+                        y -= 6;
+                        axEnsure(42);
+                        page.drawText(pdfSafeText(`3. ACERVO FOTOGRÁFICO DA VISTORIA DE ENTREGA (${axPhotos.length} foto(s))`), { x: ML, y, size: 9.8, font: fontBold, color: axBrand });
+                        y -= 14;
+                        const cellW = (CW - 14) / 2;
+                        const cellH = 148;
+                        for (let i = 0; i < axPhotos.length; i += 2) {
+                            axEnsure(cellH + 34);
+                            for (let col = 0; col < 2; col++) {
+                                const ph = axPhotos[i + col];
+                                if (!ph) continue;
+                                const sx = col === 0 ? ML : ML + cellW + 14;
+                                page.drawRectangle({ x: sx, y: y - cellH - 22, width: cellW, height: cellH + 22, color: PDFLib.rgb(0.99, 0.99, 1), borderColor: lineCol, borderWidth: 0.7 });
+                                try {
+                                    const f = await fileUrl(ph.path);
+                                    if (f && f.blob) {
+                                        const jpgBytes = await blobToEmbeddableJpeg(f.blob);
+                                        if (jpgBytes) {
+                                            const emb = await pdf.embedJpg(jpgBytes);
+                                            const sc = Math.min((cellW - 8) / emb.width, (cellH - 8) / emb.height);
+                                            const dw = emb.width * sc, dh = emb.height * sc;
+                                            page.drawImage(emb, { x: sx + (cellW - dw) / 2, y: y - cellH + 4 + (cellH - 8 - dh) / 2, width: dw, height: dh });
+                                        }
+                                    }
+                                } catch (e) {}
+                                const cap = `#${i + col + 1} ${ph.label || inspSlotLabel(ph.slot)}`;
+                                page.drawText(pdfSafeText(cap).slice(0, 44), { x: sx + 5, y: y - cellH - 9, size: 7.8, font: fontBold, color: ink });
+                                if (ph.has_damage && ph.damage_note) {
+                                    page.drawText(pdfSafeText(`[PREEXISTENTE] ${ph.damage_note}`).slice(0, 48), { x: sx + 5, y: y - cellH - 18, size: 7, font: fontReg, color: PDFLib.rgb(0.7, 0.2, 0.05) });
+                                }
+                            }
+                            y -= (cellH + 30);
+                        }
+                    }
+                    y -= 4;
+                    axDrawWrapped('DECLARAÇÃO DE ACEITE ÚNICO (CONTRATO + ANEXO I): As Partes e as Testemunhas declaram ter conferido o veículo descrito e o acervo fotográfico deste Anexo I, concordando que a assinatura eletrônica única GOV.BR aposta a seguir sela conjuntamente todo o Contrato de Locação (Cláusulas 1 a 16) e este Termo de Vistoria e Entrega.', 8.5, fontReg, muted, 11.5);
+                    y -= 6;
+                }
+
+                ensureSpace(195);
                 page.drawText(pdfSafeText(localDt), { x: ML, y, size: 10.5, font: fontBold, color: ink });
                 y -= 28;
 
                 const colW = (CW - 28) / 2;
-                const isGovMode = c.signature_mode !== 'manual';
+                const isGovMode = c.signature_mode !== 'digitalizado';
                 const drawSigBox = (sx, sy, roleTitle, nome, cpf, signedAt, method) => {
                     page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
                     page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 13, size: 9, font: fontBold, color: ink });
@@ -10669,7 +10913,7 @@ notify pgrst, 'reload schema';`;
                     page.drawText(pdfSafeText(`CPF: ${cpf || '_________________'}`), { x: sx, y: sy - 37, size: 8.5, font: fontReg, color: ink });
                     const stTxt = signedAt
                         ? `Assinado ${method === 'govbr' || isGovMode ? 'via GOV.BR ' : ''}em: ${fmtDate(signedAt)}`
-                        : (isGovMode ? 'Assinatura GOV.BR (assinador.iti.br)' : 'Data: ____/____/________');
+                        : (isGovMode ? 'Assinatura única GOV.BR (assinador.iti.br)' : 'Data: ____/____/________');
                     page.drawText(pdfSafeText(stTxt), { x: sx, y: sy - 49, size: 8, font: fontReg, color: muted });
                 };
 
@@ -10682,7 +10926,7 @@ notify pgrst, 'reload schema';`;
                 drawSigBox(ML, y, 'TESTEMUNHA 1', w1.name || sd.witness1_name, w1.cpf || sd.witness1_cpf, sd.witness1_at, sd.witness1_method);
                 drawSigBox(ML + colW + 28, y, 'TESTEMUNHA 2', w2.name || sd.witness2_name, w2.cpf || sd.witness2_cpf, sd.witness2_at, sd.witness2_method);
                 if (isGovMode) {
-                    page.drawText(pdfSafeText('Todas as assinaturas deverão ser efetuadas em cadeia no mesmo arquivo PDF via https://assinador.iti.br (verificação em https://validar.iti.gov.br).'), { x: ML, y: y - 64, size: 7.5, font: fontSans, color: muted });
+                    page.drawText(pdfSafeText('Assinatura eletrônica única por pessoa em cadeia no mesmo PDF via https://assinador.iti.br — valida o Contrato e o Anexo I (https://validar.iti.gov.br).'), { x: ML, y: y - 64, size: 7.3, font: fontSans, color: muted });
                 }
 
                 // Rodapés com paginação exata "Página X de Y"
@@ -10767,7 +11011,7 @@ notify pgrst, 'reload schema';`;
                     <div class="flex flex-wrap gap-1.5">
                         <button type="button" onclick="openInspectionWizard({ type: 'entrega', driverId: '${driverId}', vehicleId: '${vehId}' })" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white"><i class="fa-solid fa-clipboard-check mr-1"></i> Vistoria Entrega</button>
                         <button type="button" onclick="openInspectionWizard({ type: 'devolucao', driverId: '${driverId}', vehicleId: '${vehId}' })" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white"><i class="fa-solid fa-car-burst mr-1"></i> Termo Devolução</button>
-                        <button type="button" onclick="openContractWizard({ driverId: '${driverId}' })" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Criar contrato</button>
+                        <button type="button" onclick="openContractWizard({ driverId: '${driverId}' })" title="Contrato único já com Anexo I (Vistoria de Entrega) para 1 assinatura GOV.BR por pessoa" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-plus mr-1"></i> Criar contrato</button>
                         ${active ? `<button type="button" onclick="openContractWizard({ renewFrom: '${active.id}' })" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-rotate mr-1"></i> Renovar</button>` : ''}
                     </div>
                 </div>
@@ -10820,7 +11064,7 @@ notify pgrst, 'reload schema';`;
         }
 
         // ---- WIZARD DE CRIAÇÃO / EDIÇÃO DE RASCUNHO / RENOVAÇÃO ----
-        let cwState = { id: null, renewed_from_id: null, clauses: [], contract_number: null };
+        let cwState = { id: null, renewed_from_id: null, clauses: [], contract_number: null, inspChecklist: {}, inspPhotos: [] };
         function closeContractWizard() { document.getElementById('modalContractWizard').classList.add('hidden'); }
         function cwPopulateSelects(drvId, vehId) {
             const drvSel = document.getElementById('cwDriverId'), vehSel = document.getElementById('cwVehicleId');
@@ -11134,8 +11378,171 @@ notify pgrst, 'reload schema';`;
                 const picked = cwPopulateLocadores(null, vehId);
                 if (picked) cwFillLocador(picked);
             }
+            if (typeof cwSyncVistoriaFromVehicle === 'function') cwSyncVistoriaFromVehicle(vehId, !cwState.id);
             cwRebuildClauses(false);
             if (v && cwNeedsCrlvFill(v)) cwReadVehicleCrlv(v, { auto: true });
+        }
+
+        function cwDefaultChecklist() {
+            const chk = {};
+            INSP_CHECKLIST_ITEMS.forEach(it => { chk[it.key] = { status: 'conforme', note: '' }; });
+            return chk;
+        }
+        function cwToggleVistoriaFields() {
+            const cb = document.getElementById('cwIncludeVistoria');
+            const box = document.getElementById('cwVistoriaFields');
+            if (cb && box) box.classList.toggle('hidden', !cb.checked);
+        }
+        function cwRenderInspChecklist() {
+            const grid = document.getElementById('cwInspChecklistGrid');
+            if (!grid || !cwState) return;
+            if (!cwState.inspChecklist) cwState.inspChecklist = cwDefaultChecklist();
+            grid.innerHTML = INSP_CHECKLIST_ITEMS.map(it => {
+                const cur = cwState.inspChecklist[it.key] || { status: 'conforme', note: '' };
+                return `<div class="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 space-y-1 text-xs">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-semibold">${esc(it.label)}</span>
+                        <select onchange="cwState.inspChecklist['${it.key}'].status=this.value" class="p-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs font-semibold outline-none">
+                            <option value="conforme" ${cur.status === 'conforme' ? 'selected' : ''}>Conforme</option>
+                            <option value="ressalva" ${cur.status === 'ressalva' ? 'selected' : ''}>Com ressalva</option>
+                            <option value="defeito" ${cur.status === 'defeito' ? 'selected' : ''}>Ausente / Defeito</option>
+                        </select>
+                    </div>
+                    <input type="text" value="${esc(cur.note || '')}" onchange="cwState.inspChecklist['${it.key}'].note=this.value" placeholder="Observação opcional..." class="w-full p-1 text-[11px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                </div>`;
+            }).join('');
+        }
+        function cwRenderInspDamagesSummary() {
+            const box = document.getElementById('cwInspDamagesBox');
+            if (!box || !cwState) return;
+            const dmgs = (cwState.inspPhotos || []).filter(p => p.has_damage);
+            if (!dmgs.length) {
+                box.innerHTML = `<div class="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 font-semibold"><i class="fa-solid fa-circle-check"></i> Nenhuma avaria preexistente confirmada nas fotos deste Anexo I.</div>`;
+                return;
+            }
+            box.innerHTML = `<div class="font-bold text-xs uppercase text-gray-600 dark:text-gray-300 mb-1"><i class="fa-solid fa-clipboard-list text-amber-600 mr-1"></i> Avarias Preexistentes Registradas (${dmgs.length})</div>
+                <div class="space-y-1">${dmgs.map(d => `<div class="p-2 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                    <div><b>${esc(d.label || inspSlotLabel(d.slot))}</b> — ${esc(d.damage_note || 'Avaria registrada')}</div>
+                    <span class="px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-600 text-white">PREEXISTENTE</span>
+                </div>`).join('')}</div>`;
+        }
+        function cwRenderInspPhotos() {
+            const grid = document.getElementById('cwInspPhotosGrid');
+            const cnt = document.getElementById('cwInspPhotosCount');
+            if (!grid || !cwState) return;
+            const photos = cwState.inspPhotos || (cwState.inspPhotos = []);
+            if (cnt) cnt.textContent = String(photos.length);
+            if (!photos.length) {
+                grid.innerHTML = `<div class="col-span-full p-4 text-center rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-xs text-gray-500">Nenhuma foto adicionada ao Anexo I ainda. Clique em <b>Puxar fotos salvas</b> ou <b>Adicionar fotos</b>.</div>`;
+                cwRenderInspDamagesSummary();
+                return;
+            }
+            grid.innerHTML = photos.map((p, idx) => {
+                const badge = (p.damage_status === 'preexistente' || p.has_damage)
+                    ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 text-[10px] font-bold">Preexistente</span>'
+                    : (p.damage_status === 'descartado' ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-semibold">Conferido OK</span>' : '');
+                return `<div class="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-1.5 text-xs">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="font-mono text-[10px] text-gray-400">#${idx + 1} · ${esc(inspSlotLabel(p.slot))}</span>
+                        ${badge}
+                    </div>
+                    <img data-path="${esc(p.path)}" onclick="viewDocIdx(${docRef(p.path, esc(p.label || 'Foto ' + (idx + 1)))})" class="w-full h-28 object-cover rounded-lg bg-gray-100 dark:bg-gray-900 cursor-pointer" title="Clique para ampliar">
+                    <input type="text" value="${esc(p.label || '')}" onchange="cwState.inspPhotos[${idx}].label=this.value.trim();cwRenderInspDamagesSummary()" placeholder="Nome / ângulo" class="w-full p-1 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">
+                    <div class="flex items-center gap-1">
+                        <select onchange="cwUpdateInspPhotoDamage(${idx}, this.value)" class="flex-1 p-1 text-[11px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                            <option value="none" ${!p.has_damage && p.damage_status !== 'descartado' ? 'selected' : ''}>Sem avaria</option>
+                            <option value="descartado" ${p.damage_status === 'descartado' ? 'selected' : ''}>Conferido OK (descartado)</option>
+                            <option value="preexistente" ${p.damage_status === 'preexistente' || p.has_damage ? 'selected' : ''}>Dano preexistente</option>
+                        </select>
+                        <button type="button" onclick="cwState.inspPhotos.splice(${idx}, 1);cwRenderInspPhotos()" class="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300" title="Remover deste Anexo I"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    ${p.has_damage ? `<input type="text" value="${esc(p.damage_note || '')}" onchange="cwState.inspPhotos[${idx}].damage_note=this.value.trim();cwRenderInspDamagesSummary()" placeholder="Descrição objetiva da avaria..." class="w-full p-1 text-[11px] rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/20 outline-none">` : ''}
+                </div>`;
+            }).join('');
+            hydrateImages(grid);
+            cwRenderInspDamagesSummary();
+        }
+        function cwUpdateInspPhotoDamage(idx, statusVal) {
+            if (!cwState || !cwState.inspPhotos[idx]) return;
+            const p = cwState.inspPhotos[idx];
+            p.damage_status = statusVal;
+            p.has_damage = statusVal === 'preexistente';
+            if (!p.has_damage) p.damage_note = null;
+            cwRenderInspPhotos();
+        }
+        function cwSyncVistoriaFromVehicle(vehId, replaceExisting) {
+            if (!cwState) return;
+            const veh = allVeh().find(v => v.id === vehId);
+            const kmEl = document.getElementById('cwInspMileage');
+            if (kmEl && (!kmEl.value || replaceExisting)) kmEl.value = (veh && veh.mileage != null) ? String(veh.mileage) : (document.getElementById('cwVehMileage')?.value || '');
+            if (!vehId) { if (replaceExisting) { cwState.inspPhotos = []; cwRenderInspPhotos(); } return; }
+            const drvId = document.getElementById('cwDriverId')?.value || '';
+            const saved = iwCollectSavedPhotosFor(vehId, drvId, 'entrega');
+            if (replaceExisting || !(cwState.inspPhotos && cwState.inspPhotos.length)) {
+                cwState.inspPhotos = saved;
+            }
+            cwRenderInspPhotos();
+        }
+        function cwImportSavedPhotos() {
+            const vehId = document.getElementById('cwVehicleId')?.value || '';
+            const drvId = document.getElementById('cwDriverId')?.value || '';
+            if (!vehId) { showToast('Selecione um veículo primeiro.', 'error'); return; }
+            const saved = iwCollectSavedPhotosFor(vehId, drvId, 'entrega');
+            if (!saved.length) { showToast('Nenhuma foto salva encontrada para este veículo ainda.', 'info'); return; }
+            const existingPaths = new Set((cwState.inspPhotos || []).map(x => x.path));
+            let added = 0;
+            saved.forEach(s => { if (!existingPaths.has(s.path)) { cwState.inspPhotos.push(s); added++; } });
+            cwRenderInspPhotos();
+            showToast(added ? `${added} foto(s) adicionada(s) ao Anexo I!` : 'Todas as fotos salvas já estão no Anexo I.');
+        }
+        async function cwUploadInspPhotos(input) {
+            const rawFiles = Array.from(input.files || []);
+            const files = rawFiles.filter(isImageFile);
+            const vehId = document.getElementById('cwVehicleId')?.value || '';
+            if (!files.length) {
+                if (rawFiles.length) showToast('Selecione arquivos de imagem válidos (JPG, PNG, WEBP ou HEIC).', 'error');
+                input.value = ''; return;
+            }
+            if (!vehId) { showToast('Selecione o veículo antes de enviar fotos.', 'error'); input.value = ''; return; }
+            const prog = document.getElementById('cwInspAiProgress');
+            const labelEl = input.closest('label'), oldHtml = labelEl ? labelEl.innerHTML : '';
+            if (labelEl) labelEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+            try {
+                const newlyAdded = [];
+                for (let i = 0; i < files.length; i++) {
+                    const f = files[i];
+                    if (prog) prog.textContent = `Enviando foto ${i + 1} de ${files.length}...`;
+                    const safeName = String(f.name || '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
+                    const prefix = `vehicles/${vehId}/vistoria/entrega-${Date.now()}-${i}-${safeName || 'foto'}`;
+                    const path = await uploadFile(f, prefix);
+                    if (!path) continue;
+                    let dbId = 'ph-' + Date.now().toString(36) + i;
+                    const ins = await sb.from('inspection_photos').insert({ vehicle_id: vehId, phase: 'entrega', slot: 'adicional', file_path: path }).select().single();
+                    if (!ins.error && ins.data) dbId = ins.data.id;
+                    const entry = { id: dbId, path, slot: 'adicional', label: `Foto ${(cwState.inspPhotos || []).length + 1}`, has_damage: false, damage_status: 'none', damage_note: null, ai_summary: null, added_at: new Date().toISOString() };
+                    cwState.inspPhotos.push(entry);
+                    newlyAdded.push(entry);
+                }
+                cwRenderInspPhotos();
+                if (newlyAdded.length && typeof processInspectionPhotosWithAI === 'function') {
+                    await processInspectionPhotosWithAI(newlyAdded, vehId, 'entrega', [], msg => { if (prog) prog.textContent = msg; });
+                    cwRenderInspPhotos();
+                }
+            } catch (e) { showToast(friendlyError(e), 'error'); }
+            finally {
+                if (labelEl && document.body.contains(labelEl)) labelEl.innerHTML = oldHtml;
+                if (prog) prog.textContent = 'As fotos já salvas no veículo são puxadas automaticamente e seladas junto com o contrato no GOV.BR.';
+                input.value = '';
+            }
+        }
+        async function cwAnalyzeInspWithAI(btn) {
+            const vehId = document.getElementById('cwVehicleId')?.value || '';
+            if (!cwState || !(cwState.inspPhotos || []).length) { showToast('Adicione ou puxe fotos antes de analisar.', 'error'); return; }
+            const prog = document.getElementById('cwInspAiProgress');
+            return withBtn(btn, 'Analisando IA...', async () => {
+                await processInspectionPhotosWithAI(cwState.inspPhotos, vehId, 'entrega', [], msg => { if (prog) prog.textContent = msg; });
+                cwRenderInspPhotos();
+            });
         }
         function cwReadSnapshot() {
             const gv = id => (document.getElementById(id) && document.getElementById(id).value.trim()) || '';
@@ -11166,6 +11573,22 @@ notify pgrst, 'reload schema';`;
                     purpose: gv('cwPurpose'), notes: gv('cwNotes'), local_assinatura: gv('cwLocalAssinatura'), data_assinatura: gv('cwDataAssinatura') || todayISO(), foro_cidade_uf: gv('cwForo')
                 },
                 testemunhas: [{ name: gv('cwWit1Name'), cpf: gv('cwWit1Cpf') }, { name: gv('cwWit2Name'), cpf: gv('cwWit2Cpf') }],
+                vistoria_entrega: (document.getElementById('cwIncludeVistoria') && document.getElementById('cwIncludeVistoria').checked) ? (() => {
+                    const photos = Array.isArray(cwState && cwState.inspPhotos) ? cwState.inspPhotos.map(p => ({ ...p })) : [];
+                    const dtIn = gv('cwInspDate');
+                    const kmRaw = gv('cwInspMileage') || gv('cwVehMileage');
+                    return {
+                        included: true,
+                        inspection_date: dtIn ? new Date(dtIn + '-03:00').toISOString() : ((gv('cwStartDate') || todayISO()) + 'T12:00:00Z'),
+                        mileage: kmRaw ? parseInt(kmRaw, 10) : null,
+                        fuel_level: gv('cwInspFuel') || 'Cheio',
+                        checklist: (cwState && cwState.inspChecklist) ? JSON.parse(JSON.stringify(cwState.inspChecklist)) : cwDefaultChecklist(),
+                        photos,
+                        damages_summary: photos.filter(p => p.has_damage).map(p => ({ photo_id: p.id, label: p.label, slot: p.slot, damage_status: 'preexistente', damage_note: p.damage_note || '' })),
+                        driver_reservation: gv('cwInspDriverReservation') || null,
+                        notes: gv('cwInspNotes') || null
+                    };
+                })() : null,
                 clauses: null
             };
             const clInputs = document.querySelectorAll('#cwClausesBox textarea[data-clause-idx]');
@@ -11217,8 +11640,33 @@ notify pgrst, 'reload schema';`;
                 <div class="space-y-3 text-justify text-xs">
                     ${clauses.map(cl => `<div><div class="font-bold mb-0.5">${esc(cl.title)}</div><div class="whitespace-pre-line">${esc(cl.body)}</div></div>`).join('')}
                 </div>
+                ${snap.vistoria_entrega && snap.vistoria_entrega.included ? (() => {
+                    const ve = snap.vistoria_entrega;
+                    const phs = Array.isArray(ve.photos) ? ve.photos : [];
+                    const dmgs = Array.isArray(ve.damages_summary) ? ve.damages_summary : [];
+                    return `<div class="mt-5 pt-4 border-t-2 border-emerald-700 space-y-2 text-xs">
+                        <div class="text-center font-bold text-sm text-emerald-800">ANEXO I — TERMO DE VISTORIA E ENTREGA DO VEÍCULO</div>
+                        <div class="p-2.5 rounded bg-emerald-50 border border-emerald-200">
+                            <b>Entrega:</b> ${ve.inspection_date ? dataHoraBR(ve.inspection_date) : fmtDate(c.start_date || todayISO())} ·
+                            <b>Hodômetro:</b> ${ve.mileage != null ? Number(ve.mileage).toLocaleString('pt-BR') + ' km' : '-'} ·
+                            <b>Combustível/Carga:</b> ${esc(ve.fuel_level || '-')} ·
+                            <b>Fotos anexadas:</b> ${phs.length} · <b>Avarias preexistentes:</b> ${dmgs.length}
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
+                            ${INSP_CHECKLIST_ITEMS.map(it => {
+                                const st = (ve.checklist && ve.checklist[it.key]) || { status: 'conforme' };
+                                const lbl = st.status === 'defeito' ? 'Defeito/Ausente' : (st.status === 'ressalva' ? 'Com ressalva' : 'Conforme');
+                                return `<div class="p-1.5 rounded border border-gray-200 bg-gray-50"><b>${esc(it.label)}:</b> ${esc(lbl)}</div>`;
+                            }).join('')}
+                        </div>
+                        ${dmgs.length ? `<div class="text-amber-900"><b>Avarias preexistentes:</b> ${dmgs.map(dm => `${esc(dm.label)} (${esc(dm.damage_note || 'registrada')})`).join('; ')}</div>` : ''}
+                        ${ve.driver_reservation ? `<div class="text-blue-900"><b>Ressalva do Locatário:</b> ${esc(ve.driver_reservation)}</div>` : ''}
+                        ${ve.notes ? `<div><b>Observações da entrega:</b> ${esc(ve.notes)}</div>` : ''}
+                    </div>`;
+                })() : ''}
                 <div class="mt-6 pt-4 border-t border-gray-300 text-xs">
-                    <p class="font-semibold mb-4">${esc(c.local_assinatura || c.foro_cidade_uf || 'Local')}, ${fmtDate(c.data_assinatura || c.start_date || todayISO())}.</p>
+                    <p class="font-semibold mb-1">${esc(c.local_assinatura || c.foro_cidade_uf || 'Local')}, ${fmtDate(c.data_assinatura || c.start_date || todayISO())}.</p>
+                    <p class="text-[11px] text-gray-600 mb-3">Assinatura eletrônica única via GOV.BR (assinador.iti.br) — abrange integralmente o Contrato e o Anexo I.</p>
                     <div class="grid grid-cols-2 gap-6 pt-4">
                         <div class="border-t border-gray-600 pt-1"><b>LOCADOR</b><br>${esc(l.name || '-')}<br>CPF: ${esc(l.cpf || '-')}</div>
                         <div class="border-t border-gray-600 pt-1"><b>LOCATÁRIO</b><br>${esc(d.name || '-')}<br>CPF: ${esc(d.cpf || '-')}</div>
@@ -11252,7 +11700,7 @@ notify pgrst, 'reload schema';`;
         }
         function openContractWizard(opts) {
             opts = opts || {};
-            cwState = { id: null, renewed_from_id: null, clauses: [], contract_number: null };
+            cwState = { id: null, renewed_from_id: null, clauses: [], contract_number: null, inspChecklist: cwDefaultChecklist(), inspPhotos: [] };
             const missBox = document.getElementById('cwMissingBox');
             missBox.classList.add('hidden'); missBox.innerHTML = '';
             document.getElementById('cwPreviewArea').classList.add('hidden');
@@ -11319,12 +11767,26 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwDataAssinatura').value = renewSrc ? todayISO() : (cm.data_assinatura || todayISO());
                 document.getElementById('cwForo').value = cm.foro_cidade_uf || cm.local_assinatura || '';
                 const curMode = src.signature_mode;
-                document.getElementById('cwSignatureMode').value = (!renewSrc && curMode === 'manual' && existing && existing.status !== 'rascunho') ? 'manual' : 'eletronica_pendente';
+                document.getElementById('cwSignatureMode').value = (!renewSrc && curMode === 'digitalizado' && existing && existing.status !== 'rascunho') ? 'digitalizado' : 'eletronica_pendente';
                 const defW1 = defaultWitness1ForLocador(locData);
                 document.getElementById('cwWit1Name').value = (tw[0] && tw[0].name) || defW1.name;
                 document.getElementById('cwWit1Cpf').value = (tw[0] && tw[0].cpf) || defW1.cpf;
                 document.getElementById('cwWit2Name').value = (tw[1] && tw[1].name) || '';
                 document.getElementById('cwWit2Cpf').value = (tw[1] && tw[1].cpf) || '';
+                const exVe = !renewSrc && s.vistoria_entrega ? s.vistoria_entrega : null;
+                const incV = document.getElementById('cwIncludeVistoria');
+                if (incV) incV.checked = exVe ? (exVe.included !== false) : true;
+                cwToggleVistoriaFields();
+                const inspDtBase = (exVe && exVe.inspection_date) ? new Date(exVe.inspection_date) : new Date();
+                document.getElementById('cwInspDate').value = new Date(inspDtBase.getTime() - inspDtBase.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                document.getElementById('cwInspFuel').value = (exVe && exVe.fuel_level) || 'Cheio';
+                document.getElementById('cwInspMileage').value = (exVe && exVe.mileage != null) ? String(exVe.mileage) : (curVeh && curVeh.mileage != null ? String(curVeh.mileage) : '');
+                document.getElementById('cwInspDriverReservation').value = (exVe && exVe.driver_reservation) || '';
+                document.getElementById('cwInspNotes').value = (exVe && exVe.notes) || '';
+                cwState.inspChecklist = (exVe && exVe.checklist) ? JSON.parse(JSON.stringify(exVe.checklist)) : cwDefaultChecklist();
+                cwState.inspPhotos = (exVe && Array.isArray(exVe.photos) && exVe.photos.length) ? exVe.photos.map(p => ({ ...p })) : iwCollectSavedPhotosFor(vehId, drvId, 'entrega');
+                cwRenderInspChecklist();
+                cwRenderInspPhotos();
                 const cls = (existing && Array.isArray(s.clauses) && s.clauses.length) ? s.clauses : buildDefaultClauses(cwReadSnapshot());
                 cwRenderClausesEditor(cls);
                 cwUpdateCrlvBar(curVeh);
@@ -11352,6 +11814,19 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwSignatureMode').value = 'eletronica_pendente';
                 cwApplyDefaultWitness1(pickedLoc || locadorForVehicle(vehId), true);
                 document.getElementById('cwWit2Name').value = ''; document.getElementById('cwWit2Cpf').value = '';
+                const incV = document.getElementById('cwIncludeVistoria');
+                if (incV) incV.checked = true;
+                cwToggleVistoriaFields();
+                const nowDt = new Date();
+                document.getElementById('cwInspDate').value = new Date(nowDt.getTime() - nowDt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                document.getElementById('cwInspFuel').value = 'Cheio';
+                document.getElementById('cwInspMileage').value = (v && v.mileage != null) ? String(v.mileage) : '';
+                document.getElementById('cwInspDriverReservation').value = '';
+                document.getElementById('cwInspNotes').value = '';
+                cwState.inspChecklist = cwDefaultChecklist();
+                cwState.inspPhotos = vehId ? iwCollectSavedPhotosFor(vehId, drvId, 'entrega') : [];
+                cwRenderInspChecklist();
+                cwRenderInspPhotos();
                 cwRenderClausesEditor(buildDefaultClauses(cwReadSnapshot()));
                 if (v && cwNeedsCrlvFill(v)) cwReadVehicleCrlv(v, { auto: true });
             }
@@ -11453,7 +11928,7 @@ notify pgrst, 'reload schema';`;
                         excess_km_fee: cm.km_extra_price != null ? Number(cm.km_extra_price) : null,
                         purpose: cm.purpose || CONTRACT_PURPOSE_DEFAULT, notes: cm.notes || null,
                         signature_place: cm.local_assinatura || null, signature_date: cm.data_assinatura || null,
-                        signature_mode: document.getElementById('cwSignatureMode').value || 'manual',
+                        signature_mode: document.getElementById('cwSignatureMode').value || 'eletronica_pendente',
                         signature_data: sigData,
                         renewed_from_id: cwState.renewed_from_id || null,
                         snapshot_data: snap
@@ -11477,7 +11952,10 @@ notify pgrst, 'reload schema';`;
                         if (up.error) throw up.error;
                         const upd = await sb.from('rental_contracts').update({ pdf_path: storagePath, emitted_at: new Date().toISOString() }).eq('id', saved.id).select().single();
                         if (!upd.error && upd.data) saved = upd.data;
-                        await sb.from('profiles').update({ contract_path: storagePath }).eq('id', drvId);
+                        const profPatch = (snap.vistoria_entrega && snap.vistoria_entrega.included)
+                            ? { contract_path: storagePath, inspection_term_path: storagePath }
+                            : { contract_path: storagePath };
+                        await sb.from('profiles').update(profPatch).eq('id', drvId);
                         await logContractHistory(saved.id, drvId, cwState.renewed_from_id ? 'renovado' : 'emitido', `${cwState.renewed_from_id ? 'Contrato renovado e emitido' : 'Contrato emitido e PDF gerado'}: ${num}`, { pdf_path: storagePath });
                         if (cwState.renewed_from_id) {
                             await sb.from('rental_contracts').update({ status: 'encerrado', terminated_at: new Date().toISOString(), termination_reason: `Renovado pelo contrato ${num}` }).eq('id', cwState.renewed_from_id);
@@ -11568,6 +12046,7 @@ notify pgrst, 'reload schema';`;
                     <div><b>Aluguel:</b> ${fmtMoney(c.rent_amount)} (${esc(contractPeriodLabel(per))})${cm.trial_discount_amount > 0 && cm.trial_discount_periods > 0 ? ` · ${cm.trial_discount_periods} primeiras c/ desc. ${fmtMoney(cm.trial_discount_amount)}` : ''} · Caução ${c.deposit_amount ? fmtMoney(c.deposit_amount) + (cm.deposit_charge_desc ? ` — ${esc(cm.deposit_charge_desc)}` : '') : 'Sem caução'}</div>
                     <div><b>Vigência:</b> ${fmtDate(c.start_date)} até ${ind ? 'Prazo indeterminado' : fmtDate(c.end_date)}</div>
                     <div><b>Foro:</b> ${esc(cm.foro_cidade_uf || sd.foro_cidade_uf || '-')}</div>
+                    ${s.vistoria_entrega && s.vistoria_entrega.included ? `<div class="sm:col-span-2 text-emerald-800 dark:text-emerald-300 font-medium"><i class="fa-solid fa-clipboard-check mr-1"></i> <b>Anexo I (Vistoria de Entrega integrada):</b> ${s.vistoria_entrega.mileage != null ? Number(s.vistoria_entrega.mileage).toLocaleString('pt-BR') + ' km' : 'KM -'} · Combustível: ${esc(s.vistoria_entrega.fuel_level || '-')} · ${(s.vistoria_entrega.photos || []).length} foto(s) · Assinatura única GOV.BR</div>` : ''}
                 </div>
                 ${renderGovBrFlowBox('contract', c)}
                 <details class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2.5" ${c.status === 'aguardando_assinatura' ? 'open' : ''}>
@@ -11596,6 +12075,7 @@ notify pgrst, 'reload schema';`;
                 </details>
                 <div class="flex flex-wrap gap-2">
                     ${canAct ? `<button type="button" onclick="closeContractDetail();openContractWizard({ renewFrom: '${c.id}' })" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-rotate mr-1"></i> Renovar contrato</button>` : ''}
+                    ${(c.status === 'ativo' || c.status === 'encerrado') && s.vistoria_entrega && s.vistoria_entrega.included ? `<button type="button" onclick="closeContractDetail();openInspectionWizard({ type: 'devolucao', driverId: '${c.driver_id}', vehicleId: '${c.vehicle_id}', contractId: '${c.id}', baseInspectionId: 'contract:${c.id}' })" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white"><i class="fa-solid fa-car-burst mr-1"></i> Termo de Devolução</button>` : ''}
                     ${canAct ? `<button type="button" onclick="terminateContractPrompt('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white"><i class="fa-solid fa-flag-checkered mr-1"></i> Encerrar contrato</button>` : ''}
                     ${c.status === 'rascunho' || c.status === 'aguardando_assinatura' ? `<button type="button" onclick="cancelContractPrompt('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white"><i class="fa-solid fa-ban mr-1"></i> Cancelar</button>` : ''}
                 </div>
@@ -12097,9 +12577,17 @@ notify pgrst, 'reload schema';`;
             ctrSel.value = autoCtr;
 
             const bases = (state.inspections || []).filter(i => i.inspection_type === 'entrega' && i.status !== 'cancelado' && (!iwState.vehicleId || i.vehicle_id === iwState.vehicleId));
+            const unifiedCtrBases = (state.contracts || []).filter(c => c.status !== 'cancelado' && c.snapshot_data && c.snapshot_data.vistoria_entrega && c.snapshot_data.vistoria_entrega.included && (!iwState.vehicleId || c.vehicle_id === iwState.vehicleId));
             const baseSel = document.getElementById('iwBaseInspection');
-            baseSel.innerHTML = `<option value="">-- Sem entrega anterior vinculada --</option>` + bases.map(b => `<option value="${b.id}">${esc(b.inspection_number)} · ${fmtDate(b.inspection_date)} (${b.mileage != null ? b.mileage + ' km' : 'KM -'})</option>`).join('');
-            const autoBase = prefBaseId || (bases.find(b => b.driver_id === iwState.driverId) || bases[0] || {}).id || '';
+            baseSel.innerHTML = `<option value="">-- Sem entrega anterior vinculada --</option>`
+                + unifiedCtrBases.map(c => {
+                    const ve = c.snapshot_data.vistoria_entrega;
+                    return `<option value="contract:${c.id}">ANEXO I (${esc(c.contract_number)}) · ${fmtDate(ve.inspection_date || c.start_date)} (${ve.mileage != null ? ve.mileage + ' km' : 'KM -'})</option>`;
+                }).join('')
+                + bases.map(b => `<option value="${b.id}">${esc(b.inspection_number)} · ${fmtDate(b.inspection_date)} (${b.mileage != null ? b.mileage + ' km' : 'KM -'})</option>`).join('');
+            const matchCtr = unifiedCtrBases.find(c => c.driver_id === iwState.driverId) || unifiedCtrBases[0];
+            const matchInsp = bases.find(b => b.driver_id === iwState.driverId) || bases[0];
+            const autoBase = prefBaseId || (matchInsp ? matchInsp.id : (matchCtr ? `contract:${matchCtr.id}` : ''));
             baseSel.value = autoBase;
         }
 
@@ -12215,11 +12703,32 @@ notify pgrst, 'reload schema';`;
             }
         }
 
+        function iwResolveEntregaBaseline(baseVal) {
+            if (!baseVal) return null;
+            if (String(baseVal).startsWith('contract:')) {
+                const ctr = (state.contracts || []).find(c => c.id === String(baseVal).slice(9));
+                const ve = ctr && ctr.snapshot_data && ctr.snapshot_data.vistoria_entrega;
+                if (!ve || !ve.included) return null;
+                return {
+                    id: null,
+                    contract_id: ctr.id,
+                    contract_number: ctr.contract_number,
+                    inspection_number: `ANEXO I (${ctr.contract_number})`,
+                    inspection_date: ve.inspection_date || ctr.start_date,
+                    mileage: ve.mileage,
+                    fuel_level: ve.fuel_level,
+                    photos: Array.isArray(ve.photos) ? ve.photos : [],
+                    damages_summary: Array.isArray(ve.damages_summary) ? ve.damages_summary : []
+                };
+            }
+            return (state.inspections || []).find(b => b.id === baseVal) || null;
+        }
+
         async function iwRunAIOnList(targetList) {
             if (!iwState || !targetList.length) return;
             const prog = document.getElementById('iwAiProgress');
             const baseId = document.getElementById('iwBaseInspection').value;
-            const baseInsp = baseId ? (state.inspections || []).find(b => b.id === baseId) : null;
+            const baseInsp = iwResolveEntregaBaseline(baseId);
             const basePhotos = (baseInsp && Array.isArray(baseInsp.photos)) ? baseInsp.photos : [];
             await processInspectionPhotosWithAI(targetList, iwState.vehicleId, iwState.type, basePhotos, msg => {
                 if (prog) prog.textContent = msg;
@@ -12324,7 +12833,7 @@ notify pgrst, 'reload schema';`;
             const box = document.getElementById('iwComparisonBox');
             if (!box || !iwState || iwState.type !== 'devolucao') { if (box) box.classList.add('hidden'); return; }
             const baseId = document.getElementById('iwBaseInspection').value;
-            const base = baseId ? (state.inspections || []).find(b => b.id === baseId) : null;
+            const base = iwResolveEntregaBaseline(baseId);
             if (!base) { box.classList.add('hidden'); return; }
             const curKm = Number(document.getElementById('iwMileage').value);
             const kmDiff = (base.mileage != null && !Number.isNaN(curKm) && curKm > 0) ? curKm - Number(base.mileage) : null;
@@ -12371,7 +12880,8 @@ notify pgrst, 'reload schema';`;
                 try {
                     const type = document.getElementById('iwType').value === 'devolucao' ? 'devolucao' : 'entrega';
                     const ctrId = document.getElementById('iwContract').value || null;
-                    const baseId = type === 'devolucao' ? (document.getElementById('iwBaseInspection').value || null) : null;
+                    const rawBaseVal = type === 'devolucao' ? (document.getElementById('iwBaseInspection').value || null) : null;
+                    const baseId = (rawBaseVal && !String(rawBaseVal).startsWith('contract:')) ? rawBaseVal : null;
                     const mileageRaw = document.getElementById('iwMileage').value;
                     const mileage = mileageRaw !== '' ? Math.max(0, Math.round(Number(mileageRaw))) : null;
                     const fuel = document.getElementById('iwFuel').value || 'Cheio';
@@ -12384,7 +12894,7 @@ notify pgrst, 'reload schema';`;
                     const veh = allVeh().find(v => v.id === vehId) || {};
                     const drv = drvId ? allDrv().find(d => d.id === drvId) : null;
                     const ctr = ctrId ? (state.contracts || []).find(c => c.id === ctrId) : null;
-                    const base = baseId ? (state.inspections || []).find(b => b.id === baseId) : null;
+                    const base = type === 'devolucao' ? iwResolveEntregaBaseline(rawBaseVal) : null;
                     const loc = locadorForVehicle(vehId) || {};
 
                     let num = iwState.inspection_number;
@@ -12651,7 +13161,7 @@ notify pgrst, 'reload schema';`;
             page.drawText(pdfSafeText(localDt), { x: ML, y, size: 10, font: fontBold, color: ink });
             y -= 28;
             const colW = (CW - 28) / 2;
-            const isGovMode = ins.signature_mode !== 'manual';
+            const isGovMode = ins.signature_mode !== 'digitalizado';
             const drawSig = (sx, sy, roleTitle, nome, cpf, signedAt, method) => {
                 page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
                 page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 12, size: 8.8, font: fontBold, color: ink });
