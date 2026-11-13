@@ -240,6 +240,21 @@
             </div>
         </section>
 
+        <!-- TELA PÚBLICA DE ASSINATURA OFICIAL VIA GOV.BR (?assinar=token) -->
+        <section id="secGovBrInvite" class="hidden max-w-xl mx-auto my-6 sm:my-10">
+            <div class="text-center mb-5">
+                <img src="logo-animada.gif" alt="MOTORA" width="56" height="56" class="w-14 h-14 mx-auto rounded-2xl shadow-md">
+                <h2 class="text-xl font-extrabold mt-2 tracking-tight">Assinatura Eletrônica Oficial — GOV.BR</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Portal oficial do Governo Federal (assinador.iti.br) · Lei nº 14.063/2020</p>
+            </div>
+            <div id="govBrInviteBody" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-5 sm:p-6 border border-gray-200 dark:border-gray-700 space-y-4">
+                <p class="text-sm text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Carregando documento para assinatura...</p>
+            </div>
+            <div class="text-center mt-4">
+                <button type="button" onclick="exitGovBrInviteToLogin()" class="text-xs text-gray-500 dark:text-gray-400 underline">Acessar tela de login do MOTORA</button>
+            </div>
+        </section>
+
         <!-- PAINEL DO MOTORISTA -->
         <section id="secDriverPanel" class="hidden space-y-6">
             <div id="viewAsBanner" class="hidden"></div>
@@ -1834,8 +1849,8 @@
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data da assinatura</label><input id="cwDataAssinatura" type="date" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                         <div><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Modo de assinatura</label>
                             <select id="cwSignatureMode" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
-                                <option value="manual">Manual / PDF impresso</option>
-                                <option value="eletronica_pendente">Preparado para assinatura eletrônica</option>
+                                <option value="eletronica_pendente">Assinatura Eletrônica GOV.BR (Partes e Testemunhas)</option>
+                                <option value="manual">Legado / PDF físico digitalizado</option>
                             </select>
                         </div>
                         <div class="sm:col-span-3"><label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Finalidade da locação *</label><textarea id="cwPurpose" rows="2" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea></div>
@@ -1988,6 +2003,19 @@
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Observações gerais / Anexos / Orçamento (Locador)</label>
                         <textarea id="iwNotes" rows="3" placeholder="Ex: Entregue com CRLV-e digital, chave reserva; eventual dano novo sujeito a orçamento idôneo..." class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></textarea>
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 space-y-2.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="font-bold text-xs uppercase text-gray-600 dark:text-gray-300"><i class="fa-solid fa-users-viewfinder text-indigo-600 mr-1"></i> Testemunhas para Assinatura Digital GOV.BR</span>
+                        <span class="text-[11px] text-gray-500">Testemunha 1 alterna automático Dara/Thiago</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <div class="sm:col-span-2"><label class="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 1 — Nome completo</label><input id="iwWit1Name" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 1 — CPF</label><input id="iwWit1Cpf" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div class="sm:col-span-2"><label class="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 2 — Nome completo</label><input id="iwWit2Name" placeholder="Pode preencher agora ou na assinatura GOV.BR" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        <div><label class="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">Testemunha 2 — CPF</label><input id="iwWit2Cpf" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
                     </div>
                 </div>
             </div>
@@ -2678,6 +2706,106 @@
                             });
                             return { data: { ok: true, model: 'demo-gemini-vision', items }, error: null };
                         }
+                        if (name === 'motora-assinatura') {
+                            const db = DEMO.db;
+                            db.signature_invites = db.signature_invites || [];
+                            const act = b.action;
+                            const findDoc = (dt, did) => {
+                                const list = dt === 'inspection' ? (db.vehicle_inspections || []) : (db.rental_contracts || []);
+                                return list.find(x => x.id === did) || null;
+                            };
+                            if (act === 'create_invite') {
+                                const dType = b.doc_type === 'inspection' ? 'inspection' : 'contract';
+                                const doc = findDoc(dType, b.doc_id);
+                                if (!doc) return { data: { ok: false, error: 'Documento não encontrado.' }, error: null };
+                                if (doc.status === 'rascunho' || doc.status === 'cancelado') return { data: { ok: false, error: 'Emita o documento com PDF antes de gerar links GOV.BR.' }, error: null };
+                                db.signature_invites.forEach(i => {
+                                    if (i.doc_type === dType && i.doc_id === doc.id && i.signer_role === b.signer_role && i.status === 'pendente') i.status = 'revogado';
+                                });
+                                const tok = 'demo-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+                                const inv = {
+                                    id: demoId(), token: tok, owner_id: doc.owner_id, doc_type: dType, doc_id: doc.id,
+                                    signer_role: b.signer_role, signer_name: b.signer_name || b.signer_role, signer_cpf: b.signer_cpf || '',
+                                    status: 'pendente', signed_at: null, expires_at: new Date(Date.now() + 15 * 86400000).toISOString(),
+                                    created_at: new Date().toISOString()
+                                };
+                                db.signature_invites.push(inv); demoSave();
+                                return { data: { ok: true, token: tok, expires_at: inv.expires_at, signer_role: inv.signer_role, signer_name: inv.signer_name }, error: null };
+                            }
+                            if (act === 'get_invite') {
+                                const inv = db.signature_invites.find(i => i.token === b.token);
+                                if (!inv) return { data: { ok: false, error: 'Link de assinatura não encontrado.' }, error: null };
+                                if (inv.status === 'revogado') return { data: { ok: false, error: 'Este link foi substituído.' }, error: null };
+                                const doc = findDoc(inv.doc_type, inv.doc_id);
+                                if (!doc) return { data: { ok: false, error: 'Documento não encontrado.' }, error: null };
+                                const s = doc.snapshot_data || {}, sd = doc.signature_data || {};
+                                const curPath = doc.signed_pdf_path || doc.pdf_path || 'demo/doc.pdf';
+                                const blob = blobOf(curPath) || new Blob(['%PDF-1.4 demo'], { type: 'application/pdf' });
+                                const url = URL.createObjectURL(blob);
+                                return {
+                                    data: {
+                                        ok: true,
+                                        invite: { signer_role: inv.signer_role, signer_name: inv.signer_name, signer_cpf: inv.signer_cpf || '', status: inv.status, signed_at: inv.signed_at, expires_at: inv.expires_at },
+                                        doc: {
+                                            doc_type: inv.doc_type, doc_id: doc.id,
+                                            doc_number: inv.doc_type === 'inspection' ? doc.inspection_number : doc.contract_number,
+                                            inspection_type: doc.inspection_type || null, status: doc.status,
+                                            locador_name: s.locador?.name || 'Locador', locatario_name: s.locatario?.name || 'Locatário',
+                                            veiculo: { model: s.veiculo?.model || '', plate: s.veiculo?.plate || '' },
+                                            witness1_name: s.testemunhas?.[0]?.name || sd.witness1_name || 'Testemunha 1',
+                                            witness2_name: s.testemunhas?.[1]?.name || sd.witness2_name || 'Testemunha 2',
+                                            signature_data: sd
+                                        },
+                                        download_url: url, view_url: url
+                                    },
+                                    error: null
+                                };
+                            }
+                            if (act === 'submit_govbr_pdf') {
+                                const inv = b.token ? db.signature_invites.find(i => i.token === b.token) : null;
+                                if (b.token && !inv) return { data: { ok: false, error: 'Link não encontrado.' }, error: null };
+                                const dType = inv ? inv.doc_type : (b.doc_type === 'inspection' ? 'inspection' : 'contract');
+                                const dId = inv ? inv.doc_id : b.doc_id;
+                                const doc = findDoc(dType, dId);
+                                if (!doc) return { data: { ok: false, error: 'Documento não encontrado.' }, error: null };
+                                const rawBin = atob(String(b.pdf_base64 || '').replace(/^data:application\/pdf;base64,/i, ''));
+                                const u8 = new Uint8Array(rawBin.length);
+                                for (let k = 0; k < rawBin.length; k++) u8[k] = rawBin.charCodeAt(k);
+                                const info = await inspectPdfSignaturesBytes(u8);
+                                if (!info.okFormat) return { data: { ok: false, error: 'Arquivo inválido (envie um PDF).' }, error: null };
+                                if (info.sigCount < 1) return { data: { ok: false, error: 'Nenhuma assinatura digital GOV.BR (/ByteRange) foi encontrada neste PDF. Assine em assinador.iti.br e envie o arquivo assinado.' }, error: null };
+                                const prevCount = Number(doc.signature_data?.pdf_sig_count || 0);
+                                if (prevCount > 0 && info.sigCount < prevCount) return { data: { ok: false, error: `Atenção: o PDF anterior tinha ${prevCount} assinatura(s) e este só tem ${info.sigCount}. Baixe sempre o PDF mais recente antes de assinar no assinador.iti.br.` }, error: null };
+                                const roles = inv ? [inv.signer_role] : (Array.isArray(b.signer_roles) ? b.signer_roles : [b.signer_role]).filter(Boolean);
+                                const roleMap = { locador: 'locador_at', locatario: 'locatario_at', witness1: 'witness1_at', witness2: 'witness2_at' };
+                                const nowIso = new Date().toISOString();
+                                const path = `${doc.driver_id || 'veh'}/${dType}/${doc.id}/govbr-${roles.join('_')}-${Date.now()}.pdf`;
+                                files()[path] = new Blob([u8], { type: 'application/pdf' });
+                                const nextSd = { ...(doc.signature_data || {}), provider: 'govbr', pdf_sig_count: info.sigCount, govbr_detected: info.govbrDetected, pdf_sha256: info.sha256, last_signed_at: nowIso };
+                                roles.forEach(r => { if (roleMap[r]) { if (!nextSd[roleMap[r]]) nextSd[roleMap[r]] = nowIso; nextSd[`${r}_method`] = 'govbr'; } });
+                                if (roles.length === 1 && (roles[0] === 'witness1' || roles[0] === 'witness2')) {
+                                    if (b.signer_name) nextSd[`${roles[0]}_name`] = b.signer_name;
+                                    if (b.signer_cpf) nextSd[`${roles[0]}_cpf`] = b.signer_cpf;
+                                }
+                                const allSigned = !!(nextSd.locador_at && nextSd.locatario_at && nextSd.witness1_at && nextSd.witness2_at);
+                                doc.signed_pdf_path = path;
+                                doc.signature_data = nextSd;
+                                doc.signature_mode = allSigned ? 'eletronica_assinada' : 'eletronica_pendente';
+                                if (allSigned) {
+                                    doc.signed_at = doc.signed_at || nowIso;
+                                    if (doc.status === 'aguardando_assinatura') doc.status = dType === 'contract' ? 'ativo' : 'concluido';
+                                }
+                                if (inv) { inv.status = 'assinado'; inv.signed_at = nowIso; inv.signed_pdf_path = path; inv.pdf_sig_count = info.sigCount; }
+                                if (dType === 'contract') {
+                                    (db.rental_contract_history = db.rental_contract_history || []).unshift({
+                                        id: demoId(), owner_id: doc.owner_id, contract_id: doc.id, driver_id: doc.driver_id,
+                                        event_type: 'assinatura_govbr', description: `Assinatura GOV.BR registrada (${info.sigCount} selo(s) no PDF)`, metadata: {}, created_at: nowIso
+                                    });
+                                }
+                                demoSave();
+                                return { data: { ok: true, path, sig_count: info.sigCount, govbr_detected: info.govbrDetected, sha256: info.sha256, all_signed: allSigned, status: doc.status, signature_mode: doc.signature_mode, signature_data: nextSd }, error: null };
+                            }
+                        }
                         return { data: { ok: false, error: 'A leitura por IA fica desligada na demonstração.' }, error: null };
                     },
                 },
@@ -2862,8 +2990,13 @@
             if (savedUser) document.getElementById('loginUser').value = savedUser;
             document.getElementById('chkRememberPass').checked = lsGet('motora_remember') !== '0';
 
-            // link de demonstração: ?demo (ou ?demo=dono) e ?demo=motorista abrem direto, sem login
+            // link público de assinatura GOV.BR (?assinar=TOKEN)
             const qp = new URLSearchParams(location.search);
+            if (qp.has('assinar')) {
+                const tok = (qp.get('assinar') || '').trim();
+                if (tok) { await loadGovBrInvitePage(tok); return; }
+            }
+            // link de demonstração: ?demo (ou ?demo=dono) e ?demo=motorista abrem direto, sem login
             if (qp.has('demo')) {
                 const role = /motorista|driver/i.test(qp.get('demo') || '') ? 'driver' : 'master';
                 history.replaceState(null, '', location.pathname);
@@ -3379,9 +3512,9 @@
         }
 
         function showSection(id) {
-            ['secLogin', 'secDemoEscolha', 'secDriverPanel', 'secMasterPanel'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            ['secLogin', 'secDemoEscolha', 'secGovBrInvite', 'secDriverPanel', 'secMasterPanel'].forEach(s => document.getElementById(s).classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
-            document.body.classList.toggle('no-header', id === 'secLogin' || id === 'secDemoEscolha');
+            document.body.classList.toggle('no-header', id === 'secLogin' || id === 'secDemoEscolha' || id === 'secGovBrInvite');
         }
         async function withBtn(btn, label, fn) {
             const old = btn ? btn.innerHTML : '';
@@ -9880,6 +10013,7 @@ notify pgrst, 'reload schema';`;
                                 ${path ? `<button type="button" onclick="viewDocIdx(${docRef(path, `${isDev ? 'Devolução' : 'Vistoria'} ${esc(ins.inspection_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-eye mr-1"></i> ${ins.signed_pdf_path ? 'Ver termo assinado' : 'Visualizar PDF'}</button>` : ''}
                                 <button type="button" onclick="downloadInspectionPdf('${ins.id}', this)" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
                             </div>
+                            ${driverGovBrBlockHtml('inspection', ins)}
                         </div>`;
                     }).join('')}
                     ${d.inspection_term_path ? `<div class="text-right"><button type="button" onclick="viewDocIdx(${docRef(d.inspection_term_path, 'Termo anexado na ficha')})" class="text-xs text-blue-600 dark:text-blue-400 underline">Abrir termo complementar da ficha</button></div>` : ''}
@@ -9918,10 +10052,315 @@ notify pgrst, 'reload schema';`;
                             <button type="button" onclick="downloadContractPdf('${c.id}', this)" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
                             ${c.pdf_path && c.signed_pdf_path ? `<button type="button" onclick="viewDocIdx(${docRef(c.pdf_path, `Minuta PDF ${esc(c.contract_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700"><i class="fa-solid fa-file-pdf mr-1"></i> Via gerada</button>` : ''}
                         </div>
+                        ${driverGovBrBlockHtml('contract', c)}
                     </div>`;
                 }).join('')}
                 ${d.contract_path ? `<div class="text-right"><button type="button" onclick="viewDocIdx(${docRef(d.contract_path, 'Contrato anexado na ficha')})" class="text-xs text-blue-600 dark:text-blue-400 underline">Abrir documento complementar da ficha</button></div>` : ''}
             </div>`;
+        }
+
+        // =====================================================================
+        // ASSINATURAS ELETRÔNICAS OFICIAIS VIA GOV.BR (assinador.iti.br)
+        // Partes e 2 Testemunhas em cadeia PAdES no mesmo PDF + links por token
+        // =====================================================================
+        async function inspectPdfSignaturesBytes(bytes) {
+            if (!bytes || bytes.length < 16) return { okFormat: false, sigCount: 0, govbrDetected: false, sha256: null };
+            const head = new TextDecoder('latin1').decode(bytes.subarray(0, 8));
+            if (!head.startsWith('%PDF-')) return { okFormat: false, sigCount: 0, govbrDetected: false, sha256: null };
+            const raw = new TextDecoder('latin1').decode(bytes);
+            const byteRanges = raw.match(/\/ByteRange\s*\[\s*\d+\s+\d+\s+\d+\s+\d+\s*\]/g) || [];
+            const subFilters = raw.match(/\/SubFilter\s*\/\s*(adbe\.pkcs7\.(detached|sha1)|ETSI\.CAdES\.detached|ETSI\.RFC3161|adbe\.x509\.rsa_sha1)/gi) || [];
+            const sigCount = byteRanges.length > 0 ? Math.max(byteRanges.length, subFilters.length) : subFilters.length;
+            const govbrDetected = /GOV\.BR|Instituto Nacional de Tecnologia da Informacao|SERVICO FEDERAL DE PROCESSAMENTO DE DADOS|SERPRO|ICP-Brasil|Autoridade Certificadora/i.test(raw);
+            let sha256 = null;
+            try {
+                if (crypto && crypto.subtle) {
+                    const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
+                    sha256 = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+                }
+            } catch (e) {}
+            return { okFormat: true, sigCount, govbrDetected, sha256 };
+        }
+
+        async function readPdfFileAsBase64AndInspect(file) {
+            if (!file) throw new Error('Selecione o arquivo PDF assinado no GOV.BR.');
+            if (file.size > MAX_FILE) throw new Error('PDF muito grande (máximo 10 MB).');
+            const buf = await file.arrayBuffer();
+            const u8 = new Uint8Array(buf);
+            const info = await inspectPdfSignaturesBytes(u8);
+            if (!info.okFormat) throw new Error('O arquivo selecionado não é um PDF válido.');
+            let bin = '';
+            const CHUNK = 0x8000;
+            for (let i = 0; i < u8.length; i += CHUNK) {
+                bin += String.fromCharCode.apply(null, u8.subarray(i, i + CHUNK));
+            }
+            return { base64: btoa(bin), info };
+        }
+
+        function govBrSignersList(docType, doc) {
+            const s = (doc && doc.snapshot_data) || {}, sd = (doc && doc.signature_data) || {};
+            const wList = Array.isArray(s.testemunhas) ? s.testemunhas : [];
+            const loc = s.locador || {}, drv = s.locatario || {};
+            return [
+                { role: 'locador', label: docType === 'inspection' ? 'Locador / Vistoriador' : 'Locador', name: loc.name || '', cpf: loc.cpf || '', at: sd.locador_at, canInvite: false },
+                { role: 'locatario', label: 'Locatário (Motorista)', name: drv.name || '', cpf: drv.cpf || '', phone: drv.phone || '', at: sd.locatario_at, canInvite: true },
+                { role: 'witness1', label: 'Testemunha 1', name: (wList[0] && wList[0].name) || sd.witness1_name || '', cpf: (wList[0] && wList[0].cpf) || sd.witness1_cpf || '', at: sd.witness1_at, canInvite: true },
+                { role: 'witness2', label: 'Testemunha 2', name: (wList[1] && wList[1].name) || sd.witness2_name || '', cpf: (wList[1] && wList[1].cpf) || sd.witness2_cpf || '', at: sd.witness2_at, canInvite: true }
+            ];
+        }
+
+        function renderGovBrFlowBox(docType, doc) {
+            if (!doc || doc.status === 'rascunho' || doc.status === 'cancelado') return '';
+            const sd = doc.signature_data || {};
+            const signers = govBrSignersList(docType, doc);
+            const doneCount = signers.filter(x => !!x.at).length;
+            const pdfSigCount = Number(sd.pdf_sig_count || 0);
+            const isInsp = docType === 'inspection';
+            const dlFn = isInsp ? `downloadInspectionPdf('${doc.id}', this)` : `downloadContractPdf('${doc.id}', this)`;
+            const numLabel = isInsp ? doc.inspection_number : doc.contract_number;
+            const pfx = isInsp ? 'itdGov' : 'cdGov';
+            return `<div class="p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h4 class="font-bold text-sm text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-indigo-600"></i> Assinatura Digital Obrigatória — Portal GOV.BR</h4>
+                        <p class="text-[11px] text-gray-600 dark:text-gray-300">Partes e 2 testemunhas assinam sequencialmente no <b>mesmo PDF</b> via conta GOV.BR (Prata/Ouro) em <span class="font-mono">assinador.iti.br</span>.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 text-[11px] font-bold">
+                        <span class="px-2 py-1 rounded-full ${doneCount === 4 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200'}">${doneCount}/4 assinantes</span>
+                        ${pdfSigCount ? `<span class="px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">${pdfSigCount} selo(s) no PDF</span>` : ''}
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="${dlFn}" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-gray-800 border border-indigo-300 dark:border-indigo-700 hover:bg-indigo-50"><i class="fa-solid fa-download mr-1"></i> 1. Baixar PDF atual${doc.signed_pdf_path ? ' (com assinaturas)' : ''}</button>
+                    <a href="https://assinador.iti.br/" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-from-square"></i> 2. Abrir GOV.BR (assinador.iti.br)</a>
+                    <a href="https://validar.iti.gov.br/" target="_blank" rel="noopener" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 inline-flex items-center gap-1"><i class="fa-solid fa-certificate text-emerald-600"></i> Validar no ITI</a>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${signers.map(sg => `<div class="p-2.5 rounded-xl bg-white dark:bg-gray-800 border ${sg.at ? 'border-emerald-300 dark:border-emerald-700' : 'border-gray-200 dark:border-gray-700'} text-xs space-y-1.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold">${esc(sg.label)}</span>
+                            ${sg.at ? `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-0.5"></i> GOV.BR (${fmtDate(sg.at)})</span>` : '<span class="text-amber-600 font-semibold">Pendente</span>'}
+                        </div>
+                        <div class="text-[11px] text-gray-600 dark:text-gray-300 truncate">${esc(sg.name || 'Nome não informado')}${sg.cpf ? ' · CPF ' + esc(sg.cpf) : ''}</div>
+                        ${sg.canInvite ? `<div class="flex flex-wrap gap-1.5 pt-0.5">
+                            <button type="button" onclick="createGovBrInvite('${docType}','${doc.id}','${sg.role}',false,this)" class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200 hover:bg-indigo-100"><i class="fa-solid fa-link mr-1"></i>Copiar link GOV.BR</button>
+                            <button type="button" onclick="createGovBrInvite('${docType}','${doc.id}','${sg.role}',true,this)" class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 hover:bg-emerald-100"><i class="fa-brands fa-whatsapp mr-1"></i>Enviar WhatsApp</button>
+                        </div>` : `<div class="text-[10px] text-gray-400">O locador baixa o PDF, assina no GOV.BR e envia abaixo.</div>`}
+                    </div>`).join('')}
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/90 dark:bg-gray-800/90 border border-indigo-200 dark:border-indigo-800 space-y-2">
+                    <div class="text-xs font-bold text-gray-700 dark:text-gray-200">3. Enviar PDF assinado no GOV.BR e marcar quem assinou nesta etapa:</div>
+                    <div class="flex flex-wrap gap-3 text-xs">
+                        ${signers.map(sg => `<label class="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" class="gov-role-cb rounded" data-doc-pfx="${pfx}" value="${sg.role}" ${!sg.at && sg.role === 'locador' ? 'checked' : ''}> <span>${esc(sg.label)}${sg.at ? ' (já marcado)' : ''}</span></label>`).join('')}
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="file" id="${pfx}PdfFile" accept="application/pdf" class="flex-1 text-xs text-gray-500">
+                        <button type="button" onclick="submitMasterGovBrPdf('${docType}','${doc.id}','${pfx}',this)" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"><i class="fa-solid fa-file-shield mr-1"></i> Validar PDF e Registrar GOV.BR (${esc(numLabel)})</button>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function driverGovBrBlockHtml(docType, doc) {
+            if (!doc || doc.status === 'rascunho' || doc.status === 'cancelado') return '';
+            const sd = doc.signature_data || {};
+            const signers = govBrSignersList(docType, doc);
+            const isInsp = docType === 'inspection';
+            const dlFn = isInsp ? `downloadInspectionPdf('${doc.id}', this)` : `downloadContractPdf('${doc.id}', this)`;
+            const sigCnt = Number(sd.pdf_sig_count || 0);
+            return `<div class="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 space-y-2">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span class="font-bold text-indigo-900 dark:text-indigo-200"><i class="fa-solid fa-shield-halved mr-1"></i>Assinatura Digital GOV.BR (Partes e Testemunhas)</span>
+                    ${sigCnt ? `<span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 font-semibold text-[11px]">${sigCnt} selo(s) no PDF</span>` : ''}
+                </div>
+                <div class="flex flex-wrap gap-1.5 text-[11px]">
+                    ${signers.map(sg => `<span class="px-2 py-0.5 rounded-full font-semibold ${sg.at ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}"><i class="fa-solid ${sg.at ? 'fa-check' : 'fa-clock'} mr-1"></i>${esc(sg.role === 'locatario' ? 'Você (Locatário)' : sg.label)}</span>`).join('')}
+                </div>
+                ${(!sd.locatario_at || doc.status === 'aguardando_assinatura') ? `<div class="pt-1 space-y-2 text-xs">
+                    <div class="text-[11px] text-gray-600 dark:text-gray-300"><b>Como assinar pelo GOV.BR (conta Prata ou Ouro):</b> 1) Baixe o PDF atual → 2) Entre em <span class="font-mono">assinador.iti.br</span> e assine → 3) Envie aqui o PDF assinado.</div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" onclick="${dlFn}" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-gray-800 border border-indigo-300 dark:border-indigo-700"><i class="fa-solid fa-download mr-1"></i>1. Baixar PDF atual</button>
+                        <a href="https://assinador.iti.br/" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>2. Assinar no GOV.BR</a>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="file" id="drvGovPdf_${docType}_${doc.id}" accept="application/pdf" class="flex-1 text-xs text-gray-500">
+                        <button type="button" onclick="submitDriverGovBrPdf('${docType}','${doc.id}',this)" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0"><i class="fa-solid fa-upload mr-1"></i>3. Enviar PDF assinado no GOV.BR</button>
+                    </div>
+                </div>` : ''}
+            </div>`;
+        }
+
+        function govBrPublicAppBaseUrl() {
+            return (location.origin && location.origin !== 'null') ? (location.origin + location.pathname) : 'https://motoraapp.github.io/motora-frota/';
+        }
+
+        async function createGovBrInvite(docType, docId, signerRole, sendWhatsapp, btn) {
+            const list = docType === 'inspection' ? (state.inspections || []) : (state.contracts || []);
+            const doc = list.find(x => x.id === docId);
+            if (!doc) return;
+            const sg = govBrSignersList(docType, doc).find(x => x.role === signerRole) || {};
+            return withBtn(btn, 'Gerando...', async () => {
+                try {
+                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                        body: { action: 'create_invite', doc_type: docType, doc_id: docId, signer_role: signerRole, signer_name: sg.name || '', signer_cpf: sg.cpf || '' }
+                    });
+                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Não foi possível gerar o link.');
+                    const link = `${govBrPublicAppBaseUrl()}?assinar=${encodeURIComponent(data.token)}`;
+                    const docNum = docType === 'inspection' ? doc.inspection_number : doc.contract_number;
+                    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).catch(() => {});
+                    if (sendWhatsapp) {
+                        const msg = `Olá${sg.name ? ', ' + String(sg.name).split(' ')[0] : ''}! Para assinar digitalmente o documento *${docNum}* pelo *GOV.BR* (${sg.label || signerRole}), abra o link abaixo no seu celular, baixe o PDF atual, assine em https://assinador.iti.br com seu GOV.BR (Prata ou Ouro) e envie de volta no próprio link:\n\n${link}`;
+                        const digits = String(sg.phone || '').replace(/\D/g, '');
+                        const waUrl = digits.length >= 10
+                            ? `https://wa.me/55${digits.replace(/^55/, '')}?text=${encodeURIComponent(msg)}`
+                            : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                        window.open(waUrl, '_blank');
+                        showToast('Link GOV.BR gerado, copiado e aberto no WhatsApp!');
+                    } else {
+                        await uiPrompt('Link oficial de assinatura GOV.BR (copiado!)', {
+                            label: `Envie para ${sg.label || signerRole} assinar pelo GOV.BR (assinador.iti.br)`,
+                            value: link, okText: 'Fechar'
+                        });
+                    }
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+
+        async function submitMasterGovBrPdf(docType, docId, pfx, btn) {
+            const inp = document.getElementById(`${pfx}PdfFile`);
+            const file = inp && inp.files && inp.files[0];
+            const roles = Array.from(document.querySelectorAll(`.gov-role-cb[data-doc-pfx="${pfx}"]:checked`)).map(c => c.value);
+            if (!file) { showToast('Selecione o arquivo PDF assinado no GOV.BR.', 'error'); return; }
+            if (!roles.length) { showToast('Marque quem assinou este PDF (ex: Locador, Testemunha 1...).', 'error'); return; }
+            return withBtn(btn, 'Validando GOV.BR...', async () => {
+                try {
+                    const { base64 } = await readPdfFileAsBase64AndInspect(file);
+                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                        body: { action: 'submit_govbr_pdf', doc_type: docType, doc_id: docId, signer_roles: roles, pdf_base64: base64, file_name: file.name }
+                    });
+                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Falha ao validar PDF.');
+                    await reload();
+                    if (docType === 'inspection') { openInspectionDetail(docId); if (fileDriverId) renderDriverRentalContractsBox(fileDriverId); }
+                    else { openContractDetail(docId); if (fileDriverId) renderDriverRentalContractsBox(fileDriverId); }
+                    showToast(`PDF GOV.BR validado (${data.sig_count} assinatura(s) no arquivo)!${data.all_signed ? ' Todas as 4 assinaturas concluídas!' : ''}`);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+
+        async function submitDriverGovBrPdf(docType, docId, btn) {
+            const inp = document.getElementById(`drvGovPdf_${docType}_${docId}`);
+            const file = inp && inp.files && inp.files[0];
+            if (!file) { showToast('Selecione o PDF assinado pelo seu GOV.BR.', 'error'); return; }
+            return withBtn(btn, 'Validando GOV.BR...', async () => {
+                try {
+                    const { base64 } = await readPdfFileAsBase64AndInspect(file);
+                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                        body: { action: 'submit_govbr_pdf', doc_type: docType, doc_id: docId, signer_role: 'locatario', pdf_base64: base64, file_name: file.name }
+                    });
+                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Falha ao validar PDF.');
+                    await reload();
+                    showContractDoc(docType === 'inspection' ? 'vistoria' : 'contrato');
+                    showToast(`Sua assinatura GOV.BR foi validada (${data.sig_count} selo(s) no PDF)!`);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+
+        let currentGovBrInviteToken = null;
+        async function loadGovBrInvitePage(token) {
+            currentGovBrInviteToken = token;
+            showSection('secGovBrInvite');
+            const box = document.getElementById('govBrInviteBody');
+            box.innerHTML = `<p class="text-sm text-center text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Carregando documento para assinatura GOV.BR...</p>`;
+            try {
+                const demoPrev = demoSaved();
+                if (!DEMO && demoPrev && String(token).startsWith('demo-')) {
+                    demoStart(demoPrev.role || 'master', demoPrev);
+                }
+                const { data, error } = await sb.functions.invoke('motora-assinatura', { body: { action: 'get_invite', token } });
+                if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Link inválido ou expirado.');
+                const inv = data.invite, doc = data.doc, sd = doc.signature_data || {};
+                const docTitle = doc.doc_type === 'inspection' ? `${doc.inspection_type === 'devolucao' ? 'Termo de Devolução' : 'Termo de Vistoria'} ${doc.doc_number}` : `Contrato de Locação ${doc.doc_number}`;
+                const roleNames = { locador: 'Locador', locatario: 'Locatário (Motorista)', witness1: 'Testemunha 1', witness2: 'Testemunha 2' };
+                const statusRows = [
+                    { k: 'locador_at', lbl: 'Locador', n: doc.locador_name },
+                    { k: 'locatario_at', lbl: 'Locatário', n: doc.locatario_name },
+                    { k: 'witness1_at', lbl: 'Testemunha 1', n: doc.witness1_name },
+                    { k: 'witness2_at', lbl: 'Testemunha 2', n: doc.witness2_name }
+                ];
+                box.innerHTML = `
+                    <div class="p-3.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 space-y-1">
+                        <div class="text-xs font-bold uppercase text-indigo-700 dark:text-indigo-300">Você foi convidado(a) como: ${esc(roleNames[inv.signer_role] || inv.signer_role)}</div>
+                        <div class="font-extrabold text-base">${esc(docTitle)}</div>
+                        <div class="text-xs text-gray-600 dark:text-gray-300">Veículo: <b>${esc(doc.veiculo?.model || '-')} (${esc(doc.veiculo?.plate || '-')})</b> · Locatário: <b>${esc(doc.locatario_name || '-')}</b></div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <div class="text-xs font-bold text-gray-600 dark:text-gray-300">Progresso das assinaturas neste PDF (${Number(sd.pdf_sig_count || 0)} selo(s) GOV.BR já gravado(s)):</div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            ${statusRows.map(r => `<div class="p-2 rounded-xl border ${sd[r.k] ? 'border-emerald-300 bg-emerald-50/70 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700'}">
+                                <div class="font-bold">${esc(r.lbl)}</div>
+                                <div class="truncate text-[11px] text-gray-500">${esc(r.n || '-')}</div>
+                                <div class="text-[11px] font-semibold ${sd[r.k] ? 'text-emerald-600' : 'text-amber-600'}">${sd[r.k] ? 'Assinado (' + fmtDate(sd[r.k]) + ')' : 'Pendente'}</div>
+                            </div>`).join('')}
+                        </div>
+                    </div>
+                    ${inv.status === 'assinado' ? `<div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 text-center space-y-2">
+                        <div class="text-emerald-700 dark:text-emerald-300 font-extrabold text-base"><i class="fa-solid fa-circle-check mr-1"></i> Assinatura GOV.BR registrada!</div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Recebido em ${fmtDate(inv.signed_at)}. Você pode baixar o PDF atualizado ou validar em validar.iti.gov.br.</p>
+                        ${data.download_url ? `<a href="${esc(data.download_url)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white">Baixar PDF atualizado</a>` : ''}
+                    </div>` : `<div class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div><label class="block text-[11px] font-semibold text-gray-500 mb-1">Seu nome completo (como no GOV.BR)</label><input id="gbiSignerName" value="${esc(inv.signer_name || '')}" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                            <div><label class="block text-[11px] font-semibold text-gray-500 mb-1">Seu CPF</label><input id="gbiSignerCpf" value="${esc(inv.signer_cpf || '')}" placeholder="000.000.000-00" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none"></div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-1">
+                            <b>Passo a passo obrigatório (necessário conta GOV.BR Prata ou Ouro):</b>
+                            <div>1. Toque em <b>Baixar PDF atual</b> para pegar a versão mais recente (com assinaturas anteriores preservadas).</div>
+                            <div>2. Entre no portal oficial <b>assinador.iti.br</b>, envie esse PDF, assine com seu GOV.BR e baixe o arquivo assinado.</div>
+                            <div>3. Volte aqui e envie o PDF assinado pelo GOV.BR no botão verde abaixo.</div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            ${data.download_url ? `<a id="gbiDownloadBtn" href="${esc(data.download_url)}" target="_blank" rel="noopener" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-center bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-download mr-1"></i> 1. Baixar PDF atual</a>` : ''}
+                            <a href="https://assinador.iti.br/" target="_blank" rel="noopener" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-center bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> 2. Abrir GOV.BR (assinador.iti.br)</a>
+                        </div>
+                        <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
+                            <label class="block text-xs font-bold">3. Enviar PDF assinado pelo GOV.BR:</label>
+                            <input type="file" id="gbiSignedFile" accept="application/pdf" class="w-full text-xs">
+                            <button type="button" onclick="submitGovBrInvitePdf('${esc(token)}', this)" class="w-full py-3 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white"><i class="fa-solid fa-file-shield mr-1"></i> Validar e Confirmar Minha Assinatura GOV.BR</button>
+                        </div>
+                    </div>`}
+                `;
+            } catch (e) {
+                box.innerHTML = `<div class="p-4 rounded-xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-center space-y-2">
+                    <div class="font-bold text-red-700 dark:text-red-300"><i class="fa-solid fa-circle-exclamation mr-1"></i> ${esc(e.message || 'Link inválido')}</div>
+                    <p class="text-xs text-gray-600 dark:text-gray-300">Solicite um novo link de assinatura GOV.BR ao responsável pelo veículo.</p>
+                </div>`;
+            }
+        }
+
+        async function submitGovBrInvitePdf(token, btn) {
+            const inp = document.getElementById('gbiSignedFile');
+            const file = inp && inp.files && inp.files[0];
+            if (!file) { showToast('Selecione o arquivo PDF assinado no GOV.BR.', 'error'); return; }
+            const signer_name = (document.getElementById('gbiSignerName')?.value || '').trim();
+            const signer_cpf = (document.getElementById('gbiSignerCpf')?.value || '').trim();
+            return withBtn(btn, 'Validando assinatura GOV.BR...', async () => {
+                try {
+                    const { base64 } = await readPdfFileAsBase64AndInspect(file);
+                    const { data, error } = await sb.functions.invoke('motora-assinatura', {
+                        body: { action: 'submit_govbr_pdf', token, signer_name, signer_cpf, pdf_base64: base64, file_name: file.name }
+                    });
+                    if (error || !data || !data.ok) throw new Error((error && error.message) || (data && data.error) || 'Não foi possível validar o PDF.');
+                    await loadGovBrInvitePage(token);
+                    showToast(`Assinatura GOV.BR confirmada (${data.sig_count} selo(s) no PDF)!`);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+
+        async function exitGovBrInviteToLogin() {
+            history.replaceState(null, '', location.pathname);
+            const { data } = await sb.auth.getSession();
+            if (data && data.session) { state.user = data.session.user; await loadAndRender(); }
+            else showSection('secLogin');
         }
 
         // =====================================================================
@@ -10059,7 +10498,7 @@ notify pgrst, 'reload schema';`;
                 { num: 13, title: 'CLÁUSULA 13 — DA RESCISÃO', body: `O contrato poderá ser rescindido por mútuo acordo ou por iniciativa de qualquer das partes, mediante aviso prévio por escrito com antecedência mínima combinada (recomendado 7 a 15 dias), ou imediatamente nos casos de inadimplência não regularizada após a notificação da Cláusula 5, descumprimento grave de cláusula contratual (inclusive saída não autorizada da Região Metropolitana de Goiânia/GO prevista na Cláusula 1), suspensão/cassação da CNH ou exposição do veículo a risco ilícito, obrigando-se o LOCATÁRIO à devolução imediata do bem sem prejuízo dos valores devidos até a efetiva entrega e eventuais custos de remoção ou guincho fora da área de circulação autorizada.` },
                 { num: 14, title: 'CLÁUSULA 14 — DA RESPONSABILIDADE CIVIL', body: `O LOCATÁRIO responde civilmente por danos materiais, morais e estéticos causados ao veículo ou a terceiros durante o período de posse, nos termos da legislação civil aplicável, sem prejuízo das responsabilidades legais solidárias ou objetivas eventualmente atribuíveis perante terceiros e do consequente direito de regresso do LOCADOR.` },
                 { num: 15, title: 'CLÁUSULA 15 — DA PROTEÇÃO DE DADOS', body: `As partes comprometem-se a tratar os dados pessoais coletados (identificação, CNH, contato, endereço, dados financeiros e registros de condução) exclusivamente para execução do presente contrato, cumprimento de obrigações legais e regulatórias (como indicação de infratores no CTB), cobrança e tutela de direitos, em estrita conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD).` },
-                { num: 16, title: 'CLÁUSULA 16 — DO FORO', body: `Fica eleito o foro da Comarca de ${c.foro_cidade_uf || 'domicílio competente conforme a legislação vigente'} para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato, observadas as normas legais de competência aplicáveis.${c.notes ? '\n\nOBSERVAÇÕES PARTICULARES AJUSTADAS PELAS PARTES: ' + c.notes : ''}` }
+                { num: 16, title: 'CLÁUSULA 16 — DO FORO E DA ASSINATURA ELETRÔNICA GOV.BR', body: `Fica eleito o foro da Comarca de ${c.foro_cidade_uf || 'domicílio competente conforme a legislação vigente'} para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato, observadas as normas legais de competência aplicáveis.\nParágrafo único (Assinatura Eletrônica Oficial GOV.BR — Partes e Testemunhas). As Partes e as 2 (duas) Testemunhas convencionam que este instrumento será assinado eletronicamente por meio do Portal oficial GOV.BR (assinador.iti.br — Assinatura Eletrônica Avançada com conta Prata ou Ouro ou Qualificada ICP-Brasil), de forma sequencial no mesmo arquivo PDF (padrão PAdES), cuja autenticidade pode ser conferida gratuitamente em validar.iti.gov.br, possuindo plena validade jurídica e eficácia de título executivo extrajudicial nos termos da Lei nº 14.063/2020, da Medida Provisória nº 2.200-2/2001 e do art. 784, § 4º, do Código de Processo Civil.${c.notes ? '\n\nOBSERVAÇÕES PARTICULARES AJUSTADAS PELAS PARTES: ' + c.notes : ''}` }
             ];
         }
 
@@ -10203,22 +10642,29 @@ notify pgrst, 'reload schema';`;
                 y -= 28;
 
                 const colW = (CW - 28) / 2;
-                const drawSigBox = (sx, sy, roleTitle, nome, cpf, signedAt) => {
+                const isGovMode = c.signature_mode !== 'manual';
+                const drawSigBox = (sx, sy, roleTitle, nome, cpf, signedAt, method) => {
                     page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
                     page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 13, size: 9, font: fontBold, color: ink });
                     page.drawText(pdfSafeText(`Nome: ${nome || '____________________________'}`), { x: sx, y: sy - 25, size: 8.5, font: fontReg, color: ink });
                     page.drawText(pdfSafeText(`CPF: ${cpf || '_________________'}`), { x: sx, y: sy - 37, size: 8.5, font: fontReg, color: ink });
-                    page.drawText(pdfSafeText(signedAt ? `Assinado em: ${fmtDate(signedAt)}` : 'Data: ____/____/________'), { x: sx, y: sy - 49, size: 8, font: fontReg, color: muted });
+                    const stTxt = signedAt
+                        ? `Assinado ${method === 'govbr' || isGovMode ? 'via GOV.BR ' : ''}em: ${fmtDate(signedAt)}`
+                        : (isGovMode ? 'Assinatura GOV.BR (assinador.iti.br)' : 'Data: ____/____/________');
+                    page.drawText(pdfSafeText(stTxt), { x: sx, y: sy - 49, size: 8, font: fontReg, color: muted });
                 };
 
-                drawSigBox(ML, y, 'LOCADOR', l.name, l.cpf, sd.locador_at);
-                drawSigBox(ML + colW + 28, y, 'LOCATÁRIO', d.name, d.cpf, sd.locatario_at);
+                drawSigBox(ML, y, 'LOCADOR', l.name, l.cpf, sd.locador_at, sd.locador_method);
+                drawSigBox(ML + colW + 28, y, 'LOCATÁRIO', d.name, d.cpf, sd.locatario_at, sd.locatario_method);
                 y -= 86;
 
-                ensureSpace(88);
+                ensureSpace(98);
                 const w1 = wList[0] || {}, w2 = wList[1] || {};
-                drawSigBox(ML, y, 'TESTEMUNHA 1', w1.name, w1.cpf, sd.witness1_at);
-                drawSigBox(ML + colW + 28, y, 'TESTEMUNHA 2', w2.name, w2.cpf, sd.witness2_at);
+                drawSigBox(ML, y, 'TESTEMUNHA 1', w1.name || sd.witness1_name, w1.cpf || sd.witness1_cpf, sd.witness1_at, sd.witness1_method);
+                drawSigBox(ML + colW + 28, y, 'TESTEMUNHA 2', w2.name || sd.witness2_name, w2.cpf || sd.witness2_cpf, sd.witness2_at, sd.witness2_method);
+                if (isGovMode) {
+                    page.drawText(pdfSafeText('Todas as assinaturas deverão ser apostas em cadeia no mesmo PDF via https://assinador.iti.br (verificação: https://validar.iti.gov.br).'), { x: ML, y: y - 64, size: 7.5, font: fontSans, color: muted });
+                }
 
                 // Rodapés com paginação exata "Página X de Y"
                 const totalP = pages.length;
@@ -10853,7 +11299,8 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwLocalAssinatura').value = cm.local_assinatura || cm.foro_cidade_uf || '';
                 document.getElementById('cwDataAssinatura').value = renewSrc ? todayISO() : (cm.data_assinatura || todayISO());
                 document.getElementById('cwForo').value = cm.foro_cidade_uf || cm.local_assinatura || '';
-                document.getElementById('cwSignatureMode').value = src.signature_mode || 'manual';
+                const curMode = src.signature_mode;
+                document.getElementById('cwSignatureMode').value = (!renewSrc && curMode === 'manual' && existing && existing.status !== 'rascunho') ? 'manual' : 'eletronica_pendente';
                 const defW1 = defaultWitness1ForLocador(locData);
                 document.getElementById('cwWit1Name').value = (tw[0] && tw[0].name) || defW1.name;
                 document.getElementById('cwWit1Cpf').value = (tw[0] && tw[0].cpf) || defW1.cpf;
@@ -10883,7 +11330,7 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwPurpose').value = CONTRACT_PURPOSE_DEFAULT;
                 document.getElementById('cwNotes').value = '';
                 document.getElementById('cwDataAssinatura').value = todayISO();
-                document.getElementById('cwSignatureMode').value = 'manual';
+                document.getElementById('cwSignatureMode').value = 'eletronica_pendente';
                 cwApplyDefaultWitness1(pickedLoc || locadorForVehicle(vehId), true);
                 document.getElementById('cwWit2Name').value = ''; document.getElementById('cwWit2Cpf').value = '';
                 cwRenderClausesEditor(buildDefaultClauses(cwReadSnapshot()));
@@ -11033,9 +11480,10 @@ notify pgrst, 'reload schema';`;
         function emitContract(btn) { return persistContract('aguardando_assinatura', btn); }
 
         async function ensureContractPdfBlob(c) {
-            if (c.pdf_path) {
+            const pdfPath = c.signed_pdf_path || c.pdf_path;
+            if (pdfPath) {
                 try {
-                    const f = await fileUrl(c.pdf_path);
+                    const f = await fileUrl(pdfPath);
                     if (f && f.blob && (f.blob.type === 'application/pdf' || !DEMO)) return f.blob;
                 } catch (e) {}
             }
@@ -11102,12 +11550,13 @@ notify pgrst, 'reload schema';`;
                     <div><b>Vigência:</b> ${fmtDate(c.start_date)} até ${ind ? 'Prazo indeterminado' : fmtDate(c.end_date)}</div>
                     <div><b>Foro:</b> ${esc(cm.foro_cidade_uf || sd.foro_cidade_uf || '-')}</div>
                 </div>
-                <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2.5">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <h4 class="font-bold text-sm"><i class="fa-solid fa-signature text-indigo-600 mr-1"></i> Assinaturas e Documento Assinado</h4>
-                        <span class="text-[11px] text-gray-500">Arquitetura preparada para assinatura eletrônica futura (sem simulação).</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                ${renderGovBrFlowBox('contract', c)}
+                <details class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2.5" ${c.status === 'aguardando_assinatura' ? 'open' : ''}>
+                    <summary class="flex flex-wrap items-center justify-between gap-2 cursor-pointer font-bold text-sm">
+                        <span><i class="fa-solid fa-signature text-indigo-600 mr-1"></i> Confirmação Manual / Contrato Digitalizado</span>
+                        <span class="text-[11px] font-normal text-gray-500">Para controle ou envio avulso</span>
+                    </summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                         ${sigBox('Locador assinou', sd.locador_at, sd.locador_at, 'cdSigLoc', 'cdSigLocDt')}
                         ${sigBox('Locatário assinou', sd.locatario_at, sd.locatario_at, 'cdSigDrv', 'cdSigDrvDt')}
                         ${sigBox('Testemunha 1 assinou', sd.witness1_at, sd.witness1_at, 'cdSigW1', 'cdSigW1Dt')}
@@ -11125,7 +11574,7 @@ notify pgrst, 'reload schema';`;
                         </div>
                         ${c.signed_pdf_path ? `<div class="text-xs text-emerald-600 flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Documento assinado anexado <button type="button" onclick="viewDocIdx(${docRef(c.signed_pdf_path, `Assinado - ${esc(c.contract_number)}`)})" class="underline font-semibold">Visualizar documento assinado</button></div>` : ''}
                     </div>
-                </div>
+                </details>
                 <div class="flex flex-wrap gap-2">
                     ${canAct ? `<button type="button" onclick="closeContractDetail();openContractWizard({ renewFrom: '${c.id}' })" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white"><i class="fa-solid fa-rotate mr-1"></i> Renovar contrato</button>` : ''}
                     ${canAct ? `<button type="button" onclick="terminateContractPrompt('${c.id}', this)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white"><i class="fa-solid fa-flag-checkered mr-1"></i> Encerrar contrato</button>` : ''}
@@ -11573,6 +12022,12 @@ notify pgrst, 'reload schema';`;
             document.getElementById('iwPlace').value = (existing && existing.signature_place) || cfgLoc.foro_cidade_uf || 'Goiânia/GO';
             document.getElementById('iwDriverReservation').value = (existing && existing.driver_reservation) || '';
             document.getElementById('iwNotes').value = (existing && existing.notes) || '';
+            const exTw = (existing && existing.snapshot_data && Array.isArray(existing.snapshot_data.testemunhas)) ? existing.snapshot_data.testemunhas : [];
+            const defIwW1 = defaultWitness1ForLocador(cfgLoc);
+            document.getElementById('iwWit1Name').value = (exTw[0] && exTw[0].name) || defIwW1.name;
+            document.getElementById('iwWit1Cpf').value = (exTw[0] && exTw[0].cpf) || defIwW1.cpf;
+            document.getElementById('iwWit2Name').value = (exTw[1] && exTw[1].name) || '';
+            document.getElementById('iwWit2Cpf').value = (exTw[1] && exTw[1].cpf) || '';
 
             iwSyncHeaderAndLegal();
             iwRenderChecklist();
@@ -11657,6 +12112,11 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('iwDriver').value = linkedDrv.id;
             }
             iwPopulateContractsAndBase('', '');
+            const defIwW1 = defaultWitness1ForLocador(locadorForVehicle(iwState.vehicleId) || {});
+            if (document.getElementById('iwWit1Name')) {
+                document.getElementById('iwWit1Name').value = defIwW1.name;
+                document.getElementById('iwWit1Cpf').value = defIwW1.cpf;
+            }
             if (!iwState.photos.length) iwImportSavedPhotos();
             iwRenderComparison();
         }
@@ -11927,8 +12387,13 @@ notify pgrst, 'reload schema';`;
                         veiculo: { brand: veh.brand || '', model: veh.model || '', version: veh.version || '', manufacture_year: veh.manufacture_year || '', model_year: veh.model_year || '', color: veh.color || '', plate: veh.plate || '', renavam: veh.renavam || '', chassi: veh.chassi || '', fuel: veh.fuel || '', mileage },
                         contrato: ctr ? { contract_number: ctr.contract_number, start_date: ctr.start_date } : null,
                         base_entrega: base ? { inspection_number: base.inspection_number, inspection_date: base.inspection_date, mileage: base.mileage, fuel_level: base.fuel_level, damages_count: (base.damages_summary || []).length } : null,
-                        testemunhas: [defaultWitness1ForLocador(loc), { name: '', cpf: '' }]
+                        testemunhas: [
+                            { name: (document.getElementById('iwWit1Name')?.value || '').trim() || defaultWitness1ForLocador(loc).name, cpf: (document.getElementById('iwWit1Cpf')?.value || '').trim() || defaultWitness1ForLocador(loc).cpf },
+                            { name: (document.getElementById('iwWit2Name')?.value || '').trim(), cpf: (document.getElementById('iwWit2Cpf')?.value || '').trim() }
+                        ]
                     };
+                    const prevSd = (iwState.id && ((state.inspections || []).find(x => x.id === iwState.id)?.signature_data || {})) || {};
+                    const prevMode = (iwState.id && (state.inspections || []).find(x => x.id === iwState.id)?.signature_mode) || '';
 
                     const rowPayload = {
                         owner_id: state.user.id,
@@ -11937,6 +12402,12 @@ notify pgrst, 'reload schema';`;
                         mileage, fuel_level: fuel, inspection_date: inspDate,
                         checklist: iwState.checklist, photos: iwState.photos, damages_summary: damagesSummary,
                         driver_reservation: drvRes, notes, signature_place: place, signature_date: inspDate.slice(0, 10),
+                        signature_mode: prevMode === 'eletronica_assinada' ? 'eletronica_assinada' : 'eletronica_pendente',
+                        signature_data: {
+                            ...prevSd, provider: 'govbr',
+                            witness1_name: snapshot.testemunhas[0].name || null, witness1_cpf: snapshot.testemunhas[0].cpf || null,
+                            witness2_name: snapshot.testemunhas[1].name || null, witness2_cpf: snapshot.testemunhas[1].cpf || null
+                        },
                         snapshot_data: snapshot
                     };
                     let saved;
@@ -12161,20 +12632,27 @@ notify pgrst, 'reload schema';`;
             page.drawText(pdfSafeText(localDt), { x: ML, y, size: 10, font: fontBold, color: ink });
             y -= 28;
             const colW = (CW - 28) / 2;
-            const drawSig = (sx, sy, roleTitle, nome, cpf, signedAt) => {
+            const isGovMode = ins.signature_mode !== 'manual';
+            const drawSig = (sx, sy, roleTitle, nome, cpf, signedAt, method) => {
                 page.drawLine({ start: { x: sx, y: sy }, end: { x: sx + colW, y: sy }, thickness: 0.8, color: ink });
                 page.drawText(pdfSafeText(roleTitle), { x: sx, y: sy - 12, size: 8.8, font: fontBold, color: ink });
                 page.drawText(pdfSafeText(`Nome: ${nome || '__________________________'}`), { x: sx, y: sy - 24, size: 8.2, font: fontReg, color: ink });
                 page.drawText(pdfSafeText(`CPF: ${cpf || '_______________'}`), { x: sx, y: sy - 35, size: 8.2, font: fontReg, color: ink });
-                page.drawText(pdfSafeText(signedAt ? `Assinado em: ${fmtDate(signedAt)}` : 'Data: ____/____/________'), { x: sx, y: sy - 46, size: 7.8, font: fontReg, color: muted });
+                const stTxt = signedAt
+                    ? `Assinado ${method === 'govbr' || isGovMode ? 'via GOV.BR ' : ''}em: ${fmtDate(signedAt)}`
+                    : (isGovMode ? 'Assinatura GOV.BR (assinador.iti.br)' : 'Data: ____/____/________');
+                page.drawText(pdfSafeText(stTxt), { x: sx, y: sy - 46, size: 7.8, font: fontReg, color: muted });
             };
-            drawSig(ML, y, 'LOCADOR / VISTORIADOR', l.name, l.cpf, sd.locador_at);
-            drawSig(ML + colW + 28, y, 'LOCATÁRIO (MOTORISTA)', d.name, d.cpf, sd.locatario_at);
+            drawSig(ML, y, 'LOCADOR / VISTORIADOR', l.name, l.cpf, sd.locador_at, sd.locador_method);
+            drawSig(ML + colW + 28, y, 'LOCATÁRIO (MOTORISTA)', d.name, d.cpf, sd.locatario_at, sd.locatario_method);
             y -= 78;
-            ensureSpace(75);
+            ensureSpace(90);
             const wList = Array.isArray(s.testemunhas) ? s.testemunhas : [{}, {}];
-            drawSig(ML, y, 'TESTEMUNHA 1', wList[0]?.name || sd.witness1_name, wList[0]?.cpf || sd.witness1_cpf, sd.witness1_at);
-            drawSig(ML + colW + 28, y, 'TESTEMUNHA 2', wList[1]?.name || sd.witness2_name, wList[1]?.cpf || sd.witness2_cpf, sd.witness2_at);
+            drawSig(ML, y, 'TESTEMUNHA 1', wList[0]?.name || sd.witness1_name, wList[0]?.cpf || sd.witness1_cpf, sd.witness1_at, sd.witness1_method);
+            drawSig(ML + colW + 28, y, 'TESTEMUNHA 2', wList[1]?.name || sd.witness2_name, wList[1]?.cpf || sd.witness2_cpf, sd.witness2_at, sd.witness2_method);
+            if (isGovMode) {
+                page.drawText(pdfSafeText('Partes e testemunhas assinam eletronicamente em cadeia no mesmo PDF em https://assinador.iti.br (verificação: https://validar.iti.gov.br).'), { x: ML, y: y - 62, size: 7.4, font: fontSans, color: muted });
+            }
 
             const totalP = pages.length;
             const footL = pdfSafeText(`${ins.inspection_number || 'RASCUNHO'} | ${v.plate || 'VEÍCULO'}`);
@@ -12188,9 +12666,10 @@ notify pgrst, 'reload schema';`;
         }
 
         async function ensureInspectionPdfBlob(ins) {
-            if (ins.pdf_path) {
+            const pdfPath = ins.signed_pdf_path || ins.pdf_path;
+            if (pdfPath) {
                 try {
-                    const f = await fileUrl(ins.pdf_path);
+                    const f = await fileUrl(pdfPath);
                     if (f && f.blob && (f.blob.type === 'application/pdf' || !DEMO)) return f.blob;
                 } catch (e) {}
             }
@@ -12256,9 +12735,9 @@ notify pgrst, 'reload schema';`;
                     <img data-path="${esc(p.path)}" onclick="viewDocIdx(${docRef(p.path, esc(p.label || 'Foto ' + (i + 1)))})" class="w-full h-20 object-cover rounded cursor-pointer bg-gray-100 dark:bg-gray-800">
                     <div class="truncate font-semibold mt-1">${esc(p.label || inspSlotLabel(p.slot))}</div>
                 </div>`).join('')}</div>` : ''}
-                ${ins.status !== 'cancelado' ? `<div class="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 space-y-2.5">
-                    <div class="font-bold text-xs uppercase text-gray-500">Controle de Assinaturas e Documentos</div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                ${ins.status !== 'cancelado' ? `${renderGovBrFlowBox('inspection', ins)}<details class="rounded-xl border border-gray-200 dark:border-gray-700 p-3.5 space-y-2.5" ${ins.status === 'aguardando_assinatura' ? 'open' : ''}>
+                    <summary class="font-bold text-xs uppercase text-gray-500 cursor-pointer">Confirmação Manual / Controle de Assinaturas e Documentos</summary>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                         ${sigBox('Locador / Vistoriador', !!sd.locador_at, sd.locador_at, 'itdSigLoc', 'itdSigLocDt')}
                         ${sigBox('Locatário (Motorista)', !!sd.locatario_at, sd.locatario_at, 'itdSigDrv', 'itdSigDrvDt')}
                         ${sigBox('Testemunha 1', !!sd.witness1_at, sd.witness1_at, 'itdSigW1', 'itdSigW1Dt')}
@@ -12274,7 +12753,7 @@ notify pgrst, 'reload schema';`;
                         ${ins.signed_pdf_path ? `<button type="button" onclick="viewDocIdx(${docRef(ins.signed_pdf_path, `Termo assinado ${esc(ins.inspection_number)}`)})" class="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200 shrink-0"><i class="fa-solid fa-eye mr-1"></i> Ver assinado</button>` : ''}
                     </div>
                     <div class="pt-1 flex justify-end"><button type="button" onclick="cancelInspectionPrompt('${ins.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200">Cancelar termo</button></div>
-                </div>` : ''}
+                </details>` : ''}
             `;
             const bod = document.getElementById('itdBody');
             hydrateImages(bod);
