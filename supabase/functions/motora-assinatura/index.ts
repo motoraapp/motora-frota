@@ -323,10 +323,21 @@ Deno.serve(async (req) => {
 
       const prevSd = (doc.signature_data || {}) as Record<string, unknown>;
       const prevCount = Number(prevSd.pdf_sig_count || 0);
+      const signedRolesAfter = new Set<string>(
+        (["locador", "locatario", "witness1", "witness2"] as const).filter((r) => Boolean(prevSd[ROLE_TIME_KEY[r]])),
+      );
+      for (const r of rolesToMark) signedRolesAfter.add(r);
+      const expectedMinSigs = signedRolesAfter.size;
       if (prevCount > 0 && sigCount < prevCount) {
         return json({
           ok: false,
           error: `Atenção: o PDF salvo anteriormente já tinha ${prevCount} assinatura(s) GOV.BR e este possui apenas ${sigCount}. Baixe sempre o PDF MAIS RECENTE antes de assinar no assinador.iti.br para não perder as assinaturas anteriores.`,
+        });
+      }
+      if (sigCount < expectedMinSigs) {
+        return json({
+          ok: false,
+          error: `Todos os participantes (incluindo testemunhas) precisam assinar via GOV.BR no mesmo PDF. Para registrar ${expectedMinSigs} assinante(s), o arquivo deve ter ao menos ${expectedMinSigs} assinatura(s) digital(is) /ByteRange, mas possui apenas ${sigCount}.`,
         });
       }
 
