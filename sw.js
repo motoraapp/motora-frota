@@ -1,4 +1,4 @@
-﻿const CACHE = 'motora-v106';
+﻿const CACHE = 'motora-v107';
 const BASE = ['./', 'index.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'logo-animada.gif', 'tailwind.css', 'design-premium.css'];
 
 self.addEventListener('install', function (e) {

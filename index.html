@@ -4887,9 +4887,10 @@
 
         // ARQUIVOS: ENVIO E VISUALIZAÇÃO (Supabase Storage)
         const MAX_FILE = 10 * 1024 * 1024; // 10 MB
+        const isImageFile = f => !!(f && ((f.type && f.type.startsWith('image/')) || /\.(jpe?g|png|webp|heic|heif|gif|bmp|avif|dng)$/i.test(f.name || '')));
 
         async function prepareFile(file) {
-            if (!file.type.startsWith('image/') || file.size <= 400000) return file;
+            if (!isImageFile(file) || file.size <= 400000) return file;
             // Reduz fotos grandes para enviar mais rápido
             const url = URL.createObjectURL(file);
             try {
@@ -6442,6 +6443,9 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             avaria: 'Detalhe / Avaria', documento: 'Documento / CRLV-e', outro: 'Outro ângulo', adicional: 'Foto sem nome'
         };
         const inspSlotLabel = k => INSP_SLOT_LABELS[k] || k || 'Foto';
+        // Check constraint real de public.inspection_photos.slot no Supabase
+        const INSP_DB_SLOTS = new Set(['dianteira', 'traseira', 'lateral_esquerda', 'lateral_direita', 'painel', 'adicional']);
+        const normalizeInspDbSlot = s => (INSP_DB_SLOTS.has(s) ? s : 'adicional');
         let inspVehicleId = null;
 
         function photoDamageBadge(p) {
@@ -6564,8 +6568,13 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
         }
 
         async function uploadInspection(slot, input) {
-            const files = Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
-            if (!files.length || !inspVehicleId) return;
+            const rawFiles = Array.from(input.files || []);
+            const files = rawFiles.filter(isImageFile);
+            if (!files.length || !inspVehicleId) {
+                if (rawFiles.length && !files.length) showToast('Selecione arquivos de imagem válidos (JPG, PNG, WEBP ou HEIC).', 'error');
+                input.value = '';
+                return;
+            }
             const vehicleId = inspVehicleId;
             const label = input.closest('label'), oldHtml = label ? label.innerHTML : '';
             if (label) label.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
@@ -6581,12 +6590,15 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                     const safeName = String(f.name || '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
                     const path = await uploadFile(f, `vehicles/${vehicleId}/vistoria/${cleanBase}-${Date.now()}-${idx}-${safeName || 'img'}`);
                     if (!path) continue;
-                    const initSlot = isBatchAI ? 'outro' : slot;
+                    const initSlot = isBatchAI ? 'adicional' : normalizeInspDbSlot(slot);
                     const initLabel = isBatchAI ? null : inspSlotLabel(slot);
                     const ins = await sb.from('inspection_photos').insert({ vehicle_id: vehicleId, slot: initSlot, label: initLabel, file_path: path }).select().single();
                     if (ins.error) {
                         const fallback = await sb.from('inspection_photos').insert({ vehicle_id: vehicleId, slot: initSlot, file_path: path }).select().single();
-                        if (fallback.error) throw fallback.error;
+                        if (fallback.error) {
+                            sb.storage.from(BUCKET).remove([path]).catch(() => {});
+                            throw fallback.error;
+                        }
                         if (fallback.data) inserted.push(fallback.data);
                     } else if (ins.data) {
                         inserted.push(ins.data);
@@ -11425,7 +11437,7 @@ notify pgrst, 'reload schema';`;
                 const item = photoEntries[i];
                 const ai = aiResults[i];
                 if (!ai) continue;
-                item.slot = ai.slot || item.slot || 'outro';
+                item.slot = ai.slot || item.slot || 'adicional';
                 item.hodometro_km = ai.hodometro_km != null ? Number(ai.hodometro_km) : null;
                 item.combustivel_nivel = ai.combustivel_nivel || null;
                 item.ai_summary = [ai.titulo_sugerido, ai.observacao_ia].filter(Boolean).join(' · ') || null;
@@ -11454,12 +11466,13 @@ notify pgrst, 'reload schema';`;
                 if (p.hodometro_km != null && p.hodometro_km >= 0) bestKm = p.hodometro_km;
                 if (p.combustivel_nivel) bestFuel = p.combustivel_nivel;
                 if (p.id && (p.file_path || (!String(p.id).startsWith('ph-') && !String(p.id).startsWith('leg-'))) && aiResults[i]) {
+                    const dbSlot = normalizeInspDbSlot(p.slot);
                     const fullUpd = {
-                        slot: p.slot, label: p.label, ai_summary: p.ai_summary,
+                        slot: dbSlot, label: p.label, ai_summary: p.ai_summary,
                         has_damage: !!p.has_damage, damage_status: p.damage_status || 'none', damage_note: p.damage_note || null
                     };
                     const res = await sb.from('inspection_photos').update(fullUpd).eq('id', p.id);
-                    if (res.error) await sb.from('inspection_photos').update({ slot: p.slot, label: p.label }).eq('id', p.id);
+                    if (res.error) await sb.from('inspection_photos').update({ slot: dbSlot, label: p.label }).eq('id', p.id);
                 }
             }
             if (veh && (bestKm != null && !veh.mileage || bestFuel && !veh.fuel)) {
@@ -11575,7 +11588,7 @@ notify pgrst, 'reload schema';`;
                 if (!p.file_path || seenPaths.has(p.file_path)) return;
                 seenPaths.add(p.file_path);
                 out.push({
-                    id: p.id, path: p.file_path, slot: p.slot || 'outro',
+                    id: p.id, path: p.file_path, slot: p.slot || 'adicional',
                     label: p.label || (p.slot && p.slot !== 'adicional' ? inspSlotLabel(p.slot) : `Foto salva ${idx + 1}`),
                     has_damage: !!p.has_damage, damage_status: p.damage_status || (p.has_damage ? 'preexistente' : 'none'),
                     damage_note: p.damage_note || null, ai_summary: p.ai_summary || null,
@@ -11590,7 +11603,7 @@ notify pgrst, 'reload schema';`;
                         if (!f.path || seenPaths.has(f.path)) return;
                         seenPaths.add(f.path);
                         out.push({
-                            id: f.id || 'leg-' + idx, path: f.path, slot: 'outro',
+                            id: f.id || 'leg-' + idx, path: f.path, slot: 'adicional',
                             label: f.label || `Foto da devolução ${idx + 1}`,
                             has_damage: false, damage_status: 'none', damage_note: null, ai_summary: null,
                             added_at: f.added_at || new Date().toISOString()
@@ -11671,8 +11684,13 @@ notify pgrst, 'reload schema';`;
         }
 
         async function iwUploadPhotos(input) {
-            const files = Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
-            if (!files.length || !iwState) return;
+            const rawFiles = Array.from(input.files || []);
+            const files = rawFiles.filter(isImageFile);
+            if (!files.length || !iwState) {
+                if (rawFiles.length && !files.length) showToast('Selecione arquivos de imagem válidos (JPG, PNG, WEBP ou HEIC).', 'error');
+                input.value = '';
+                return;
+            }
             if (!iwState.vehicleId) { showToast('Selecione o veículo antes de enviar fotos.', 'error'); input.value = ''; return; }
             const prog = document.getElementById('iwAiProgress');
             const labelEl = input.closest('label'), oldHtml = labelEl ? labelEl.innerHTML : '';
@@ -11689,11 +11707,15 @@ notify pgrst, 'reload schema';`;
                     // Salva também em inspection_photos para reutilização futura na entrega
                     let dbId = 'ph-' + Date.now().toString(36) + i;
                     if (iwState.type === 'entrega') {
-                        const ins = await sb.from('inspection_photos').insert({ vehicle_id: iwState.vehicleId, phase: 'entrega', slot: 'outro', file_path: path }).select().single();
+                        const ins = await sb.from('inspection_photos').insert({ vehicle_id: iwState.vehicleId, phase: 'entrega', slot: 'adicional', file_path: path }).select().single();
                         if (!ins.error && ins.data) dbId = ins.data.id;
+                        else {
+                            const fb = await sb.from('inspection_photos').insert({ vehicle_id: iwState.vehicleId, slot: 'adicional', file_path: path }).select().single();
+                            if (!fb.error && fb.data) dbId = fb.data.id;
+                        }
                     }
                     const entry = {
-                        id: dbId, path, slot: 'outro', label: `Foto ${iwState.photos.length + 1}`,
+                        id: dbId, path, slot: 'adicional', label: `Foto ${iwState.photos.length + 1}`,
                         has_damage: false, damage_status: 'none', damage_note: null, ai_summary: null,
                         added_at: new Date().toISOString()
                     };
