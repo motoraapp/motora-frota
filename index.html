@@ -6675,10 +6675,59 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             return '';
         }
 
+        function buildVehicleInspectionReport(vehicleId, customPhotos) {
+            const veh = allVeh().find(v => v.id === vehicleId) || {};
+            const photos = Array.isArray(customPhotos) ? customPhotos : state.inspection.filter(p => p.vehicle_id === vehicleId);
+            const damages = photos.filter(p => p.has_damage || p.damage_status === 'preexistente' || p.damage_status === 'novo');
+            const intactCount = Math.max(0, photos.length - damages.length);
+            const vehTitle = [veh.brand, veh.model].filter(Boolean).join(' ') || 'Veículo';
+            const plate = veh.plate || '-';
+            const kmTxt = veh.mileage != null ? `${Number(veh.mileage).toLocaleString('pt-BR')} km` : 'Não informado';
+            const fuelTxt = veh.fuel || 'Não informado';
+            let shortSummary = '';
+            if (photos.length) {
+                const kmInline = veh.mileage != null ? `, hodômetro ${kmTxt}` : '';
+                if (!damages.length) {
+                    shortSummary = `Vistoria conferida com ${photos.length} foto(s) (${vehTitle}, placa ${plate}${kmInline}): veículo sem avarias preexistentes constatadas nas fotografias.`;
+                } else {
+                    const dmTxt = damages.map(d => `${d.label || inspSlotLabel(d.slot)} (${d.damage_note || d.ai_summary || 'avaria registrada'})`).join('; ');
+                    shortSummary = `Vistoria conferida com ${photos.length} foto(s) (${vehTitle}, placa ${plate}${kmInline}): ${intactCount} ângulo(s) íntegro(s) e ${damages.length} avaria(s) preexistente(s): ${dmTxt}.`;
+                }
+            }
+            const lines = [
+                `LAUDO DE VISTORIA VEICULAR — ${vehTitle} (Placa ${plate})`,
+                `Hodômetro: ${kmTxt} | Combustível/Carga: ${fuelTxt} | Total de fotos: ${photos.length} (${damages.length} com avaria)`,
+                '',
+                damages.length
+                    ? `AVARIAS PREEXISTENTES (${damages.length}):\n` + damages.map((d, idx) => `${idx + 1}. ${d.label || inspSlotLabel(d.slot)}: ${d.damage_note || d.ai_summary || 'Avaria registrada.'}`).join('\n')
+                    : 'AVARIAS PREEXISTENTES: Nenhuma avaria constatada nas fotografias.',
+                '',
+                'DESCRIÇÃO POR FOTO:',
+                ...photos.map((p, idx) => {
+                    const lbl = p.label || inspSlotLabel(p.slot) || `Foto ${idx + 1}`;
+                    const desc = p.ai_summary || (p.has_damage ? 'Avaria identificada.' : 'Sem observações adicionais.');
+                    const extra = (p.has_damage && p.damage_note && p.damage_note !== p.ai_summary) ? ` [AVARIA: ${p.damage_note}]` : '';
+                    return `#${idx + 1} ${lbl}: ${desc}${extra}`;
+                })
+            ];
+            return { total: photos.length, intactCount, damages, vehTitle, plate, kmTxt, fuelTxt, shortSummary, fullText: lines.join('\n') };
+        }
+        async function copyVehicleInspectionText(vehicleId) {
+            try {
+                const rep = buildVehicleInspectionReport(vehicleId);
+                await navigator.clipboard.writeText(rep.fullText);
+                showToast('Laudo textual da vistoria copiado!');
+            } catch (e) { showToast('Não foi possível copiar automaticamente.', 'error'); }
+        }
+
         function photoCard(p, title, editable, slotKey) {
             const date = p ? new Date(p.created_at).toLocaleDateString('pt-BR') : '';
             const badge = p ? photoDamageBadge(p) : '';
-            const note = p && (p.damage_note || p.ai_summary) ? `<p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1 line-clamp-2" title="${esc(p.damage_note || p.ai_summary)}">${esc(p.damage_note || p.ai_summary)}</p>` : '';
+            const summaryTxt = p && p.ai_summary ? String(p.ai_summary).trim() : '';
+            const dmgTxt = p && p.damage_note ? String(p.damage_note).trim() : '';
+            const summaryHtml = summaryTxt ? `<p class="text-[11px] text-gray-600 dark:text-gray-300 mt-1.5 leading-snug break-words">${esc(summaryTxt)}</p>` : '';
+            const dmgHtml = dmgTxt && (!summaryTxt || dmgTxt !== summaryTxt || p.has_damage) ? `<div class="mt-1 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/25 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 leading-snug break-words"><b>Avaria:</b> ${esc(dmgTxt)}</div>` : '';
+            const note = `${summaryHtml}${dmgHtml}`;
             const img = p
                 ? `<button type="button" data-path="${esc(p.file_path)}" data-title="${esc(title)}" onclick="viewDoc(this.dataset.path, this.dataset.title)" class="block w-full aspect-[4/3] bg-gray-100 dark:bg-gray-900 rounded-lg overflow-hidden">
                        <img data-path="${esc(p.file_path)}" class="w-full h-full object-cover" alt="${esc(title)}">
@@ -6744,6 +6793,38 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 </div>
             </div>` : '';
             const cards = photos.map((p, i) => photoCard(p, p.label || inspSlotLabel(p.slot) || `Foto ${i + 1}`, editable, null)).join('');
+            const rep = buildVehicleInspectionReport(vehicleId, photos);
+            const reportBox = photos.length ? `<div class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 space-y-2.5 text-xs">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-bold text-slate-800 dark:text-slate-100"><i class="fa-solid fa-file-lines text-blue-600 mr-1"></i> Laudo Textual da Vistoria</span>
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">${rep.total} foto(s)</span>
+                        ${rep.damages.length
+                            ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">${rep.damages.length} avaria(s) preexistente(s)</span>`
+                            : `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-200">Sem avarias preexistentes</span>`}
+                    </div>
+                    <button type="button" onclick="copyVehicleInspectionText('${vehicleId}')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200"><i class="fa-regular fa-copy mr-1"></i> Copiar texto</button>
+                </div>
+                <div class="text-[11px] text-gray-600 dark:text-gray-300"><b>Veículo:</b> ${esc(rep.vehTitle)} · <b>Placa:</b> ${esc(rep.plate)} · <b>Hodômetro:</b> ${esc(rep.kmTxt)} · <b>Combustível/Carga:</b> ${esc(rep.fuelTxt)}</div>
+                <p class="text-gray-700 dark:text-gray-200 leading-relaxed">${esc(rep.shortSummary)}</p>
+                ${rep.damages.length ? `<div class="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 space-y-1">
+                    <div class="font-bold text-amber-900 dark:text-amber-200 text-[11px] uppercase"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Avarias Preexistentes Registradas (${rep.damages.length})</div>
+                    <ul class="list-disc pl-4 space-y-0.5 text-[11px] text-amber-900 dark:text-amber-100">
+                        ${rep.damages.map(d => `<li><b>${esc(d.label || inspSlotLabel(d.slot))}:</b> ${esc(d.damage_note || d.ai_summary || 'Avaria constatada.')}</li>`).join('')}
+                    </ul>
+                </div>` : ''}
+                <details open class="pt-1.5 border-t border-slate-200 dark:border-slate-700">
+                    <summary class="cursor-pointer font-semibold text-[11px] text-slate-700 dark:text-slate-200 select-none">Descrição detalhada por foto (${photos.length})</summary>
+                    <ol class="mt-2 space-y-1 text-[11px] text-gray-700 dark:text-gray-300 list-decimal pl-4">
+                        ${photos.map((p, idx) => {
+                            const lbl = p.label || inspSlotLabel(p.slot) || `Foto ${idx + 1}`;
+                            const txt = p.ai_summary || p.damage_note || 'Sem descrição registrada.';
+                            const dmgExtra = (p.has_damage && p.damage_note && p.damage_note !== p.ai_summary) ? ` — <span class="font-semibold text-amber-700 dark:text-amber-300">Avaria: ${esc(p.damage_note)}</span>` : '';
+                            return `<li><b>${esc(lbl)}:</b> ${esc(txt)}${dmgExtra}</li>`;
+                        }).join('')}
+                    </ol>
+                </details>
+            </div>` : '';
             const missingSlots = editable ? INSP_SLOTS.filter(s => !photos.some(p => p.slot === s.key)) : [];
             const quickMissing = missingSlots.length ? `<div class="pt-1 flex flex-wrap items-center gap-1.5 text-xs">
                 <span class="text-gray-500 dark:text-gray-400">Ângulos ainda sem foto:</span>
@@ -6755,6 +6836,7 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
             const grid = 'grid grid-cols-2 sm:grid-cols-3 gap-3';
             return `<div class="space-y-4">
                 ${toolbar}
+                ${reportBox}
                 ${cards ? `<div class="${grid}">${cards}</div>` : '<p class="text-sm text-gray-400 italic py-4 text-center">Nenhuma foto de vistoria enviada ainda. Use o botão acima para enviar todas de uma vez.</p>'}
                 ${quickMissing}
             </div>`;
@@ -10889,6 +10971,8 @@ notify pgrst, 'reload schema';`;
                                 page.drawText(pdfSafeText(cap).slice(0, 44), { x: sx + 5, y: y - cellH - 9, size: 7.8, font: fontBold, color: ink });
                                 if (ph.has_damage && ph.damage_note) {
                                     page.drawText(pdfSafeText(`[PREEXISTENTE] ${ph.damage_note}`).slice(0, 48), { x: sx + 5, y: y - cellH - 18, size: 7, font: fontReg, color: PDFLib.rgb(0.7, 0.2, 0.05) });
+                                } else if (ph.ai_summary) {
+                                    page.drawText(pdfSafeText(ph.ai_summary).slice(0, 52), { x: sx + 5, y: y - cellH - 18, size: 6.8, font: fontReg, color: muted });
                                 }
                             }
                             y -= (cellH + 30);
@@ -11474,6 +11558,7 @@ notify pgrst, 'reload schema';`;
                     </div>
                     <img data-path="${esc(p.path)}" onclick="viewDocIdx(${docRef(p.path, esc(p.label || 'Foto ' + (idx + 1)))})" class="w-full h-28 object-cover rounded-lg bg-gray-100 dark:bg-gray-900 cursor-pointer" title="Clique para ampliar">
                     <input type="text" value="${esc(p.label || '')}" onchange="cwState.inspPhotos[${idx}].label=this.value.trim();cwRenderInspDamagesSummary()" placeholder="Nome / ângulo" class="w-full p-1 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">
+                    ${p.ai_summary ? `<p class="text-[11px] text-gray-600 dark:text-gray-300 leading-snug break-words">${esc(p.ai_summary)}</p>` : ''}
                     <div class="flex items-center gap-1">
                         <select onchange="cwUpdateInspPhotoDamage(${idx}, this.value)" class="flex-1 p-1 text-[11px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                             <option value="none" ${!p.has_damage && p.damage_status !== 'descartado' ? 'selected' : ''}>Sem avaria</option>
@@ -11507,6 +11592,10 @@ notify pgrst, 'reload schema';`;
             if (replaceExisting || !(cwState.inspPhotos && cwState.inspPhotos.length)) {
                 cwState.inspPhotos = saved;
             }
+            const notesEl = document.getElementById('cwInspNotes');
+            if (notesEl && cwState.inspPhotos.length && (replaceExisting || !notesEl.value.trim())) {
+                notesEl.value = buildVehicleInspectionReport(vehId, cwState.inspPhotos).shortSummary;
+            }
             cwRenderInspPhotos();
         }
         function cwImportSavedPhotos() {
@@ -11518,6 +11607,10 @@ notify pgrst, 'reload schema';`;
             const existingPaths = new Set((cwState.inspPhotos || []).map(x => x.path));
             let added = 0;
             saved.forEach(s => { if (!existingPaths.has(s.path)) { cwState.inspPhotos.push(s); added++; } });
+            const notesEl = document.getElementById('cwInspNotes');
+            if (notesEl && !notesEl.value.trim() && cwState.inspPhotos.length) {
+                notesEl.value = buildVehicleInspectionReport(vehId, cwState.inspPhotos).shortSummary;
+            }
             cwRenderInspPhotos();
             showToast(added ? `${added} foto(s) adicionada(s) ao Anexo I!` : 'Todas as fotos salvas já estão no Anexo I.');
         }
@@ -11849,9 +11942,9 @@ notify pgrst, 'reload schema';`;
                 document.getElementById('cwInspFuel').value = 'Cheio';
                 document.getElementById('cwInspMileage').value = (v && v.mileage != null) ? String(v.mileage) : '';
                 document.getElementById('cwInspDriverReservation').value = '';
-                document.getElementById('cwInspNotes').value = '';
                 cwState.inspChecklist = cwDefaultChecklist();
                 cwState.inspPhotos = vehId ? iwCollectSavedPhotosFor(vehId, drvId, 'entrega') : [];
+                document.getElementById('cwInspNotes').value = (vehId && cwState.inspPhotos.length) ? buildVehicleInspectionReport(vehId, cwState.inspPhotos).shortSummary : '';
                 cwRenderInspChecklist();
                 cwRenderInspPhotos();
                 cwRenderClausesEditor(buildDefaultClauses(cwReadSnapshot()));
@@ -12566,7 +12659,7 @@ notify pgrst, 'reload schema';`;
             document.getElementById('iwDate').value = nowLocalStr;
             document.getElementById('iwPlace').value = (existing && existing.signature_place) || cfgLoc.foro_cidade_uf || 'Goiânia/GO';
             document.getElementById('iwDriverReservation').value = (existing && existing.driver_reservation) || '';
-            document.getElementById('iwNotes').value = (existing && existing.notes) || '';
+            document.getElementById('iwNotes').value = (existing && existing.notes) || (vehicleId && initPhotos.length ? buildVehicleInspectionReport(vehicleId, initPhotos).shortSummary : '');
             const exTw = (existing && existing.snapshot_data && Array.isArray(existing.snapshot_data.testemunhas)) ? existing.snapshot_data.testemunhas : [];
             const defIwW1 = defaultWitness1ForLocador(cfgLoc);
             document.getElementById('iwWit1Name').value = (exTw[0] && exTw[0].name) || defIwW1.name;
@@ -12826,6 +12919,7 @@ notify pgrst, 'reload schema';`;
                     </div>
                     <img data-path="${esc(p.path)}" onclick="viewDocIdx(${docRef(p.path, esc(p.label || 'Foto ' + (idx + 1)))})" class="w-full h-36 object-cover rounded-lg bg-gray-100 dark:bg-gray-900 cursor-pointer" title="Clique para ampliar">
                     <input type="text" value="${esc(p.label || '')}" onchange="iwUpdatePhotoField(${idx}, 'label', this.value)" placeholder="Nome / ângulo" class="w-full p-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 outline-none">
+                    ${p.ai_summary ? `<p class="text-[11px] text-gray-600 dark:text-gray-300 leading-snug break-words">${esc(p.ai_summary)}</p>` : ''}
                     <div class="flex items-center gap-1.5">
                         <select onchange="iwUpdatePhotoDamage(${idx}, this.value)" class="flex-1 p-1.5 text-[11px] rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                             <option value="none" ${!p.has_damage && p.damage_status !== 'descartado' ? 'selected' : ''}>Sem avaria</option>
@@ -13206,7 +13300,7 @@ notify pgrst, 'reload schema';`;
                         const tag = ph.damage_status === 'novo' ? ' [DANO NOVO]' : (ph.has_damage ? ' [PREEXISTENTE]' : '');
                         const cap = pdfSafeText(`#${i + c + 1} ${ph.label || inspSlotLabel(ph.slot)}${tag}`).slice(0, 48);
                         page.drawText(cap, { x: cx + 5, y: y - imgH - 16, size: 8, font: fontSansBold, color: ph.damage_status === 'novo' ? redCol : ink });
-                        const subCap = pdfSafeText(ph.damage_note || (ph.added_at ? fmtDate(ph.added_at) : 'Conferido')).slice(0, 54);
+                        const subCap = pdfSafeText(ph.damage_note || ph.ai_summary || (ph.added_at ? fmtDate(ph.added_at) : 'Conferido')).slice(0, 54);
                         page.drawText(subCap, { x: cx + 5, y: y - imgH - 27, size: 7.2, font: fontSans, color: muted });
                     }
                     y -= cardH + 10;
