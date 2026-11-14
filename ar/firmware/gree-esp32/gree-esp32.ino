@@ -30,7 +30,7 @@
 #include <WebSocketsClient.h>  // WebSockets 2.7.2 (Markus Sattler): aviso na hora (versão 9)
 #include "mbedtls/sha256.h"
 
-#define FW_VERSAO 9
+#define FW_VERSAO 10
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -482,7 +482,9 @@ void sincronizar() {
     JsonDocument r;
     if (!deserializeJson(r, http.getString())) {
       dono = r["dono"] | false;
-      for (JsonObject cmd : r["cmds"].as<JsonArray>()) { Serial.println("cmd de fora de casa"); aplicar(cmd); }
+      int n = 0;
+      for (JsonObject cmd : r["cmds"].as<JsonArray>()) { Serial.println("cmd de fora de casa"); aplicar(cmd); n++; }
+      if (n) acordar = true;  // manda o estado novo logo em seguida, para o app mostrar na hora
     }
   } else { nuvemOk = false; Serial.printf("cloud erro %d\n", c); tlsNuvem.stop(); }
   http.end();
@@ -676,7 +678,8 @@ void loop() {
   cuidarMimi();
   cuidarRealtime();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
-  if (conectado && millis() - ultSync > 3000) { ultSync = millis(); sincronizar(); }
+  // com o aviso na hora ligado, a busca de reserva fica a cada 10 s (atrapalha menos o cutucão); sem ele, 3 s
+  if (conectado && millis() - ultSync > (rtLigado ? 10000UL : 3000UL)) { ultSync = millis(); sincronizar(); }
   cuidarOta();
   delay(2);
 }
