@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 13
+#define FW_VERSAO 14
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -713,8 +713,9 @@ void loop() {
   cuidarMimi();
   cuidarRealtime();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
-  // com o aviso na hora ligado, a busca de reserva fica a cada 10 s (atrapalha menos o cutucão); sem ele, 3 s
-  if (conectado && millis() - ultSync > (rtLigado ? 10000UL : 3000UL)) { ultSync = millis(); sincronizar(); }
+  // busca a cada 3 s: além de reserva, mantém aberta a conexão segura com o servidor (tlsNuvem). Com 10 s (versões
+  // 10 a 13) o servidor fechava a conexão parada e o cutucão esperava ~3 s para abrir outra (medido em 14/11/2026).
+  if (conectado && millis() - ultSync > 3000UL) { ultSync = millis(); sincronizar(); }
   cuidarOta();
   delay(2);
 }

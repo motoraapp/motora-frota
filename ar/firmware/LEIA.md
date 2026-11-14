@@ -9,6 +9,7 @@ Código da placa em `gree-esp32/` (reescrito em 13/11/2026; o código da versão
 - `web.h`: páginas do app de casa. Os blocos de horários, automático, aparelho e atualização são iguais aos de `ar/index.html` (o `verificar.mjs` confere). Mudou um, mude o outro.
 - **Leitura do quarto (14/11/2026):** o bloco "Sensor do quarto" mostra "Última leitura às HH:MM" (app de fora: `DEV.last_seen`; app de casa: hora do aparelho) e uma seta comparando com a última leitura diferente, guardada no aparelho (`localStorage` `tq`): vermelha ▲ = esquentando, verde ▼ = esfriando. Só a tela mudou; no app de casa entra quando sair uma versão nova da placa.
 - **Segurar volume (14/11/2026):** no bloco "TV AOC", segurar Volume + ou − repete o botão (0,45 s, depois a cada 0,3 s, no máximo 40 por toque; `REP`, `pararRep`). No app de fora os comandos chegam em lotes a cada 3 s (a placa busca a cada 3 s) e valem os limites do `ar_send` (60 por minuto). Só a tela mudou.
+- **Versão 14 (14/11/2026):** busca de volta a cada 3 s, sempre (mantém a conexão segura aberta; com 10 s o servidor fechava e cada cutucão esperava ~3 s).
 - **Versão 13 (14/11/2026):** websocket próprio em cima do `WiFiClientSecure` (`rtConectar`, `rtLer`, `rtQuadro`): a biblioteca WebSockets nunca conectou na placa. Sem biblioteca nova.
 - **Versão 12 (14/11/2026):** nova tentativa do websocket a cada 20 s, fechando antes a conexão da busca para sobrar memória; estado `hmax` e `rtd.t`.
 - **Versão 11 (14/11/2026):** diário do aviso na hora no estado (`rtd`: conexões, quedas, cutucões, última mensagem) e ping de websocket a cada 15 s.
@@ -37,7 +38,7 @@ O workflow `verificar.yml` (tarefa `placa-ar`) compila a cada push.
 2. Copie `build/gree-esp32.ino.bin` para `gree-vN.bin` e gere a imagem completa (`esptool merge_bin`: bootloader 0x1000, partições 0x8000, boot_app0 0xe000, programa 0x10000).
 3. Troque `versao.json` para `{"versao":N,"url":".../gree-vN.bin"}`. A placa instala sozinha de madrugada, ou na hora em Ajustes do controle → Atualizar agora.
 
-Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1 (a do código perdido); `gree-v13.bin` e `gree-esp32-completo-v13.bin` = versão 13 (as versões 2 a 12 estão no histórico do Git). Instalada na placa em 13/11/2026: versão 2, testada e funcionando (mesma identidade, ligada à conta).
+Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1 (a do código perdido); `gree-v14.bin` e `gree-esp32-completo-v14.bin` = versão 14 (as versões 2 a 13 estão no histórico do Git). Instalada na placa em 13/11/2026: versão 2, testada e funcionando (mesma identidade, ligada à conta).
 
 ## Esquema de ligação
 
