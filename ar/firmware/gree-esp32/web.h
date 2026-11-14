@@ -9,15 +9,16 @@ const char PAGINA_APP[] PROGMEM = R"rawliteral(<!doctype html><html lang="pt-br"
 *{-webkit-tap-highlight-color:transparent}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#10141c linear-gradient(180deg,#1e2738 0,#10141c 600px) no-repeat;color:#f5f5f7;display:flex;flex-direction:column;align-items:center;padding:20px;min-height:100vh;-webkit-font-smoothing:antialiased}
 .t{font-size:84px;font-weight:200;margin:10px 0;font-variant-numeric:tabular-nums}.r{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center}
 button{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:14px;padding:14px 16px;min-height:44px;font:inherit;font-size:16px;font-weight:500;min-width:64px;transition:transform 80ms ease-out}button:active{transform:scale(.96)}
-button.on{background:#f5f5f7;color:#1c1c1e;font-weight:600}#p{width:120px;height:120px;border-radius:60px;font-size:20px}#p.on{background:#64d2ff;color:#00293a}
-details{width:100%;max-width:440px;margin-top:14px;background:rgba(255,255,255,.07);border-radius:20px;padding:2px 16px}summary{padding:14px 0;font-size:17px;font-weight:600;cursor:pointer}
+button.on{background:#f5f5f7;color:#1c1c1e;font-weight:600}
+body>*{max-width:440px}.tit{align-self:stretch;font-size:34px;font-weight:700;margin:6px 0 14px}#p,#mimi{width:100%;display:flex;align-items:center;gap:14px;text-align:left;border-radius:22px;padding:14px 18px}#p{min-height:76px}#p .pi{flex:none;width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center}#p svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}#p b,#mimi b{display:block;font-size:17px}#p small{display:block;font-size:15px;color:#a1a1a6}#p.on{background:#f5f5f7;color:#1c1c1e}#p.on .pi{background:#64d2ff;color:#00293a}#p.on small{color:#48484a}#mimi{margin-top:10px;background:rgba(94,92,230,.22)}#mimi svg{flex:none;width:26px;height:26px;fill:#a8a6ff}#mimi small{display:block;font-size:14px;color:#c7c6f0}#mimi.on{background:#5e5ce6;color:#fff}#mimi.on svg{fill:#fff}.clima{display:flex;align-items:center;justify-content:center;gap:22px;margin:18px 0 4px}.clima button{width:56px;height:56px;min-width:0;border-radius:28px;padding:0;font-size:24px}.clima .t{margin:0;min-width:2.2ch;text-align:center}.grp{width:100%}.lbl{font-size:13px;font-weight:600;color:#a1a1a6;margin:14px 4px 6px}#m,#f,#x{display:grid;gap:8px;margin:0}#m,#x{grid-template-columns:repeat(5,1fr)}#f{grid-template-columns:repeat(4,1fr)}#m button,#f button,#x button{min-width:0;padding:12px 2px;font-size:15px;white-space:nowrap}details{width:100%;max-width:440px;margin-top:14px;background:rgba(255,255,255,.07);border-radius:20px;padding:2px 16px}summary{padding:14px 0;font-size:17px;font-weight:600;cursor:pointer}
 details p{margin:6px 0 10px;font-size:14px;color:#a1a1a6;line-height:1.45}#rx{background:rgba(0,0,0,.25);border-radius:10px;padding:12px;font-size:13px;word-break:break-word}
 #rx code{font-size:14px;color:#64d2ff}.mb button{min-width:0;flex:1}
 </style></head><body>
-<button id="p">ON/OFF</button><div class="t"><span id="t">24</span>°</div>
-<div class="r"><button onclick="d(-1)">−</button><button onclick="d(1)">+</button></div>
-<div class="r" id="m"></div><div class="r" id="f"></div>
-<div class="r" id="x"></div><small id="s"></small>
+<h1 class="tit">Nossa casinha</h1>
+<button id="p"><span class="pi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span><b>Ar-condicionado</b><small id="pst">Desligado</small></span></button>
+<button id="mimi" onclick="send({power:true,mode:1,temp:20,turbo:true,fan:3,tvDesligar:7200})"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span><b>A mimi?</b><small id="mimit">Frio 20° · turbo · ventilação máxima · TV desliga em 2 h</small></span></button>
+<div class="clima"><button onclick="d(-1)" aria-label="Diminuir">−</button><div class="t"><span id="t">24</span>°</div><button onclick="d(1)" aria-label="Aumentar">+</button></div>
+<div class="grp"><p class="lbl">Modo</p><div class="r" id="m"></div><p class="lbl">Ventilação</p><div class="r" id="f"></div><p class="lbl">Funções</p><div class="r" id="x"></div></div><small id="s"></small>
 <details id="hor"></details>
 <details id="aj"><summary>Ajustes do controle</summary>
 <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo: o comando é enviado de novo na hora.</p>
@@ -33,9 +34,9 @@ const M=[[1,'Frio'],[4,'Quente'],[2,'Seco'],[3,'Vent'],[0,'Auto']],F=[[0,'Auto']
 X=[['swing','Swing'],['turbo','Turbo'],['light','Luz'],['xfan','X-Fan'],['sleep','Sleep']];
 async function send(p){try{const r=await fetch('/api/state',{method:'POST',body:JSON.stringify(p)});S=await r.json();ui();s.textContent=''}catch(e){s.textContent='sem conexão'}}
 function d(n){send({temp:Math.min(30,Math.max(16,S.temp+n))})}
-function ui(){t.textContent=S.temp;p.className=S.power?'on':'';
+const NM={0:'Auto',1:'Frio',2:'Seco',3:'Vent',4:'Quente'};function ui(){t.textContent=S.temp;p.className=S.power?'on':'';pst.textContent=S.power?'Ligado · '+(NM[S.mode]||''):'Desligado';mimi.className=S.power&&S.mode==1&&S.temp==20&&S.turbo&&S.fan==3?'on':'';mimit.textContent='Frio 20° · turbo · ventilação máxima · '+(S.tv&&S.tv.dz>0?'TV desliga às '+new Date(Date.now()+S.tv.dz*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'TV desliga em 2 h');
 m.innerHTML=M.map(([v,l])=>`<button class="${S.mode==v?'on':''}" onclick="send({mode:${v}})">${l}</button>`).join('');
-f.innerHTML=F.map(([v,l])=>`<button class="${S.fan==v?'on':''}" onclick="send({fan:${v}})">Fan ${l}</button>`).join('');
+f.innerHTML=F.map(([v,l])=>`<button class="${S.fan==v?'on':''}" onclick="send({fan:${v}})">${l=='Auto'?'Auto':'Nível '+l}</button>`).join('');
 x.innerHTML=X.map(([k,l])=>`<button class="${S[k]?'on':''}" onclick="send({${k}:${!S[k]}})">${l}</button>`).join('')}
 p.onclick=()=>send({power:!S.power});
 const MO=[[1,'A (YAW1F)'],[2,'B (YBOFB)'],[3,'C (YX1FSF)']];

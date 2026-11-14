@@ -13,6 +13,8 @@ function caso(frase, cmds, estado = EST) {
 }
 
 // Ar
+caso('a mimi', [{ power: true, mode: 1, temp: 20, turbo: true, fan: 3, tvDesligar: 7200 }]);
+caso('hora de dormir', [{ power: true, mode: 1, temp: 20, turbo: true, fan: 3, tvDesligar: 7200 }]);
 caso('ligue o ar no 18', [{ power: true, temp: 18 }]);
 caso('Liga o ar-condicionado em 22 graus', [{ power: true, temp: 22 }]);
 caso('ligar o ar', [{ power: true }]);

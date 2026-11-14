@@ -28,7 +28,7 @@
 #include "certs.h"
 #include "tv_universal.h"
 
-#define FW_VERSAO 5
+#define FW_VERSAO 6
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -259,7 +259,14 @@ bool tvCapturar() {
   tvAprendendo = "";
   return true;
 }
+// Desligar a TV daqui a N segundos (botão "A mimi?": 2 h). Manda a tecla power uma vez quando o tempo acaba. 0 = cancela.
+unsigned long tvDeslAte = 0;
+void cuidarTvDesligar() {
+  if (tvDeslAte && (long)(millis() - tvDeslAte) >= 0) { tvDeslAte = 0; tvTecla("power"); }
+}
+
 void tvJson(JsonObject t) {
+  if (tvDeslAte) t["dz"] = (long)(tvDeslAte - millis()) / 1000;
   if (tvAprendendo.length()) t["a"] = tvAprendendo;
   JsonArray l = t["l"].to<JsonArray>();
   int i = 0;
@@ -391,6 +398,7 @@ void aplicar(JsonObject p) {
   }
   if (p["scan"].is<const char *>()) buscaCmd(p["scan"].as<String>());
   if (p["tecla"].is<const char *>()) tvTecla(p["tecla"].as<String>());
+  if (p["tvDesligar"].is<int>()) { long seg = p["tvDesligar"]; if (seg > 0 && seg <= 43200) { tvDeslAte = millis() + (unsigned long)seg * 1000UL; if (!tvDeslAte) tvDeslAte = 1; } else tvDeslAte = 0; }
   if (p["tvAprender"].is<const char *>()) {
     String k = p["tvAprender"].as<String>();
     if (tvIndice(k) >= 0) { tvAprendendo = k; tvAte = millis() + 30000; tvMsg = ""; }
@@ -609,6 +617,7 @@ void loop() {
   checarHorarios();
   checarAuto();
   cuidarTv();
+  cuidarTvDesligar();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
   if (conectado && millis() - ultSync > 3000) { ultSync = millis(); sincronizar(); }
   cuidarOta();
