@@ -3,16 +3,16 @@
 #pragma once
 const char PAGINA_APP[] PROGMEM = R"rawliteral(<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#0b1220"><link rel="manifest" href="/manifest.json"><link rel="icon" href="/icon.svg">
+<meta name="theme-color" content="#10141c"><link rel="manifest" href="/manifest.json"><link rel="icon" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon.svg"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nossa casinha"><title>Nossa casinha</title><script>document.addEventListener("gesturestart",function(e){e.preventDefault()});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1)e.preventDefault()},{passive:false})</script><style>html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}input,select,textarea{font-size:16px}
-body{margin:0;font-family:system-ui;background:#0b1220;color:#e8eefc;display:flex;flex-direction:column;align-items:center;padding:20px}
-.t{font-size:80px;font-weight:200;margin:10px 0}.r{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center}
-button{background:#1b2740;color:#e8eefc;border:0;border-radius:14px;padding:16px 20px;font-size:16px;min-width:76px}
-button.on{background:#2f7cf6}#p{width:120px;height:120px;border-radius:60px;font-size:20px}#p.on{background:#e5484d}
-details{width:100%;max-width:420px;margin-top:28px;background:#121b2e;border-radius:14px;padding:4px 16px}summary{padding:12px 0;font-size:16px;cursor:pointer}
-details p{margin:6px 0 10px;font-size:14px;color:#a9b6d6;line-height:1.45}#rx{background:#0b1220;border-radius:10px;padding:12px;font-size:13px;word-break:break-word}
-#rx code{font-size:14px;color:#8fd3ff}.mb button{min-width:0;flex:1}
+*{-webkit-tap-highlight-color:transparent}body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:#10141c linear-gradient(180deg,#1e2738 0,#10141c 600px) no-repeat;color:#f5f5f7;display:flex;flex-direction:column;align-items:center;padding:20px;min-height:100vh;-webkit-font-smoothing:antialiased}
+.t{font-size:84px;font-weight:200;margin:10px 0;font-variant-numeric:tabular-nums}.r{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center}
+button{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:14px;padding:14px 16px;min-height:44px;font:inherit;font-size:16px;font-weight:500;min-width:64px;transition:transform 80ms ease-out}button:active{transform:scale(.96)}
+button.on{background:#f5f5f7;color:#1c1c1e;font-weight:600}#p{width:120px;height:120px;border-radius:60px;font-size:20px}#p.on{background:#64d2ff;color:#00293a}
+details{width:100%;max-width:440px;margin-top:14px;background:rgba(255,255,255,.07);border-radius:20px;padding:2px 16px}summary{padding:14px 0;font-size:17px;font-weight:600;cursor:pointer}
+details p{margin:6px 0 10px;font-size:14px;color:#a1a1a6;line-height:1.45}#rx{background:rgba(0,0,0,.25);border-radius:10px;padding:12px;font-size:13px;word-break:break-word}
+#rx code{font-size:14px;color:#64d2ff}.mb button{min-width:0;flex:1}
 </style></head><body>
 <button id="p">ON/OFF</button><div class="t"><span id="t">24</span>°</div>
 <div class="r"><button onclick="d(-1)">−</button><button onclick="d(1)">+</button></div>
@@ -59,9 +59,9 @@ aj.addEventListener('toggle',cpoll);setInterval(cpoll,4000);
 // Horários programados: mesma tela no app de casa (src/web.h) e no de fora (motora-frota/ar). Usa S, send() e ui() de cada app.
 (function(){
 const DN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],MN={1:'Frio',4:'Quente',2:'Seco',3:'Vent',0:'Auto'},box=document.getElementById('hor');
-const st=document.createElement('style');st.textContent='#hor select,#hor input{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
-'#hor .dia{min-width:0;flex:1;padding:12px 0;font-size:14px}.hi{display:flex;align-items:center;gap:8px;background:#0b1220;border-radius:12px;padding:10px 12px;margin:8px 0}'+
-'.hi div{flex:1;min-width:0}.hi b{font-size:20px}.hi small{display:block;color:#a9b6d6}.hi button{min-width:0;padding:10px 12px;font-size:14px}.hi.off{opacity:.5}#hmsg{color:#f5a524}#hor [hidden]{display:none}';document.head.append(st);
+const st=document.createElement('style');st.textContent='#hor select,#hor input{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
+'#hor .dia{min-width:0;flex:1;padding:12px 0;font-size:14px}.hi{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;margin:8px 0}'+
+'.hi div{flex:1;min-width:0}.hi b{font-size:20px}.hi small{display:block;color:#a1a1a6}.hi button{min-width:0;padding:10px 12px;font-size:14px}.hi.off{opacity:.5}#hmsg{color:#ff9f0a}#hor [hidden]{display:none}';document.head.append(st);
 box.innerHTML='<summary>Horários programados</summary><p>A placa liga ou desliga o ar sozinha nos dias e horas escolhidos (hora de Brasília), mesmo com o celular desligado. <span id="hclk"></span></p>'+
 '<div id="hlist"></div><p><b>Novo horário</b></p><div class="r" id="hdias"></div>'+
 '<div class="r"><input id="hhora" type="time" value="22:00" aria-label="Hora"><select id="hacao" aria-label="O que fazer"><option value="1">Ligar</option><option value="0">Desligar</option></select></div>'+
@@ -92,10 +92,10 @@ const u0=ui;ui=function(){u0();renderHor()};
 
 // Sensor do quarto + modo automático: mesma tela no app de casa e no de fora. Usa S, send() e ui() de cada app.
 (function(){
-const big=document.querySelector('.t'),sala=document.createElement('div');sala.id='sala';sala.style.cssText='color:#a9b6d6;font-size:15px;margin:-4px 0 8px';big.after(sala);
+const big=document.querySelector('.t'),sala=document.createElement('div');sala.id='sala';sala.style.cssText='color:#a1a1a6;font-size:15px;margin:2px 0 14px;text-align:center;line-height:1.4';(big.closest('.clima')||big).after(sala);
 const box=document.createElement('details');box.id='aut';document.getElementById('hor').before(box);
-const st=document.createElement('style');st.textContent='#aut input{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
-'#atog{width:100%;font-size:17px}#atog.on{background:#3ecf8e;color:#06140d}#aalvo{font-size:34px;font-weight:300;min-width:90px;text-align:center}#aut .r{align-items:center}';document.head.append(st);
+const st=document.createElement('style');st.textContent='#aut input{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
+'#atog{width:100%;font-size:17px}#atog.on{background:#30d158;color:#06140d}#aalvo{font-size:34px;font-weight:300;min-width:90px;text-align:center}#aut .r{align-items:center}';document.head.append(st);
 box.innerHTML='<summary>Modo automático (sensor do quarto)</summary>'+
 '<p id="atxt"></p>'+
 '<div class="r"><button id="atog">Automático: desligado</button></div>'+
@@ -120,7 +120,7 @@ function seta(t){if(!TQ||typeof TQ.t!=='number')TQ={t:t,d:0};else if(t!==TQ.t)TQ
 window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)>=3;
  $('atxt').innerHTML=(v3?T1v3:T1)+(novo?T2:'')+T3;
  if(q){const t=Number(q.t),em=new Date(typeof DEV!=='undefined'&&DEV&&DEV.last_seen?DEV.last_seen:Date.now());seta(t);
-  const s=TQ.d?'<span title="'+(TQ.d>0?'Subiu':'Desceu')+' de '+f(TQ.de)+' °C às '+hh(new Date(TQ.em))+'" aria-label="'+(TQ.d>0?'subindo':'descendo')+'" style="color:'+(TQ.d>0?'#ff6b6b':'#3ecf8e')+';font-weight:700">'+(TQ.d>0?' ▲':' ▼')+'</span>':'';
+  const s=TQ.d?'<span title="'+(TQ.d>0?'Subiu':'Desceu')+' de '+f(TQ.de)+' °C às '+hh(new Date(TQ.em))+'" aria-label="'+(TQ.d>0?'subindo':'descendo')+'" style="color:'+(TQ.d>0?'#ff6961':'#30d158')+';font-weight:700">'+(TQ.d>0?' ▲':' ▼')+'</span>':'';
   sala.innerHTML='Quarto agora: '+f(t)+' °C'+s+' · umidade '+Number(q.u)+'%<br><small>Última leitura às '+hh(em)+'</small>'}
  else sala.textContent='Sensor do quarto: sem leitura';
  $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
@@ -133,7 +133,7 @@ const u0=ui;ui=function(){u0();renderAuto()};
 (function(){
 const PN={"24": "Gree", "109": "Airton", "79": "Airwell", "69": "Amcor", "27": "Argo", "120": "Bosch 144", "84": "Carrier 64", "15": "Coolix", "86": "Corona", "16": "Daikin", "68": "Daikin 128", "70": "Daikin 152", "65": "Daikin 160", "67": "Daikin 176", "53": "Daikin 2", "61": "Daikin 216", "78": "Daikin 64", "80": "Delonghi", "98": "Ecoclim", "48": "Electra", "33": "Fujitsu", "63": "Goodweather", "38": "Haier", "115": "Haier 160", "101": "Haier 176", "44": "Haier Yrw 02", "40": "Hithi", "41": "Hithi 1", "111": "Hithi 264", "113": "Hithi 296", "85": "Hithi 344", "73": "Hithi 424", "103": "Kelon", "18": "Kelvinator", "10": "LG", "51": "LG 2", "34": "Midea", "94": "Mirage", "20": "Mitsubishi", "72": "Mitsubishi 112", "71": "Mitsubishi 136", "60": "Mitsubishi Heavy 152", "59": "Mitsubishi Heavy 88", "66": "Neoclima", "49": "Panasonic", "96": "Panasonic 32", "108": "Rhoss", "46": "Samsung", "89": "Sanyo", "105": "Sanyo 88", "62": "Sharp", "57": "TCL", "93": "Technibel", "55": "Teco", "102": "Teknopoint", "32": "Toshiba", "92": "Transcold", "28": "Trotec", "104": "Trotec 3550", "100": "Truma", "54": "Vestel", "90": "Voltas", "45": "Whirlpool", "126": "York"},ORD=[24, 109, 79, 69, 27, 120, 84, 15, 86, 16, 68, 70, 65, 67, 53, 61, 78, 80, 98, 48, 33, 63, 38, 115, 101, 44, 40, 41, 111, 113, 85, 73, 103, 18, 10, 51, 34, 94, 20, 72, 71, 60, 59, 66, 49, 96, 108, 46, 89, 105, 62, 57, 93, 55, 102, 32, 92, 28, 104, 100, 54, 90, 45, 126],nome=p=>PN[p]||('Tipo '+p),$=i=>document.getElementById(i);
 const aj=$('aj'),sec=document.createElement('div');sec.id='apar';aj.querySelector('summary').after(sec);
-const st=document.createElement('style');st.textContent='#apar select{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}[hidden]{display:none!important}#apscan{background:#0b1220;border-radius:12px;padding:12px;margin:8px 0}#apscan .r button{min-width:0;flex:1;padding:14px 8px}#apok{background:#3ecf8e!important;color:#06140d}';document.head.append(st);
+const st=document.createElement('style');st.textContent='#apar select{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}[hidden]{display:none!important}#apscan{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;margin:8px 0}#apscan .r button{min-width:0;flex:1;padding:14px 8px}#apok{background:#30d158!important;color:#06140d}';document.head.append(st);
 sec.innerHTML='<p><b>Aparelho de ar-condicionado.</b> Funciona como controle universal: escolha a marca ou use a busca automática. Em uso: <b id="apnow"></b></p>'+
 '<div class="r"><select id="apsel" aria-label="Marca do aparelho"></select><button id="apuse">Usar</button></div>'+
 '<p>Não sabe a marca? Fique perto do ar, com ele <b>desligado</b>, e toque em Busca automática. A placa testa um tipo a cada 8 segundos. Quando o ar <b>ligar ou apitar</b>, toque em <b>Funcionou!</b></p>'+
@@ -176,21 +176,21 @@ const ic=k=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+P[k]+'"/></s
 const N={power:'Ligar ou desligar a TV',chUp:'Canal +',chDn:'Canal −',volUp:'Volume +',volDn:'Volume −',menu:'Menu',mute:'Mudo',fonte:'TV/AV',info:'Info',voltar:'Último canal',sleep:'Sleep',tela:'Tela'};
 for(let i=0;i<10;i++)N['n'+i]='Número '+i;
 const st=document.createElement('style');st.textContent=
-'.abas{display:flex;gap:4px;width:100%;max-width:420px;padding:4px;margin:0 0 18px;background:#121b2e;border-radius:16px}'+
-'.abas button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:none;color:#a9b6d6;font-weight:600;transition:background .25s cubic-bezier(.16,1,.3,1),color .25s}'+
-'.abas button[aria-selected=true]{background:#1b2740;color:#e8eefc}.abas svg,#pTv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'+
+'.abas{display:flex;gap:2px;width:100%;max-width:440px;padding:3px;margin:4px 0 18px;background:rgba(118,118,128,.24);border-radius:12px}'+
+'.abas button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;min-height:44px;border-radius:9px;background:none;color:#a1a1a6;font-weight:600;transition:background .12s ease-out,color .12s ease-out}'+
+'.abas button[aria-selected=true]{background:#636366;color:#f5f5f7;box-shadow:0 3px 8px rgba(0,0,0,.25)}.abas svg,#pTv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'+
 '#pAr,#pTv{width:100%;display:flex;flex-direction:column;align-items:center}#pTv{max-width:420px;gap:16px}'+
-'#pTv .tk{position:relative;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#a9b6d6;transition:background .35s cubic-bezier(.16,1,.3,1)}'+
+'#pTv .tk{position:relative;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#a1a1a6;transition:background .35s cubic-bezier(.16,1,.3,1)}'+
 '#pTv .tk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}'+
-'#pTv .tk svg{color:#e8eefc}#pTv .tk.vai{background:#2f7cf6;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#3ecf8e}'+
-'#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#e5484d}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
-'.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#e8eefc;font-size:14px}'+
+'#pTv .tk svg{color:#f5f5f7}#pTv .tk.vai{background:#0a84ff;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#30d158}'+
+'#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#ff453a}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
+'.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#f5f5f7;font-size:14px}'+
 '.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
-'.tvn .tk{height:56px;font-size:21px;color:#e8eefc;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a9b6d6}'+
-'#pTv.apr .tk{outline:2px dashed #f5a524;outline-offset:-2px}#tvmsg{min-height:21px;margin:0;font-size:14px;color:#a9b6d6;text-align:center}'+
-'.tvli{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.tvli span{color:#e8eefc}.tvli button{min-width:0;padding:10px 12px;font-size:14px}'+
-'.abas button:focus-visible,#pTv button:focus-visible{outline:2px solid #2f7cf6;outline-offset:2px}'+
-'#tvbx{background:#0b1220;border-radius:12px;padding:12px;margin:8px 0}#tvbx .r button{min-width:0;flex:1;padding:14px 8px}#tvbx .ok{background:#3ecf8e;color:#06140d}';
+'.tvn .tk{height:56px;font-size:21px;color:#f5f5f7;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a1a1a6}'+
+'#pTv.apr .tk{outline:2px dashed #ff9f0a;outline-offset:-2px}#tvmsg{min-height:21px;margin:0;font-size:14px;color:#a1a1a6;text-align:center}'+
+'.tvli{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.tvli span{color:#f5f5f7}.tvli button{min-width:0;padding:10px 12px;font-size:14px}'+
+'.abas button:focus-visible,#pTv button:focus-visible{outline:2px solid #0a84ff;outline-offset:2px}'+
+'#tvbx{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;margin:8px 0}#tvbx .r button{min-width:0;flex:1;padding:14px 8px}#tvbx .ok{background:#30d158;color:#06140d}';
 document.head.append(st);
 const abas=document.createElement('div'),ar=document.createElement('div'),tv=document.createElement('div');
 abas.className='abas';abas.setAttribute('role','tablist');abas.setAttribute('aria-label','Aparelho');

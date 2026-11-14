@@ -1,36 +1,56 @@
 <!doctype html><html lang="pt-br"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0b1220"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
+<meta name="theme-color" content="#10141c"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nossa casinha"><meta name="application-name" content="Nossa casinha">
 <title>Nossa casinha</title><script>document.addEventListener("gesturestart",function(e){e.preventDefault()});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1)e.preventDefault()},{passive:false})</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
 html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}input,select,textarea{font-size:16px}
-/* Controle do ar-condicionado de fora de casa (mesmo visual do app da placa). */
-:root{--bg:#0b1220;--card:#121b2e;--btn:#1b2740;--ink:#e8eefc;--muted:#a9b6d6;--on:#2f7cf6;--pwr:#e5484d;--ok:#3ecf8e;--warn:#f5a524;color-scheme:dark}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center;
- padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+/* Nossa casinha (app de fora). Visual no padrão do app Casa do iPhone, modo escuro. Toque: só transform, sem atraso. */
+:root{--bg:#10141c;--card:rgba(255,255,255,.07);--btn:rgba(255,255,255,.1);--ink:#f5f5f7;--muted:#a1a1a6;--on:#0a84ff;--pwr:#ff453a;--ok:#30d158;--warn:#ff9f0a;--frio:#64d2ff;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+::selection{background:rgba(10,132,255,.45)}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:#10141c linear-gradient(180deg,#1e2738 0,#141a26 360px,#10141c 720px) no-repeat;color:var(--ink);display:flex;flex-direction:column;align-items:center;
+ min-height:100vh;padding-block:max(20px,env(safe-area-inset-top)) 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));-webkit-font-smoothing:antialiased}
 .wrap{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center}
-.t{font-size:80px;font-weight:200;margin:8px 0}.r{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center;width:100%}
-button{background:var(--btn);color:var(--ink);border:0;border-radius:14px;padding:16px 20px;font-size:16px;min-width:76px;cursor:pointer}
-button.on{background:var(--on)}button:disabled{opacity:.5}#p{width:120px;height:120px;border-radius:60px;font-size:20px}#p.on{background:var(--pwr)}
-button:focus-visible,input:focus-visible{outline:2px solid var(--on);outline-offset:2px}
-.top{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;font-size:14px;color:var(--muted)}
-.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--warn);margin-right:6px}.dot.ok{background:var(--ok)}
-.card{width:100%;background:var(--card);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
-h1{font-size:22px;margin:0}p{margin:0;color:var(--muted);line-height:1.45;font-size:15px}
-label{font-size:14px;color:var(--muted)}input{width:100%;padding:14px;font-size:16px;border-radius:12px;border:0;background:var(--btn);color:var(--ink)}
+.tit{align-self:stretch;font-size:34px;font-weight:700;letter-spacing:.01em;margin:6px 0 2px}
+.top{width:100%;display:flex;justify-content:flex-start;align-items:center;gap:6px;margin-bottom:14px;font-size:15px;color:var(--muted)}#nome::before{content:"· "}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--warn);margin-right:6px;vertical-align:1px}.dot.ok{background:var(--ok)}
+.t{font-size:84px;font-weight:200;letter-spacing:-.02em;line-height:1;margin:0;font-variant-numeric:tabular-nums;min-width:2.2ch;text-align:center}
+.r{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap;justify-content:center;width:100%}.r>button{flex:1}
+button{background:var(--btn);color:var(--ink);border:0;border-radius:14px;padding:14px 16px;min-height:44px;font:inherit;font-size:16px;font-weight:500;min-width:0;cursor:pointer;
+ transition:transform 80ms ease-out}
+button:active{transform:scale(.96)}
+button.on{background:#f5f5f7;color:#1c1c1e;font-weight:600}button:disabled{opacity:.4}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--on);outline-offset:2px}
+#p{flex:none;width:100%;display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:22px;text-align:left;min-height:76px}
+#p .pi{flex:none;width:44px;height:44px;border-radius:22px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center}
+#p .pi svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+#p b{display:block;font-size:17px;font-weight:600}#p small{display:block;font-size:15px;color:var(--muted);margin-top:1px}
+#p.on{background:#f5f5f7;color:#1c1c1e}#p.on .pi{background:var(--frio);color:#00293a}#p.on small{color:#48484a}
+.clima{display:flex;align-items:center;justify-content:center;gap:22px;width:100%;margin:22px 0 4px}
+.clima button{flex:none;width:56px;height:56px;border-radius:28px;padding:0;display:flex;align-items:center;justify-content:center}
+.clima svg{width:22px;height:22px;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;fill:none}
+.grp{width:100%;margin-top:4px}.lbl{font-size:13px;font-weight:600;color:var(--muted);margin:14px 4px 6px}#m,#f,#x{display:grid;gap:8px;margin:0}#m,#x{grid-template-columns:repeat(5,1fr)}#f{grid-template-columns:repeat(4,1fr)}#m button,#f button,#x button{padding:12px 2px;font-size:15px;white-space:nowrap}
+.card{width:100%;background:rgba(255,255,255,.07);border-radius:22px;padding:22px 18px;display:flex;flex-direction:column;gap:12px}
+.card button.on,#bEntrar{background:var(--on);color:#fff}
+h1{font-size:28px;font-weight:700;margin:0}p{margin:0;color:var(--muted);line-height:1.45;font-size:15px}
+label{font-size:14px;color:var(--muted)}input{width:100%;padding:14px;font-size:16px;border-radius:12px;border:0;background:var(--btn);color:var(--ink);caret-color:var(--on)}
 .big{font-size:28px;letter-spacing:6px;text-align:center}
-#msg{min-height:20px;font-size:14px;color:var(--warn);text-align:center}
-details{width:100%;margin-top:24px;background:var(--card);border-radius:14px;padding:4px 16px}summary{padding:12px 0;font-size:16px;cursor:pointer}
-.gfil{display:flex;gap:6px;margin:2px 0 8px}.gfil button{padding:10px 8px;font-size:15px;min-height:44px}.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 52px;padding:8px;font-size:22px;min-height:44px}.gnav b{flex:1;text-align:center;font-weight:600}#gsvg svg{display:block;width:100%;height:auto}#gsvg .gb{cursor:pointer}.gres{display:flex;justify-content:space-around;text-align:center;margin:2px 0 6px}.gres span{color:var(--muted);font-size:14px}.gres small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.gres b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}#gdet{color:var(--muted);font-size:14px;text-align:center;min-height:20px}
-details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
-#rx code{color:#8fd3ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:#8fa3d6;padding:8px;min-width:0;text-decoration:underline}
+#msg{min-height:20px;font-size:14px;color:var(--warn);text-align:center;margin-top:8px}
+details{width:100%;margin-top:14px;background:var(--card);border-radius:20px;padding:2px 16px}
+summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:52px;font-size:17px;font-weight:600;cursor:pointer}summary::-webkit-details-marker{display:none}
+summary::after{content:"";width:8px;height:8px;border-right:2px solid #8e8e93;border-bottom:2px solid #8e8e93;transform:rotate(-45deg);margin-right:4px;transition:transform 120ms ease-out}
+details[open]>summary::after{transform:rotate(45deg)}details[open]{padding-bottom:12px}
+.gfil{display:flex;gap:2px;margin:2px 0 10px;padding:3px;background:rgba(118,118,128,.24);border-radius:10px}.gfil button{padding:7px 8px;font-size:15px;min-height:36px;border-radius:8px;background:none;color:var(--muted)}.gfil button.on{background:#636366;color:#f5f5f7}
+.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 44px;padding:0;font-size:22px;min-height:44px;border-radius:22px}.gnav b{flex:1;text-align:center;font-weight:600}#gsvg svg{display:block;width:100%;height:auto}#gsvg .gb{cursor:pointer}
+.gres{display:flex;justify-content:space-around;text-align:center;margin:2px 0 6px}.gres span{color:var(--muted);font-size:13px}.gres small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.gres b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}#gdet{color:var(--muted);font-size:14px;text-align:center;min-height:20px}
+details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
+#rx code{color:#64d2ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:var(--on);padding:8px;min-width:0;flex:none;white-space:nowrap}
 [hidden]{display:none!important}
 #siri{display:flex;flex-direction:column;gap:8px;margin:10px 0}#siri ol{margin:4px 0 0;padding-left:22px;color:var(--muted);font-size:14px;line-height:1.5}#siri li{margin:6px 0}#siri b{color:var(--ink)}
-.cp{display:flex;gap:8px;align-items:center;background:var(--bg);border-radius:10px;padding:8px 8px 8px 12px}.cp code{flex:1;min-width:0;word-break:break-all;color:#8fd3ff;font-size:13px}.cp button{min-width:0;padding:10px 14px;font-size:14px}
+.cp{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.25);border-radius:12px;padding:8px 8px 8px 12px}.cp code{flex:1;min-width:0;word-break:break-all;color:#64d2ff;font-size:13px}.cp button{flex:none;padding:10px 14px;font-size:14px}
 </style></head><body><div class="wrap">
 
 <section id="vLogin" class="card" hidden>
@@ -48,10 +68,11 @@ details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:
 </section>
 
 <section id="vCtl" hidden style="width:100%;display:flex;flex-direction:column;align-items:center">
+ <h1 class="tit">Nossa casinha</h1>
  <div class="top"><span><span class="dot" id="dot"></span><span id="online">…</span></span><span id="nome"></span></div>
- <button id="p">ON/OFF</button><div class="t"><span id="t">24</span>°</div>
- <div class="r"><button data-d="-1">−</button><button data-d="1">+</button></div>
- <div class="r" id="m"></div><div class="r" id="f"></div><div class="r" id="x"></div>
+ <button id="p"><span class="pi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span><b>Ar-condicionado</b><small id="pst">Desligado</small></span></button>
+ <div class="clima"><button data-d="-1" aria-label="Diminuir a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button><div class="t"><span id="t">24</span>°</div><button data-d="1" aria-label="Aumentar a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div>
+ <div class="grp"><p class="lbl">Modo</p><div class="r" id="m"></div><p class="lbl">Ventilação</p><div class="r" id="f"></div><p class="lbl">Funções</p><div class="r" id="x"></div></div>
  <details id="graf" open><summary>Temperatura máxima do quarto</summary><div class="gfil" role="group" aria-label="Período"><button data-g="7" class="on">7 dias</button><button data-g="mes">Mês</button><button data-g="ano">Ano</button></div><div class="gnav" id="gnav" hidden><button id="gant" aria-label="Período anterior">‹</button><b id="gper"></b><button id="gprox" aria-label="Próximo período">›</button></div><div id="gsvg"></div><div class="gres"><div><span>Mais quente</span><b id="gq">—</b><small id="gqh"></small></div><div><span>Média das máximas</span><b id="gm">—</b></div></div><p id="gdet"></p></details>
  <details id="hor"></details>
  <details id="aj"><summary>Ajustes do controle</summary>
@@ -91,9 +112,9 @@ function errTxt(e){ const t=(e&&e.message)||String(e); if(/Invalid login/i.test(
   if(/muitos comandos/i.test(t)) return 'Muitos comandos seguidos. Espere um pouco.'; if(/fetch|network/i.test(t)) return 'Sem internet.'; return t; }
 function btn(l,on,fn){ const b=document.createElement('button'); b.textContent=l; if(on) b.className='on'; b.onclick=fn; return b; }
 function ui(){
-  $('t').textContent=S.temp; $('p').className=S.power?'on':'';
+  $('t').textContent=S.temp; $('p').className=S.power?'on':''; $('pst').textContent=S.power?'Ligado · '+((M.find(m=>m[0]==S.mode)||[,''])[1]):'Desligado'; $('p').setAttribute('aria-pressed',S.power);
   $('m').replaceChildren(...M.map(([v,l])=>btn(l,S.mode==v,()=>send({mode:v}))));
-  $('f').replaceChildren(...F.map(([v,l])=>btn('Fan '+l,S.fan==v,()=>send({fan:v}))));
+  $('f').replaceChildren(...F.map(([v,l])=>btn(l==='Auto'?'Auto':'Nível '+l,S.fan==v,()=>send({fan:v}))));
   $('x').replaceChildren(...X.map(([k,l])=>btn(l,S[k],()=>send({[k]:!S[k]}))));
   $('mo').replaceChildren(...MO.map(([v,l])=>btn(l,S.model==v,()=>send({model:v}))));
 }
@@ -146,9 +167,9 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&DEV) ref
 // Horários programados: mesma tela no app de casa (src/web.h) e no de fora (motora-frota/ar). Usa S, send() e ui() de cada app.
 (function(){
 const DN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],MN={1:'Frio',4:'Quente',2:'Seco',3:'Vent',0:'Auto'},box=document.getElementById('hor');
-const st=document.createElement('style');st.textContent='#hor select,#hor input{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
-'#hor .dia{min-width:0;flex:1;padding:12px 0;font-size:14px}.hi{display:flex;align-items:center;gap:8px;background:#0b1220;border-radius:12px;padding:10px 12px;margin:8px 0}'+
-'.hi div{flex:1;min-width:0}.hi b{font-size:20px}.hi small{display:block;color:#a9b6d6}.hi button{min-width:0;padding:10px 12px;font-size:14px}.hi.off{opacity:.5}#hmsg{color:#f5a524}#hor [hidden]{display:none}';document.head.append(st);
+const st=document.createElement('style');st.textContent='#hor select,#hor input{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
+'#hor .dia{min-width:0;flex:1;padding:12px 0;font-size:14px}.hi{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;margin:8px 0}'+
+'.hi div{flex:1;min-width:0}.hi b{font-size:20px}.hi small{display:block;color:#a1a1a6}.hi button{min-width:0;padding:10px 12px;font-size:14px}.hi.off{opacity:.5}#hmsg{color:#ff9f0a}#hor [hidden]{display:none}';document.head.append(st);
 box.innerHTML='<summary>Horários programados</summary><p>A placa liga ou desliga o ar sozinha nos dias e horas escolhidos (hora de Brasília), mesmo com o celular desligado. <span id="hclk"></span></p>'+
 '<div id="hlist"></div><p><b>Novo horário</b></p><div class="r" id="hdias"></div>'+
 '<div class="r"><input id="hhora" type="time" value="22:00" aria-label="Hora"><select id="hacao" aria-label="O que fazer"><option value="1">Ligar</option><option value="0">Desligar</option></select></div>'+
@@ -210,16 +231,16 @@ function desenharGraf(){
   const lo=Math.floor(Math.min(...todos)-2),passo=Math.max(1,Math.ceil((Math.ceil(Math.max(...todos)+1)-lo)/4)),hi=lo+passo*4;
   const y=v=>B-(v-lo)/(hi-lo)*(B-T),sl=(R-L)/n,bw=Math.max(3,Math.min(30,sl*(n>12?0.7:0.62))),maior=Math.max(...vals),fs=n>12?10:n>7?11:12;
   let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Temperatura máxima do quarto">';
-  for(let k=0;k<=4;k++){const v=lo+passo*k,yy=y(v).toFixed(1);s+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#24314d" stroke-width="1"/><text x="'+(L-6)+'" y="'+(+yy+4)+'" text-anchor="end" font-size="11" fill="#a9b6d6">'+v+'°</text>'}
+  for(let k=0;k<=4;k++){const v=lo+passo*k,yy=y(v).toFixed(1);s+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,.1)" stroke-width="1"/><text x="'+(L-6)+'" y="'+(+yy+4)+'" text-anchor="end" font-size="11" fill="#a1a1a6">'+v+'°</text>'}
   it.forEach((x,i)=>{const cx=L+sl*i+sl/2,sel=i===gSel,rot=n<=12||sel||x.v===maior;
     s+='<g class="gb" data-i="'+i+'"><rect x="'+(L+sl*i).toFixed(1)+'" y="'+T+'" width="'+sl.toFixed(1)+'" height="'+(H-T)+'" fill="transparent"/>';
-    if(x.v!==null){const yy=y(x.v);s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="#f5a524" fill-opacity="'+(sel?0.9:0.32)+'"/>';
-      if(rot)s+='<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yy-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#e8eefc">'+gVg(x.v)+(n>7?'':'°')+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yy-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a9b6d6">'+x.h+'</text>':'')}
-    else if(n<=12)s+='<text x="'+cx.toFixed(1)+'" y="'+(B-6)+'" text-anchor="middle" font-size="12" fill="#5d6a87">—</text>';
-    s+='<text x="'+cx.toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="'+(sel?'#e8eefc':'#a9b6d6')+'">'+x.a+'</text>'+
-      (x.b?'<text x="'+cx.toFixed(1)+'" y="'+(B+33)+'" text-anchor="middle" font-size="10" fill="#7d8aa8">'+x.b+'</text>':'')+'</g>'});
-  if(alvo!==null){const yy=y(alvo).toFixed(1);s+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#e5484d" stroke-width="2" stroke-dasharray="6 4"/>'}
-  $('gsvg').innerHTML=s+'</svg>'+(alvo!==null?'<p style="margin:2px 0 6px;font-size:13px;color:var(--muted);text-align:center"><span style="color:#ff6b6b">- - -</span> automático liga acima de '+alvo+' °C</p>':'');
+    if(x.v!==null){const yy=y(x.v);s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="#ff9f0a" fill-opacity="'+(sel?0.9:0.32)+'"/>';
+      if(rot)s+='<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yy-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#f5f5f7">'+gVg(x.v)+(n>7?'':'°')+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yy-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a1a1a6">'+x.h+'</text>':'')}
+    else if(n<=12)s+='<text x="'+cx.toFixed(1)+'" y="'+(B-6)+'" text-anchor="middle" font-size="12" fill="#636366">—</text>';
+    s+='<text x="'+cx.toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="'+(sel?'#f5f5f7':'#a1a1a6')+'">'+x.a+'</text>'+
+      (x.b?'<text x="'+cx.toFixed(1)+'" y="'+(B+33)+'" text-anchor="middle" font-size="10" fill="#8e8e93">'+x.b+'</text>':'')+'</g>'});
+  if(alvo!==null){const yy=y(alvo).toFixed(1);s+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#ff453a" stroke-width="2" stroke-dasharray="6 4"/>'}
+  $('gsvg').innerHTML=s+'</svg>'+(alvo!==null?'<p style="margin:2px 0 6px;font-size:13px;color:var(--muted);text-align:center"><span style="color:#ff6961">- - -</span> automático liga acima de '+alvo+' °C</p>':'');
   const q=it.filter(x=>x.v!==null).reduce((a,b)=>b.v>a.v?b:a);
   $('gq').textContent=gVg(q.v)+' °C';$('gqh').textContent=q.quando+' às '+q.h;$('gm').textContent=gVg((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1))+' °C';
   $('gdet').textContent=gSel>=0?it[gSel].det:'';
@@ -231,10 +252,10 @@ $('gprox').onclick=()=>{if(gDesl<0){gDesl++;gSel=-1;GD=[];desenharGraf();carrega
 
 // Sensor do quarto + modo automático: mesma tela no app de casa e no de fora. Usa S, send() e ui() de cada app.
 (function(){
-const big=document.querySelector('.t'),sala=document.createElement('div');sala.id='sala';sala.style.cssText='color:#a9b6d6;font-size:15px;margin:-4px 0 8px';big.after(sala);
+const big=document.querySelector('.t'),sala=document.createElement('div');sala.id='sala';sala.style.cssText='color:#a1a1a6;font-size:15px;margin:2px 0 14px;text-align:center;line-height:1.4';(big.closest('.clima')||big).after(sala);
 const box=document.createElement('details');box.id='aut';document.getElementById('hor').before(box);
-const st=document.createElement('style');st.textContent='#aut input{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
-'#atog{width:100%;font-size:17px}#atog.on{background:#3ecf8e;color:#06140d}#aalvo{font-size:34px;font-weight:300;min-width:90px;text-align:center}#aut .r{align-items:center}';document.head.append(st);
+const st=document.createElement('style');st.textContent='#aut input{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
+'#atog{width:100%;font-size:17px}#atog.on{background:#30d158;color:#06140d}#aalvo{font-size:34px;font-weight:300;min-width:90px;text-align:center}#aut .r{align-items:center}';document.head.append(st);
 box.innerHTML='<summary>Modo automático (sensor do quarto)</summary>'+
 '<p id="atxt"></p>'+
 '<div class="r"><button id="atog">Automático: desligado</button></div>'+
@@ -259,7 +280,7 @@ function seta(t){if(!TQ||typeof TQ.t!=='number')TQ={t:t,d:0};else if(t!==TQ.t)TQ
 window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)>=3;
  $('atxt').innerHTML=(v3?T1v3:T1)+(novo?T2:'')+T3;
  if(q){const t=Number(q.t),em=new Date(typeof DEV!=='undefined'&&DEV&&DEV.last_seen?DEV.last_seen:Date.now());seta(t);
-  const s=TQ.d?'<span title="'+(TQ.d>0?'Subiu':'Desceu')+' de '+f(TQ.de)+' °C às '+hh(new Date(TQ.em))+'" aria-label="'+(TQ.d>0?'subindo':'descendo')+'" style="color:'+(TQ.d>0?'#ff6b6b':'#3ecf8e')+';font-weight:700">'+(TQ.d>0?' ▲':' ▼')+'</span>':'';
+  const s=TQ.d?'<span title="'+(TQ.d>0?'Subiu':'Desceu')+' de '+f(TQ.de)+' °C às '+hh(new Date(TQ.em))+'" aria-label="'+(TQ.d>0?'subindo':'descendo')+'" style="color:'+(TQ.d>0?'#ff6961':'#30d158')+';font-weight:700">'+(TQ.d>0?' ▲':' ▼')+'</span>':'';
   sala.innerHTML='Quarto agora: '+f(t)+' °C'+s+' · umidade '+Number(q.u)+'%<br><small>Última leitura às '+hh(em)+'</small>'}
  else sala.textContent='Sensor do quarto: sem leitura';
  $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
@@ -272,7 +293,7 @@ const u0=ui;ui=function(){u0();renderAuto()};
 (function(){
 const PN={"24": "Gree", "109": "Airton", "79": "Airwell", "69": "Amcor", "27": "Argo", "120": "Bosch 144", "84": "Carrier 64", "15": "Coolix", "86": "Corona", "16": "Daikin", "68": "Daikin 128", "70": "Daikin 152", "65": "Daikin 160", "67": "Daikin 176", "53": "Daikin 2", "61": "Daikin 216", "78": "Daikin 64", "80": "Delonghi", "98": "Ecoclim", "48": "Electra", "33": "Fujitsu", "63": "Goodweather", "38": "Haier", "115": "Haier 160", "101": "Haier 176", "44": "Haier Yrw 02", "40": "Hithi", "41": "Hithi 1", "111": "Hithi 264", "113": "Hithi 296", "85": "Hithi 344", "73": "Hithi 424", "103": "Kelon", "18": "Kelvinator", "10": "LG", "51": "LG 2", "34": "Midea", "94": "Mirage", "20": "Mitsubishi", "72": "Mitsubishi 112", "71": "Mitsubishi 136", "60": "Mitsubishi Heavy 152", "59": "Mitsubishi Heavy 88", "66": "Neoclima", "49": "Panasonic", "96": "Panasonic 32", "108": "Rhoss", "46": "Samsung", "89": "Sanyo", "105": "Sanyo 88", "62": "Sharp", "57": "TCL", "93": "Technibel", "55": "Teco", "102": "Teknopoint", "32": "Toshiba", "92": "Transcold", "28": "Trotec", "104": "Trotec 3550", "100": "Truma", "54": "Vestel", "90": "Voltas", "45": "Whirlpool", "126": "York"},ORD=[24, 109, 79, 69, 27, 120, 84, 15, 86, 16, 68, 70, 65, 67, 53, 61, 78, 80, 98, 48, 33, 63, 38, 115, 101, 44, 40, 41, 111, 113, 85, 73, 103, 18, 10, 51, 34, 94, 20, 72, 71, 60, 59, 66, 49, 96, 108, 46, 89, 105, 62, 57, 93, 55, 102, 32, 92, 28, 104, 100, 54, 90, 45, 126],nome=p=>PN[p]||('Tipo '+p),$=i=>document.getElementById(i);
 const aj=$('aj'),sec=document.createElement('div');sec.id='apar';aj.querySelector('summary').after(sec);
-const st=document.createElement('style');st.textContent='#apar select{background:#1b2740;color:#e8eefc;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}[hidden]{display:none!important}#apscan{background:#0b1220;border-radius:12px;padding:12px;margin:8px 0}#apscan .r button{min-width:0;flex:1;padding:14px 8px}#apok{background:#3ecf8e!important;color:#06140d}';document.head.append(st);
+const st=document.createElement('style');st.textContent='#apar select{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}[hidden]{display:none!important}#apscan{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;margin:8px 0}#apscan .r button{min-width:0;flex:1;padding:14px 8px}#apok{background:#30d158!important;color:#06140d}';document.head.append(st);
 sec.innerHTML='<p><b>Aparelho de ar-condicionado.</b> Funciona como controle universal: escolha a marca ou use a busca automática. Em uso: <b id="apnow"></b></p>'+
 '<div class="r"><select id="apsel" aria-label="Marca do aparelho"></select><button id="apuse">Usar</button></div>'+
 '<p>Não sabe a marca? Fique perto do ar, com ele <b>desligado</b>, e toque em Busca automática. A placa testa um tipo a cada 8 segundos. Quando o ar <b>ligar ou apitar</b>, toque em <b>Funcionou!</b></p>'+
@@ -315,21 +336,21 @@ const ic=k=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+P[k]+'"/></s
 const N={power:'Ligar ou desligar a TV',chUp:'Canal +',chDn:'Canal −',volUp:'Volume +',volDn:'Volume −',menu:'Menu',mute:'Mudo',fonte:'TV/AV',info:'Info',voltar:'Último canal',sleep:'Sleep',tela:'Tela'};
 for(let i=0;i<10;i++)N['n'+i]='Número '+i;
 const st=document.createElement('style');st.textContent=
-'.abas{display:flex;gap:4px;width:100%;max-width:420px;padding:4px;margin:0 0 18px;background:#121b2e;border-radius:16px}'+
-'.abas button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:none;color:#a9b6d6;font-weight:600;transition:background .25s cubic-bezier(.16,1,.3,1),color .25s}'+
-'.abas button[aria-selected=true]{background:#1b2740;color:#e8eefc}.abas svg,#pTv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'+
+'.abas{display:flex;gap:2px;width:100%;max-width:440px;padding:3px;margin:4px 0 18px;background:rgba(118,118,128,.24);border-radius:12px}'+
+'.abas button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px;min-height:44px;border-radius:9px;background:none;color:#a1a1a6;font-weight:600;transition:background .12s ease-out,color .12s ease-out}'+
+'.abas button[aria-selected=true]{background:#636366;color:#f5f5f7;box-shadow:0 3px 8px rgba(0,0,0,.25)}.abas svg,#pTv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'+
 '#pAr,#pTv{width:100%;display:flex;flex-direction:column;align-items:center}#pTv{max-width:420px;gap:16px}'+
-'#pTv .tk{position:relative;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#a9b6d6;transition:background .35s cubic-bezier(.16,1,.3,1)}'+
+'#pTv .tk{position:relative;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#a1a1a6;transition:background .35s cubic-bezier(.16,1,.3,1)}'+
 '#pTv .tk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}'+
-'#pTv .tk svg{color:#e8eefc}#pTv .tk.vai{background:#2f7cf6;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#3ecf8e}'+
-'#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#e5484d}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
-'.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#e8eefc;font-size:14px}'+
+'#pTv .tk svg{color:#f5f5f7}#pTv .tk.vai{background:#0a84ff;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#30d158}'+
+'#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#ff453a}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
+'.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#f5f5f7;font-size:14px}'+
 '.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
-'.tvn .tk{height:56px;font-size:21px;color:#e8eefc;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a9b6d6}'+
-'#pTv.apr .tk{outline:2px dashed #f5a524;outline-offset:-2px}#tvmsg{min-height:21px;margin:0;font-size:14px;color:#a9b6d6;text-align:center}'+
-'.tvli{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.tvli span{color:#e8eefc}.tvli button{min-width:0;padding:10px 12px;font-size:14px}'+
-'.abas button:focus-visible,#pTv button:focus-visible{outline:2px solid #2f7cf6;outline-offset:2px}'+
-'#tvbx{background:#0b1220;border-radius:12px;padding:12px;margin:8px 0}#tvbx .r button{min-width:0;flex:1;padding:14px 8px}#tvbx .ok{background:#3ecf8e;color:#06140d}';
+'.tvn .tk{height:56px;font-size:21px;color:#f5f5f7;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a1a1a6}'+
+'#pTv.apr .tk{outline:2px dashed #ff9f0a;outline-offset:-2px}#tvmsg{min-height:21px;margin:0;font-size:14px;color:#a1a1a6;text-align:center}'+
+'.tvli{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.tvli span{color:#f5f5f7}.tvli button{min-width:0;padding:10px 12px;font-size:14px}'+
+'.abas button:focus-visible,#pTv button:focus-visible{outline:2px solid #0a84ff;outline-offset:2px}'+
+'#tvbx{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;margin:8px 0}#tvbx .r button{min-width:0;flex:1;padding:14px 8px}#tvbx .ok{background:#30d158;color:#06140d}';
 document.head.append(st);
 const abas=document.createElement('div'),ar=document.createElement('div'),tv=document.createElement('div');
 abas.className='abas';abas.setAttribute('role','tablist');abas.setAttribute('aria-label','Aparelho');
