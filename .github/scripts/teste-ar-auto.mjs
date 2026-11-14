@@ -11,7 +11,7 @@ const js = cpp
   .replace(/^struct\s+\w+\s*\{[^}]*\};/gm, '')
   .replace(/^(?:bool|int|void|float)\s+(\w+)\(([^)]*)\)\s*\{/gm, (_, nome, ps) =>
     `function ${nome}(${ps.split(',').map(p => p.trim().split(/[\s&]+/).pop()).join(', ')}) {`);
-const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
+const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, regraMimi, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
 const NOME = { [R.AUTO_NADA]: 'nada', [R.AUTO_LIGAR]: 'ligar', [R.AUTO_DESLIGAR]: 'desligar' };
 
 let erros = 0;
@@ -60,6 +60,17 @@ caso('não desliga fora do horário, e desliga quando o horário volta',
 caso('não desliga sem leitura do sensor', rodar([[25, false], [20, true, { leitura: false }]]), ['ligar', 'nada']);
 caso('automático desligado e religado: não desliga o ar que ficou ligado',
   rodar([[25, false], [25, true, { ativo: false }], [22, true]]), ['ligar', 'nada', 'nada']);
+
+// A mimi (versão 8): 20° com turbo por 2 h; depois 22°, volta a 20° se o quarto passar de 22 °C e sobe para 22° de novo quando cair a 21 °C.
+const H2 = 2 * 3600 * 1000;
+function mimi(passos) { const m = { fase: 1 }; return passos.map(([passou, q, temp, leitura = true]) => [R.regraMimi(m, passou, leitura, q, temp), m.fase]); }
+caso('a mimi: antes de 2 h não muda nada', mimi([[H2 - 60000, 23, 20]]), [[0, 1]]);
+caso('a mimi: com 2 h sobe para 22° e passa para a fase 2', mimi([[H2, 21, 20]]), [[22, 2]]);
+caso('a mimi: no 22°, quarto passou de 22 °C volta para 20°', mimi([[H2, 21, 20], [H2 + 6e5, 22.4, 22]]), [[22, 2], [20, 2]]);
+caso('a mimi: no 22°, quarto em 22,0 °C fica', mimi([[H2, 21, 20], [H2 + 6e5, 22.0, 22]]), [[22, 2], [0, 2]]);
+caso('a mimi: no 20°, quarto caiu a 21 °C sobe para 22° de novo', mimi([[H2, 23, 20], [H2 + 6e5, 23, 22], [H2 + 12e5, 21.0, 20]]), [[22, 2], [20, 2], [22, 2]]);
+caso('a mimi: no 20°, quarto em 21,5 °C fica', mimi([[H2, 23, 20], [H2 + 6e5, 21.5, 20]]), [[22, 2], [0, 2]]);
+caso('a mimi: sem leitura do sensor fica onde está', mimi([[H2, 23, 20], [H2 + 6e5, 25, 22, false]]), [[22, 2], [0, 2]]);
 
 console.log(erros ? `\n${erros} problema(s) no modo automático.` : '\nModo automático: tudo certo.');
 process.exit(erros ? 1 : 0);

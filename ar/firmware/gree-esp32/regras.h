@@ -34,3 +34,19 @@ void autoManual(AutoMem &e, bool ligado, bool autoAtivo) {
   e.ligou = false;
   if (!ligado && autoAtivo) e.espera = true;
 }
+
+// "A mimi?" (versão 8, pedido do dono): fase 1 = Frio 20° com turbo e ventilação máxima por 2 h; fase 2 = 22°.
+// Na fase 2, se o quarto passar de 22 °C volta para 20°, e quando cair a 21 °C sobe para 22° de novo.
+// Devolve a temperatura nova para o ar (0 = não mexe). passou = ms desde o toque no botão.
+#define MIMI_FASE1 7200000
+struct MimiMem { bool on; int fase; };
+int regraMimi(MimiMem &m, unsigned long passou, bool temLeitura, float quarto, int temp) {
+  if (m.fase == 1) {
+    if (passou >= MIMI_FASE1) { m.fase = 2; return 22; }
+    return 0;
+  }
+  if (!temLeitura) return 0;
+  if (temp >= 22 && quarto > 22) return 20;
+  if (temp <= 20 && quarto <= 21) return 22;
+  return 0;
+}

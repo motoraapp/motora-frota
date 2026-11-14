@@ -28,7 +28,7 @@
 #include "certs.h"
 #include "tv_universal.h"
 
-#define FW_VERSAO 7
+#define FW_VERSAO 8
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -337,6 +337,7 @@ void buscaCmd(const String &c) {
 // ---------- Sensor do quarto ----------
 DHT dht(PINO_DHT, DHT22);
 float salaT = NAN; int salaU = 0; unsigned long salaEm = 0, ultSensor = 0;
+MimiMem MI = {false, 0}; unsigned long miEm = 0, miUlt = 0;  // "A mimi?" (regraMimi em regras.h)
 bool temSala() { return salaEm && millis() - salaEm < 120000; }
 void lerSensor() {
   if (millis() - ultSensor < 5000) return;
@@ -362,6 +363,7 @@ void estadoJson(JsonObject d) {
   JsonObject a = d["auto"].to<JsonObject>();
   a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou;
   d["fw"] = FW_VERSAO;
+  if (MI.on) { JsonObject mm = d["mimi"].to<JsonObject>(); mm["f"] = MI.fase; if (MI.fase == 1) mm["r"] = (long)(MIMI_FASE1 - (millis() - miEm)) / 1000; }
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
   if (fwMsg.length()) d["fwMsg"] = fwMsg;
   if (BU.on) { JsonObject b = d["scan"].to<JsonObject>(); b["i"] = BU.i + 1; b["n"] = NORD; b["p"] = ORD[BU.i]; b["auto"] = BU.sozinho; }
@@ -374,6 +376,12 @@ void estadoJson(JsonObject d) {
 // Comando do app de casa ou de fora (mesmo formato).
 void aplicar(JsonObject p) {
   bool mandar = false, antes = S.power;
+  // mexer no ar pelo app/Siri/horário tira do "A mimi?"
+  if (p["power"].is<bool>() || p["mode"].is<int>() || p["temp"].is<int>() || p["fan"].is<int>() || p["turbo"].is<bool>()) MI.on = false;
+  if (p["mimi"].is<bool>()) {
+    if (p["mimi"].as<bool>()) { S.power = true; S.mode = 1; S.temp = 20; S.turbo = true; S.fan = 3; mandar = true; MI.on = true; MI.fase = 1; miEm = millis(); miUlt = millis(); }
+    else MI.on = false;
+  }
   if (p["power"].is<bool>()) { S.power = p["power"]; mandar = true; }
   if (p["mode"].is<int>()) { S.mode = faixa(p["mode"], 0, 4); mandar = true; }
   if (p["temp"].is<int>()) { S.temp = faixa(p["temp"], 16, 30); mandar = true; }
@@ -609,6 +617,16 @@ void setup() {
   rotas();
 }
 
+// "A mimi?": a cada 10 s na fase 1 e a cada 5 min na fase 2 pergunta à regraMimi se muda a temperatura.
+void cuidarMimi() {
+  if (!MI.on) return;
+  if (!S.power) { MI.on = false; return; }
+  if (millis() - miUlt < (MI.fase == 1 ? 10000UL : 300000UL)) return;
+  miUlt = millis();
+  int t = regraMimi(MI, millis() - miEm, temSala(), salaT, S.temp);
+  if (t) { S.temp = t; S.turbo = false; enviar(S, S.proto); salvarEstado(); }
+}
+
 void loop() {
   srv.handleClient();
   cuidarWifi();
@@ -618,6 +636,7 @@ void loop() {
   checarAuto();
   cuidarTv();
   cuidarTvDesligar();
+  cuidarMimi();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
   if (conectado && millis() - ultSync > 3000) { ultSync = millis(); sincronizar(); }
   cuidarOta();

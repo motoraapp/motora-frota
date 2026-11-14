@@ -16,7 +16,7 @@ details p{margin:6px 0 10px;font-size:14px;color:#a1a1a6;line-height:1.45}#rx{ba
 </style></head><body>
 <h1 class="tit">Nossa casinha</h1>
 <button id="p"><span class="pi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span><b>Ar-condicionado</b><small id="pst">Desligado</small></span></button>
-<button id="mimi" onclick="send({power:true,mode:1,temp:20,turbo:true,fan:3,tvDesligar:7200})"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span><b>A mimi?</b><small id="mimit">Frio 20° · turbo · ventilação máxima · TV desliga em 2 h</small></span></button>
+<button id="mimi" onclick="send({mimi:true})"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span><b>A mimi?</b><small id="mimit">Frio 20° com turbo por 2 h, depois 22°</small></span></button>
 <div class="clima"><button onclick="d(-1)" aria-label="Diminuir">−</button><div class="t"><span id="t">24</span>°</div><button onclick="d(1)" aria-label="Aumentar">+</button></div>
 <div class="grp"><p class="lbl">Modo</p><div class="r" id="m"></div><p class="lbl">Ventilação</p><div class="r" id="f"></div><p class="lbl">Funções</p><div class="r" id="x"></div></div><small id="s"></small>
 <details id="hor"></details>
@@ -34,7 +34,7 @@ const M=[[1,'Frio'],[4,'Quente'],[2,'Seco'],[3,'Vent'],[0,'Auto']],F=[[0,'Auto']
 X=[['swing','Swing'],['turbo','Turbo'],['light','Luz'],['xfan','X-Fan'],['sleep','Sleep']];
 async function send(p){try{const r=await fetch('/api/state',{method:'POST',body:JSON.stringify(p)});S=await r.json();ui();s.textContent=''}catch(e){s.textContent='sem conexão'}}
 function d(n){send({temp:Math.min(30,Math.max(16,S.temp+n))})}
-const NM={0:'Auto',1:'Frio',2:'Seco',3:'Vent',4:'Quente'};function ui(){t.textContent=S.temp;p.className=S.power?'on':'';pst.textContent=S.power?'Ligado · '+(NM[S.mode]||''):'Desligado';mimi.className=S.power&&S.mode==1&&S.temp==20&&S.turbo&&S.fan==3?'on':'';mimit.textContent='Frio 20° · turbo · ventilação máxima · '+(S.tv&&S.tv.dz>0?'TV desliga às '+new Date(Date.now()+S.tv.dz*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'TV desliga em 2 h');
+const NM={0:'Auto',1:'Frio',2:'Seco',3:'Vent',4:'Quente'};function ui(){t.textContent=S.temp;p.className=S.power?'on':'';pst.textContent=S.power?'Ligado · '+(NM[S.mode]||''):'Desligado';mimi.className=S.mimi&&S.power?'on':'';mimit.textContent=!S.mimi||!S.power?'Frio 20° com turbo por 2 h, depois 22°':S.mimi.f===1?'Esfriando rápido no 20° · sobe para 22° às '+new Date(Date.now()+(S.mimi.r||0)*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Mantendo 22° · volta a 20° se o quarto passar de 22 °C';
 m.innerHTML=M.map(([v,l])=>`<button class="${S.mode==v?'on':''}" onclick="send({mode:${v}})">${l}</button>`).join('');
 f.innerHTML=F.map(([v,l])=>`<button class="${S.fan==v?'on':''}" onclick="send({fan:${v}})">${l=='Auto'?'Auto':'Nível '+l}</button>`).join('');
 x.innerHTML=X.map(([k,l])=>`<button class="${S[k]?'on':''}" onclick="send({${k}:${!S[k]}})">${l}</button>`).join('')}

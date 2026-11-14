@@ -72,7 +72,7 @@ details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;pa
  <h1 class="tit">Nossa casinha</h1>
  <div class="top"><span><span class="dot" id="dot"></span><span id="online">…</span></span><span id="nome"></span></div>
  <button id="p"><span class="pi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span><b>Ar-condicionado</b><small id="pst">Desligado</small></span></button>
- <button id="mimi" aria-label="A mimi: ar no Frio, 20 graus, turbo e ventilação máxima; a TV desliga em 2 horas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span><b>A mimi?</b><small id="mimit">Frio 20° · turbo · ventilação máxima · TV desliga em 2 h</small></span></button>
+ <button id="mimi" aria-label="A mimi: ar no Frio, 20 graus com turbo por 2 horas, depois 22 graus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span><b>A mimi?</b><small id="mimit">Frio 20° com turbo por 2 h, depois 22°</small></span></button>
  <div class="clima"><button data-d="-1" aria-label="Diminuir a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button><div class="t"><span id="t">24</span>°</div><button data-d="1" aria-label="Aumentar a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div>
  <div class="grp"><p class="lbl">Modo</p><div class="r" id="m"></div><p class="lbl">Ventilação</p><div class="r" id="f"></div><p class="lbl">Funções</p><div class="r" id="x"></div></div>
  <details id="graf" open><summary>Histórico do quarto</summary><div class="gfil" role="group" aria-label="Período"><button data-g="24">24 h</button><button data-g="7" class="on">7 dias</button><button data-g="mes">Mês</button><button data-g="ano">Ano</button></div><div class="gfil gmet" id="gmet" role="group" aria-label="O que mostrar"><button data-m="temp" class="on">Temperatura</button><button data-m="uso">Ar ligado</button></div><div class="gnav" id="gnav" hidden><button id="gant" aria-label="Período anterior">‹</button><b id="gper"></b><button id="gprox" aria-label="Próximo período">›</button></div><div id="gsvg"></div><div class="gres"><div><span id="gql">Mais quente</span><b id="gq">—</b><small id="gqh"></small></div><div><span id="gml">Média das máximas</span><b id="gm">—</b></div></div><p id="gdet"></p></details>
@@ -118,8 +118,12 @@ function btn(l,on,fn){ const b=document.createElement('button'); b.textContent=l
 function evTxt(){ const e=DEV&&DEV.evento; if(!e||!e.em||!!e.power!==!!S.power) return ""; const d=new Date(e.em),hj=new Date();
   const quem=e.origem==="auto"?"pelo automático":e.origem==="app"?"pelo app":"pelo horário ou controle";
   return " "+quem+" "+(d.toDateString()===hj.toDateString()?"às ":"em "+d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})+" às ")+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}); }
+// Texto do "A mimi?" (placa versão 8: estado mimi = {f: fase, r: segundos até subir para 22°}).
+function mimiTxt(s){ const m=s.mimi; if(!m||!s.power) return 'Frio 20° com turbo por 2 h, depois 22°';
+  if(m.f===1) return 'Esfriando rápido no 20° · sobe para 22° às '+new Date(Date.now()+(m.r||0)*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  return 'Mantendo 22° · volta a 20° se o quarto passar de 22 °C'; }
 function ui(){
-  $('t').textContent=S.temp; $('p').className=S.power?'on':''; $('pst').textContent=S.power?'Ligado'+evTxt()+' · '+((M.find(m=>m[0]==S.mode)||[,''])[1]):'Desligado'+evTxt(); $('p').setAttribute('aria-pressed',S.power); $('mimi').className=S.power&&S.mode==1&&S.temp==20&&S.turbo&&S.fan==3?'on':''; $('mimit').textContent='Frio 20° · turbo · ventilação máxima · '+(S.tv&&S.tv.dz>0?'TV desliga às '+new Date(Date.now()+S.tv.dz*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'TV desliga em 2 h');
+  $('t').textContent=S.temp; $('p').className=S.power?'on':''; $('pst').textContent=S.power?'Ligado'+evTxt()+' · '+((M.find(m=>m[0]==S.mode)||[,''])[1]):'Desligado'+evTxt(); $('p').setAttribute('aria-pressed',S.power); $('mimi').className=S.mimi&&S.power?'on':''; $('mimit').textContent=mimiTxt(S);
   $('m').replaceChildren(...M.map(([v,l])=>btn(l,S.mode==v,()=>send({mode:v}))));
   $('f').replaceChildren(...F.map(([v,l])=>btn(l==='Auto'?'Auto':'Nível '+l,S.fan==v,()=>send({fan:v}))));
   $('x').replaceChildren(...X.map(([k,l])=>btn(l,S[k],()=>send({[k]:!S[k]}))));
@@ -130,7 +134,7 @@ async function send(p){
   pend={p:{...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
   const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
 }
-const MOMENTO=['tvDesligar','scan','ota','tecla','tvAprender','tvEsquecer','tvBusca','tvFam'];  // comandos de um toque: não aparecem no estado da placa
+const MOMENTO=['mimi','tvDesligar','scan','ota','tecla','tvAprender','tvEsquecer','tvBusca','tvFam'];  // comandos de um toque: não aparecem no estado da placa
 function matches(st,p){ return Object.keys(p).every(k=>MOMENTO.includes(k)||(st&&JSON.stringify(st[k])===JSON.stringify(p[k]))); }
 async function refresh(){
   const {data,error}=await sb.rpc('ar_status'); if(error){ msg(errTxt(error)); return; }
@@ -190,7 +194,7 @@ $('bAvisos').onclick=async()=>{ const b=$('bAvisos'); b.disabled=true;
     const r=await sb.functions.invoke('ar-aviso',{body:{teste:true}}); msg(r.data&&r.data.sent?'Pronto! Mandei um aviso de teste para este celular.':'Avisos ativados.');
   }catch(e){ msg(errTxt(e)); }
   b.disabled=false; avStatus(); };
-$('mimi').onclick=()=>send({power:true,mode:1,temp:20,turbo:true,fan:3,tvDesligar:7200});
+$('mimi').onclick=()=>send({mimi:true});
 document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>send({temp:Math.min(30,Math.max(16,S.temp+ +b.dataset.d))}));
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&DEV) refresh(); });
 // Horários programados: mesma tela no app de casa (src/web.h) e no de fora (motora-frota/ar). Usa S, send() e ui() de cada app.

@@ -4,7 +4,7 @@ const NUMEROS = { dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19, vinte
   'vinte e tres': 23, 'vinte e quatro': 24, 'vinte e cinco': 25, 'vinte e seis': 26, 'vinte e sete': 27, 'vinte e oito': 28,
   'vinte e nove': 29, trinta: 30, um: 1, dois: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10 };
 const MODOS = [[/\bfri[oa]\b|gelar|resfri/, 1, 'frio'], [/quente|aquec|esquent/, 4, 'quente'], [/\bsec[oa]\b|desumid/, 2, 'seco'], [/ventil/, 3, 'ventilar']];
-export const AMIMI = { power: true, mode: 1, temp: 20, turbo: true, fan: 3, tvDesligar: 7200 };
+export const AMIMI = { mimi: true };  // a placa (versão 8) faz o resto: 20° com turbo por 2 h, depois 22°
 const EXEMPLO = 'Diga, por exemplo: ligue o ar no 18, desligue o ar, ligue a TV ou aumente o volume.';
 
 function limpar(t) {
@@ -24,7 +24,7 @@ export function entender(frase, estado) {
   const volume = /volume|\bsom\b|\bmudo\b|silenci/.test(s), canal = /\bcanal\b|\bcanais\b/.test(s);
 
   // ----- A mimi: Frio 20 °C, turbo e ventilação máxima (botão do app) -----
-  if (/\ba ?mimi\b|hora de dormir|vou dormir|vamos dormir/.test(s)) return { cmds: [AMIMI], resposta: 'Boa noite! Ar no Frio, 20 graus, turbo e ventilação máxima. A TV desliga em 2 horas.' };
+  if (/\ba ?mimi\b|hora de dormir|vou dormir|vamos dormir/.test(s)) return { cmds: [AMIMI], resposta: 'Boa noite! Ar no Frio, 20 graus com turbo. Daqui a 2 horas ele sobe para 22.' };
 
   // ----- TV -----
   if (tv || volume || canal) {
