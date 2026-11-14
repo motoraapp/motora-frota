@@ -160,6 +160,18 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
 
 // 7. Ar-condicionado: o app de casa (dentro da placa, web.h) e o de fora (ar/index.html) têm os mesmos blocos.
 {
+  if (existsSync(join(raiz, 'ar/index.html'))) {
+    const h = readFileSync(join(raiz, 'ar/index.html'), 'utf8');
+    [...h.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].forEach((m, i) => {
+      const arq = join(temp, `ar-script-${i + 1}.js`);
+      writeFileSync(arq, '\n'.repeat(h.slice(0, m.index).split('\n').length - 1) + m[1]);
+      checarJs(`ar/index.html (script ${i + 1})`, arq);
+    });
+  }
+  if (existsSync(join(raiz, 'ar/manifest.json'))) {
+    try { JSON.parse(readFileSync(join(raiz, 'ar/manifest.json'), 'utf8')); console.log('ok   ar/manifest.json'); }
+    catch (e) { erros++; console.log(`ERRO ar/manifest.json: ${e.message}`); }
+  }
   const casa = join(raiz, 'ar/firmware/gree-esp32/web.h'), fora = join(raiz, 'ar/index.html');
   if (existsSync(casa) && existsSync(fora)) {
     const a = readFileSync(casa, 'utf8').replace(/\r\n/g, '\n'), b = readFileSync(fora, 'utf8').replace(/\r\n/g, '\n');

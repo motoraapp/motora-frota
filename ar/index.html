@@ -27,6 +27,8 @@ details{width:100%;margin-top:24px;background:var(--card);border-radius:14px;pad
 details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
 #rx code{color:#8fd3ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:#8fa3d6;padding:8px;min-width:0;text-decoration:underline}
 [hidden]{display:none!important}
+#siri{display:flex;flex-direction:column;gap:8px;margin:10px 0}#siri ol{margin:4px 0 0;padding-left:22px;color:var(--muted);font-size:14px;line-height:1.5}#siri li{margin:6px 0}#siri b{color:var(--ink)}
+.cp{display:flex;gap:8px;align-items:center;background:var(--bg);border-radius:10px;padding:8px 8px 8px 12px}.cp code{flex:1;min-width:0;word-break:break-all;color:#8fd3ff;font-size:13px}.cp button{min-width:0;padding:10px 14px;font-size:14px}
 </style></head><body><div class="wrap">
 
 <section id="vLogin" class="card" hidden>
@@ -52,6 +54,21 @@ details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:
  <details id="aj"><summary>Ajustes do controle</summary>
   <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
   <p><b>Último sinal do controle original</b> (lido pela placa em casa):</p><div id="rx">Nenhum sinal lido ainda.</div>
+  <div id="siri">
+   <p><b>Siri (iPhone).</b> Diga "E aí Siri, Casinha" e depois o pedido: "ligue o ar no 18", "desligue o ar", "ligue a TV", "aumente o volume", "coloque no canal 13".</p>
+   <div class="r"><button id="bSiri">Criar chave da Siri</button></div>
+   <div id="siriPassos" hidden>
+    <p>Chave da Siri (aparece só agora; criar outra apaga esta):</p><div class="cp"><code id="siriChave"></code><button data-cp="siriChave">Copiar</button></div>
+    <p>Endereço:</p><div class="cp"><code id="siriUrl">https://epswrtcwszhbapaxdpzz.supabase.co/functions/v1/ar-siri</code><button data-cp="siriUrl">Copiar</button></div>
+    <ol>
+     <li>Abra o app <b>Atalhos</b> no iPhone e toque em <b>+</b>. Dê o nome <b>Casinha</b>.</li>
+     <li>Adicione a ação <b>Ditar Texto</b> (idioma Português (Brasil)).</li>
+     <li>Adicione <b>Obter Conteúdo do URL</b>. No URL, cole o endereço. Toque na seta: Método <b>POST</b>, Corpo da Solicitação <b>JSON</b>.</li>
+     <li>No JSON, adicione o campo <b>chave</b> (Texto) e cole a chave. Adicione o campo <b>texto</b> (Texto) e escolha a variável <b>Texto Ditado</b>.</li>
+     <li>Adicione <b>Falar Texto</b> com o <b>Conteúdo do URL</b>. Pronto.</li>
+    </ol>
+   </div>
+  </div>
   <div class="r"><button class="link" id="bUnpair">Desligar a placa desta conta</button><button class="link" id="bSair2">Sair</button></div>
  </details>
 </section>
@@ -112,6 +129,15 @@ $('bSair1').onclick=sair; $('bSair2').onclick=sair;
 $('bUnpair').onclick=async()=>{ if($('bUnpair').dataset.c!=='1'){ $('bUnpair').dataset.c='1'; $('bUnpair').textContent='Toque de novo para confirmar'; return; }
   await sb.rpc('ar_unpair',{p_id:DEV.id}); $('bUnpair').dataset.c=''; $('bUnpair').textContent='Desligar a placa desta conta'; loop(); };
 $('p').onclick=()=>send({power:!S.power});
+// Siri: cria a chave (só o dono) e mostra o passo a passo do atalho.
+$('bSiri').onclick=async()=>{ const b=$('bSiri');
+  if($('siriChave').textContent && b.dataset.c!=='1'){ b.dataset.c='1'; b.textContent='Toque de novo: a chave atual para de valer'; return; }
+  b.dataset.c=''; b.disabled=true; const {data,error}=await sb.rpc('ar_siri_gerar'); b.disabled=false;
+  if(error){ msg(errTxt(error)); return; }
+  $('siriChave').textContent=data; $('siriPassos').hidden=false; b.textContent='Criar outra chave'; msg('Chave criada. Copie e siga os passos.'); };
+document.querySelectorAll('[data-cp]').forEach(b=>b.onclick=async()=>{ const t=$(b.dataset.cp).textContent;
+  try{ await navigator.clipboard.writeText(t); b.textContent='Copiado'; }catch(e){ const r=document.createRange(); r.selectNodeContents($(b.dataset.cp)); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent='Selecionado'; }
+  setTimeout(()=>{ b.textContent='Copiar'; },2000); });
 document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>send({temp:Math.min(30,Math.max(16,S.temp+ +b.dataset.d))}));
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&DEV) refresh(); });
 // Horários programados: mesma tela no app de casa (src/web.h) e no de fora (motora-frota/ar). Usa S, send() e ui() de cada app.

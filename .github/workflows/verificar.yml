@@ -23,6 +23,8 @@ jobs:
         run: node .github/scripts/teste-recarga.mjs
       - name: Teste do modo automático do ar-condicionado (liga e desliga)
         run: node .github/scripts/teste-ar-auto.mjs
+      - name: Teste da Siri do Nossa casinha (frase vira comando)
+        run: node .github/scripts/teste-ar-siri.mjs
 
   placa-ar:
     # Compila o programa da placa do ar-condicionado (ar/firmware/gree-esp32) para garantir que não quebrou.
