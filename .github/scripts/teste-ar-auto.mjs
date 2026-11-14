@@ -47,10 +47,11 @@ caso('desligado pela pessoa: só liga de novo depois que o quarto esfriar',
   ['nada', 'nada', 'nada', 'nada', 'ligar']);
 
 // Desligar (novo)
-caso('desliga quando cai 1 °C abaixo, se foi o automático que ligou',
-  rodar([[25, false], [24, true], [23.1, true], [23.0, true]]), ['ligar', 'nada', 'nada', 'desligar']);
+caso('desliga quando cai 2 °C abaixo (pedido do dono, 14/11/2026), se foi o automático que ligou',
+  rodar([[25, false], [24, true], [22.1, true], [22.0, true]]), ['ligar', 'nada', 'nada', 'desligar']);
+caso('não desliga só 1 °C abaixo (23,0 com alvo 24)', rodar([[25, false], [23.0, true]]), ['ligar', 'nada']);
 caso('depois de desligar, liga de novo quando esquentar',
-  rodar([[25, false], [23, true], [24.0, false], [24.3, false]]), ['ligar', 'desligar', 'nada', 'ligar']);
+  rodar([[25, false], [22, true], [24.0, false], [24.3, false]]), ['ligar', 'desligar', 'nada', 'ligar']);
 caso('não desliga se foi a pessoa que ligou', rodar([[22, true, { manual: true }], [21, true]]), ['nada', 'nada']);
 caso('a pessoa religou depois do automático: não desliga mais',
   rodar([[25, false], [23, true, { manual: true }]]), ['ligar', 'nada']);

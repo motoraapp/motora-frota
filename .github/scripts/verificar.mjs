@@ -32,7 +32,7 @@ blocos.forEach((m, i) => {
 });
 
 // 2. Arquivos .js soltos
-for (const f of ['sw.js']) if (existsSync(join(raiz, f))) checarJs(f, join(raiz, f));
+for (const f of ['sw.js', 'ar/sw.js']) if (existsSync(join(raiz, f))) checarJs(f, join(raiz, f));
 const robo = join(raiz, 'robo-whatsapp');
 if (existsSync(robo)) {
   for (const f of readdirSync(robo).filter(n => n.endsWith('.js'))) checarJs(`robo-whatsapp/${f}`, join(robo, f));

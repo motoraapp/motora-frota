@@ -50,7 +50,7 @@ details[open]>summary::after{transform:rotate(45deg)}details[open]{padding-botto
 details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
 #rx code{color:#64d2ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:var(--on);padding:8px;min-width:0;flex:none;white-space:nowrap}
 [hidden]{display:none!important}
-#siri{display:flex;flex-direction:column;gap:8px;margin:10px 0}#siri ol{margin:4px 0 0;padding-left:22px;color:var(--muted);font-size:14px;line-height:1.5}#siri li{margin:6px 0}#siri b{color:var(--ink)}
+#avisos{margin:10px 0}#avisos .r{margin-top:8px}#siri{display:flex;flex-direction:column;gap:8px;margin:10px 0}#siri ol{margin:4px 0 0;padding-left:22px;color:var(--muted);font-size:14px;line-height:1.5}#siri li{margin:6px 0}#siri b{color:var(--ink)}
 .cp{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.25);border-radius:12px;padding:8px 8px 8px 12px}.cp code{flex:1;min-width:0;word-break:break-all;color:#64d2ff;font-size:13px}.cp button{flex:none;padding:10px 14px;font-size:14px}
 </style></head><body><div class="wrap">
 
@@ -80,6 +80,7 @@ details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;pa
  <details id="aj"><summary>Ajustes do controle</summary>
   <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
   <p><b>Último sinal do controle original</b> (lido pela placa em casa):</p><div id="rx">Nenhum sinal lido ainda.</div>
+  <div id="avisos"><p><b>Avisos no celular.</b> <span id="avst">Verificando…</span></p><div class="r"><button id="bAvisos">Ativar avisos neste celular</button></div></div>
   <div id="siri">
    <p><b>Siri (iPhone).</b> Diga "E aí Siri, Casinha" e depois o pedido: "ligue o ar no 18", "desligue o ar", "ligue a TV", "aumente o volume", "coloque no canal 13".</p>
    <div class="r"><button id="bSiri">Criar chave da Siri</button></div>
@@ -143,7 +144,7 @@ async function refresh(){
     if(rx.text){ const d=document.createElement('div'); d.textContent=rx.text; d.style.marginTop='6px'; box.append(d); }
     sugAp(rx,box); }
 }
-function loop(){ clearInterval(timer); refresh(); carregarGraf(); timer=setInterval(()=>{ if(!document.hidden){ refresh(); if(Date.now()-gUlt>300000) carregarGraf(); } },3000); }
+function loop(){ clearInterval(timer); avStatus(); refresh(); carregarGraf(); timer=setInterval(()=>{ if(!document.hidden){ refresh(); if(Date.now()-gUlt>300000) carregarGraf(); } },3000); }
 async function start(){ const {data}=await sb.auth.getSession(); if(data.session) loop(); else { clearInterval(timer); view('vLogin'); } }
 $('bEntrar').onclick=async()=>{ msg('Entrando…'); let u=$('u').value.trim().toLowerCase(); if(!u.includes('@')) u+='@motora.app';
   const {error}=await sb.auth.signInWithPassword({email:u,password:$('s').value}); if(error){ msg(errTxt(error)); return; } msg(''); loop(); };
@@ -164,6 +165,27 @@ $('bSiri').onclick=async()=>{ const b=$('bSiri');
 document.querySelectorAll('[data-cp]').forEach(b=>b.onclick=async()=>{ const t=$(b.dataset.cp).textContent;
   try{ await navigator.clipboard.writeText(t); b.textContent='Copiado'; }catch(e){ const r=document.createRange(); r.selectNodeContents($(b.dataset.cp)); getSelection().removeAllRanges(); getSelection().addRange(r); b.textContent='Selecionado'; }
   setTimeout(()=>{ b.textContent='Copiar'; },2000); });
+// Avisos no celular (do próprio Nossa casinha, não do MOTORA): ar ligado/desligado pelo automático e quarto quente.
+// sw.js mostra o aviso; a inscrição fica em ar.push (ar_push_salvar); a função ar-aviso envia. No iPhone só com o app na Tela de Início.
+const avOk=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const avB64=s=>{const b=atob((s+'='.repeat((4-s.length%4)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+async function avStatus(){
+  if(!avOk()){ $('avst').textContent=/iPhone|iPad/.test(navigator.userAgent)?'No iPhone, os avisos só funcionam com o app na Tela de Início: no Safari, toque em Compartilhar → Adicionar à Tela de Início, abra o Nossa casinha por lá e volte aqui.':'Este navegador não aceita avisos.'; $('bAvisos').hidden=true; return; }
+  let sub=null; try{ const reg=await navigator.serviceWorker.getRegistration('./'); sub=reg&&await reg.pushManager.getSubscription(); }catch(e){}
+  $('avst').textContent=Notification.permission==='denied'?'Os avisos estão bloqueados. Libere em Ajustes do iPhone → Notificações → Nossa casinha.':sub?'Ativados neste celular: avisa quando o automático liga ou desliga o ar e quando o quarto passa de 28 °C.':'Desativados neste celular. Toque no botão para receber os avisos do ar.';
+  $('bAvisos').textContent=sub?'Mandar aviso de teste':'Ativar avisos neste celular'; }
+$('bAvisos').onclick=async()=>{ const b=$('bAvisos'); b.disabled=true;
+  try{
+    const perm=Notification.permission==='granted'?'granted':await Notification.requestPermission();  // primeiro: o iPhone só pergunta logo após o toque
+    if(perm!=='granted') throw new Error('Você não permitiu os avisos.');
+    const reg=await navigator.serviceWorker.register('sw.js',{scope:'./'}); await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){ const {data,error}=await sb.functions.invoke('motora-push',{body:{type:'public_key'}}); if(error||!data||!data.publicKey) throw new Error('Não deu para ativar agora. Tente de novo.');
+      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:avB64(data.publicKey)}); }
+    const j=sub.toJSON(); const {error}=await sb.rpc('ar_push_salvar',{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth}); if(error) throw error;
+    const r=await sb.functions.invoke('ar-aviso',{body:{teste:true}}); msg(r.data&&r.data.sent?'Pronto! Mandei um aviso de teste para este celular.':'Avisos ativados.');
+  }catch(e){ msg(errTxt(e)); }
+  b.disabled=false; avStatus(); };
 $('mimi').onclick=()=>send({power:true,mode:1,temp:20,turbo:true,fan:3,tvDesligar:7200});
 document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>send({temp:Math.min(30,Math.max(16,S.temp+ +b.dataset.d))}));
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&DEV) refresh(); });
@@ -318,7 +340,7 @@ $('atog').onclick=()=>put({on:!A().on});
 $('amenos').onclick=()=>put({alvo:Math.max(16,A().alvo-1)});$('amais').onclick=()=>put({alvo:Math.min(30,A().alvo+1)});
 $('ade').onchange=()=>{const m=mn($('ade').value);if(m!==null)put({de:m})};$('aate').onchange=()=>{const m=mn($('aate').value);if(m!==null)put({ate:m})};
 const f=n=>String(n).replace('.',',');
-// Placa versão 2 em diante também desliga o ar (só o que o automático ligou); versão 3 liga logo acima da temperatura escolhida.
+// Placa versão 7 desliga 2 °C abaixo (antes 1 °C). Placa versão 2 em diante também desliga o ar (só o que o automático ligou); versão 3 liga logo acima da temperatura escolhida.
 const T1='Quando o quarto passar 1 °C da temperatura escolhida, a placa liga o ar no <b>Frio</b> nessa temperatura. ',
  T1v3='No horário escolhido, se o quarto estiver <b>acima</b> da temperatura escolhida, a placa liga o ar no <b>Frio</b> nessa temperatura. Se estiver nessa temperatura ou abaixo, não liga. ',
  T2='Quando o quarto ficar 1 °C abaixo, ela <b>desliga</b>, mas só se foi o automático que ligou: se você ligou o ar, ele continua ligado. Tudo só dentro do horário escolhido. ',
@@ -328,14 +350,14 @@ let TQ=null;try{TQ=JSON.parse(localStorage.getItem('tq'))}catch(e){}
 const hh=d=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 function seta(t){if(!TQ||typeof TQ.t!=='number')TQ={t:t,d:0};else if(t!==TQ.t)TQ={t:t,d:t>TQ.t?1:-1,de:TQ.t,em:Date.now()};else return;try{localStorage.setItem('tq',JSON.stringify(TQ))}catch(e){}}
 window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)>=3;
- $('atxt').innerHTML=(v3?T1v3:T1)+(novo?T2:'')+T3;
+ $('atxt').innerHTML=(v3?T1v3:T1)+(novo?T2.replace('1 °C',(S.fw||0)>=7?'2 °C':'1 °C'):'')+T3;
  if(q){const t=Number(q.t),em=new Date(typeof DEV!=='undefined'&&DEV&&DEV.last_seen?DEV.last_seen:Date.now());seta(t);
   const s=TQ.d?'<span title="'+(TQ.d>0?'Subiu':'Desceu')+' de '+f(TQ.de)+' °C às '+hh(new Date(TQ.em))+'" aria-label="'+(TQ.d>0?'subindo':'descendo')+'" style="color:'+(TQ.d>0?'#ff6961':'#30d158')+';font-weight:700">'+(TQ.d>0?' ▲':' ▼')+'</span>':'';
   sala.innerHTML='Quarto agora: '+f(t)+' °C'+s+' · umidade '+Number(q.u)+'%<br><small>Última leitura às '+hh(em)+'</small>'}
  else sala.textContent='Sensor do quarto: sem leitura';
  $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
  if(document.activeElement!==$('ade'))$('ade').value=hm(a.de);if(document.activeElement!==$('aate'))$('aate').value=hm(a.ate);
- $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?(v3?'Liga quando o quarto passar de '+a.alvo+' °C':'Liga quando o quarto chegar a '+(a.alvo+1)+' °C')+(novo?' e desliga quando cair a '+(a.alvo-1)+' °C (só se o automático ligou)':'')+', entre '+hm(a.de)+' e '+hm(a.ate)+'.'+(novo&&a.ligou&&S.power?' Agora o ar está ligado pelo automático.':''):'')};
+ $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?(v3?'Liga quando o quarto passar de '+a.alvo+' °C':'Liga quando o quarto chegar a '+(a.alvo+1)+' °C')+(novo?' e desliga quando cair a '+(a.alvo-((S.fw||0)>=7?2:1))+' °C (só se o automático ligou)':'')+', entre '+hm(a.de)+' e '+hm(a.ate)+'.'+(novo&&a.ligou&&S.power?' Agora o ar está ligado pelo automático.':''):'')};
 const u0=ui;ui=function(){u0();renderAuto();if(window.mostrarFora)mostrarFora()};
 })();
 

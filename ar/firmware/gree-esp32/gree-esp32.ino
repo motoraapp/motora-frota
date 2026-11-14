@@ -28,7 +28,7 @@
 #include "certs.h"
 #include "tv_universal.h"
 
-#define FW_VERSAO 6
+#define FW_VERSAO 7
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
