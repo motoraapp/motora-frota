@@ -9,6 +9,7 @@ Código da placa em `gree-esp32/` (reescrito em 13/11/2026; o código da versão
 - `web.h`: páginas do app de casa. Os blocos de horários, automático, aparelho e atualização são iguais aos de `ar/index.html` (o `verificar.mjs` confere). Mudou um, mude o outro.
 - **Leitura do quarto (14/11/2026):** o bloco "Sensor do quarto" mostra "Última leitura às HH:MM" (app de fora: `DEV.last_seen`; app de casa: hora do aparelho) e uma seta comparando com a última leitura diferente, guardada no aparelho (`localStorage` `tq`): vermelha ▲ = esquentando, verde ▼ = esfriando. Só a tela mudou; no app de casa entra quando sair uma versão nova da placa.
 - **Segurar volume (14/11/2026):** no bloco "TV AOC", segurar Volume + ou − repete o botão (0,45 s, depois a cada 0,3 s, no máximo 40 por toque; `REP`, `pararRep`). No app de fora os comandos chegam em lotes a cada 3 s (a placa busca a cada 3 s) e valem os limites do `ar_send` (60 por minuto). Só a tela mudou.
+- **Versão 11 (14/11/2026):** diário do aviso na hora no estado (`rtd`: conexões, quedas, cutucões, última mensagem) e ping de websocket a cada 15 s.
 - **Versão 10 (14/11/2026):** com o aviso na hora ligado, a busca de reserva é a cada 10 s (3 s sem ele) e, depois de aplicar comandos, sincroniza de novo na hora.
 - **Versão 9 (14/11/2026):** comando na hora: websocket do Realtime do Supabase (WebSockets 2.7.2) no canal `ar-` + 24 primeiros hexa do sha256 da chave; o banco cutuca a cada comando (`ar_cmd_acorda`) e a placa sincroniza na hora. Só conecta com mais de 70 KB livres; desconecta antes de atualizar. Estado `rt` e `heap`.
 - **Versão 8 (14/11/2026):** "A mimi?" feito pela placa: `{mimi:true}` = Frio 20° com turbo e ventilação 3; com 2 h sobe para 22° (sem turbo); depois, a cada 5 min, volta a 20° se o quarto passar de 22 °C e sobe para 22° quando cair a 21 °C (`regraMimi` em `regras.h`). Mexer no ar encerra. O botão não desliga mais a TV.
@@ -34,7 +35,7 @@ O workflow `verificar.yml` (tarefa `placa-ar`) compila a cada push.
 2. Copie `build/gree-esp32.ino.bin` para `gree-vN.bin` e gere a imagem completa (`esptool merge_bin`: bootloader 0x1000, partições 0x8000, boot_app0 0xe000, programa 0x10000).
 3. Troque `versao.json` para `{"versao":N,"url":".../gree-vN.bin"}`. A placa instala sozinha de madrugada, ou na hora em Ajustes do controle → Atualizar agora.
 
-Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1 (a do código perdido); `gree-v10.bin` e `gree-esp32-completo-v10.bin` = versão 10 (as versões 2 a 9 estão no histórico do Git). Instalada na placa em 13/11/2026: versão 2, testada e funcionando (mesma identidade, ligada à conta).
+Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1 (a do código perdido); `gree-v11.bin` e `gree-esp32-completo-v11.bin` = versão 11 (as versões 2 a 10 estão no histórico do Git). Instalada na placa em 13/11/2026: versão 2, testada e funcionando (mesma identidade, ligada à conta).
 
 ## Esquema de ligação
 
