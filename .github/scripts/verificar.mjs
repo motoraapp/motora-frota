@@ -189,6 +189,14 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
     const naTela = [...(nObj ? nObj[1] : '').matchAll(/(\w+):'/g)].map(m => m[1]).concat([...Array(10)].map((_, i) => 'n' + i)).sort();
     if (naPlaca.length && JSON.stringify(naPlaca) === JSON.stringify(naTela)) console.log(`ok   ar: ${naPlaca.length} botões da TV iguais na tela e na placa`);
     else { erros++; console.log(`ERRO ar: botões da TV diferentes. Placa: ${naPlaca.join(',')} | Tela: ${naTela.join(',')}`); }
+    // Controle universal de TV: tabela gerada do Flipper; cada família tem protocolo conhecido e código de ligar.
+    const tvu = join(raiz, 'ar/firmware/gree-esp32/tv_universal.h');
+    if (existsSync(tvu)) {
+      const fam = [...readFileSync(tvu, 'utf8').matchAll(/^ {2}\{(\d+), 0x([0-9a-f]{4}), \{(-?\d+), /gm)];
+      const ruins = fam.filter(m => +m[1] < 1 || +m[1] > 9 || +m[3] < 0);
+      if (fam.length >= 50 && !ruins.length && fam[fam.length - 1][2] === 'bd00') console.log(`ok   ar: ${fam.length} famílias de TV no controle universal`);
+      else { erros++; console.log(`ERRO ar: tabela tv_universal.h com problema (${fam.length} famílias, ${ruins.length} ruins, AOC no fim: ${fam.length && fam[fam.length - 1][2] === 'bd00'})`); }
+    }
   }
 }
 

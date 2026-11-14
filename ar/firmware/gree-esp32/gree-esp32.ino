@@ -26,8 +26,9 @@
 #include "regras.h"
 #include "web.h"
 #include "certs.h"
+#include "tv_universal.h"
 
-#define FW_VERSAO 4
+#define FW_VERSAO 5
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -178,14 +179,60 @@ IRsend irsend(PINO_TX);
 String tvAprendendo, tvMsg, tvLista; unsigned long tvAte = 0, tvMsgEm = 0; int tvMsgN = 0;
 int tvIndice(const String &k) { for (int i = 0; i < N_TECLAS_TV; i++) if (k == TECLAS_TV[i].k) return i; return -1; }
 void tvAvisar(const String &m) { tvMsg = m; tvMsgN++; tvMsgEm = millis(); }
+// Controle universal (versão 5): família de TV achada pela busca (tv_fam). -1 = códigos AOC acima.
+// Teclas da família, na ordem da tabela: ligar, vol+, vol-, mudo, canal+, canal-.
+const char *TECLAS_FAMILIA[6] = {"power", "volUp", "volDn", "mute", "chUp", "chDn"};
+int tvFam = -1;
+uint8_t rev8(uint8_t b) { uint8_t r = 0; for (int i = 0; i < 8; i++) if (b & (1 << i)) r |= 0x80 >> i; return r; }
+// NEC e Samsung: os 4 bytes vão no ar do primeiro ao último, cada um começando pelo bit menos significativo.
+uint32_t juntar4(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) { return ((uint32_t)rev8(b0) << 24) | ((uint32_t)rev8(b1) << 16) | ((uint32_t)rev8(b2) << 8) | rev8(b3); }
+void tvMandarCodigo(uint8_t p, uint16_t a, int32_t c) {
+  uint8_t aL = a & 0xFF, aH = a >> 8, cL = c & 0xFF, cH = (c > 0xFF) ? (c >> 8) & 0xFF : (uint8_t)~cL;
+  switch (p) {
+    case 1: irsend.sendNEC(juntar4(aL, (uint8_t)~aL, cL, cH)); break;                      // NEC
+    case 2: irsend.sendNEC(juntar4(aL, aH, cL, cH)); break;                                // NEC estendido
+    case 3: irsend.sendSAMSUNG(juntar4(aL, aL, cL, (uint8_t)~cL)); break;                  // Samsung32
+    case 4: case 5: irsend.sendRC5(irsend.encodeRC5X(a, c), kRC5XBits); break;             // RC5 / RC5X
+    case 6: irsend.sendRC6(irsend.encodeRC6(a, c, kRC6Mode0Bits), kRC6Mode0Bits); break;   // RC6
+    case 7: irsend.sendSony(irsend.encodeSony(kSony12Bits, c, a), kSony12Bits, 2); break;  // Sony 12 bits
+    case 8: irsend.sendSony(irsend.encodeSony(kSony15Bits, c, a), kSony15Bits, 2); break;  // Sony 15 bits
+    case 9: irsend.sendSony(irsend.encodeSony(kSony20Bits, c, a & 0x1F, a >> 5), kSony20Bits, 2); break;  // Sony 20 bits
+  }
+}
+// Busca automática da TV: manda o "ligar" de cada família a cada 3 segundos, até a pessoa tocar em Funcionou.
+struct { bool on = false; int i = 0; bool sozinho = false; unsigned long em = 0; } TB;
+void tvBuscaTestar() {
+  const FamiliaTv &f = FAMILIAS_TV[TB.i];
+  irrecv.disableIRIn(); tvMandarCodigo(f.p, f.a, f.c[0]); irrecv.enableIRIn();
+  TB.em = millis();
+  Serial.printf("busca TV: %d de %d\n", TB.i + 1, N_FAMILIAS_TV);
+}
+void tvBuscaCmd(const String &c) {
+  if (c == "start") { TB.on = true; TB.i = 0; TB.sozinho = true; tvBuscaTestar(); return; }
+  if (!TB.on) return;
+  if (c == "next") { TB.sozinho = false; if (TB.i < N_FAMILIAS_TV - 1) TB.i++; tvBuscaTestar(); }
+  else if (c == "prev") { TB.sozinho = false; if (TB.i > 0) TB.i--; tvBuscaTestar(); }
+  else if (c == "again") { TB.sozinho = false; tvBuscaTestar(); }
+  else if (c == "ok") { tvFam = TB.i; gravaNum("tv_fam", tvFam); TB.on = false; tvAvisar("TV encontrada. Ligar, volume, canal e mudo já usam os códigos dela."); }
+  else if (c == "stop") TB.on = false;
+}
 void tvTecla(const String &k) {
   int i = tvIndice(k);
   if (i < 0) return;
   String ap = lerTxt(("tv_" + k).c_str());  // "protocolo,bits,valor em hexa"
-  irrecv.disableIRIn();
   int c1 = ap.indexOf(','), c2 = ap.indexOf(',', c1 + 1);
+  int t = -1;
+  for (int j = 0; j < 6; j++) if (k == TECLAS_FAMILIA[j]) t = j;
+  bool daFamilia = tvFam >= 0 && tvFam < N_FAMILIAS_TV;
+  if (!(c1 > 0 && c2 > c1) && daFamilia && (t < 0 || FAMILIAS_TV[tvFam].c[t] < 0) && FAMILIAS_TV[tvFam].a != AOC_ENDERECO) {
+    tvAvisar("Esse botão ainda não tem código para a sua TV.");
+    return;
+  }
+  irrecv.disableIRIn();
   if (c1 > 0 && c2 > c1) {
     irsend.send((decode_type_t)ap.substring(0, c1).toInt(), strtoull(ap.substring(c2 + 1).c_str(), NULL, 16), ap.substring(c1 + 1, c2).toInt());
+  } else if (daFamilia && t >= 0 && FAMILIAS_TV[tvFam].c[t] >= 0) {
+    tvMandarCodigo(FAMILIAS_TV[tvFam].p, FAMILIAS_TV[tvFam].a, FAMILIAS_TV[tvFam].c[t]);
   } else {
     irsend.sendNEC(irsend.encodeNEC(AOC_ENDERECO, TECLAS_TV[i].f));
   }
@@ -218,10 +265,14 @@ void tvJson(JsonObject t) {
   int i = 0;
   while (i < (int)tvLista.length()) { int j = tvLista.indexOf(',', i); if (j < 0) j = tvLista.length(); if (j > i) l.add(tvLista.substring(i, j)); i = j + 1; }
   if (tvMsg.length()) { t["m"] = tvMsg; t["mn"] = tvMsgN; }
+  t["f"] = tvFam + 1;  // 0 = códigos AOC; 1.. = família achada na busca
+  t["nf"] = N_FAMILIAS_TV;
+  if (TB.on) { JsonObject b = t["b"].to<JsonObject>(); b["i"] = TB.i + 1; b["n"] = N_FAMILIAS_TV; b["auto"] = TB.sozinho; }
 }
 void cuidarTv() {
   if (tvAprendendo.length() && millis() > tvAte) { tvAprendendo = ""; tvAvisar("Não recebi o sinal. Tente de novo, com o controle da TV apontado para a placa."); }
   if (tvMsg.length() && millis() - tvMsgEm > 20000) tvMsg = "";
+  if (TB.on && TB.sozinho && millis() - TB.em > 3000) { if (TB.i < N_FAMILIAS_TV - 1) { TB.i++; tvBuscaTestar(); } else TB.sozinho = false; }
 }
 
 Leitura LIDO;  // último sinal lido do controle original
@@ -345,6 +396,8 @@ void aplicar(JsonObject p) {
     if (tvIndice(k) >= 0) { tvAprendendo = k; tvAte = millis() + 30000; tvMsg = ""; }
   }
   if (p["tvEsquecer"].is<const char *>()) tvEsquecer(p["tvEsquecer"].as<String>());
+  if (p["tvBusca"].is<const char *>()) tvBuscaCmd(p["tvBusca"].as<String>());
+  if (p["tvFam"].is<int>()) { int f = p["tvFam"]; if (f >= 0 && f <= N_FAMILIAS_TV) { tvFam = f - 1; gravaNum("tv_fam", tvFam); } }
   if (p["ota"].is<const char *>()) { String o = p["ota"].as<String>(); otaPedido = o == "now" ? 2 : (o == "check" ? 1 : 0); }
   if (mandar) {
     if (S.power != antes) { autoManual(AM, S.power, A.on); salvarAuto(); }
@@ -536,6 +589,7 @@ void setup() {
   dht.begin();
   irsend.begin();
   tvLista = lerTxt("tv_lista");
+  tvFam = lerNum("tv_fam", -1); if (tvFam >= N_FAMILIAS_TV) tvFam = -1;
   irrecv.setUnknownThreshold(12);
   irrecv.enableIRIn();
   ssid = lerTxt("ssid"); senha = lerTxt("pass");
