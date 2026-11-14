@@ -1,3 +1,4 @@
 android/*.keystore
 android/.gradle/
 android/app/build/
+ar/caixa/node_modules/
