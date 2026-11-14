@@ -1,0 +1,28 @@
+# Placa do ar-condicionado (gree-esp32)
+
+Código da placa em `gree-esp32/` (reescrito em 13/11/2026; o código da versão 1 se perdeu e só existia o `.bin`).
+
+- `gree-esp32.ino`: Wi-Fi (rede `GreeCtl`, senha `12345678`, quando não acha a rede da casa), app de casa em `http://gree.local`, infravermelho (controle universal com IRremoteESP8266, leitura do controle original e busca automática), sensor do quarto, horários programados, modo automático, nuvem (`ar_device_sync` no Supabase a cada 3 s) e atualização sem fio (`versao.json`, instala sozinha entre 03:00 e 03:59).
+- `regras.h`: regra do modo automático. Liga no Frio quando o quarto chega a alvo + 1 °C e desliga quando cai a alvo − 1 °C, só se foi o automático que ligou e só dentro do horário. Testada por `node .github/scripts/teste-ar-auto.mjs`.
+- `web.h`: páginas do app de casa. Os blocos de horários, automático, aparelho e atualização são iguais aos de `ar/index.html` (o `verificar.mjs` confere). Mudou um, mude o outro.
+- `estado.h` (estruturas) e `certs.h` (certificados raiz, os mesmos da versão 1).
+- Pinos: emissor IR D4, receptor IR D27, DHT22 D25 (`diagram.json`).
+- Dados guardados: a placa procura a gaveta da memória onde está a chave `ckey` (da versão 1) e continua usando a mesma. A identidade (`p_id`) é o número de fábrica do chip. Assim a placa não perde a ligação com a conta.
+
+## Compilar
+
+Núcleo **esp32 2.0.17** (o mesmo da versão 1), partições **min_spiffs**, bibliotecas IRremoteESP8266 2.8.6, DHT sensor library 1.4.6, Adafruit Unified Sensor 1.1.15 e ArduinoJson 7.2.1. No PC do dono o `arduino-cli` vem com o Arduino IDE:
+
+```
+"%LOCALAPPDATA%\Programs\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe" compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs --output-dir build ar/firmware/gree-esp32
+```
+
+O workflow `verificar.yml` (tarefa `placa-ar`) compila a cada push.
+
+## Publicar uma versão nova
+
+1. Aumente `FW_VERSAO` no `.ino` e compile.
+2. Copie `build/gree-esp32.ino.bin` para `gree-vN.bin` e gere a imagem completa (`esptool merge_bin`: bootloader 0x1000, partições 0x8000, boot_app0 0xe000, programa 0x10000).
+3. Troque `versao.json` para `{"versao":N,"url":".../gree-vN.bin"}`. A placa instala sozinha de madrugada, ou na hora em Ajustes do controle → Atualizar agora.
+
+Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1; `gree-v2.bin` e `gree-esp32-completo-v2.bin` = versão 2.

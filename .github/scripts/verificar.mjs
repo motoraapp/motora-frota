@@ -158,5 +158,19 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
   }
 }
 
+// 7. Ar-condicionado: o app de casa (dentro da placa, web.h) e o de fora (ar/index.html) têm os mesmos blocos.
+{
+  const casa = join(raiz, 'ar/firmware/gree-esp32/web.h'), fora = join(raiz, 'ar/index.html');
+  if (existsSync(casa) && existsSync(fora)) {
+    const a = readFileSync(casa, 'utf8').replace(/\r\n/g, '\n'), b = readFileSync(fora, 'utf8').replace(/\r\n/g, '\n');
+    const bloco = (t, m) => { const i = t.indexOf(m); return i < 0 ? null : t.slice(i, t.indexOf('})();', i)); };
+    for (const m of ['// Horários programados', '// Sensor do quarto', '// Aparelho (controle universal)', '// Atualização sem fio']) {
+      const x = bloco(a, m), y = bloco(b, m);
+      if (x && x === y) console.log(`ok   ar: bloco "${m.slice(3)}" igual no app de casa e no de fora`);
+      else { erros++; console.log(`ERRO ar: bloco "${m.slice(3)}" diferente entre ar/firmware/gree-esp32/web.h e ar/index.html`); }
+    }
+  }
+}
+
 console.log(erros ? `\n${erros} problema(s) encontrado(s).` : '\nTudo certo.');
 process.exit(erros ? 1 : 0);

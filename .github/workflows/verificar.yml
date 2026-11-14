@@ -21,3 +21,22 @@ jobs:
         run: node .github/scripts/verificar.mjs
       - name: Teste de regressão da lentidão (recarga sem consultas em fila)
         run: node .github/scripts/teste-recarga.mjs
+      - name: Teste do modo automático do ar-condicionado (liga e desliga)
+        run: node .github/scripts/teste-ar-auto.mjs
+
+  placa-ar:
+    # Compila o programa da placa do ar-condicionado (ar/firmware/gree-esp32) para garantir que não quebrou.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Instalar arduino-cli, núcleo ESP32 2.0.17 e bibliotecas
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$HOME/bin sh
+          echo "$HOME/bin" >> $GITHUB_PATH
+          export PATH=$HOME/bin:$PATH
+          U=https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index --additional-urls $U
+          arduino-cli core install esp32:esp32@2.0.17 --additional-urls $U
+          arduino-cli lib install "IRremoteESP8266@2.8.6" "DHT sensor library@1.4.6" "Adafruit Unified Sensor@1.1.15" "ArduinoJson@7.2.1"
+      - name: Compilar a placa
+        run: arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs ar/firmware/gree-esp32
