@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="Segoe UI, system-ui, sans-serif">
+  <title>Nossa casinha: esquema de ligação da placa</title>
+  <rect width="1100" height="720" fill="#f7f8fb"/>
+  <text x="40" y="52" font-size="28" font-weight="700" fill="#14213d">Nossa casinha: ligações da placa</text>
+  <text x="40" y="82" font-size="16" fill="#5a6478">ESP32 DevKit v1 (30 pinos) · sensor DHT22 · receptor e LED de infravermelho · tudo em 3,3 V</text>
+
+  <!-- ESP32 -->
+  <rect x="420" y="130" width="260" height="500" rx="14" fill="#1d2430"/>
+  <rect x="480" y="150" width="140" height="110" rx="6" fill="#c8ced8"/>
+  <text x="550" y="212" font-size="16" fill="#1d2430" text-anchor="middle" font-weight="700">ESP32</text>
+  <rect x="525" y="598" width="50" height="34" rx="4" fill="#b8bec8"/>
+  <text x="550" y="660" font-size="14" fill="#5a6478" text-anchor="middle">USB (alimentação)</text>
+  <g font-size="14" fill="#c9d1e0">
+    <!-- coluna esquerda -->
+    <g text-anchor="start">
+      <text x="452" y="300">EN</text><text x="452" y="322">VP</text><text x="452" y="344">VN</text><text x="452" y="366">D34</text>
+      <text x="452" y="388">D35</text><text x="452" y="410">D32</text><text x="452" y="432">D33</text>
+      <text x="452" y="454" fill="#3ecf8e" font-weight="700">D25</text><text x="452" y="476">D26</text>
+      <text x="452" y="498" fill="#f5a524" font-weight="700">D27</text><text x="452" y="520">D14</text><text x="452" y="542">D12</text>
+      <text x="452" y="564">D13</text><text x="452" y="586">GND</text>
+    </g>
+    <!-- coluna direita -->
+    <g text-anchor="end">
+      <text x="648" y="300">D23</text><text x="648" y="322">D22</text><text x="648" y="344">TX0</text><text x="648" y="366">RX0</text>
+      <text x="648" y="388">D21</text><text x="648" y="410">D19</text><text x="648" y="432">D18</text><text x="648" y="454">D5</text>
+      <text x="648" y="476">TX2</text><text x="648" y="498">RX2</text>
+      <text x="648" y="520" fill="#b48cff" font-weight="700">D4</text><text x="648" y="542">D2</text><text x="648" y="564">D15</text>
+      <text x="648" y="586" fill="#e8eefc" font-weight="700">GND</text>
+      <text x="648" y="608" fill="#ff6b6b" font-weight="700">3V3</text>
+    </g>
+  </g>
+  <g fill="#d8b45a">
+    <circle cx="436" cy="449" r="5"/><circle cx="436" cy="493" r="5"/>
+    <circle cx="664" cy="515" r="5"/><circle cx="664" cy="581" r="5"/><circle cx="664" cy="603" r="5"/>
+  </g>
+
+  <!-- Barramentos 3V3 e GND -->
+  <g fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M664 603 H 720 V 690 H 120 V 150" stroke="#e5484d"/>
+    <path d="M664 581 H 740 V 705 H 100 V 165" stroke="#1d2430"/>
+  </g>
+  <text x="128" y="680" font-size="14" fill="#e5484d" font-weight="600">3V3 (vermelho)</text>
+  <text x="108" y="700" font-size="14" fill="#1d2430" font-weight="600">GND (preto)</text>
+
+  <!-- DHT22 -->
+  <rect x="180" y="130" width="120" height="150" rx="8" fill="#ffffff" stroke="#c3c9d5" stroke-width="2"/>
+  <g stroke="#d6dbe4" stroke-width="3">
+    <line x1="200" y1="150" x2="280" y2="150"/><line x1="200" y1="165" x2="280" y2="165"/><line x1="200" y1="180" x2="280" y2="180"/>
+    <line x1="200" y1="195" x2="280" y2="195"/><line x1="200" y1="210" x2="280" y2="210"/>
+  </g>
+  <text x="240" y="240" font-size="17" text-anchor="middle" font-weight="700" fill="#14213d">DHT22</text>
+  <text x="240" y="262" font-size="13" text-anchor="middle" fill="#5a6478">temperatura</text>
+  <g font-size="12" fill="#14213d" text-anchor="middle">
+    <text x="186" y="298">VCC</text><text x="240" y="322">DADOS</text><text x="262" y="298">—</text><text x="300" y="298">GND</text>
+  </g>
+  <g stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M195 280 V 335 H 140 V 150 H 120" stroke="#e5484d"/>
+    <path d="M285 280 V 345 H 100" stroke="#1d2430"/>
+    <path d="M228 280 V 370 H 380 V 449 H 436" stroke="#3ecf8e"/>
+  </g>
+  <!-- resistor 10k de pull-up -->
+  <path d="M228 370 H 205 V 390" stroke="#3ecf8e" stroke-width="4" fill="none"/>
+  <rect x="195" y="390" width="20" height="44" rx="4" fill="#e9d7a9" stroke="#a88a45" stroke-width="2"/>
+  <path d="M205 434 V 455 H 120" stroke="#e5484d" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <text x="222" y="410" font-size="13" fill="#5a6478">10 kΩ entre DADOS e 3V3</text>
+  <text x="222" y="427" font-size="12" fill="#5a6478">(o módulo de 3 pinos já tem)</text>
+  <text x="300" y="362" font-size="13" fill="#24a06b" font-weight="600">D25 (verde)</text>
+
+  <!-- Receptor IR -->
+  <rect x="190" y="510" width="90" height="70" rx="8" fill="#1a1a1a"/>
+  <circle cx="235" cy="545" r="18" fill="#2d2d2d"/>
+  <text x="235" y="600" font-size="15" text-anchor="middle" font-weight="700" fill="#14213d">Receptor IR (VS1838B)</text>
+  <g font-size="12" fill="#14213d" text-anchor="middle"><text x="205" y="502">OUT</text><text x="235" y="502">GND</text><text x="265" y="502">VCC</text></g>
+  <g stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M205 510 V 480 H 380 V 493 H 436" stroke="#f5a524"/>
+    <path d="M235 510 V 470 H 100" stroke="#1d2430"/>
+    <path d="M265 510 V 488 H 160 V 455 H 120" stroke="#e5484d"/>
+  </g>
+  <text x="300" y="472" font-size="13" fill="#d48806" font-weight="600">D27 (laranja)</text>
+
+  <!-- LED IR + resistor -->
+  <g stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M664 515 H 820" stroke="#9b59f6"/>
+    <path d="M900 515 H 960 V 560" stroke="#9b59f6"/>
+    <path d="M960 640 V 660 H 740" stroke="#1d2430"/>
+  </g>
+  <rect x="820" y="503" width="80" height="24" rx="5" fill="#e9d7a9" stroke="#a88a45" stroke-width="2"/>
+  <g fill="#7c5a1e"><rect x="838" y="503" width="5" height="24"/><rect x="852" y="503" width="5" height="24"/><rect x="866" y="503" width="5" height="24"/></g>
+  <text x="860" y="495" font-size="14" text-anchor="middle" fill="#14213d" font-weight="600">220 Ω</text>
+  <path d="M940 560 H 980 L 960 595 Z" fill="#9b59f6"/>
+  <line x1="940" y1="597" x2="980" y2="597" stroke="#9b59f6" stroke-width="4"/>
+  <line x1="960" y1="597" x2="960" y2="640" stroke="#1d2430" stroke-width="4"/>
+  <path d="M988 566 l 22 -14 m -8 -1 l 8 1 l -2 8 M 988 584 l 22 -14 m -8 -1 l 8 1 l -2 8" stroke="#9b59f6" stroke-width="2.5" fill="none"/>
+  <text x="1000" y="585" font-size="15" font-weight="700" fill="#14213d">LED IR</text>
+  <text x="870" y="610" font-size="13" fill="#5a6478" text-anchor="end">perna longa (+): resistor</text>
+  <text x="870" y="628" font-size="13" fill="#5a6478" text-anchor="end">perna curta (−): GND</text>
+  <text x="700" y="508" font-size="13" fill="#9b59f6" font-weight="600">D4 (roxo)</text>
+
+  <!-- Notas -->
+  <g font-size="14" fill="#14213d">
+    <text x="780" y="150" font-weight="700">Como ligar</text>
+    <text x="780" y="178">• 3V3 e GND da ESP32 alimentam tudo</text>
+    <text x="780" y="202">• DHT22: dados no D25</text>
+    <text x="780" y="226">• Receptor IR: saída no D27</text>
+    <text x="780" y="250">• LED IR: D4 → 220 Ω → LED → GND</text>
+    <text x="780" y="286" font-weight="700">Atenção</text>
+    <text x="780" y="312">• LED e receptor ficam na frente</text>
+    <text x="780" y="334">   da caixinha, virados para fora</text>
+    <text x="780" y="358">• O DHT22 vai no cantinho ventilado</text>
+    <text x="780" y="382">• Confira a ordem dos pinos do seu</text>
+    <text x="780" y="404">   receptor: há versões com outra ordem</text>
+  </g>
+</svg>

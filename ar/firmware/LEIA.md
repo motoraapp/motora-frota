@@ -28,3 +28,7 @@ O workflow `verificar.yml` (tarefa `placa-ar`) compila a cada push.
 3. Troque `versao.json` para `{"versao":N,"url":".../gree-vN.bin"}`. A placa instala sozinha de madrugada, ou na hora em Ajustes do controle ‚Üí Atualizar agora.
 
 Arquivos: `gree.bin` e `gree-esp32-completo.bin` = vers√£o 1 (a do c√≥digo perdido); `gree-v5.bin` e `gree-esp32-completo-v5.bin` = vers√£o 5 (as vers√µes 2 a 4 est√£o no hist√≥rico do Git). Instalada na placa em 13/11/2026: vers√£o 2, testada e funcionando (mesma identidade, ligada √† conta).
+
+## Esquema de ligaÁ„o
+
+esquema.svg / esquema.png: DHT22 no D25 (com 10 kO entre DADOS e 3V3), receptor IR (VS1838B) no D27, LED IR no D4 com resistor de 220 O atÈ o GND, tudo em 3V3/GND da ESP32. Tirado do diagram.json; o receptor n„o leu o controle em 14/11/2026, ent„o confira o pino dele na placa real.
