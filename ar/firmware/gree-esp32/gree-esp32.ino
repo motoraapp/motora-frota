@@ -30,7 +30,7 @@
 #include <WebSocketsClient.h>  // WebSockets 2.7.2 (Markus Sattler): aviso na hora (versão 9)
 #include "mbedtls/sha256.h"
 
-#define FW_VERSAO 11
+#define FW_VERSAO 12
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -340,7 +340,7 @@ void buscaCmd(const String &c) {
 DHT dht(PINO_DHT, DHT22);
 float salaT = NAN; int salaU = 0; unsigned long salaEm = 0, ultSensor = 0;
 WebSocketsClient rt; bool rtIniciado = false, rtLigado = false, acordar = false; unsigned long rtBatida = 0, ultAcordar = 0; String rtTopico;
-int rtCon = 0, rtCai = 0, rtAcorda = 0; String rtUlt;  // diário do aviso na hora (versão 11), vai no estado
+int rtCon = 0, rtCai = 0, rtAcorda = 0, rtTent = 0; unsigned long rtTentEm = 0; String rtUlt;  // diário do aviso na hora (versão 11), vai no estado
 MimiMem MI = {false, 0}; unsigned long miEm = 0, miUlt = 0;  // "A mimi?" (regraMimi em regras.h)
 bool temSala() { return salaEm && millis() - salaEm < 120000; }
 void lerSensor() {
@@ -368,7 +368,8 @@ void estadoJson(JsonObject d) {
   a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou;
   d["fw"] = FW_VERSAO;
   d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
-  if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = rt.isConnected(); x["m"] = rtUlt; }
+  if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = rt.isConnected(); x["m"] = rtUlt; x["t"] = rtTent; }
+  d["hmax"] = (int)(ESP.getMaxAllocHeap() / 1024);
   if (MI.on) { JsonObject mm = d["mimi"].to<JsonObject>(); mm["f"] = MI.fase; if (MI.fase == 1) mm["r"] = (long)(MIMI_FASE1 - (millis() - miEm)) / 1000; }
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
   if (fwMsg.length()) d["fwMsg"] = fwMsg;
@@ -514,13 +515,18 @@ void rtComecar() {
   rtTopico = String("ar-") + hx;
   String url = String("/realtime/v1/websocket?apikey=") + SB_CHAVE + "&vsn=1.0.0";
   rt.beginSslWithCA("epswrtcwszhbapaxdpzz.supabase.co", 443, url.c_str(), CERTS);
-  rt.onEvent(rtEvento); rt.setReconnectInterval(10000);
+  rt.onEvent(rtEvento); rt.setReconnectInterval(3600000UL);  // quem tenta de novo é o cuidarRealtime (versão 12)
   rt.enableHeartbeat(15000, 5000, 2);  // ping de websocket a cada 15 s (mantém a conexão aberta no caminho)
-  rtIniciado = true;
+  rtIniciado = true; rtTent++; rtTentEm = millis();
 }
 void cuidarRealtime() {
   if (WiFi.status() != WL_CONNECTED) return;
-  if (!rtIniciado) { if (CHAVE.length() && millis() > 15000 && ESP.getFreeHeap() > 70000) rtComecar(); return; }
+  // Versão 12: antes de cada tentativa fecha a conexão da busca de 3 s (tlsNuvem) para sobrar memória contínua para
+  // a do websocket; a busca reabre a dela sozinha depois. Nova tentativa a cada 20 s enquanto não conectar.
+  if (!rtIniciado || (!rt.isConnected() && millis() - rtTentEm > 20000)) {
+    if (CHAVE.length() && millis() > 15000) { if (rtIniciado) rt.disconnect(); tlsNuvem.stop(); rtComecar(); }
+    return;
+  }
   rt.loop();
   if ((rtLigado || rt.isConnected()) && millis() - rtBatida > 25000) { rtBatida = millis(); rt.sendTXT("{\"topic\":\"phoenix\",\"event\":\"heartbeat\",\"payload\":{},\"ref\":\"hb\"}"); }
   if (acordar && millis() - ultAcordar > 300) { acordar = false; ultAcordar = millis(); ultSync = millis(); sincronizar(); }
