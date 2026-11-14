@@ -265,6 +265,7 @@ const st=document.createElement('style');st.textContent=
 '.abas button[aria-selected=true]{background:#1b2740;color:#e8eefc}.abas svg,#pTv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'+
 '#pAr,#pTv{width:100%;display:flex;flex-direction:column;align-items:center}#pTv{max-width:420px;gap:16px}'+
 '#pTv .tk{position:relative;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#a9b6d6;transition:background .35s cubic-bezier(.16,1,.3,1)}'+
+'#pTv .tk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}'+
 '#pTv .tk svg{color:#e8eefc}#pTv .tk.vai{background:#2f7cf6;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#3ecf8e}'+
 '#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#e5484d}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
 '.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#e8eefc;font-size:14px}'+
@@ -305,7 +306,16 @@ const modoApr=on=>{apr=on;tv.classList.toggle('apr',on);$('tvap').textContent=on
 $('tvap').onclick=()=>modoApr(!apr);
 $('tvbs').onclick=()=>send({tvBusca:'start'});
 $('tvbx').onclick=e=>{const x=e.target.closest('[data-b]');if(x)send({tvBusca:x.dataset.b})};
+// Segurar Volume + ou − repete o botão (começa em 0,45 s, depois 3 por segundo, no máximo 40 por toque).
+const REP=['volUp','volDn'];let rep=0,repN=0,segurou=false;
+const pararRep=()=>{clearTimeout(rep);clearInterval(rep);rep=0};
+tv.addEventListener('pointerdown',e=>{const t=e.target.closest('.tk');segurou=false;pararRep();if(!t||apr||!REP.includes(t.dataset.k))return;const k=t.dataset.k;repN=0;
+ const vai=()=>{if(++repN>40)return pararRep();t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),120);if(navigator.vibrate)navigator.vibrate(6);send({tecla:k});aviso(N[k]+' (segurando)',2500)};
+ rep=setTimeout(()=>{segurou=true;vai();rep=setInterval(vai,300)},450)});
+['pointerup','pointercancel','pointerleave'].forEach(v=>tv.addEventListener(v,pararRep));
+tv.addEventListener('contextmenu',e=>{if(e.target.closest('.tk'))e.preventDefault()});
 tv.addEventListener('click',e=>{const t=e.target.closest('.tk');if(!t)return;const k=t.dataset.k;
+ if(segurou){segurou=false;return}
  if(apr){modoApr(false);send({tvAprender:k});aviso('Agora aperte '+N[k]+' no controle da TV, apontado para a placa (30 segundos).');return}
  t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),160);if(navigator.vibrate)navigator.vibrate(8);send({tecla:k});aviso('Enviado: '+N[k],2500)});
 window.renderTv=function(){const v=S.tv||{},l=v.l||[],j=JSON.stringify(l);

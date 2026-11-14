@@ -1,6 +1,6 @@
 # Mapa de linhas do código (gerado por ferramentas/mapa.mjs, não edite à mão)
 
-Gerado em 14/11/2026, 14:53:56. Procure aqui com Grep e leia só as linhas indicadas.
+Gerado em 14/11/2026, 16:42:49. Procure aqui com Grep e leia só as linhas indicadas.
 Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 ## index.html (13639 linhas)
@@ -1351,4 +1351,5 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 - supabase/2026-11-12-modulo-contratos.sql: Módulo de Contratos de Locação (12/11/2026)
 - supabase/2026-11-12-modulo-vistorias.sql: Módulo Unificado de Vistorias Veiculares e Devolução com IA (12/11/2026)
 - supabase/2026-11-13-govbr-assinaturas.sql: Fluxo oficial de assinaturas eletrônicas via Portal GOV.BR (assinador.iti.br)
+- supabase/2026-11-14-ar-aviso.sql: Nossa casinha: notificação ao dono quando o ar liga ou desliga sem ele ter pedido (14/11/2026).
 - supabase/2026-11-14-ar-siri.sql: Siri do "Nossa casinha": atalho do iPhone manda a frase para a função ar-siri, que usa uma chave só do dono.
