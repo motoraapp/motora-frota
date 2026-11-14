@@ -1875,7 +1875,7 @@
                         <div id="cwVistoriaFields" class="space-y-3">
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                 <div>
-                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data e hora da entrega</label>
+                                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Data e hora da entrega (horário de Brasília)</label>
                                     <input type="datetime-local" id="cwInspDate" class="w-full p-2 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                                 </div>
                                 <div>
@@ -2019,7 +2019,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Data e hora da vistoria</label>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Data e hora da vistoria (horário de Brasília)</label>
                         <input type="datetime-local" id="iwDate" class="w-full p-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                     </div>
                     <div>
@@ -2976,11 +2976,39 @@
             return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
-        // "2026-11-09T18:59" ou "2026-11-09 18:59" -> "09/11/2026 às 18:59" (o resto fica como veio)
+        // Converte Date ou ISO UTC para "YYYY-MM-DDTHH:mm" no fuso de Brasília (America/Sao_Paulo)
+        function toBRTInput(v) {
+            const d = v instanceof Date ? v : new Date(v);
+            if (isNaN(d.getTime())) return '';
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Sao_Paulo',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+            }).formatToParts(d);
+            const p = Object.fromEntries(parts.map(x => [x.type, x.value]));
+            return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+        }
+
+        // Converte input datetime-local (interpretado como horário de Brasília -03:00) para ISO UTC
+        function parseBRTInputToIso(dtStr) {
+            const raw = String(dtStr || '').trim();
+            if (!raw) return '';
+            const norm = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw) ? raw + ':00-03:00' : (/(Z|[+-]\d{2}:?\d{2})$/i.test(raw) ? raw : raw + '-03:00');
+            const d = new Date(norm);
+            return isNaN(d.getTime()) ? '' : d.toISOString();
+        }
+
+        // Formata timestamp UTC/ISO ou string YYYY-MM-DD[T HH:mm] para "DD/MM/YYYY às HH:mm" em Brasília
         function dataHoraBR(v) {
-            const m = String(v || "").match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
-            if (!m) return String(v || "");
-            return `${m[3]}/${m[2]}/${m[1]}` + (m[4] ? ` às ${m[4]}:${m[5]}` : "");
+            const raw = String(v || '').trim();
+            if (!raw) return '';
+            if (/(Z|[+-]\d{2}:?\d{2})$/i.test(raw)) {
+                const b = toBRTInput(raw);
+                if (b) return `${b.slice(8, 10)}/${b.slice(5, 7)}/${b.slice(0, 4)} às ${b.slice(11, 16)}`;
+            }
+            const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
+            if (!m) return raw;
+            return `${m[3]}/${m[2]}/${m[1]}` + (m[4] ? ` às ${m[4]}:${m[5]}` : '');
         }
 
         // Janela de confirmação do próprio app (no lugar de confirm/prompt do navegador, que mostram "site diz...").
@@ -5262,7 +5290,7 @@
             return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
         }
         function fmtMoney(n) { return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
-        function fmtDate(d) { return d ? new Date(String(d).length === 10 ? d + 'T12:00:00' : d).toLocaleDateString('pt-BR') : '-'; }
+        function fmtDate(d) { return d ? new Date(String(d).length === 10 ? d + 'T12:00:00-03:00' : d).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '-'; }
         function todayISO() { return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }); }
 
         // ===== CONFIGURAÇÕES (Gemini e Google Drive) =====
@@ -10360,7 +10388,7 @@ notify pgrst, 'reload schema';`;
                     ${signers.map(sg => `<div class="p-2.5 rounded-xl bg-white dark:bg-gray-800 border ${sg.at ? 'border-emerald-300 dark:border-emerald-700' : 'border-gray-200 dark:border-gray-700'} text-xs space-y-1.5">
                         <div class="flex items-center justify-between gap-2">
                             <span class="font-bold">${esc(sg.label)}</span>
-                            ${sg.at ? `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-0.5"></i> GOV.BR (${fmtDate(sg.at)})</span>` : '<span class="text-amber-600 font-semibold">Pendente</span>'}
+                            ${sg.at ? `<span class="text-emerald-600 font-bold"><i class="fa-solid fa-circle-check mr-0.5"></i> GOV.BR (${dataHoraBR(sg.at)} · BRT)</span>` : '<span class="text-amber-600 font-semibold">Pendente</span>'}
                         </div>
                         <div class="text-[11px] text-gray-600 dark:text-gray-300 truncate">${esc(sg.name || 'Nome não informado')}${sg.cpf ? ' · CPF ' + esc(sg.cpf) : ''}</div>
                         ${sg.canInvite ? `<div class="flex flex-wrap gap-1.5 pt-0.5">
@@ -10520,13 +10548,13 @@ notify pgrst, 'reload schema';`;
                             ${statusRows.map(r => `<div class="p-2 rounded-xl border ${sd[r.k] ? 'border-emerald-300 bg-emerald-50/70 dark:bg-emerald-900/20' : 'border-gray-200 dark:border-gray-700'}">
                                 <div class="font-bold">${esc(r.lbl)}</div>
                                 <div class="truncate text-[11px] text-gray-500">${esc(r.n || '-')}</div>
-                                <div class="text-[11px] font-semibold ${sd[r.k] ? 'text-emerald-600' : 'text-amber-600'}">${sd[r.k] ? 'Assinado (' + fmtDate(sd[r.k]) + ')' : 'Pendente'}</div>
+                                <div class="text-[11px] font-semibold ${sd[r.k] ? 'text-emerald-600' : 'text-amber-600'}">${sd[r.k] ? 'Assinado (' + dataHoraBR(sd[r.k]) + ' · BRT)' : 'Pendente'}</div>
                             </div>`).join('')}
                         </div>
                     </div>
                     ${inv.status === 'assinado' ? `<div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 text-center space-y-2">
                         <div class="text-emerald-700 dark:text-emerald-300 font-extrabold text-base"><i class="fa-solid fa-circle-check mr-1"></i> Assinatura GOV.BR registrada!</div>
-                        <p class="text-xs text-gray-600 dark:text-gray-300">Recebido em ${fmtDate(inv.signed_at)}. Você pode baixar o PDF atualizado ou validar em validar.iti.gov.br.</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-300">Recebido em ${dataHoraBR(inv.signed_at)} (horário de Brasília). Você pode baixar o PDF atualizado ou validar em validar.iti.gov.br.</p>
                         ${data.download_url ? `<a href="${esc(data.download_url)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white">Baixar PDF atualizado</a>` : ''}
                     </div>` : `<div class="space-y-3">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -10938,7 +10966,7 @@ notify pgrst, 'reload schema';`;
 
                     const vehAx = snapAx.veiculo || {};
                     const kmTxt = veAx.mileage != null ? `${Number(veAx.mileage).toLocaleString('pt-BR')} km` : (vehAx.mileage != null ? `${Number(vehAx.mileage).toLocaleString('pt-BR')} km` : 'Não informado');
-                    const dtEntrega = veAx.inspection_date ? dataHoraBR(veAx.inspection_date) : fmtDate(c.start_date || todayISO());
+                    const dtEntrega = veAx.inspection_date ? (dataHoraBR(veAx.inspection_date) + ' (horário de Brasília)') : fmtDate(c.start_date || todayISO());
                     axEnsure(48);
                     page.drawRectangle({ x: ML, y: y - 40, width: CW, height: 42, color: PDFLib.rgb(0.95, 0.98, 0.96), borderColor: lineCol, borderWidth: 0.7 });
                     page.drawText(pdfSafeText(`Veículo: ${[vehAx.brand, vehAx.model].filter(Boolean).join(' ') || '-'} · Placa: ${vehAx.plate || '-'} · Cor: ${vehAx.color || '-'}`), { x: ML + 8, y: y - 14, size: 8.8, font: fontBold, color: ink });
@@ -11047,7 +11075,7 @@ notify pgrst, 'reload schema';`;
                     page.drawText(pdfSafeText(`Nome: ${nome || '____________________________'}`), { x: sx, y: sy - 25, size: 8.5, font: fontReg, color: ink });
                     page.drawText(pdfSafeText(`CPF: ${cpf || '_________________'}`), { x: sx, y: sy - 37, size: 8.5, font: fontReg, color: ink });
                     const stTxt = signedAt
-                        ? `Assinado ${method === 'govbr' || isGovMode ? 'via GOV.BR ' : ''}em: ${fmtDate(signedAt)}`
+                        ? `Assinado ${method === 'govbr' || isGovMode ? 'via GOV.BR ' : ''}em: ${dataHoraBR(signedAt)} (BRT)`
                         : (isGovMode ? 'Assinatura obrigatória via GOV.BR (assinador.iti.br)' : 'Data: ____/____/________');
                     page.drawText(pdfSafeText(stTxt), { x: sx, y: sy - 49, size: 8, font: fontReg, color: muted });
                 };
@@ -11750,7 +11778,7 @@ notify pgrst, 'reload schema';`;
                     const kmRaw = gv('cwInspMileage') || gv('cwVehMileage');
                     return {
                         included: true,
-                        inspection_date: dtIn ? new Date(dtIn + '-03:00').toISOString() : ((gv('cwStartDate') || todayISO()) + 'T12:00:00Z'),
+                        inspection_date: parseBRTInputToIso(dtIn) || ((gv('cwStartDate') || todayISO()) + 'T12:00:00-03:00'),
                         mileage: kmRaw ? parseInt(kmRaw, 10) : null,
                         fuel_level: gv('cwInspFuel') || 'Cheio',
                         checklist: (cwState && cwState.inspChecklist) ? JSON.parse(JSON.stringify(cwState.inspChecklist)) : cwDefaultChecklist(),
@@ -11818,7 +11846,7 @@ notify pgrst, 'reload schema';`;
                     return `<div class="mt-5 pt-4 border-t-2 border-emerald-700 space-y-2 text-xs">
                         <div class="text-center font-bold text-sm text-emerald-800">ANEXO I — TERMO DE VISTORIA E ENTREGA DO VEÍCULO</div>
                         <div class="p-2.5 rounded bg-emerald-50 border border-emerald-200">
-                            <b>Entrega:</b> ${ve.inspection_date ? dataHoraBR(ve.inspection_date) : fmtDate(c.start_date || todayISO())} ·
+                            <b>Entrega:</b> ${ve.inspection_date ? (dataHoraBR(ve.inspection_date) + ' (horário de Brasília)') : fmtDate(c.start_date || todayISO())} ·
                             <b>Hodômetro:</b> ${ve.mileage != null ? Number(ve.mileage).toLocaleString('pt-BR') + ' km' : '-'} ·
                             <b>Combustível/Carga:</b> ${esc(ve.fuel_level || '-')} ·
                             <b>Fotos anexadas:</b> ${phs.length} · <b>Avarias preexistentes:</b> ${dmgs.length}
@@ -11948,7 +11976,7 @@ notify pgrst, 'reload schema';`;
                 if (incV) incV.checked = exVe ? (exVe.included !== false) : true;
                 cwToggleVistoriaFields();
                 const inspDtBase = (exVe && exVe.inspection_date) ? new Date(exVe.inspection_date) : new Date();
-                document.getElementById('cwInspDate').value = new Date(inspDtBase.getTime() - inspDtBase.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                document.getElementById('cwInspDate').value = toBRTInput(inspDtBase);
                 document.getElementById('cwInspFuel').value = (exVe && exVe.fuel_level) || 'Cheio';
                 document.getElementById('cwInspMileage').value = (exVe && exVe.mileage != null) ? String(exVe.mileage) : (curVeh && curVeh.mileage != null ? String(curVeh.mileage) : '');
                 document.getElementById('cwInspDriverReservation').value = (exVe && exVe.driver_reservation) || '';
@@ -11989,8 +12017,7 @@ notify pgrst, 'reload schema';`;
                 const incV = document.getElementById('cwIncludeVistoria');
                 if (incV) incV.checked = true;
                 cwToggleVistoriaFields();
-                const nowDt = new Date();
-                document.getElementById('cwInspDate').value = new Date(nowDt.getTime() - nowDt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                document.getElementById('cwInspDate').value = toBRTInput(new Date());
                 document.getElementById('cwInspFuel').value = 'Cheio';
                 document.getElementById('cwInspMileage').value = (v && v.mileage != null) ? String(v.mileage) : '';
                 document.getElementById('cwInspDriverReservation').value = '';
@@ -12093,7 +12120,7 @@ notify pgrst, 'reload schema';`;
                     let num = cwState.contract_number;
                     if (!num) {
                         const rNum = await sb.rpc('next_rental_contract_number');
-                        num = (!rNum.error && rNum.data) ? rNum.data : `CTR-${new Date().getFullYear()}-${String((state.contracts || []).length + 1).padStart(4, '0')}`;
+                        num = (!rNum.error && rNum.data) ? rNum.data : `CTR-${todayISO().slice(0, 4)}-${String((state.contracts || []).length + 1).padStart(4, '0')}`;
                     }
                     snap.contract_number = num;
                     const cm = snap.comercial;
@@ -12218,7 +12245,7 @@ notify pgrst, 'reload schema';`;
             const canAct = c.status !== 'encerrado' && c.status !== 'cancelado';
             document.getElementById('cdBody').innerHTML = `
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 flex-wrap">${contractStatusBadge(c.status)} <span class="text-xs text-gray-500">Criado em ${fmtDate(c.created_at)}</span>${c.renewed_from_id ? `<span class="text-xs text-indigo-600 font-semibold"><i class="fa-solid fa-link mr-1"></i>Renovação</span>` : ''}</div>
+                    <div class="flex items-center gap-2 flex-wrap">${contractStatusBadge(c.status)} <span class="text-xs text-gray-500">Criado em ${dataHoraBR(c.created_at)} (horário de Brasília)</span>${c.renewed_from_id ? `<span class="text-xs text-indigo-600 font-semibold"><i class="fa-solid fa-link mr-1"></i>Renovação</span>` : ''}</div>
                     <div class="flex flex-wrap gap-1.5">
                         ${c.status === 'rascunho' ? `<button type="button" onclick="closeContractDetail();openContractWizard({ contractId: '${c.id}' })" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white"><i class="fa-solid fa-pen mr-1"></i> Editar rascunho</button>` : ''}
                         <button type="button" onclick="downloadContractPdf('${c.id}', this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white"><i class="fa-solid fa-download mr-1"></i> Baixar PDF</button>
@@ -12268,7 +12295,7 @@ notify pgrst, 'reload schema';`;
                     ${c.status === 'rascunho' || c.status === 'cancelado' ? `<button type="button" onclick="deleteContractPrompt('${c.id}')" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-700 hover:bg-gray-800 text-white"><i class="fa-solid fa-trash mr-1"></i> Excluir registro</button>` : ''}
                 </div>
                 <div class="p-3 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
-                    <h4 class="font-bold text-sm"><i class="fa-solid fa-clock-rotate-left text-gray-500 mr-1"></i> Histórico do contrato</h4>
+                    <h4 class="font-bold text-sm"><i class="fa-solid fa-clock-rotate-left text-gray-500 mr-1"></i> Histórico do contrato <span class="text-[11px] font-normal text-gray-400">(Horário de Brasília)</span></h4>
                     ${hist.length ? `<ul class="space-y-1.5 text-xs">${hist.map(h => `<li class="flex items-start justify-between gap-2 border-t border-gray-100 dark:border-gray-700 pt-1.5 first:border-0 first:pt-0"><span><b>${esc(h.description || h.event_label || h.event_type)}</b></span><span class="text-gray-400 shrink-0">${dataHoraBR(h.created_at)}</span></li>`).join('')}</ul>` : '<p class="text-xs text-gray-400 italic">Sem eventos registrados.</p>'}
                 </div>
             `;
@@ -12278,7 +12305,7 @@ notify pgrst, 'reload schema';`;
             const c = (state.contracts || []).find(x => x.id === id);
             if (!c) return;
             if (c.signature_mode !== 'digitalizado') { showToast('Todos os 4 (Locador, Locatário e 2 Testemunhas) devem assinar via GOV.BR enviando o PDF assinado acima.', 'error'); return; }
-            const rd = (cbId, dtId) => document.getElementById(cbId).checked ? ((document.getElementById(dtId).value || todayISO()) + 'T12:00:00Z') : null;
+            const rd = (cbId, dtId) => document.getElementById(cbId).checked ? ((document.getElementById(dtId).value || todayISO()) + 'T12:00:00-03:00') : null;
             const locAt = rd('cdSigLoc', 'cdSigLocDt'), drvAt = rd('cdSigDrv', 'cdSigDrvDt');
             const w1At = rd('cdSigW1', 'cdSigW1Dt'), w2At = rd('cdSigW2', 'cdSigW2Dt');
             const allFour = !!(locAt && drvAt && w1At && w2At);
@@ -12727,10 +12754,7 @@ notify pgrst, 'reload schema';`;
                 initPhotos = iwCollectSavedPhotosFor(vehicleId, driverId, type);
             }
             const cfgLoc = locadorForVehicle(vehicleId) || {};
-            const nowLocalStr = (() => {
-                const d = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 16);
-                return existing && existing.inspection_date ? new Date(new Date(existing.inspection_date).getTime() - 3 * 3600000).toISOString().slice(0, 16) : d;
-            })();
+            const nowLocalStr = toBRTInput(existing && existing.inspection_date ? existing.inspection_date : new Date());
 
             iwState = {
                 id: existing ? existing.id : null,
@@ -13119,7 +13143,7 @@ notify pgrst, 'reload schema';`;
                     const mileage = mileageRaw !== '' ? Math.max(0, Math.round(Number(mileageRaw))) : null;
                     const fuel = document.getElementById('iwFuel').value || 'Cheio';
                     const dtInput = document.getElementById('iwDate').value;
-                    const inspDate = dtInput ? new Date(dtInput + '-03:00').toISOString() : new Date().toISOString();
+                    const inspDate = parseBRTInputToIso(dtInput) || new Date().toISOString();
                     const place = document.getElementById('iwPlace').value.trim() || 'Goiânia/GO';
                     const drvRes = document.getElementById('iwDriverReservation').value.trim() || null;
                     const notes = document.getElementById('iwNotes').value.trim() || null;
@@ -13133,7 +13157,7 @@ notify pgrst, 'reload schema';`;
                     let num = iwState.inspection_number;
                     if (!num) {
                         const rpcNum = await sb.rpc('next_vehicle_inspection_number', { p_type: type });
-                        num = (!rpcNum.error && rpcNum.data) ? rpcNum.data : `${type === 'devolucao' ? 'DEV' : 'VST'}-${new Date().getFullYear()}-${String((state.inspections || []).length + 1).padStart(4, '0')}`;
+                        num = (!rpcNum.error && rpcNum.data) ? rpcNum.data : `${type === 'devolucao' ? 'DEV' : 'VST'}-${todayISO().slice(0, 4)}-${String((state.inspections || []).length + 1).padStart(4, '0')}`;
                     }
 
                     const damagesSummary = iwState.photos.filter(p => p.has_damage).map(p => ({
@@ -13163,7 +13187,7 @@ notify pgrst, 'reload schema';`;
                         inspection_number: num, inspection_type: type, status: targetStatus,
                         mileage, fuel_level: fuel, inspection_date: inspDate,
                         checklist: iwState.checklist, photos: iwState.photos, damages_summary: damagesSummary,
-                        driver_reservation: drvRes, notes, signature_place: place, signature_date: inspDate.slice(0, 10),
+                        driver_reservation: drvRes, notes, signature_place: place, signature_date: toBRTInput(inspDate).slice(0, 10) || todayISO(),
                         signature_mode: prevMode === 'eletronica_assinada' ? 'eletronica_assinada' : 'eletronica_pendente',
                         signature_data: {
                             ...prevSd, provider: 'govbr',
@@ -13298,7 +13322,7 @@ notify pgrst, 'reload schema';`;
             const title = pdfSafeText(isDev ? 'TERMO DE DEVOLUÇÃO E CONFERÊNCIA DE VEÍCULO' : 'TERMO DE VISTORIA DE ENTREGA DE VEÍCULO');
             page.drawText(title, { x: Math.max(ML, (W - fontBold.widthOfTextAtSize(title, 13)) / 2), y, size: 13, font: fontBold, color: ink });
             y -= 16;
-            const sub = pdfSafeText(`${ins.inspection_number || 'RASCUNHO'} · Data: ${fmtDate(ins.inspection_date)}${ctr.contract_number ? ' · Contrato ' + ctr.contract_number : ''}`);
+            const sub = pdfSafeText(`${ins.inspection_number || 'RASCUNHO'} · Data: ${ins.inspection_date ? dataHoraBR(ins.inspection_date) + ' (horário de Brasília)' : fmtDate(todayISO())}${ctr.contract_number ? ' · Contrato ' + ctr.contract_number : ''}`);
             page.drawText(sub, { x: Math.max(ML, (W - fontSans.widthOfTextAtSize(sub, 9.5)) / 2), y, size: 9.5, font: fontSans, color: muted });
             y -= 20;
 
@@ -13424,7 +13448,7 @@ notify pgrst, 'reload schema';`;
                 page.drawText(pdfSafeText(`Nome: ${nome || '__________________________'}`), { x: sx, y: sy - 24, size: 8.2, font: fontReg, color: ink });
                 page.drawText(pdfSafeText(`CPF: ${cpf || '_______________'}`), { x: sx, y: sy - 35, size: 8.2, font: fontReg, color: ink });
                 const stTxt = signedAt
-                    ? `Assinado ${method === 'govbr' || isGovMode ? 'via GOV.BR ' : ''}em: ${fmtDate(signedAt)}`
+                    ? `Assinado ${method === 'govbr' || isGovMode ? 'via GOV.BR ' : ''}em: ${dataHoraBR(signedAt)} (BRT)`
                     : (isGovMode ? 'Assinatura obrigatória via GOV.BR (assinador.iti.br)' : 'Data: ____/____/________');
                 page.drawText(pdfSafeText(stTxt), { x: sx, y: sy - 46, size: 7.8, font: fontReg, color: muted });
             };
@@ -13551,7 +13575,7 @@ notify pgrst, 'reload schema';`;
             const ins = (state.inspections || []).find(x => x.id === id);
             if (!ins) return;
             if (ins.signature_mode !== 'digitalizado') { showToast('Todos os 4 (Locador, Locatário e 2 Testemunhas) devem assinar via GOV.BR enviando o PDF assinado acima.', 'error'); return; }
-            const rd = (cbId, dtId) => document.getElementById(cbId).checked ? ((document.getElementById(dtId).value || todayISO()) + 'T12:00:00Z') : null;
+            const rd = (cbId, dtId) => document.getElementById(cbId).checked ? ((document.getElementById(dtId).value || todayISO()) + 'T12:00:00-03:00') : null;
             const locAt = rd('itdSigLoc', 'itdSigLocDt'), drvAt = rd('itdSigDrv', 'itdSigDrvDt');
             const w1At = rd('itdSigW1', 'itdSigW1Dt'), w2At = rd('itdSigW2', 'itdSigW2Dt');
             const allFour = !!(locAt && drvAt && w1At && w2At);
