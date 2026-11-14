@@ -108,16 +108,17 @@ $('atog').onclick=()=>put({on:!A().on});
 $('amenos').onclick=()=>put({alvo:Math.max(16,A().alvo-1)});$('amais').onclick=()=>put({alvo:Math.min(30,A().alvo+1)});
 $('ade').onchange=()=>{const m=mn($('ade').value);if(m!==null)put({de:m})};$('aate').onchange=()=>{const m=mn($('aate').value);if(m!==null)put({ate:m})};
 const f=n=>String(n).replace('.',',');
-// Placa versão 2 em diante também desliga o ar (só o que o automático ligou). Placa antiga: texto antigo.
+// Placa versão 2 em diante também desliga o ar (só o que o automático ligou); versão 3 liga logo acima da temperatura escolhida.
 const T1='Quando o quarto passar 1 °C da temperatura escolhida, a placa liga o ar no <b>Frio</b> nessa temperatura. ',
+ T1v3='No horário escolhido, se o quarto estiver <b>acima</b> da temperatura escolhida, a placa liga o ar no <b>Frio</b> nessa temperatura. Se estiver nessa temperatura ou abaixo, não liga. ',
  T2='Quando o quarto ficar 1 °C abaixo, ela <b>desliga</b>, mas só se foi o automático que ligou: se você ligou o ar, ele continua ligado. Tudo só dentro do horário escolhido. ',
  T3='Se você desligar o ar, ela só liga de novo depois que o quarto esfriar.';
-window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2;
- $('atxt').innerHTML=T1+(novo?T2:'')+T3;
+window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)>=3;
+ $('atxt').innerHTML=(v3?T1v3:T1)+(novo?T2:'')+T3;
  sala.textContent=q?'Quarto agora: '+f(q.t)+' °C · umidade '+q.u+'%':'Sensor do quarto: sem leitura';
  $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
  if(document.activeElement!==$('ade'))$('ade').value=hm(a.de);if(document.activeElement!==$('aate'))$('aate').value=hm(a.ate);
- $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?'Liga quando o quarto chegar a '+(a.alvo+1)+' °C'+(novo?' e desliga quando cair a '+(a.alvo-1)+' °C (só se o automático ligou)':'')+', entre '+hm(a.de)+' e '+hm(a.ate)+'.'+(novo&&a.ligou&&S.power?' Agora o ar está ligado pelo automático.':''):'')};
+ $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?(v3?'Liga quando o quarto passar de '+a.alvo+' °C':'Liga quando o quarto chegar a '+(a.alvo+1)+' °C')+(novo?' e desliga quando cair a '+(a.alvo-1)+' °C (só se o automático ligou)':'')+', entre '+hm(a.de)+' e '+hm(a.ate)+'.'+(novo&&a.ligou&&S.power?' Agora o ar está ligado pelo automático.':''):'')};
 const u0=ui;ui=function(){u0();renderAuto()};
 })();
 

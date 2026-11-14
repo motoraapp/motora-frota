@@ -36,9 +36,10 @@ caso('horário que passa da meia-noite: 01:00 está entre 22:00 e 06:00', R.dent
 caso('horário que passa da meia-noite: 11:40 está fora', R.dentroHorario(700, 1320, 360), false);
 caso('horário: começo igual ao fim vale o dia todo', R.dentroHorario(700, 480, 480), true);
 
-// Ligar (como já era)
-caso('liga quando o quarto passa 1 °C (25,0 com alvo 24)', rodar([[25.0, false]]), ['ligar']);
-caso('não liga com 24,9', rodar([[24.9, false]]), ['nada']);
+// Ligar: no horário, quarto acima da temperatura escolhida (versão 3; antes esperava passar 1 °C)
+caso('liga quando o quarto passa da temperatura escolhida (24,1 com alvo 24)', rodar([[24.1, false]]), ['ligar']);
+caso('não liga com o quarto exatamente na temperatura (24,0)', rodar([[24.0, false]]), ['nada']);
+caso('não liga com o quarto abaixo (21,5)', rodar([[21.5, false]]), ['nada']);
 caso('não liga fora do horário', rodar([[27, false, { horario: false }]]), ['nada']);
 caso('sem leitura do sensor não faz nada', rodar([[30, false, { leitura: false }]]), ['nada']);
 caso('desligado pela pessoa: só liga de novo depois que o quarto esfriar',
@@ -49,7 +50,7 @@ caso('desligado pela pessoa: só liga de novo depois que o quarto esfriar',
 caso('desliga quando cai 1 °C abaixo, se foi o automático que ligou',
   rodar([[25, false], [24, true], [23.1, true], [23.0, true]]), ['ligar', 'nada', 'nada', 'desligar']);
 caso('depois de desligar, liga de novo quando esquentar',
-  rodar([[25, false], [23, true], [24.5, false], [25, false]]), ['ligar', 'desligar', 'nada', 'ligar']);
+  rodar([[25, false], [23, true], [24.0, false], [24.3, false]]), ['ligar', 'desligar', 'nada', 'ligar']);
 caso('não desliga se foi a pessoa que ligou', rodar([[22, true, { manual: true }], [21, true]]), ['nada', 'nada']);
 caso('a pessoa religou depois do automático: não desliga mais',
   rodar([[25, false], [23, true, { manual: true }]]), ['ligar', 'nada']);

@@ -24,7 +24,7 @@ int regraAuto(AutoMem &e, bool ativo, bool temLeitura, float quarto, int alvo, b
   if (e.espera && quarto <= alvo) e.espera = false;
   if (!arLigado) e.ligou = false;
   if (!noHorario) return AUTO_NADA;
-  if (!arLigado && !e.espera && quarto >= alvo + 1) { e.ligou = true; return AUTO_LIGAR; }
+  if (!arLigado && !e.espera && quarto > alvo) { e.ligou = true; return AUTO_LIGAR; }  // acima da temperatura escolhida (versão 3)
   if (arLigado && e.ligou && quarto <= alvo - 1) { e.ligou = false; return AUTO_DESLIGAR; }
   return AUTO_NADA;
 }
