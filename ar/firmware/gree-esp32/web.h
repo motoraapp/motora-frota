@@ -2,10 +2,10 @@
 // "Aparelho" e "Atualização sem fio" são iguais aos de ar/index.html (o verificar.mjs confere).
 #pragma once
 const char PAGINA_APP[] PROGMEM = R"rawliteral(<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0b1220"><link rel="manifest" href="/manifest.json"><link rel="icon" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon.svg"><meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Nossa casinha"><title>Nossa casinha</title><style>
+<meta name="apple-mobile-web-app-title" content="Nossa casinha"><title>Nossa casinha</title><script>document.addEventListener("gesturestart",function(e){e.preventDefault()});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1)e.preventDefault()},{passive:false})</script><style>html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}input,select,textarea{font-size:16px}
 body{margin:0;font-family:system-ui;background:#0b1220;color:#e8eefc;display:flex;flex-direction:column;align-items:center;padding:20px}
 .t{font-size:80px;font-weight:200;margin:10px 0}.r{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center}
 button{background:#1b2740;color:#e8eefc;border:0;border-radius:14px;padding:16px 20px;font-size:16px;min-width:76px}
@@ -249,7 +249,7 @@ const u0=ui;ui=function(){u0();renderTv()};
 fetch('/api/state').then(r=>r.json()).then(j=>{S=j;ui()}).catch(ui);
 </script></body></html>)rawliteral";
 const char PAGINA_WIFI[] PROGMEM = R"rawliteral(<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Wi-Fi - Gree AC</title><style>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Wi-Fi - Gree AC</title><style>html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}input,select,textarea{font-size:16px}
 body{margin:0;font-family:system-ui;background:#0b1220;color:#e8eefc;padding:20px;max-width:420px}
 label{display:block;margin:14px 0 6px}input{box-sizing:border-box;width:100%;padding:14px;font-size:16px;border-radius:12px;border:0;background:#1b2740;color:#e8eefc}
 button{margin-top:20px;width:100%;background:#2f7cf6;color:#fff;border:0;border-radius:14px;padding:16px;font-size:16px}a{color:#7d8bb0}

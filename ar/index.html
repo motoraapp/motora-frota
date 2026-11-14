@@ -1,11 +1,12 @@
 <!doctype html><html lang="pt-br"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220"><link rel="manifest" href="manifest.json"><link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Nossa casinha"><meta name="application-name" content="Nossa casinha">
-<title>Nossa casinha</title>
+<title>Nossa casinha</title><script>document.addEventListener("gesturestart",function(e){e.preventDefault()});document.addEventListener("touchmove",function(e){if(e.scale&&e.scale!==1)e.preventDefault()},{passive:false})</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
+html{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}input,select,textarea{font-size:16px}
 /* Controle do ar-condicionado de fora de casa (mesmo visual do app da placa). */
 :root{--bg:#0b1220;--card:#121b2e;--btn:#1b2740;--ink:#e8eefc;--muted:#a9b6d6;--on:#2f7cf6;--pwr:#e5484d;--ok:#3ecf8e;--warn:#f5a524;color-scheme:dark}
 *{box-sizing:border-box}
