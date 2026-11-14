@@ -5,7 +5,7 @@ const char PAGINA_APP[] PROGMEM = R"rawliteral(<!doctype html><html lang="pt-br"
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0b1220"><link rel="manifest" href="/manifest.json"><link rel="icon" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon.svg"><meta name="apple-mobile-web-app-capable" content="yes">
-<title>Gree AC</title><style>
+<meta name="apple-mobile-web-app-title" content="Nossa casinha"><title>Nossa casinha</title><style>
 body{margin:0;font-family:system-ui;background:#0b1220;color:#e8eefc;display:flex;flex-direction:column;align-items:center;padding:20px}
 .t{font-size:80px;font-weight:200;margin:10px 0}.r{display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;justify-content:center}
 button{background:#1b2740;color:#e8eefc;border:0;border-radius:14px;padding:16px 20px;font-size:16px;min-width:76px}
@@ -231,5 +231,5 @@ button{margin-top:20px;width:100%;background:#2f7cf6;color:#fff;border:0;border-
 <label for="pass">Senha</label><input id="pass" name="pass" type="password" maxlength="63">
 <button type="submit">Salvar e reiniciar</button></form><p><a href="/app">Abrir o controle sem mudar o Wi-Fi</a></p>
 </body></html>)rawliteral";
-const char MANIFEST[] PROGMEM = R"rawliteral({"name":"Gree AC","short_name":"Gree AC","start_url":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml"}]})rawliteral";
-const char ICONE[] PROGMEM = R"rawliteral(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2f7cf6"/><path d="M12 24h40v14H12zM20 46l-4 8M32 46v8M44 46l4 8" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/></svg>)rawliteral";
+const char MANIFEST[] PROGMEM = R"rawliteral({"name":"Nossa casinha","short_name":"Nossa casinha","start_url":"/","display":"standalone","background_color":"#0b1220","theme_color":"#0b1220","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml"}]})rawliteral";
+const char ICONE[] PROGMEM = R"rawliteral(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2f7cf6"/><path d="M19 28 32 17l13 11v18a3 3 0 0 1-3 3H22a3 3 0 0 1-3-3z" fill="#fff"/><path d="M13 30 32 14l19 16" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 35.5c-3-2.2-5-3.9-5-6a2.6 2.6 0 0 1 5-1 2.6 2.6 0 0 1 5 1c0 2.1-2 3.8-5 6zM28 49v-6a4 4 0 0 1 8 0v6z" fill="#2f7cf6"/></svg>)rawliteral";
