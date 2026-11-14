@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 15
+#define FW_VERSAO 16
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -479,7 +479,9 @@ void sincronizar() {
   if (mandarCodigo) d["p_pair"] = codigo;
   String corpo; serializeJson(d, corpo);
   unsigned long syIni = millis(); if (tlsNuvem.connected()) syReuso++; else syNova++;
-  HTTPClient http; http.setReuse(true); http.setTimeout(8000);
+  // static: o HTTPClient de verdade fecha a conexão no destrutor (~HTTPClient chama stop), mesmo com setReuse.
+  // Local, cada busca abria uma conexão segura nova (~3,3 s na placa, medido na versão 15). Assim ela fica aberta.
+  static HTTPClient http; http.setReuse(true); http.setTimeout(8000);
   if (!http.begin(tlsNuvem, URL_SYNC)) { nuvemOk = false; return; }
   http.addHeader("apikey", SB_CHAVE); http.addHeader("Content-Type", "application/json");
   int c = http.POST(corpo);
