@@ -50,3 +50,11 @@ int regraMimi(MimiMem &m, unsigned long passou, bool temLeitura, float quarto, i
   if (temp <= 20 && quarto <= 21) return 22;
   return 0;
 }
+
+// Volume da TV pela barra (versão 17): com o volume escondido o 1º toque só mostra; com ele na tela cada toque muda 1
+// (de 0 a 100). Devolve o volume depois de um toque.
+int volDepois(int vol, bool visivel, bool sobe) {
+  if (!visivel) return vol;
+  if (sobe) return vol < 100 ? vol + 1 : 100;
+  return vol > 0 ? vol - 1 : 0;
+}

@@ -186,7 +186,8 @@ const st=document.createElement('style');st.textContent=
 '#pTv .tk svg{color:#f5f5f7}#pTv .tk.vai{background:#0a84ff;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#30d158}'+
 '#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#ff453a}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
 '.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#f5f5f7;font-size:14px}'+
-'.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
+'.tvvol{width:100%;background:rgba(255,255,255,.07);border-radius:18px;padding:10px 16px 4px}.tvvt{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;color:#a1a1a6}.tvvt b{color:#f5f5f7;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}#tvv{width:100%;height:44px;margin:0;accent-color:#0a84ff;touch-action:none}'+
+ '.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
 '.tvn .tk{height:56px;font-size:21px;color:#f5f5f7;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a1a1a6}'+
 '#pTv.apr .tk{outline:2px dashed #ff9f0a;outline-offset:-2px}#tvmsg{min-height:21px;margin:0;font-size:14px;color:#a1a1a6;text-align:center}'+
 '.tvli{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.tvli span{color:#f5f5f7}.tvli button{min-width:0;padding:10px 12px;font-size:14px}'+
@@ -203,10 +204,12 @@ abas.innerHTML='<button role="tab" id="aba-ar" aria-controls="pAr">'+ic('ar')+'A
 const b=(k,c)=>'<button class="tk'+(c?' '+c:'')+'" data-k="'+k+'" aria-label="'+N[k]+'">';
 tv.innerHTML=b('power','tvp')+ic('pwr')+'</button>'+
  '<div class="tvx"><i></i>'+b('chUp')+ic('up')+'Canal</button><i></i>'+b('volDn')+ic('left')+'Vol</button>'+b('menu')+'Menu</button>'+b('volUp')+ic('right')+'Vol</button><i></i>'+b('chDn')+ic('down')+'Canal</button><i></i></div>'+
+ '<div class="tvvol"><div class="tvvt"><label for="tvv">Volume</label><b id="tvvn">0</b></div><input type="range" id="tvv" min="0" max="100" step="1" value="0"></div>'+
  '<div class="tvr">'+b('mute')+ic('mute')+'Mudo</button>'+b('fonte')+'TV/AV</button>'+b('info')+'Info</button>'+b('voltar')+'Último</button></div>'+
  '<div class="tvn">'+[1,2,3,4,5,6,7,8,9].map(i=>b('n'+i)+i+'</button>').join('')+b('sleep')+'Sleep</button>'+b('n0')+'0</button>'+b('tela')+'Tela</button></div>'+
  '<p id="tvmsg" role="status" aria-live="polite"></p>'+
  '<details id="tvaj"><summary>Ajustar botões da TV</summary>'+
+ '<p><b>Barra de volume.</b> A placa conta o volume da TV. Se o número da barra não bater com o da TV (por exemplo, depois de usar o controle original), toque em Zerar: a placa abaixa até o 0 e a barra volta a contar certo.</p><div class="r"><button id="tvvz">Zerar o volume</button></div>'+
  '<p><b>Achar minha TV.</b> Com a TV <b>ligada</b> e a placa de frente para ela, toque em Começar. A placa testa o sinal de desligar de cada marca, um a cada 3 segundos. Quando a TV <b>desligar</b>, toque em <b>Funcionou!</b> Em uso: <b id="tvfam"></b>.</p>'+
  '<div class="r"><button id="tvbs">Começar a busca</button></div>'+
  '<div id="tvbx" hidden><p id="tvbt" role="status"></p><div class="r"><button data-b="prev">◀ Anterior</button><button data-b="again">Testar de novo</button><button data-b="next">Próximo ▶</button></div>'+
@@ -235,7 +238,14 @@ tv.addEventListener('click',e=>{const t=e.target.closest('.tk');if(!t)return;con
  if(segurou){segurou=false;return}
  if(apr){modoApr(false);send({tvAprender:k});aviso('Agora aperte '+N[k]+' no controle da TV, apontado para a placa (30 segundos).');return}
  t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),160);if(navigator.vibrate)navigator.vibrate(8);send({tecla:k});aviso('Enviado: '+N[k],2500)});
+// Barra de volume (placa versão 17): manda o volume escolhido ({tvVol}); a placa conta e dá os toques. Arrastando, manda no máximo 1 por segundo.
+const vv=$('tvv'),vn=$('tvvn');let vArr=false,vEnv=0,vT=0;
+const vMandar=()=>{clearTimeout(vT);vEnv=Date.now();send({tvVol:+vv.value})};
+vv.addEventListener('input',()=>{vArr=true;vn.textContent=vv.value;clearTimeout(vT);if(Date.now()-vEnv>1000)vMandar();else vT=setTimeout(vMandar,1000)});
+vv.addEventListener('change',()=>{vMandar();setTimeout(()=>{vArr=false},2500)});
+$('tvvz').onclick=()=>{send({tvVolZerar:true});aviso('Abaixando o volume até o 0 (uns 20 segundos).',6000)};
 window.renderTv=function(){const v=S.tv||{},l=v.l||[],j=JSON.stringify(l);
+ if(!vArr&&v.v!==undefined){const alvo=v.va!==undefined?v.va:v.v;vv.value=alvo;vn.textContent=v.va!==undefined&&v.va!==v.v?v.v+' → '+v.va:v.v}
  if(j!==ult){ult=j;tv.querySelectorAll('.tk').forEach(x=>x.classList.toggle('ap',l.includes(x.dataset.k)));
   $('tvl').replaceChildren(...l.map(k=>{const r=document.createElement('div'),s=document.createElement('span'),x=document.createElement('button');
    r.className='tvli';s.textContent=N[k]||k;x.textContent='Voltar ao código AOC';x.onclick=()=>send({tvEsquecer:k});r.append(s,x);return r}))}

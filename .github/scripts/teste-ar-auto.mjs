@@ -11,7 +11,7 @@ const js = cpp
   .replace(/^struct\s+\w+\s*\{[^}]*\};/gm, '')
   .replace(/^(?:bool|int|void|float)\s+(\w+)\(([^)]*)\)\s*\{/gm, (_, nome, ps) =>
     `function ${nome}(${ps.split(',').map(p => p.trim().split(/[\s&]+/).pop()).join(', ')}) {`);
-const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, regraMimi, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
+const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, regraMimi, volDepois, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
 const NOME = { [R.AUTO_NADA]: 'nada', [R.AUTO_LIGAR]: 'ligar', [R.AUTO_DESLIGAR]: 'desligar' };
 
 let erros = 0;
@@ -71,6 +71,16 @@ caso('a mimi: no 22°, quarto em 22,0 °C fica', mimi([[H2, 21, 20], [H2 + 6e5, 
 caso('a mimi: no 20°, quarto caiu a 21 °C sobe para 22° de novo', mimi([[H2, 23, 20], [H2 + 6e5, 23, 22], [H2 + 12e5, 21.0, 20]]), [[22, 2], [20, 2], [22, 2]]);
 caso('a mimi: no 20°, quarto em 21,5 °C fica', mimi([[H2, 23, 20], [H2 + 6e5, 21.5, 20]]), [[22, 2], [0, 2]]);
 caso('a mimi: sem leitura do sensor fica onde está', mimi([[H2, 23, 20], [H2 + 6e5, 25, 22, false]]), [[22, 2], [0, 2]]);
+
+// Volume da TV pela barra (versão 17): com o volume escondido o 1º toque só mostra; com ele na tela (some 1 s depois) cada toque muda 1.
+// Simula a placa: um toque a cada 200 ms até chegar no alvo. Devolve [toques, volume final, hora do último toque].
+function barra(vol, alvo, agora, ultToque) { let n = 0; while (alvo !== vol) { if (n > 300) break; const visivel = ultToque !== null && agora - ultToque < 1000; vol = R.volDepois(vol, visivel, alvo > vol); ultToque = agora; n++; agora += 200; } return [n, vol, ultToque]; }
+const sobe = barra(0, 50, 0, null);
+caso('volume: do 0 ao 50 com o volume escondido são 51 toques', sobe.slice(0, 2), [51, 50]);
+caso('volume: logo depois (menos de 1 s), do 50 ao 40 são 10 toques', barra(50, 40, sobe[2] + 500, sobe[2]).slice(0, 2), [10, 40]);
+caso('volume: depois de mais de 1 s, do 50 ao 40 são 11 toques', barra(50, 40, sobe[2] + 3000, sobe[2]).slice(0, 2), [11, 40]);
+caso('volume: não passa de 100 nem de 0', [R.volDepois(100, true, true), R.volDepois(0, true, false)], [100, 0]);
+caso('volume: zerar (acha que está no 100) chega no 0 em 101 toques', barra(100, 0, 0, null).slice(0, 2), [101, 0]);
 
 console.log(erros ? `\n${erros} problema(s) no modo automático.` : '\nModo automático: tudo certo.');
 process.exit(erros ? 1 : 0);

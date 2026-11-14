@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 16
+#define FW_VERSAO 17
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -267,7 +267,28 @@ void cuidarTvDesligar() {
   if (tvDeslAte && (long)(millis() - tvDeslAte) >= 0) { tvDeslAte = 0; tvTecla("power"); }
 }
 
+// ---------- Volume da TV pela barra (versão 17, pedido do dono) ----------
+// A TV do dono: com o volume escondido, o 1º toque só mostra o volume; com ele na tela (some 1 s depois do último
+// toque), cada toque muda 1. A placa guarda o volume que ela acha que a TV está (tv_vol, 0 a 100) e, para chegar
+// no alvo da barra, dá os toques um a cada 200 ms (o volume não some no meio). Os botões Vol +/- também contam.
+#define TV_PASSO_MS 200
+#define TV_VISIVEL_MS 1000
+int tvVol = 0, tvAlvo = -1; unsigned long tvUltVol = 0; bool tvVolMudou = false;
+void volTecla(bool sobe) {
+  bool visivel = tvUltVol && millis() - tvUltVol < TV_VISIVEL_MS;
+  tvTecla(sobe ? "volUp" : "volDn");
+  tvUltVol = millis();
+  int v = volDepois(tvVol, visivel, sobe); if (v != tvVol) { tvVol = v; tvVolMudou = true; }
+}
+void cuidarVolume() {
+  if (tvAlvo >= 0 && tvAlvo != tvVol) {
+    if (millis() - tvUltVol >= TV_PASSO_MS) volTecla(tvAlvo > tvVol);
+  } else if (tvAlvo >= 0) tvAlvo = -1;
+  if (tvVolMudou && tvAlvo < 0 && millis() - tvUltVol > 2000) { tvVolMudou = false; gravaNum("tv_vol", tvVol); }
+}
+
 void tvJson(JsonObject t) {
+  t["v"] = tvVol; if (tvAlvo >= 0) t["va"] = tvAlvo;
   if (tvDeslAte) t["dz"] = (long)(tvDeslAte - millis()) / 1000;
   if (tvAprendendo.length()) t["a"] = tvAprendendo;
   JsonArray l = t["l"].to<JsonArray>();
@@ -414,7 +435,13 @@ void aplicar(JsonObject p) {
     A.on = on; salvarAuto();
   }
   if (p["scan"].is<const char *>()) buscaCmd(p["scan"].as<String>());
-  if (p["tecla"].is<const char *>()) tvTecla(p["tecla"].as<String>());
+  if (p["tecla"].is<const char *>()) {
+    String k = p["tecla"].as<String>();
+    if (k == "volUp" || k == "volDn") { tvAlvo = -1; volTecla(k == "volUp"); } else tvTecla(k);
+  }
+  if (p["tvVol"].is<int>()) tvAlvo = faixa(p["tvVol"], 0, 100);                       // barra: vai até esse volume
+  if (p["tvVolDefinir"].is<int>()) { tvVol = faixa(p["tvVolDefinir"], 0, 100); tvAlvo = -1; gravaNum("tv_vol", tvVol); }  // só corrige o número
+  if (p["tvVolZerar"].is<bool>()) { tvVol = 100; tvAlvo = 0; }                          // 101 toques para baixo: a TV fica no 0 com certeza
   if (p["tvDesligar"].is<int>()) { long seg = p["tvDesligar"]; if (seg > 0 && seg <= 43200) { tvDeslAte = millis() + (unsigned long)seg * 1000UL; if (!tvDeslAte) tvDeslAte = 1; } else tvDeslAte = 0; }
   if (p["tvAprender"].is<const char *>()) {
     String k = p["tvAprender"].as<String>();
@@ -686,6 +713,7 @@ void setup() {
   irsend.begin();
   tvLista = lerTxt("tv_lista");
   tvFam = lerNum("tv_fam", -1); if (tvFam >= N_FAMILIAS_TV) tvFam = -1;
+  tvVol = faixa(lerNum("tv_vol", 0), 0, 100);
   irrecv.setUnknownThreshold(12);
   irrecv.enableIRIn();
   ssid = lerTxt("ssid"); senha = lerTxt("pass");
@@ -717,6 +745,7 @@ void loop() {
   cuidarTv();
   cuidarTvDesligar();
   cuidarMimi();
+  cuidarVolume();
   cuidarRealtime();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
   // busca a cada 3 s: além de reserva, mantém aberta a conexão segura com o servidor (tlsNuvem). Com 10 s (versões

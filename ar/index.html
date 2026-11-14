@@ -134,7 +134,7 @@ async function send(p){
   pend={p:{...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
   const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
 }
-const MOMENTO=['mimi','tvDesligar','scan','ota','tecla','tvAprender','tvEsquecer','tvBusca','tvFam'];  // comandos de um toque: não aparecem no estado da placa
+const MOMENTO=['tvVol','tvVolZerar','tvVolDefinir','mimi','tvDesligar','scan','ota','tecla','tvAprender','tvEsquecer','tvBusca','tvFam'];  // comandos de um toque: não aparecem no estado da placa
 function matches(st,p){ return Object.keys(p).every(k=>MOMENTO.includes(k)||(st&&JSON.stringify(st[k])===JSON.stringify(p[k]))); }
 async function refresh(){
   const {data,error}=await sb.rpc('ar_status'); if(error){ msg(errTxt(error)); return; }
@@ -302,10 +302,11 @@ function desenharGraf(){
   if(gModo==='24'){$('gql').textContent='Mais quente';$('gml').textContent='Ar ligado nas 24 h';desenhar24();return}
   $('gql').textContent=uso?'Mais tempo ligado':'Mais quente';$('gml').textContent=uso?'Total no período':'Média das máximas';
   const it=gItens(),n=it.length,vals=it.filter(x=>x.v!==null).map(x=>x.v),foras=it.filter(x=>x.fora!=null).map(x=>x.fora),alvo=!uso&&S.auto&&S.auto.on?Number(S.auto.alvo):null;
-  $('gleg').innerHTML=uso?'':(alvo!==null?'<i style="width:16px;height:0;border-top:2px dashed #ff453a"></i>automático liga acima de '+alvo+' °C':'')+(foras.length?'<i style="width:14px;height:3px;background:#f5f5f7;border-radius:2px"></i>máxima lá fora':'');
+  const agoraTxt=!uso&&gModo!=='ano'&&S.sala&&it.some(x=>x.atual&&x.v!==null&&Number(S.sala.t)<x.v)?'<i style="width:12px;height:12px;background:#64d2ff;border-radius:3px"></i>agora '+gVg(S.sala.t)+' °C':'';
+  $('gleg').innerHTML=uso?'':agoraTxt+(alvo!==null?'<i style="width:16px;height:0;border-top:2px dashed #ff453a"></i>automático liga acima de '+alvo+' °C':'')+(foras.length?'<i style="width:14px;height:3px;background:#f5f5f7;border-radius:2px"></i>máxima lá fora':'');
   if(!vals.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">'+(uso?'O ar não ficou ligado neste período (a contagem começou em 14/11/2026).':'Sem leituras neste período. O histórico começa em 14/11/2026.')+'</p>';$('gq').textContent=$('gm').textContent='—';$('gqh').textContent='';$('gdet').textContent='';return}
   if(gSel<0||gSel>=n){gSel=it.findIndex(x=>x.atual);if(gSel<0||it[gSel].v===null)for(let i=n-1;i>=0;i--)if(it[i].v!==null){gSel=i;break}}
-  const todos=vals.concat(alvo===null?[]:[alvo],foras),W=340,H=280,L=34,R=330,T=gModo==='7'?40:24,B=gModo==='7'?236:250;
+  const agoraV=!uso&&gModo!=='ano'&&S.sala&&it.some(x=>x.atual&&x.v!==null&&Number(S.sala.t)<x.v)?Number(S.sala.t):null,todos=vals.concat(alvo===null?[]:[alvo],foras,agoraV===null?[]:[agoraV]),W=340,H=280,L=34,R=330,T=gModo==='7'?40:24,B=gModo==='7'?236:250;
   const lo=uso?0:Math.floor(Math.min(...todos)-2),passo=Math.max(1,Math.ceil((Math.ceil(Math.max(...todos)+(uso?0.5:1))-lo)/4)),hi=lo+passo*4;
   const y=v=>B-(v-lo)/(hi-lo)*(B-T),sl=(R-L)/n,bw=Math.max(3,Math.min(30,sl*(n>12?0.7:0.62))),maior=Math.max(...vals),fs=n>12?10:n>7?11:12,cor=uso?'#64d2ff':'#ff9f0a';
   const s=['<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+(uso?'Horas de ar ligado':'Temperatura máxima do quarto')+'">'];grade(s,lo,hi,passo,y,L,R,uso?'h':'°');
@@ -315,6 +316,7 @@ function desenharGraf(){
     if(x.v!==null){const yy=y(x.v),yt=x.fora!=null?Math.min(yy,y(x.fora)-4):yy;s.push('<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="'+cor+'" fill-opacity="'+(sel?0.9:0.32)+'"/>');
       if(rot)s.push('<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yt-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#f5f5f7">'+fmt(x.v)+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yt-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a1a1a6">'+x.h+'</text>':''))}
     else if(n<=12)s.push('<text x="'+cx.toFixed(1)+'" y="'+(B-6)+'" text-anchor="middle" font-size="12" fill="#636366">—</text>');
+    if(x.atual&&!uso&&gModo!=='ano'&&x.v!==null&&S.sala&&Number(S.sala.t)<x.v){const ya=y(Number(S.sala.t));s.push('<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+ya.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,B-ya).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="#64d2ff" fill-opacity=".9"/>')}
     if(x.fora!=null)s.push('<line x1="'+(cx-bw/2-2).toFixed(1)+'" x2="'+(cx+bw/2+2).toFixed(1)+'" y1="'+y(x.fora).toFixed(1)+'" y2="'+y(x.fora).toFixed(1)+'" stroke="#f5f5f7" stroke-width="2.5" stroke-linecap="round"/>');
     s.push('<text x="'+cx.toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="'+(sel?'#f5f5f7':'#a1a1a6')+'">'+x.a+'</text>'+(x.b?'<text x="'+cx.toFixed(1)+'" y="'+(B+33)+'" text-anchor="middle" font-size="10" fill="#8e8e93">'+x.b+'</text>':'')+'</g>')});
   if(alvo!==null){const yy=y(alvo).toFixed(1);s.push('<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#ff453a" stroke-width="2" stroke-dasharray="6 4"/>')}
@@ -425,7 +427,8 @@ const st=document.createElement('style');st.textContent=
 '#pTv .tk svg{color:#f5f5f7}#pTv .tk.vai{background:#0a84ff;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#30d158}'+
 '#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#ff453a}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
 '.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#f5f5f7;font-size:14px}'+
-'.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
+'.tvvol{width:100%;background:rgba(255,255,255,.07);border-radius:18px;padding:10px 16px 4px}.tvvt{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;color:#a1a1a6}.tvvt b{color:#f5f5f7;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}#tvv{width:100%;height:44px;margin:0;accent-color:#0a84ff;touch-action:none}'+
+ '.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
 '.tvn .tk{height:56px;font-size:21px;color:#f5f5f7;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a1a1a6}'+
 '#pTv.apr .tk{outline:2px dashed #ff9f0a;outline-offset:-2px}#tvmsg{min-height:21px;margin:0;font-size:14px;color:#a1a1a6;text-align:center}'+
 '.tvli{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.tvli span{color:#f5f5f7}.tvli button{min-width:0;padding:10px 12px;font-size:14px}'+
@@ -442,10 +445,12 @@ abas.innerHTML='<button role="tab" id="aba-ar" aria-controls="pAr">'+ic('ar')+'A
 const b=(k,c)=>'<button class="tk'+(c?' '+c:'')+'" data-k="'+k+'" aria-label="'+N[k]+'">';
 tv.innerHTML=b('power','tvp')+ic('pwr')+'</button>'+
  '<div class="tvx"><i></i>'+b('chUp')+ic('up')+'Canal</button><i></i>'+b('volDn')+ic('left')+'Vol</button>'+b('menu')+'Menu</button>'+b('volUp')+ic('right')+'Vol</button><i></i>'+b('chDn')+ic('down')+'Canal</button><i></i></div>'+
+ '<div class="tvvol"><div class="tvvt"><label for="tvv">Volume</label><b id="tvvn">0</b></div><input type="range" id="tvv" min="0" max="100" step="1" value="0"></div>'+
  '<div class="tvr">'+b('mute')+ic('mute')+'Mudo</button>'+b('fonte')+'TV/AV</button>'+b('info')+'Info</button>'+b('voltar')+'Último</button></div>'+
  '<div class="tvn">'+[1,2,3,4,5,6,7,8,9].map(i=>b('n'+i)+i+'</button>').join('')+b('sleep')+'Sleep</button>'+b('n0')+'0</button>'+b('tela')+'Tela</button></div>'+
  '<p id="tvmsg" role="status" aria-live="polite"></p>'+
  '<details id="tvaj"><summary>Ajustar botões da TV</summary>'+
+ '<p><b>Barra de volume.</b> A placa conta o volume da TV. Se o número da barra não bater com o da TV (por exemplo, depois de usar o controle original), toque em Zerar: a placa abaixa até o 0 e a barra volta a contar certo.</p><div class="r"><button id="tvvz">Zerar o volume</button></div>'+
  '<p><b>Achar minha TV.</b> Com a TV <b>ligada</b> e a placa de frente para ela, toque em Começar. A placa testa o sinal de desligar de cada marca, um a cada 3 segundos. Quando a TV <b>desligar</b>, toque em <b>Funcionou!</b> Em uso: <b id="tvfam"></b>.</p>'+
  '<div class="r"><button id="tvbs">Começar a busca</button></div>'+
  '<div id="tvbx" hidden><p id="tvbt" role="status"></p><div class="r"><button data-b="prev">◀ Anterior</button><button data-b="again">Testar de novo</button><button data-b="next">Próximo ▶</button></div>'+
@@ -474,7 +479,14 @@ tv.addEventListener('click',e=>{const t=e.target.closest('.tk');if(!t)return;con
  if(segurou){segurou=false;return}
  if(apr){modoApr(false);send({tvAprender:k});aviso('Agora aperte '+N[k]+' no controle da TV, apontado para a placa (30 segundos).');return}
  t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),160);if(navigator.vibrate)navigator.vibrate(8);send({tecla:k});aviso('Enviado: '+N[k],2500)});
+// Barra de volume (placa versão 17): manda o volume escolhido ({tvVol}); a placa conta e dá os toques. Arrastando, manda no máximo 1 por segundo.
+const vv=$('tvv'),vn=$('tvvn');let vArr=false,vEnv=0,vT=0;
+const vMandar=()=>{clearTimeout(vT);vEnv=Date.now();send({tvVol:+vv.value})};
+vv.addEventListener('input',()=>{vArr=true;vn.textContent=vv.value;clearTimeout(vT);if(Date.now()-vEnv>1000)vMandar();else vT=setTimeout(vMandar,1000)});
+vv.addEventListener('change',()=>{vMandar();setTimeout(()=>{vArr=false},2500)});
+$('tvvz').onclick=()=>{send({tvVolZerar:true});aviso('Abaixando o volume até o 0 (uns 20 segundos).',6000)};
 window.renderTv=function(){const v=S.tv||{},l=v.l||[],j=JSON.stringify(l);
+ if(!vArr&&v.v!==undefined){const alvo=v.va!==undefined?v.va:v.v;vv.value=alvo;vn.textContent=v.va!==undefined&&v.va!==v.v?v.v+' → '+v.va:v.v}
  if(j!==ult){ult=j;tv.querySelectorAll('.tk').forEach(x=>x.classList.toggle('ap',l.includes(x.dataset.k)));
   $('tvl').replaceChildren(...l.map(k=>{const r=document.createElement('div'),s=document.createElement('span'),x=document.createElement('button');
    r.className='tvli';s.textContent=N[k]||k;x.textContent='Voltar ao código AOC';x.onclick=()=>send({tvEsquecer:k});r.append(s,x);return r}))}
