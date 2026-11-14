@@ -43,8 +43,8 @@ details{width:100%;margin-top:14px;background:var(--card);border-radius:20px;pad
 summary{list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:52px;font-size:17px;font-weight:600;cursor:pointer}summary::-webkit-details-marker{display:none}
 summary::after{content:"";width:8px;height:8px;border-right:2px solid #8e8e93;border-bottom:2px solid #8e8e93;transform:rotate(-45deg);margin-right:4px;transition:transform 120ms ease-out}
 details[open]>summary::after{transform:rotate(45deg)}details[open]{padding-bottom:12px}
-.gfil{display:flex;gap:2px;margin:2px 0 10px;padding:3px;background:rgba(118,118,128,.24);border-radius:10px}.gfil button{padding:7px 8px;font-size:15px;min-height:36px;border-radius:8px;background:none;color:var(--muted)}.gfil button.on{background:#636366;color:#f5f5f7}
-.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 44px;padding:0;font-size:22px;min-height:44px;border-radius:22px}.gnav b{flex:1;text-align:center;font-weight:600}#gsvg svg{display:block;width:100%;height:auto}#gsvg .gb{cursor:pointer}
+.gfil{display:flex;gap:2px;margin:2px 0 10px;padding:3px;background:rgba(118,118,128,.24);border-radius:10px}.gfil button{flex:1;padding:7px 8px;font-size:15px;min-height:36px;border-radius:8px;background:none;color:var(--muted)}.gfil button.on{background:#636366;color:#f5f5f7}
+.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 44px;padding:0;font-size:22px;min-height:44px;border-radius:22px}.gnav b{flex:1;text-align:center;font-weight:600}.gmet{margin-top:-4px}#fora{color:var(--muted);font-size:15px;margin:-8px 0 14px;text-align:center}#gleg{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 6px}#gleg i{display:inline-block;vertical-align:middle;margin:0 4px 0 10px}#gsvg svg{display:block;width:100%;height:auto}#gsvg .gb{cursor:pointer}
 .gres{display:flex;justify-content:space-around;text-align:center;margin:2px 0 6px}.gres span{color:var(--muted);font-size:13px}.gres small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.gres b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}#gdet{color:var(--muted);font-size:14px;text-align:center;min-height:20px}
 details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
 #rx code{color:#64d2ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:var(--on);padding:8px;min-width:0;flex:none;white-space:nowrap}
@@ -73,7 +73,7 @@ details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;pa
  <button id="p"><span class="pi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></span><span><b>Ar-condicionado</b><small id="pst">Desligado</small></span></button>
  <div class="clima"><button data-d="-1" aria-label="Diminuir a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button><div class="t"><span id="t">24</span>°</div><button data-d="1" aria-label="Aumentar a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div>
  <div class="grp"><p class="lbl">Modo</p><div class="r" id="m"></div><p class="lbl">Ventilação</p><div class="r" id="f"></div><p class="lbl">Funções</p><div class="r" id="x"></div></div>
- <details id="graf" open><summary>Temperatura máxima do quarto</summary><div class="gfil" role="group" aria-label="Período"><button data-g="7" class="on">7 dias</button><button data-g="mes">Mês</button><button data-g="ano">Ano</button></div><div class="gnav" id="gnav" hidden><button id="gant" aria-label="Período anterior">‹</button><b id="gper"></b><button id="gprox" aria-label="Próximo período">›</button></div><div id="gsvg"></div><div class="gres"><div><span>Mais quente</span><b id="gq">—</b><small id="gqh"></small></div><div><span>Média das máximas</span><b id="gm">—</b></div></div><p id="gdet"></p></details>
+ <details id="graf" open><summary>Histórico do quarto</summary><div class="gfil" role="group" aria-label="Período"><button data-g="24">24 h</button><button data-g="7" class="on">7 dias</button><button data-g="mes">Mês</button><button data-g="ano">Ano</button></div><div class="gfil gmet" id="gmet" role="group" aria-label="O que mostrar"><button data-m="temp" class="on">Temperatura</button><button data-m="uso">Ar ligado</button></div><div class="gnav" id="gnav" hidden><button id="gant" aria-label="Período anterior">‹</button><b id="gper"></b><button id="gprox" aria-label="Próximo período">›</button></div><div id="gsvg"></div><div class="gres"><div><span id="gql">Mais quente</span><b id="gq">—</b><small id="gqh"></small></div><div><span id="gml">Média das máximas</span><b id="gm">—</b></div></div><p id="gdet"></p></details>
  <details id="hor"></details>
  <details id="aj"><summary>Ajustes do controle</summary>
   <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
@@ -198,57 +198,104 @@ $('hadd').onclick=()=>{const l=lista();if(l.length>=8){$('hmsg').textContent='M�
 const u0=ui;ui=function(){u0();renderHor()};
 })();
 
-// Gráfico: temperatura máxima do quarto (só no app de fora). Filtro 7 dias | Mês (uma barra por dia) | Ano (uma barra por mês, a maior do mês).
-// O banco guarda a máxima de cada dia (ar.temp_dia, gatilho em ar.device; SQL supabase/2026-11-14-ar-temp-dia.sql). Linha vermelha = temperatura do automático.
-let GD=[],gUlt=0,gSel=-1,gModo='7',gDesl=0;
+// Histórico do quarto (só no app de fora). Período: 24 h (linha a cada 5 min, faixas = ar ligado, tracejado = lá fora) |
+// 7 dias | Mês | Ano (barras). O que mostrar: Temperatura (máxima do dia; bolinha = máxima lá fora) ou Ar ligado (horas por dia).
+// Banco: ar.temp_dia, ar.uso, ar.leitura (SQL supabase/2026-11-14-ar-temp-dia.sql e 2026-11-14-ar-historico.sql).
+// Lá fora: Open-Meteo (sem chave), Trindade-GO (setor Maysa), pedido do dono.
+let GD=[],GU=[],G24=null,gUlt=0,gSel=-1,gModo='7',gMet='temp',gDesl=0,WX=null,WXd={},wxUlt=0;
 const gP2=n=>String(n).padStart(2,'0'),gIso=d=>d.getFullYear()+'-'+gP2(d.getMonth()+1)+'-'+gP2(d.getDate()),gVg=n=>String(n).replace('.',',');
 const gMES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'],gSEM=['dom','seg','ter','qua','qui','sex','sáb'];
+const gHm=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),gH=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h'+(m%60?' '+gP2(m%60):'')};
+const WXLAT=-16.66,WXLON=-49.5,WXURL='https://api.open-meteo.com/v1/forecast?latitude='+WXLAT+'&longitude='+WXLON+'&timezone=America%2FSao_Paulo';
+const wxTxt=c=>c===0?'céu limpo':c<=2?'poucas nuvens':c===3?'nublado':c<=48?'neblina':c<=57?'garoa':c<=67?'chuva':c<=82?'pancadas de chuva':c<=99?'trovoada':'';
+async function carregarTempo(){ if(Date.now()-wxUlt<900000&&WX) return; wxUlt=Date.now();
+  try{ const r=await fetch(WXURL+'&current=temperature_2m,weather_code&hourly=temperature_2m&past_days=1&forecast_days=1'); if(r.ok){ WX=await r.json(); mostrarFora(); } }catch(e){} }
+async function carregarTempoDias(de,ate){ const hoje=new Date(); if((hoje-de)/864e5>88) return;
+  try{ const r=await fetch(WXURL+'&daily=temperature_2m_max,weather_code&start_date='+gIso(de)+'&end_date='+gIso(ate>hoje?hoje:ate)); if(!r.ok) return; const j=await r.json();
+    (j.daily&&j.daily.time||[]).forEach((d,i)=>{ if(j.daily.temperature_2m_max[i]!==null) WXd[d]={max:j.daily.temperature_2m_max[i],c:j.daily.weather_code[i]} }); }catch(e){} }
+function mostrarFora(){ const s=$('sala'); if(!s||!WX||!WX.current) return; let e=$('fora'); if(!e){ e=document.createElement('div'); e.id='fora'; s.after(e); }
+  e.textContent='Lá fora: '+gVg(Math.round(WX.current.temperature_2m*10)/10)+' °C, '+wxTxt(WX.current.weather_code)+' (Trindade)'; }
 function gFaixa(){const h=new Date();
   if(gModo==='mes'){const a=new Date(h.getFullYear(),h.getMonth()+gDesl,1);return[a,new Date(a.getFullYear(),a.getMonth()+1,0)]}
   if(gModo==='ano'){const y=h.getFullYear()+gDesl;return[new Date(y,0,1),new Date(y,11,31)]}
   return[new Date(h.getFullYear(),h.getMonth(),h.getDate()-6),h]}
-async function carregarGraf(){ gUlt=Date.now(); const [de,ate]=gFaixa(),pedido=gModo+gDesl;
-  const {data,error}=await sb.rpc('ar_temp_periodo',{p_de:gIso(de),p_ate:gIso(ate)});
-  if(!error&&pedido===gModo+gDesl){ GD=data||[]; desenharGraf(); } }
-function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],hm=iso=>new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  if(gModo==='ano'){for(let m=0;m<12;m++){const ds=GD.filter(x=>+x.dia.slice(5,7)===m+1);let r=null;ds.forEach(x=>{if(!r||+x.max>+r.max)r=x});
-    const mn=ds.length?Math.min(...ds.map(x=>+x.min)):null,nome=gMES[m]+'/'+de.getFullYear();
-    it.push({a:gMES[m],b:'',v:r?+r.max:null,h:r?hm(r.max_em):'',atual:m===new Date().getMonth()&&gDesl===0,quando:r?r.dia.slice(8)+'/'+r.dia.slice(5,7):'',
-      det:nome+': '+(r?'máxima '+gVg(+r.max)+' °C em '+r.dia.slice(8)+'/'+r.dia.slice(5,7)+' às '+hm(r.max_em)+' · mínima do mês '+gVg(mn)+' °C':'sem leitura')})}return it}
-  for(let d=new Date(de);d<=ate;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const iso=gIso(d),r=GD.find(x=>x.dia===iso),n=d.getDate(),dm=gP2(n)+'/'+gP2(d.getMonth()+1);
-    it.push({a:gModo==='7'?(iso===hoje?'hoje':gSEM[d.getDay()]):(n===1||n%5===0?String(n):''),b:gModo==='7'?dm:'',v:r?+r.max:null,h:r?hm(r.max_em):'',atual:iso===hoje,quando:dm,
-      det:(iso===hoje?'Hoje':dm)+': '+(r?'máxima '+gVg(+r.max)+' °C às '+hm(r.max_em)+' · mínima '+gVg(+r.min)+' °C':'sem leitura')})}
+async function carregarGraf(){ gUlt=Date.now(); const pedido=gModo+gDesl+gMet; carregarTempo();
+  if(gModo==='24'){ const {data,error}=await sb.rpc('ar_24h'); if(!error&&pedido===gModo+gDesl+gMet){ G24=data; desenharGraf(); } return; }
+  const [de,ate]=gFaixa(),a={p_de:gIso(de),p_ate:gIso(ate)};
+  const [r1,r2]=await Promise.all([sb.rpc('ar_temp_periodo',a),sb.rpc('ar_uso_periodo',a),gModo==='ano'?null:carregarTempoDias(de,ate)]);
+  if(pedido===gModo+gDesl+gMet){ if(!r1.error) GD=r1.data||[]; if(!r2.error) GU=r2.data||[]; desenharGraf(); } }
+function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],uso=gMet==='uso';
+  const val=(r,u)=>uso?(u?u.seg/3600:null):(r?+r.max:null);
+  if(gModo==='ano'){for(let m=0;m<12;m++){const ds=GD.filter(x=>+x.dia.slice(5,7)===m+1),us=GU.filter(x=>+x.dia.slice(5,7)===m+1);let r=null;ds.forEach(x=>{if(!r||+x.max>+r.max)r=x});
+    const mn=ds.length?Math.min(...ds.map(x=>+x.min)):null,nome=gMES[m]+'/'+de.getFullYear(),seg=us.reduce((a,x)=>a+x.seg,0);
+    it.push({a:gMES[m],b:'',v:uso?(seg?seg/3600:null):(r?+r.max:null),h:!uso&&r?gHm(r.max_em):'',atual:m===new Date().getMonth()&&gDesl===0,quando:uso?nome:(r?r.dia.slice(8)+'/'+r.dia.slice(5,7):''),
+      det:nome+': '+(uso?(seg?'ar ligado '+gH(seg)+' no mês':'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C em '+r.dia.slice(8)+'/'+r.dia.slice(5,7)+' às '+gHm(r.max_em)+' · mínima do mês '+gVg(mn)+' °C':'sem leitura'))})}return it}
+  for(let d=new Date(de);d<=ate;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const iso=gIso(d),r=GD.find(x=>x.dia===iso),u=GU.find(x=>x.dia===iso),n=d.getDate(),dm=gP2(n)+'/'+gP2(d.getMonth()+1),w=WXd[iso];
+    it.push({a:gModo==='7'?(iso===hoje?'hoje':gSEM[d.getDay()]):(n===1||n%5===0?String(n):''),b:gModo==='7'?dm:'',v:val(r,u),h:!uso&&r?gHm(r.max_em):'',fora:!uso&&w?w.max:null,atual:iso===hoje,quando:dm,
+      det:(iso===hoje?'Hoje':dm)+': '+(uso?(u?'ar ligado '+gH(u.seg):'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C às '+gHm(r.max_em)+' · mínima '+gVg(+r.min)+' °C':'sem leitura')+(w?' · lá fora '+gVg(w.max)+' °C, '+wxTxt(w.c):''))})}
   return it}
+function grade(s,lo,hi,passo,y,L,R,suf){for(let k=0;k<=4;k++){const v=lo+passo*k,yy=y(v).toFixed(1);s.push('<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,.1)" stroke-width="1"/><text x="'+(L-6)+'" y="'+(+yy+4)+'" text-anchor="end" font-size="11" fill="#a1a1a6">'+v+suf+'</text>')}}
+function desenhar24(){
+  const ls=(G24&&G24.leituras)||[],us=(G24&&G24.uso)||[],agora=Date.now(),t0=agora-864e5,fx=[];
+  if(WX&&WX.hourly) WX.hourly.time.forEach((h,i)=>{const ms=new Date(h+':00-03:00').getTime();if(ms>=t0&&ms<=agora&&WX.hourly.temperature_2m[i]!==null)fx.push([ms,WX.hourly.temperature_2m[i]])});
+  $('gleg').innerHTML='<i style="width:16px;height:3px;background:#ff9f0a;border-radius:2px"></i>quarto<i style="width:16px;height:0;border-top:2px dashed #8e8e93"></i>lá fora<i style="width:12px;height:12px;background:rgba(100,210,255,.3);border-radius:3px"></i>ar ligado';
+  const seg=us.reduce((a,u)=>a+(Math.min(u.fim?new Date(u.fim).getTime():agora,agora)-Math.max(new Date(u.inicio).getTime(),t0))/1000,0);
+  if(!ls.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">As leituras de 5 em 5 minutos começaram em 14/11/2026. Volte daqui a pouco.</p>';$('gq').textContent='—';$('gqh').textContent='';$('gm').textContent=seg>0?gH(seg):'0 min';$('gdet').textContent='';return}
+  const vals=ls.map(x=>+x.t).concat(fx.map(x=>x[1])),W=340,H=260,L=34,R=330,T=16,B=220,lo=Math.floor(Math.min(...vals)-1),passo=Math.max(1,Math.ceil((Math.ceil(Math.max(...vals)+1)-lo)/4)),hi=lo+passo*4;
+  const x=ms=>L+(ms-t0)/864e5*(R-L),y=v=>B-(v-lo)/(hi-lo)*(B-T),s=['<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Temperatura do quarto nas últimas 24 horas">'];
+  us.forEach(u=>{const a=Math.max(new Date(u.inicio).getTime(),t0),b=Math.min(u.fim?new Date(u.fim).getTime():agora,agora);if(b>a)s.push('<rect x="'+x(a).toFixed(1)+'" y="'+T+'" width="'+Math.max(1.5,x(b)-x(a)).toFixed(1)+'" height="'+(B-T)+'" fill="rgba(100,210,255,.18)"/>')});
+  grade(s,lo,hi,passo,y,L,R,'°');
+  const h0=new Date(t0);h0.setMinutes(0,0,0);for(let ms=h0.getTime()+36e5;ms<=agora;ms+=36e5){const hr=new Date(ms).getHours();if(hr%6===0)s.push('<text x="'+x(ms).toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="#a1a1a6">'+gP2(hr)+'h</text>')}
+  if(fx.length>1)s.push('<polyline points="'+fx.map(p=>x(p[0]).toFixed(1)+','+y(p[1]).toFixed(1)).join(' ')+'" fill="none" stroke="#8e8e93" stroke-width="1.5" stroke-dasharray="4 4"/>');
+  let seg2=[],ant=null;ls.forEach(p=>{const ms=new Date(p.em).getTime();if(ant&&ms-ant>12e5){if(seg2.length)s.push('<polyline points="'+seg2.join(' ')+'" fill="none" stroke="#ff9f0a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');seg2=[]}seg2.push(x(ms).toFixed(1)+','+y(+p.t).toFixed(1));ant=ms});
+  if(seg2.length)s.push('<polyline points="'+seg2.join(' ')+'" fill="none" stroke="#ff9f0a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');
+  const sel=ls[gSel>=0&&gSel<ls.length?gSel:ls.length-1],sm=new Date(sel.em).getTime();
+  s.push('<line x1="'+x(sm).toFixed(1)+'" x2="'+x(sm).toFixed(1)+'" y1="'+T+'" y2="'+B+'" stroke="rgba(255,255,255,.35)" stroke-width="1"/><circle cx="'+x(sm).toFixed(1)+'" cy="'+y(+sel.t).toFixed(1)+'" r="5" fill="#ff9f0a" stroke="#10141c" stroke-width="2"/>');
+  s.push('<rect class="g24" x="'+L+'" y="'+T+'" width="'+(R-L)+'" height="'+(H-T)+'" fill="transparent"/></svg>');
+  $('gsvg').innerHTML=s.join('');
+  const q=ls.reduce((a,b)=>+b.t>+a.t?b:a),ligado=us.some(u=>new Date(u.inicio).getTime()<=sm&&(!u.fim||new Date(u.fim).getTime()>=sm));
+  let fora=null,dm=Infinity;fx.forEach(p=>{const d=Math.abs(p[0]-sm);if(d<dm){dm=d;fora=p[1]}});
+  $('gq').textContent=gVg(+q.t)+' °C';$('gqh').textContent='às '+gHm(q.em);$('gm').textContent=seg>0?gH(seg):'0 min';
+  $('gdet').textContent='Às '+gHm(sel.em)+': quarto '+gVg(+sel.t)+' °C'+(fora!==null&&dm<=36e5?' · lá fora '+gVg(fora)+' °C':'')+' · ar '+(ligado?'ligado':'desligado');
+  $('gsvg').querySelector('.g24').onclick=e=>{const r=e.currentTarget.ownerSVGElement.getBoundingClientRect(),ms=t0+((e.clientX-r.left)/r.width*W-L)/(R-L)*864e5;let bi=0,bd=Infinity;ls.forEach((p,i)=>{const d=Math.abs(new Date(p.em).getTime()-ms);if(d<bd){bd=d;bi=i}});gSel=bi;desenharGraf()};
+}
 function desenharGraf(){
-  const it=gItens(),n=it.length,[de]=gFaixa();
-  $('gnav').hidden=gModo==='7';$('gprox').disabled=gDesl>=0;
+  const [de]=gFaixa(),uso=gMet==='uso';
+  $('gnav').hidden=gModo==='7'||gModo==='24';$('gmet').hidden=gModo==='24';$('gprox').disabled=gDesl>=0;
   $('gper').textContent=gModo==='ano'?String(de.getFullYear()):de.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
-  document.querySelectorAll('.gfil button').forEach(b=>{b.className=b.dataset.g===gModo?'on':'';b.setAttribute('aria-pressed',b.dataset.g===gModo)});
-  const vals=it.filter(x=>x.v!==null).map(x=>x.v),alvo=S.auto&&S.auto.on?Number(S.auto.alvo):null;
-  if(!vals.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">Sem leituras neste período. O histórico começa em 14/11/2026.</p>';$('gq').textContent=$('gm').textContent='—';$('gqh').textContent='';$('gdet').textContent='';return}
+  document.querySelectorAll('#graf [data-g]').forEach(b=>{b.className=b.dataset.g===gModo?'on':'';b.setAttribute('aria-pressed',b.dataset.g===gModo)});
+  document.querySelectorAll('#gmet [data-m]').forEach(b=>{b.className=b.dataset.m===gMet?'on':'';b.setAttribute('aria-pressed',b.dataset.m===gMet)});
+  if(!$('gleg'))$('gsvg').insertAdjacentHTML('afterend','<p id="gleg"></p>');
+  if(gModo==='24'){$('gql').textContent='Mais quente';$('gml').textContent='Ar ligado nas 24 h';desenhar24();return}
+  $('gql').textContent=uso?'Mais tempo ligado':'Mais quente';$('gml').textContent=uso?'Total no período':'Média das máximas';
+  const it=gItens(),n=it.length,vals=it.filter(x=>x.v!==null).map(x=>x.v),foras=it.filter(x=>x.fora!=null).map(x=>x.fora),alvo=!uso&&S.auto&&S.auto.on?Number(S.auto.alvo):null;
+  $('gleg').innerHTML=uso?'':(alvo!==null?'<i style="width:16px;height:0;border-top:2px dashed #ff453a"></i>automático liga acima de '+alvo+' °C':'')+(foras.length?'<i style="width:14px;height:3px;background:#f5f5f7;border-radius:2px"></i>máxima lá fora':'');
+  if(!vals.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">'+(uso?'O ar não ficou ligado neste período (a contagem começou em 14/11/2026).':'Sem leituras neste período. O histórico começa em 14/11/2026.')+'</p>';$('gq').textContent=$('gm').textContent='—';$('gqh').textContent='';$('gdet').textContent='';return}
   if(gSel<0||gSel>=n){gSel=it.findIndex(x=>x.atual);if(gSel<0||it[gSel].v===null)for(let i=n-1;i>=0;i--)if(it[i].v!==null){gSel=i;break}}
-  const todos=alvo===null?vals:vals.concat(alvo),W=340,H=280,L=34,R=330,T=gModo==='7'?40:24,B=gModo==='7'?236:250;
-  const lo=Math.floor(Math.min(...todos)-2),passo=Math.max(1,Math.ceil((Math.ceil(Math.max(...todos)+1)-lo)/4)),hi=lo+passo*4;
-  const y=v=>B-(v-lo)/(hi-lo)*(B-T),sl=(R-L)/n,bw=Math.max(3,Math.min(30,sl*(n>12?0.7:0.62))),maior=Math.max(...vals),fs=n>12?10:n>7?11:12;
-  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Temperatura máxima do quarto">';
-  for(let k=0;k<=4;k++){const v=lo+passo*k,yy=y(v).toFixed(1);s+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,.1)" stroke-width="1"/><text x="'+(L-6)+'" y="'+(+yy+4)+'" text-anchor="end" font-size="11" fill="#a1a1a6">'+v+'°</text>'}
+  const todos=vals.concat(alvo===null?[]:[alvo],foras),W=340,H=280,L=34,R=330,T=gModo==='7'?40:24,B=gModo==='7'?236:250;
+  const lo=uso?0:Math.floor(Math.min(...todos)-2),passo=Math.max(1,Math.ceil((Math.ceil(Math.max(...todos)+(uso?0.5:1))-lo)/4)),hi=lo+passo*4;
+  const y=v=>B-(v-lo)/(hi-lo)*(B-T),sl=(R-L)/n,bw=Math.max(3,Math.min(30,sl*(n>12?0.7:0.62))),maior=Math.max(...vals),fs=n>12?10:n>7?11:12,cor=uso?'#64d2ff':'#ff9f0a';
+  const s=['<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+(uso?'Horas de ar ligado':'Temperatura máxima do quarto')+'">'];grade(s,lo,hi,passo,y,L,R,uso?'h':'°');
+  const fmt=v=>uso?(v<10?gVg(Math.round(v*10)/10):Math.round(v))+(n>7?'':'h'):gVg(v)+(n>7?'':'°');
   it.forEach((x,i)=>{const cx=L+sl*i+sl/2,sel=i===gSel,rot=n<=12||sel||x.v===maior;
-    s+='<g class="gb" data-i="'+i+'"><rect x="'+(L+sl*i).toFixed(1)+'" y="'+T+'" width="'+sl.toFixed(1)+'" height="'+(H-T)+'" fill="transparent"/>';
-    if(x.v!==null){const yy=y(x.v);s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="#ff9f0a" fill-opacity="'+(sel?0.9:0.32)+'"/>';
-      if(rot)s+='<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yy-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#f5f5f7">'+gVg(x.v)+(n>7?'':'°')+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yy-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a1a1a6">'+x.h+'</text>':'')}
-    else if(n<=12)s+='<text x="'+cx.toFixed(1)+'" y="'+(B-6)+'" text-anchor="middle" font-size="12" fill="#636366">—</text>';
-    s+='<text x="'+cx.toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="'+(sel?'#f5f5f7':'#a1a1a6')+'">'+x.a+'</text>'+
-      (x.b?'<text x="'+cx.toFixed(1)+'" y="'+(B+33)+'" text-anchor="middle" font-size="10" fill="#8e8e93">'+x.b+'</text>':'')+'</g>'});
-  if(alvo!==null){const yy=y(alvo).toFixed(1);s+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#ff453a" stroke-width="2" stroke-dasharray="6 4"/>'}
-  $('gsvg').innerHTML=s+'</svg>'+(alvo!==null?'<p style="margin:2px 0 6px;font-size:13px;color:var(--muted);text-align:center"><span style="color:#ff6961">- - -</span> automático liga acima de '+alvo+' °C</p>':'');
+    s.push('<g class="gb" data-i="'+i+'"><rect x="'+(L+sl*i).toFixed(1)+'" y="'+T+'" width="'+sl.toFixed(1)+'" height="'+(H-T)+'" fill="transparent"/>');
+    if(x.v!==null){const yy=y(x.v),yt=x.fora!=null?Math.min(yy,y(x.fora)-4):yy;s.push('<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="'+cor+'" fill-opacity="'+(sel?0.9:0.32)+'"/>');
+      if(rot)s.push('<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yt-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#f5f5f7">'+fmt(x.v)+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yt-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a1a1a6">'+x.h+'</text>':''))}
+    else if(n<=12)s.push('<text x="'+cx.toFixed(1)+'" y="'+(B-6)+'" text-anchor="middle" font-size="12" fill="#636366">—</text>');
+    if(x.fora!=null)s.push('<line x1="'+(cx-bw/2-2).toFixed(1)+'" x2="'+(cx+bw/2+2).toFixed(1)+'" y1="'+y(x.fora).toFixed(1)+'" y2="'+y(x.fora).toFixed(1)+'" stroke="#f5f5f7" stroke-width="2.5" stroke-linecap="round"/>');
+    s.push('<text x="'+cx.toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="'+(sel?'#f5f5f7':'#a1a1a6')+'">'+x.a+'</text>'+(x.b?'<text x="'+cx.toFixed(1)+'" y="'+(B+33)+'" text-anchor="middle" font-size="10" fill="#8e8e93">'+x.b+'</text>':'')+'</g>')});
+  if(alvo!==null){const yy=y(alvo).toFixed(1);s.push('<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#ff453a" stroke-width="2" stroke-dasharray="6 4"/>')}
+  $('gsvg').innerHTML=s.join('')+'</svg>';
   const q=it.filter(x=>x.v!==null).reduce((a,b)=>b.v>a.v?b:a);
-  $('gq').textContent=gVg(q.v)+' °C';$('gqh').textContent=q.quando+' às '+q.h;$('gm').textContent=gVg((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1))+' °C';
+  if(uso){const tot=vals.reduce((a,b)=>a+b,0)*3600;$('gq').textContent=gH(q.v*3600);$('gqh').textContent=q.quando;$('gm').textContent=gH(tot)}
+  else{$('gq').textContent=gVg(q.v)+' °C';$('gqh').textContent=q.quando+' às '+q.h;$('gm').textContent=gVg((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1))+' °C'}
   $('gdet').textContent=gSel>=0?it[gSel].det:'';
 }
 $('gsvg').onclick=e=>{const g=e.target.closest('[data-i]');if(g){gSel=+g.dataset.i;desenharGraf()}};
-document.querySelector('.gfil').onclick=e=>{const b=e.target.closest('[data-g]');if(!b||b.dataset.g===gModo)return;gModo=b.dataset.g;gDesl=0;gSel=-1;GD=[];desenharGraf();carregarGraf()};
-$('gant').onclick=()=>{gDesl--;gSel=-1;GD=[];desenharGraf();carregarGraf()};
-$('gprox').onclick=()=>{if(gDesl<0){gDesl++;gSel=-1;GD=[];desenharGraf();carregarGraf()}};
+document.querySelector('#graf .gfil').onclick=e=>{const b=e.target.closest('[data-g]');if(!b||b.dataset.g===gModo)return;gModo=b.dataset.g;gDesl=0;gSel=-1;GD=[];GU=[];desenharGraf();carregarGraf()};
+$('gmet').onclick=e=>{const b=e.target.closest('[data-m]');if(!b||b.dataset.m===gMet)return;gMet=b.dataset.m;gSel=-1;desenharGraf()};
+$('gant').onclick=()=>{gDesl--;gSel=-1;GD=[];GU=[];desenharGraf();carregarGraf()};
+$('gprox').onclick=()=>{if(gDesl<0){gDesl++;gSel=-1;GD=[];GU=[];desenharGraf();carregarGraf()}};
 
 // Sensor do quarto + modo automático: mesma tela no app de casa e no de fora. Usa S, send() e ui() de cada app.
 (function(){
@@ -286,7 +333,7 @@ window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)
  $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
  if(document.activeElement!==$('ade'))$('ade').value=hm(a.de);if(document.activeElement!==$('aate'))$('aate').value=hm(a.ate);
  $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?(v3?'Liga quando o quarto passar de '+a.alvo+' °C':'Liga quando o quarto chegar a '+(a.alvo+1)+' °C')+(novo?' e desliga quando cair a '+(a.alvo-1)+' °C (só se o automático ligou)':'')+', entre '+hm(a.de)+' e '+hm(a.ate)+'.'+(novo&&a.ligou&&S.power?' Agora o ar está ligado pelo automático.':''):'')};
-const u0=ui;ui=function(){u0();renderAuto()};
+const u0=ui;ui=function(){u0();renderAuto();if(window.mostrarFora)mostrarFora()};
 })();
 
 // Aparelho (controle universal): escolher a marca, busca automática e sugestão pelo controle original. Mesmo código nos dois apps.

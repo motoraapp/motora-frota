@@ -126,7 +126,7 @@ window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)
  $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
  if(document.activeElement!==$('ade'))$('ade').value=hm(a.de);if(document.activeElement!==$('aate'))$('aate').value=hm(a.ate);
  $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?(v3?'Liga quando o quarto passar de '+a.alvo+' °C':'Liga quando o quarto chegar a '+(a.alvo+1)+' °C')+(novo?' e desliga quando cair a '+(a.alvo-1)+' °C (só se o automático ligou)':'')+', entre '+hm(a.de)+' e '+hm(a.ate)+'.'+(novo&&a.ligou&&S.power?' Agora o ar está ligado pelo automático.':''):'')};
-const u0=ui;ui=function(){u0();renderAuto()};
+const u0=ui;ui=function(){u0();renderAuto();if(window.mostrarFora)mostrarFora()};
 })();
 
 // Aparelho (controle universal): escolher a marca, busca automática e sugestão pelo controle original. Mesmo código nos dois apps.
