@@ -1,6 +1,6 @@
 # Mapa de linhas do código (gerado por ferramentas/mapa.mjs, não edite à mão)
 
-Gerado em 14/11/2026, 18:51:36. Procure aqui com Grep e leia só as linhas indicadas.
+Gerado em 14/11/2026, 19:10:52. Procure aqui com Grep e leia só as linhas indicadas.
 Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 ## index.html (13639 linhas)
@@ -1357,6 +1357,7 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 - supabase/2026-11-12-modulo-contratos.sql: Módulo de Contratos de Locação (12/11/2026)
 - supabase/2026-11-12-modulo-vistorias.sql: Módulo Unificado de Vistorias Veiculares e Devolução com IA (12/11/2026)
 - supabase/2026-11-13-govbr-assinaturas.sql: Fluxo oficial de assinaturas eletrônicas via Portal GOV.BR (assinador.iti.br)
+- supabase/2026-11-14-ar-acorda.sql: Nossa casinha (14/11/2026, placa versão 9): comando na hora. Cada comando novo em ar.cmd manda um "cutucão" pelo
 - supabase/2026-11-14-ar-aviso.sql: Nossa casinha: notificação ao dono quando o ar liga ou desliga sem ele ter pedido (14/11/2026).
 - supabase/2026-11-14-ar-evento.sql: Nossa casinha (14/11/2026): o bloco do ar mostra quem ligou/desligou e a que horas ("Desligado pelo automático às 18:20").
 - supabase/2026-11-14-ar-historico.sql: Nossa casinha (14/11/2026): histórico para "Uso do ar" (horas ligado por dia), "24 h" (temperatura a cada 5 min com o

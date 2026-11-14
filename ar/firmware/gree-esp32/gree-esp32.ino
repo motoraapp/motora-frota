@@ -27,8 +27,10 @@
 #include "web.h"
 #include "certs.h"
 #include "tv_universal.h"
+#include <WebSocketsClient.h>  // WebSockets 2.7.2 (Markus Sattler): aviso na hora (versão 9)
+#include "mbedtls/sha256.h"
 
-#define FW_VERSAO 8
+#define FW_VERSAO 9
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -337,6 +339,7 @@ void buscaCmd(const String &c) {
 // ---------- Sensor do quarto ----------
 DHT dht(PINO_DHT, DHT22);
 float salaT = NAN; int salaU = 0; unsigned long salaEm = 0, ultSensor = 0;
+WebSocketsClient rt; bool rtIniciado = false, rtLigado = false, acordar = false; unsigned long rtBatida = 0, ultAcordar = 0; String rtTopico;
 MimiMem MI = {false, 0}; unsigned long miEm = 0, miUlt = 0;  // "A mimi?" (regraMimi em regras.h)
 bool temSala() { return salaEm && millis() - salaEm < 120000; }
 void lerSensor() {
@@ -363,6 +366,7 @@ void estadoJson(JsonObject d) {
   JsonObject a = d["auto"].to<JsonObject>();
   a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou;
   d["fw"] = FW_VERSAO;
+  d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
   if (MI.on) { JsonObject mm = d["mimi"].to<JsonObject>(); mm["f"] = MI.fase; if (MI.fase == 1) mm["r"] = (long)(MIMI_FASE1 - (millis() - miEm)) / 1000; }
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
   if (fwMsg.length()) d["fwMsg"] = fwMsg;
@@ -483,6 +487,38 @@ void sincronizar() {
   } else { nuvemOk = false; Serial.printf("cloud erro %d\n", c); tlsNuvem.stop(); }
   http.end();
 }
+// ---------- Aviso na hora (versão 9) ----------
+// Conexão sempre aberta com o Realtime do Supabase. Quando entra um comando em ar.cmd, o banco manda um "cutucão" no
+// canal ar-<24 primeiros hexa do sha256 da chave da placa> (gatilho ar_cmd_acorda) e a placa sincroniza na hora.
+// A busca a cada 3 s continua de reserva. O cutucão não leva o comando: quem pega é o ar_device_sync, com a chave.
+void rtEvento(WStype_t tipo, uint8_t *dados, size_t n) {
+  if (tipo == WStype_CONNECTED) {
+    rtLigado = true; rtBatida = millis();
+    String j = "{\"topic\":\"realtime:" + rtTopico + "\",\"event\":\"phx_join\",\"payload\":{\"config\":{\"broadcast\":{\"self\":false},\"private\":false}},\"ref\":\"1\"}";
+    rt.sendTXT(j);
+  } else if (tipo == WStype_DISCONNECTED) rtLigado = false;
+  else if (tipo == WStype_TEXT && dados && n < 3000) {
+    String m; m.reserve(n); for (size_t i = 0; i < n; i++) m += (char)dados[i];
+    if (m.indexOf("\"broadcast\"") >= 0) acordar = true;
+  }
+}
+void rtComecar() {
+  uint8_t h[32]; mbedtls_sha256_ret((const unsigned char *)CHAVE.c_str(), CHAVE.length(), h, 0);
+  char hx[25]; for (int i = 0; i < 12; i++) sprintf(hx + i * 2, "%02x", h[i]);
+  rtTopico = String("ar-") + hx;
+  String url = String("/realtime/v1/websocket?apikey=") + SB_CHAVE + "&vsn=1.0.0";
+  rt.beginSslWithCA("epswrtcwszhbapaxdpzz.supabase.co", 443, url.c_str(), CERTS);
+  rt.onEvent(rtEvento); rt.setReconnectInterval(10000);
+  rtIniciado = true;
+}
+void cuidarRealtime() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  if (!rtIniciado) { if (CHAVE.length() && millis() > 15000 && ESP.getFreeHeap() > 70000) rtComecar(); return; }
+  rt.loop();
+  if (rtLigado && millis() - rtBatida > 25000) { rtBatida = millis(); rt.sendTXT("{\"topic\":\"phoenix\",\"event\":\"heartbeat\",\"payload\":{},\"ref\":\"hb\"}"); }
+  if (acordar && millis() - ultAcordar > 300) { acordar = false; ultAcordar = millis(); ultSync = millis(); sincronizar(); }
+}
+
 void nuvemJson(JsonObject j) {
   j["ok"] = nuvemOk; j["dono"] = dono; j["url"] = URL_APP;
   if (codigo.length() && millis() < codigoAte && !dono) j["code"] = codigo;
@@ -504,6 +540,7 @@ void otaChecar(bool avisar) {
 void otaInstalar() {
   fwMsg = "Atualizando… a placa reinicia sozinha em cerca de 1 minuto.";
   sincronizar();
+  if (rtIniciado) rt.disconnect();  // libera memória para baixar a versão nova
   Serial.printf("atualizando para a versao %d\n", fwNova);
   httpUpdate.rebootOnUpdate(true);
   httpUpdate.update(tlsGh, fwUrl);  // se der certo, reinicia aqui
@@ -637,6 +674,7 @@ void loop() {
   cuidarTv();
   cuidarTvDesligar();
   cuidarMimi();
+  cuidarRealtime();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
   if (conectado && millis() - ultSync > 3000) { ultSync = millis(); sincronizar(); }
   cuidarOta();
