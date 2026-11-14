@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 14
+#define FW_VERSAO 15
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -340,6 +340,7 @@ void buscaCmd(const String &c) {
 DHT dht(PINO_DHT, DHT22);
 float salaT = NAN; int salaU = 0; unsigned long salaEm = 0, ultSensor = 0;
 WiFiClientSecure tlsRt; bool rtIniciado = false, rtLigado = false, acordar = false; unsigned long rtBatida = 0, ultAcordar = 0; String rtTopico;
+int syMs = 0, syMax = 0, syReuso = 0, syNova = 0;  // diário da busca (versão 15): tempo da última, maior, reusou/abriu conexão
 int rtCon = 0, rtCai = 0, rtAcorda = 0, rtTent = 0; unsigned long rtTentEm = 0; String rtUlt;  // diário do aviso na hora (versão 11), vai no estado
 MimiMem MI = {false, 0}; unsigned long miEm = 0, miUlt = 0;  // "A mimi?" (regraMimi em regras.h)
 bool temSala() { return salaEm && millis() - salaEm < 120000; }
@@ -370,6 +371,7 @@ void estadoJson(JsonObject d) {
   d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
   if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = tlsRt.connected(); x["m"] = rtUlt; x["t"] = rtTent; }
   d["hmax"] = (int)(ESP.getMaxAllocHeap() / 1024);
+  { JsonObject y = d["sy"].to<JsonObject>(); y["ms"] = syMs; y["max"] = syMax; y["r"] = syReuso; y["n"] = syNova; }
   if (MI.on) { JsonObject mm = d["mimi"].to<JsonObject>(); mm["f"] = MI.fase; if (MI.fase == 1) mm["r"] = (long)(MIMI_FASE1 - (millis() - miEm)) / 1000; }
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
   if (fwMsg.length()) d["fwMsg"] = fwMsg;
@@ -476,10 +478,12 @@ void sincronizar() {
   if (LIDO.paraNuvem) rxJson(d["p_rx"].to<JsonObject>());
   if (mandarCodigo) d["p_pair"] = codigo;
   String corpo; serializeJson(d, corpo);
+  unsigned long syIni = millis(); if (tlsNuvem.connected()) syReuso++; else syNova++;
   HTTPClient http; http.setReuse(true); http.setTimeout(8000);
   if (!http.begin(tlsNuvem, URL_SYNC)) { nuvemOk = false; return; }
   http.addHeader("apikey", SB_CHAVE); http.addHeader("Content-Type", "application/json");
   int c = http.POST(corpo);
+  syMs = millis() - syIni; if (syMs > syMax) syMax = syMs;
   if (c == 200) {
     nuvemOk = true; mandarCodigo = false; LIDO.paraNuvem = false;
     JsonDocument r;
