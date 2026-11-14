@@ -160,6 +160,64 @@ window.renderOta=function(){$('otav').textContent=S.fw?'Versão '+S.fw+(S.fwNova
 const u0=ui;ui=function(){u0();renderOta()};
 })();
 
+// TV AOC (controle universal): abas Ar e TV, controle da TV e aprender botões do controle original. Mesmo código nos dois apps (usa S, send, ui).
+(function(){
+const $=i=>document.getElementById(i),pw=$('p'),pai=pw.parentNode,aj=$('aj');
+const P={ar:'M4 5h16v8H4zM7 9h10M8 17l-1 3M12 17v3M16 17l1 3',tv:'M3 5h18v12H3zM8 21h8M12 17v4',pwr:'M12 3v8M6.3 7a8 8 0 1 0 11.4 0',
+ up:'M6 15l6-6 6 6',down:'M6 9l6 6 6-6',left:'M15 6l-6 6 6 6',right:'M9 6l6 6-6 6',mute:'M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6'};
+const ic=k=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+P[k]+'"/></svg>';
+const N={power:'Ligar ou desligar a TV',chUp:'Canal +',chDn:'Canal −',volUp:'Volume +',volDn:'Volume −',menu:'Menu',mute:'Mudo',fonte:'TV/AV',info:'Info',voltar:'Último canal',sleep:'Sleep',tela:'Tela'};
+for(let i=0;i<10;i++)N['n'+i]='Número '+i;
+const st=document.createElement('style');st.textContent=
+'.abas{display:flex;gap:4px;width:100%;max-width:420px;padding:4px;margin:0 0 18px;background:#121b2e;border-radius:16px}'+
+'.abas button{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:none;color:#a9b6d6;font-weight:600;transition:background .25s cubic-bezier(.16,1,.3,1),color .25s}'+
+'.abas button[aria-selected=true]{background:#1b2740;color:#e8eefc}.abas svg,#pTv svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'+
+'#pAr,#pTv{width:100%;display:flex;flex-direction:column;align-items:center}#pTv{max-width:420px;gap:16px}'+
+'#pTv .tk{position:relative;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#a9b6d6;transition:background .35s cubic-bezier(.16,1,.3,1)}'+
+'#pTv .tk svg{color:#e8eefc}#pTv .tk.vai{background:#2f7cf6;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#3ecf8e}'+
+'#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#e5484d}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
+'.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#e8eefc;font-size:14px}'+
+'.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
+'.tvn .tk{height:56px;font-size:21px;color:#e8eefc;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a9b6d6}'+
+'#pTv.apr .tk{outline:2px dashed #f5a524;outline-offset:-2px}#tvmsg{min-height:21px;margin:0;font-size:14px;color:#a9b6d6;text-align:center}'+
+'.tvli{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}.tvli span{color:#e8eefc}.tvli button{min-width:0;padding:10px 12px;font-size:14px}'+
+'.abas button:focus-visible,#pTv button:focus-visible{outline:2px solid #2f7cf6;outline-offset:2px}';
+document.head.append(st);
+const abas=document.createElement('div'),ar=document.createElement('div'),tv=document.createElement('div');
+abas.className='abas';abas.setAttribute('role','tablist');abas.setAttribute('aria-label','Aparelho');
+ar.id='pAr';tv.id='pTv';ar.setAttribute('role','tabpanel');tv.setAttribute('role','tabpanel');ar.setAttribute('aria-labelledby','aba-ar');tv.setAttribute('aria-labelledby','aba-tv');
+pai.insertBefore(abas,pw);pai.insertBefore(ar,pw);
+for(let n=pw;n&&n!==aj;){const s=n.nextSibling;ar.append(n);n=s}
+ar.after(tv);
+abas.innerHTML='<button role="tab" id="aba-ar" aria-controls="pAr">'+ic('ar')+'Ar</button><button role="tab" id="aba-tv" aria-controls="pTv">'+ic('tv')+'TV</button>';
+const b=(k,c)=>'<button class="tk'+(c?' '+c:'')+'" data-k="'+k+'" aria-label="'+N[k]+'">';
+tv.innerHTML=b('power','tvp')+ic('pwr')+'</button>'+
+ '<div class="tvx"><i></i>'+b('chUp')+ic('up')+'Canal</button><i></i>'+b('volDn')+ic('left')+'Vol</button>'+b('menu')+'Menu</button>'+b('volUp')+ic('right')+'Vol</button><i></i>'+b('chDn')+ic('down')+'Canal</button><i></i></div>'+
+ '<div class="tvr">'+b('mute')+ic('mute')+'Mudo</button>'+b('fonte')+'TV/AV</button>'+b('info')+'Info</button>'+b('voltar')+'Último</button></div>'+
+ '<div class="tvn">'+[1,2,3,4,5,6,7,8,9].map(i=>b('n'+i)+i+'</button>').join('')+b('sleep')+'Sleep</button>'+b('n0')+'0</button>'+b('tela')+'Tela</button></div>'+
+ '<p id="tvmsg" role="status" aria-live="polite"></p>'+
+ '<details id="tvaj"><summary>Ajustar botões da TV</summary><p>A placa já vem com os códigos das TVs AOC. Se algum botão não funcionar, ensine a placa: toque em <b>Aprender um botão</b>, toque no botão aqui e aperte o mesmo botão no controle da TV, apontado para a placa. O ponto verde marca os botões ensinados.</p>'+
+ '<div class="r"><button id="tvap">Aprender um botão</button></div><div id="tvl"></div></details>';
+function aba(k){ar.hidden=k!=='ar';tv.hidden=k!=='tv';for(const x of abas.children){const s=x.id==='aba-'+k;x.setAttribute('aria-selected',s);x.tabIndex=s?0:-1}try{localStorage.setItem('aba',k)}catch(e){}}
+abas.onclick=e=>{const x=e.target.closest('[role=tab]');if(x)aba(x.id.slice(4))};
+abas.onkeydown=e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const k=tv.hidden?'tv':'ar';aba(k);$('aba-'+k).focus()};
+let ini='ar';try{ini=localStorage.getItem('aba')||'ar'}catch(e){}aba(ini==='tv'?'tv':'ar');
+let apr=false,ult='',ultm='',espera=0,limpa=0;
+const aviso=(t,s)=>{$('tvmsg').textContent=t;clearTimeout(limpa);if(s)limpa=setTimeout(()=>{$('tvmsg').textContent=''},s)};
+const modoApr=on=>{apr=on;tv.classList.toggle('apr',on);$('tvap').textContent=on?'Cancelar':'Aprender um botão';if(on)aviso('Toque no botão que você quer ensinar.')};
+$('tvap').onclick=()=>modoApr(!apr);
+tv.addEventListener('click',e=>{const t=e.target.closest('.tk');if(!t)return;const k=t.dataset.k;
+ if(apr){modoApr(false);send({tvAprender:k});aviso('Agora aperte '+N[k]+' no controle da TV, apontado para a placa (30 segundos).');return}
+ t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),160);if(navigator.vibrate)navigator.vibrate(8);send({tecla:k});aviso('Enviado: '+N[k],2500)});
+window.renderTv=function(){const v=S.tv||{},l=v.l||[],j=JSON.stringify(l);
+ if(j!==ult){ult=j;tv.querySelectorAll('.tk').forEach(x=>x.classList.toggle('ap',l.includes(x.dataset.k)));
+  $('tvl').replaceChildren(...l.map(k=>{const r=document.createElement('div'),s=document.createElement('span'),x=document.createElement('button');
+   r.className='tvli';s.textContent=N[k]||k;x.textContent='Voltar ao código AOC';x.onclick=()=>send({tvEsquecer:k});r.append(s,x);return r}))}
+ if(v.a){aviso('Esperando o botão '+(N[v.a]||v.a)+' do controle da TV…');if(typeof refresh!=='function'&&!espera)espera=setTimeout(()=>{espera=0;send({})},1500)}
+ else if(v.m&&v.mn!==ultm){ultm=v.mn;aviso(v.m,6000)}};
+const u0=ui;ui=function(){u0();renderTv()};
+})();
+
 fetch('/api/state').then(r=>r.json()).then(j=>{S=j;ui()}).catch(ui);
 </script></body></html>)rawliteral";
 const char PAGINA_WIFI[] PROGMEM = R"rawliteral(<!doctype html><html lang="pt-br"><head><meta charset="utf-8">

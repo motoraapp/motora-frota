@@ -164,11 +164,19 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
   if (existsSync(casa) && existsSync(fora)) {
     const a = readFileSync(casa, 'utf8').replace(/\r\n/g, '\n'), b = readFileSync(fora, 'utf8').replace(/\r\n/g, '\n');
     const bloco = (t, m) => { const i = t.indexOf(m); return i < 0 ? null : t.slice(i, t.indexOf('})();', i)); };
-    for (const m of ['// Horários programados', '// Sensor do quarto', '// Aparelho (controle universal)', '// Atualização sem fio']) {
+    for (const m of ['// Horários programados', '// Sensor do quarto', '// Aparelho (controle universal)', '// Atualização sem fio', '// TV AOC']) {
       const x = bloco(a, m), y = bloco(b, m);
       if (x && x === y) console.log(`ok   ar: bloco "${m.slice(3)}" igual no app de casa e no de fora`);
       else { erros++; console.log(`ERRO ar: bloco "${m.slice(3)}" diferente entre ar/firmware/gree-esp32/web.h e ar/index.html`); }
     }
+    // Botões da TV: os da tela (const N, mais n0..n9) têm que ser exatamente os da tabela TECLAS_TV da placa.
+    const ino = readFileSync(join(raiz, 'ar/firmware/gree-esp32/gree-esp32.ino'), 'utf8');
+    const tab = ino.slice(ino.indexOf('TECLAS_TV[] = {'), ino.indexOf('};', ino.indexOf('TECLAS_TV[] = {')));
+    const naPlaca = [...tab.matchAll(/\{"(\w+)", \d+\}/g)].map(m => m[1]).sort();
+    const nObj = (bloco(b, '// TV AOC') || '').match(/const N=\{([^}]*)\}/);
+    const naTela = [...(nObj ? nObj[1] : '').matchAll(/(\w+):'/g)].map(m => m[1]).concat([...Array(10)].map((_, i) => 'n' + i)).sort();
+    if (naPlaca.length && JSON.stringify(naPlaca) === JSON.stringify(naTela)) console.log(`ok   ar: ${naPlaca.length} botões da TV iguais na tela e na placa`);
+    else { erros++; console.log(`ERRO ar: botões da TV diferentes. Placa: ${naPlaca.join(',')} | Tela: ${naTela.join(',')}`); }
   }
 }
 

@@ -27,7 +27,7 @@
 #include "web.h"
 #include "certs.h"
 
-#define FW_VERSAO 3
+#define FW_VERSAO 4
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -164,9 +164,70 @@ void enviar(const Estado &e, int proto) {
   Serial.printf("TX: %s %s %d\n", typeToString((decode_type_t)proto).c_str(), e.power ? "liga" : "desliga", e.temp);
 }
 
+// ---------- TV AOC (controle universal, versão 4) ----------
+// Códigos NEC da TV AOC comum: endereço 0 / 189 (lista pública irdb, codes/AOC/TV/0,189.csv).
+// Nessas TVs as setas do controle também são canal (cima/baixo) e volume (esquerda/direita).
+// Um botão "aprendido" do controle original (guardado como tv_<botão>) vale no lugar do código AOC.
+struct TeclaTv { const char *k; uint8_t f; };
+const TeclaTv TECLAS_TV[] = {{"power", 1}, {"mute", 4}, {"fonte", 5}, {"menu", 10}, {"volUp", 12}, {"volDn", 16}, {"chUp", 24}, {"chDn", 28},
+  {"info", 64}, {"voltar", 68}, {"sleep", 19}, {"tela", 20}, {"n0", 65}, {"n1", 21}, {"n2", 22}, {"n3", 23}, {"n4", 25}, {"n5", 26},
+  {"n6", 27}, {"n7", 29}, {"n8", 30}, {"n9", 31}};
+const int N_TECLAS_TV = sizeof(TECLAS_TV) / sizeof(TECLAS_TV[0]);
+const uint16_t AOC_ENDERECO = 0xBD00;  // 1º byte 0, 2º byte 189 (NEC estendido)
+IRsend irsend(PINO_TX);
+String tvAprendendo, tvMsg, tvLista; unsigned long tvAte = 0, tvMsgEm = 0; int tvMsgN = 0;
+int tvIndice(const String &k) { for (int i = 0; i < N_TECLAS_TV; i++) if (k == TECLAS_TV[i].k) return i; return -1; }
+void tvAvisar(const String &m) { tvMsg = m; tvMsgN++; tvMsgEm = millis(); }
+void tvTecla(const String &k) {
+  int i = tvIndice(k);
+  if (i < 0) return;
+  String ap = lerTxt(("tv_" + k).c_str());  // "protocolo,bits,valor em hexa"
+  irrecv.disableIRIn();
+  int c1 = ap.indexOf(','), c2 = ap.indexOf(',', c1 + 1);
+  if (c1 > 0 && c2 > c1) {
+    irsend.send((decode_type_t)ap.substring(0, c1).toInt(), strtoull(ap.substring(c2 + 1).c_str(), NULL, 16), ap.substring(c1 + 1, c2).toInt());
+  } else {
+    irsend.sendNEC(irsend.encodeNEC(AOC_ENDERECO, TECLAS_TV[i].f));
+  }
+  irrecv.enableIRIn();
+  Serial.printf("TV: %s%s\n", k.c_str(), ap.length() ? " (aprendido)" : "");
+}
+void tvGuardarLista() { gravaTxt("tv_lista", tvLista); }
+bool tvNaLista(const String &k) { return ("," + tvLista + ",").indexOf("," + k + ",") >= 0; }
+void tvEsquecer(const String &k) {
+  if (tvIndice(k) < 0) return;
+  nvs_erase_key(NV, ("tv_" + k).c_str()); nvs_commit(NV);
+  String l = "," + tvLista + ","; l.replace("," + k + ",", ","); l = l.substring(1, l.length() - 1); if (l == ",") l = "";
+  tvLista = l; tvGuardarLista();
+}
+// Durante o "aprender": o próximo sinal reconhecido do controle da TV vira o código daquele botão.
+bool tvCapturar() {
+  if (!tvAprendendo.length()) return false;
+  if (res.decode_type == decode_type_t::UNKNOWN || res.repeat || hasACState(res.decode_type) || res.bits == 0 || res.bits > 64) return true;  // espera um sinal bom
+  char v[48]; snprintf(v, sizeof(v), "%d,%d,%llx", (int)res.decode_type, res.bits, (unsigned long long)res.value);
+  gravaTxt(("tv_" + tvAprendendo).c_str(), v);
+  if (!tvNaLista(tvAprendendo)) { tvLista += (tvLista.length() ? "," : "") + tvAprendendo; tvGuardarLista(); }
+  tvAvisar("Botão aprendido. Toque nele para testar.");
+  Serial.printf("TV aprendeu %s = %s\n", tvAprendendo.c_str(), v);
+  tvAprendendo = "";
+  return true;
+}
+void tvJson(JsonObject t) {
+  if (tvAprendendo.length()) t["a"] = tvAprendendo;
+  JsonArray l = t["l"].to<JsonArray>();
+  int i = 0;
+  while (i < (int)tvLista.length()) { int j = tvLista.indexOf(',', i); if (j < 0) j = tvLista.length(); if (j > i) l.add(tvLista.substring(i, j)); i = j + 1; }
+  if (tvMsg.length()) { t["m"] = tvMsg; t["mn"] = tvMsgN; }
+}
+void cuidarTv() {
+  if (tvAprendendo.length() && millis() > tvAte) { tvAprendendo = ""; tvAvisar("Não recebi o sinal. Tente de novo, com o controle da TV apontado para a placa."); }
+  if (tvMsg.length() && millis() - tvMsgEm > 20000) tvMsg = "";
+}
+
 Leitura LIDO;  // último sinal lido do controle original
 void lerControle() {
   if (!irrecv.decode(&res)) return;
+  if (tvCapturar()) { irrecv.resume(); return; }
   LIDO.n++; LIDO.pid = res.decode_type; LIDO.proto = typeToString(res.decode_type, res.repeat);
   LIDO.hex = resultToHexidecimal(&res); LIDO.text = IRAcUtils::resultAcToString(&res);
   if (LIDO.hex.length() > 120) LIDO.hex = LIDO.hex.substring(0, 120);
@@ -246,6 +307,7 @@ void estadoJson(JsonObject d) {
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
   if (fwMsg.length()) d["fwMsg"] = fwMsg;
   if (BU.on) { JsonObject b = d["scan"].to<JsonObject>(); b["i"] = BU.i + 1; b["n"] = NORD; b["p"] = ORD[BU.i]; b["auto"] = BU.sozinho; }
+  tvJson(d["tv"].to<JsonObject>());
   if (temSala()) { JsonObject q = d["sala"].to<JsonObject>(); q["t"] = serialized(String(salaT, 1)); q["u"] = salaU; }
   struct tm tm;
   if (getLocalTime(&tm, 0)) { char h[6]; snprintf(h, 6, "%02d:%02d", tm.tm_hour, tm.tm_min); d["hora"] = h; }
@@ -277,6 +339,12 @@ void aplicar(JsonObject p) {
     A.on = on; salvarAuto();
   }
   if (p["scan"].is<const char *>()) buscaCmd(p["scan"].as<String>());
+  if (p["tecla"].is<const char *>()) tvTecla(p["tecla"].as<String>());
+  if (p["tvAprender"].is<const char *>()) {
+    String k = p["tvAprender"].as<String>();
+    if (tvIndice(k) >= 0) { tvAprendendo = k; tvAte = millis() + 30000; tvMsg = ""; }
+  }
+  if (p["tvEsquecer"].is<const char *>()) tvEsquecer(p["tvEsquecer"].as<String>());
   if (p["ota"].is<const char *>()) { String o = p["ota"].as<String>(); otaPedido = o == "now" ? 2 : (o == "check" ? 1 : 0); }
   if (mandar) {
     if (S.power != antes) { autoManual(AM, S.power, A.on); salvarAuto(); }
@@ -466,6 +534,8 @@ void setup() {
   Serial.printf("Gree AC versao %d, placa %s, gaveta %s\n", FW_VERSAO, ID.c_str(), gaveta.c_str());
   tlsNuvem.setCACert(CERTS); tlsGh.setCACert(CERTS);
   dht.begin();
+  irsend.begin();
+  tvLista = lerTxt("tv_lista");
   irrecv.setUnknownThreshold(12);
   irrecv.enableIRIn();
   ssid = lerTxt("ssid"); senha = lerTxt("pass");
@@ -484,6 +554,7 @@ void loop() {
   lerSensor();
   checarHorarios();
   checarAuto();
+  cuidarTv();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
   if (conectado && millis() - ultSync > 3000) { ultSync = millis(); sincronizar(); }
   cuidarOta();
