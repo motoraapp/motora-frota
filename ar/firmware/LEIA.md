@@ -29,6 +29,6 @@ O workflow `verificar.yml` (tarefa `placa-ar`) compila a cada push.
 
 Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1 (a do código perdido); `gree-v5.bin` e `gree-esp32-completo-v5.bin` = versão 5 (as versões 2 a 4 estão no histórico do Git). Instalada na placa em 13/11/2026: versão 2, testada e funcionando (mesma identidade, ligada à conta).
 
-## Esquema de liga��o
+## Esquema de ligação
 
-esquema.svg / esquema.png: DHT22 no D25 (com 10 kO entre DADOS e 3V3), receptor IR (VS1838B) no D27, LED IR no D4 com resistor de 220 O at� o GND, tudo em 3V3/GND da ESP32. Tirado do diagram.json; o receptor n�o leu o controle em 14/11/2026, ent�o confira o pino dele na placa real.
+`esquema.svg` / `esquema.png`: DHT22 no D25 (com 10 kΩ entre DADOS e 3V3), receptor IR (VS1838B) no D27, LED IR no D4 com resistor de 220 Ω até o GND, tudo em 3V3/GND da ESP32. Tirado do `diagram.json`; o receptor não leu o controle em 14/11/2026, então confira o pino dele na placa real.
