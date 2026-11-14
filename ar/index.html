@@ -114,8 +114,12 @@ function errTxt(e){ const t=(e&&e.message)||String(e); if(/Invalid login/i.test(
   if(/codigo errado/i.test(t)) return 'Código errado ou vencido. Gere outro no app de casa.'; if(/sem permissao/i.test(t)) return 'Esta conta não tem permissão (só a conta do dono).';
   if(/muitos comandos/i.test(t)) return 'Muitos comandos seguidos. Espere um pouco.'; if(/fetch|network/i.test(t)) return 'Sem internet.'; return t; }
 function btn(l,on,fn){ const b=document.createElement('button'); b.textContent=l; if(on) b.className='on'; b.onclick=fn; return b; }
+// Quem ligou/desligou e quando (ar.device.evento, gravado pelo banco a cada mudança): "Desligado pelo automático às 18:20".
+function evTxt(){ const e=DEV&&DEV.evento; if(!e||!e.em||!!e.power!==!!S.power) return ""; const d=new Date(e.em),hj=new Date();
+  const quem=e.origem==="auto"?"pelo automático":e.origem==="app"?"pelo app":"pelo horário ou controle";
+  return " "+quem+" "+(d.toDateString()===hj.toDateString()?"às ":"em "+d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})+" às ")+d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}); }
 function ui(){
-  $('t').textContent=S.temp; $('p').className=S.power?'on':''; $('pst').textContent=S.power?'Ligado · '+((M.find(m=>m[0]==S.mode)||[,''])[1]):'Desligado'; $('p').setAttribute('aria-pressed',S.power); $('mimi').className=S.power&&S.mode==1&&S.temp==20&&S.turbo&&S.fan==3?'on':''; $('mimit').textContent='Frio 20° · turbo · ventilação máxima · '+(S.tv&&S.tv.dz>0?'TV desliga às '+new Date(Date.now()+S.tv.dz*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'TV desliga em 2 h');
+  $('t').textContent=S.temp; $('p').className=S.power?'on':''; $('pst').textContent=S.power?'Ligado'+evTxt()+' · '+((M.find(m=>m[0]==S.mode)||[,''])[1]):'Desligado'+evTxt(); $('p').setAttribute('aria-pressed',S.power); $('mimi').className=S.power&&S.mode==1&&S.temp==20&&S.turbo&&S.fan==3?'on':''; $('mimit').textContent='Frio 20° · turbo · ventilação máxima · '+(S.tv&&S.tv.dz>0?'TV desliga às '+new Date(Date.now()+S.tv.dz*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'TV desliga em 2 h');
   $('m').replaceChildren(...M.map(([v,l])=>btn(l,S.mode==v,()=>send({mode:v}))));
   $('f').replaceChildren(...F.map(([v,l])=>btn(l==='Auto'?'Auto':'Nível '+l,S.fan==v,()=>send({fan:v}))));
   $('x').replaceChildren(...X.map(([k,l])=>btn(l,S[k],()=>send({[k]:!S[k]}))));
