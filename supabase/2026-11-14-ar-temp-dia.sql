@@ -42,3 +42,14 @@ $$;
 
 revoke all on function ar.grava_temp(), public.ar_temp_dias(int) from public, anon, authenticated;
 grant execute on function public.ar_temp_dias(int) to authenticated;
+
+-- Filtro por mês e ano (14/11/2026): dias com leitura entre p_de e p_ate (no máximo 400 dias).
+create or replace function public.ar_temp_periodo(p_de date, p_ate date) returns jsonb
+language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(jsonb_build_object('dia', t.dia, 'max', t.max, 'max_em', t.max_em, 'min', t.min) order by t.dia), '[]'::jsonb)
+  from ar.temp_dia t join ar.device d on d.id = t.device_id
+  where d.owner = auth.uid() and ar.is_master()
+    and t.dia between p_de and least(p_ate, p_de + 400)
+$$;
+revoke all on function public.ar_temp_periodo(date, date) from public, anon, authenticated;
+grant execute on function public.ar_temp_periodo(date, date) to authenticated;
