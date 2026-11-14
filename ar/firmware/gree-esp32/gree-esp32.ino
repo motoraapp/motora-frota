@@ -27,10 +27,10 @@
 #include "web.h"
 #include "certs.h"
 #include "tv_universal.h"
-#include <WebSocketsClient.h>  // WebSockets 2.7.2 (Markus Sattler): aviso na hora (versão 9)
 #include "mbedtls/sha256.h"
+#include "mbedtls/base64.h"
 
-#define FW_VERSAO 12
+#define FW_VERSAO 13
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -339,7 +339,7 @@ void buscaCmd(const String &c) {
 // ---------- Sensor do quarto ----------
 DHT dht(PINO_DHT, DHT22);
 float salaT = NAN; int salaU = 0; unsigned long salaEm = 0, ultSensor = 0;
-WebSocketsClient rt; bool rtIniciado = false, rtLigado = false, acordar = false; unsigned long rtBatida = 0, ultAcordar = 0; String rtTopico;
+WiFiClientSecure tlsRt; bool rtIniciado = false, rtLigado = false, acordar = false; unsigned long rtBatida = 0, ultAcordar = 0; String rtTopico;
 int rtCon = 0, rtCai = 0, rtAcorda = 0, rtTent = 0; unsigned long rtTentEm = 0; String rtUlt;  // diário do aviso na hora (versão 11), vai no estado
 MimiMem MI = {false, 0}; unsigned long miEm = 0, miUlt = 0;  // "A mimi?" (regraMimi em regras.h)
 bool temSala() { return salaEm && millis() - salaEm < 120000; }
@@ -368,7 +368,7 @@ void estadoJson(JsonObject d) {
   a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou;
   d["fw"] = FW_VERSAO;
   d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
-  if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = rt.isConnected(); x["m"] = rtUlt; x["t"] = rtTent; }
+  if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = tlsRt.connected(); x["m"] = rtUlt; x["t"] = rtTent; }
   d["hmax"] = (int)(ESP.getMaxAllocHeap() / 1024);
   if (MI.on) { JsonObject mm = d["mimi"].to<JsonObject>(); mm["f"] = MI.fase; if (MI.fase == 1) mm["r"] = (long)(MIMI_FASE1 - (millis() - miEm)) / 1000; }
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
@@ -492,43 +492,67 @@ void sincronizar() {
   } else { nuvemOk = false; Serial.printf("cloud erro %d\n", c); tlsNuvem.stop(); }
   http.end();
 }
-// ---------- Aviso na hora (versão 9) ----------
+// ---------- Aviso na hora (versão 9; websocket próprio desde a versão 13) ----------
 // Conexão sempre aberta com o Realtime do Supabase. Quando entra um comando em ar.cmd, o banco manda um "cutucão" no
 // canal ar-<24 primeiros hexa do sha256 da chave da placa> (gatilho ar_cmd_acorda) e a placa sincroniza na hora.
-// A busca a cada 3 s continua de reserva. O cutucão não leva o comando: quem pega é o ar_device_sync, com a chave.
-void rtEvento(WStype_t tipo, uint8_t *dados, size_t n) {
-  if (tipo == WStype_CONNECTED) {
-    rtLigado = true; rtBatida = millis(); rtCon++;
-    String j = "{\"topic\":\"realtime:" + rtTopico + "\",\"event\":\"phx_join\",\"payload\":{\"config\":{\"broadcast\":{\"self\":false},\"private\":false}},\"ref\":\"1\"}";
-    rt.sendTXT(j);
-  } else if (tipo == WStype_DISCONNECTED) { if (rtLigado) rtCai++; rtLigado = false; }
-  else if (tipo == WStype_ERROR) { rtUlt = "erro"; }
-  else if (tipo == WStype_TEXT && dados && n < 3000) {
-    String m; m.reserve(n); for (size_t i = 0; i < n; i++) m += (char)dados[i];
-    if (m.indexOf("\"broadcast\"") >= 0) { acordar = true; rtAcorda++; }
-    rtUlt = m.substring(0, 80);
-  }
+// A busca continua de reserva. O cutucão não leva o comando: quem pega é o ar_device_sync, com a chave.
+// Websocket mínimo (RFC 6455) em cima do WiFiClientSecure: o cliente manda quadros de texto mascarados; o servidor
+// manda texto, ping (respondemos pong) e close. A biblioteca WebSockets (versões 9 a 12) nunca conectou nesta placa.
+const char *RT_HOST = "epswrtcwszhbapaxdpzz.supabase.co";
+void rtQuadro(uint8_t op, const String &txt) {
+  size_t n = txt.length(); uint8_t h[8]; int k = 0;
+  h[k++] = 0x80 | op;
+  if (n < 126) h[k++] = 0x80 | n; else { h[k++] = 0x80 | 126; h[k++] = n >> 8; h[k++] = n & 0xFF; }
+  uint8_t m[4]; for (int i = 0; i < 4; i++) m[i] = random(256);
+  tlsRt.write(h, k); tlsRt.write(m, 4);
+  uint8_t b[64]; size_t i = 0;
+  while (i < n) { size_t c = 0; while (c < sizeof(b) && i < n) { b[c] = txt[i] ^ m[i % 4]; c++; i++; } tlsRt.write(b, c); }
 }
-void rtComecar() {
-  uint8_t h[32]; mbedtls_sha256_ret((const unsigned char *)CHAVE.c_str(), CHAVE.length(), h, 0);
-  char hx[25]; for (int i = 0; i < 12; i++) sprintf(hx + i * 2, "%02x", h[i]);
-  rtTopico = String("ar-") + hx;
-  String url = String("/realtime/v1/websocket?apikey=") + SB_CHAVE + "&vsn=1.0.0";
-  rt.beginSslWithCA("epswrtcwszhbapaxdpzz.supabase.co", 443, url.c_str(), CERTS);
-  rt.onEvent(rtEvento); rt.setReconnectInterval(3600000UL);  // quem tenta de novo é o cuidarRealtime (versão 12)
-  rt.enableHeartbeat(15000, 5000, 2);  // ping de websocket a cada 15 s (mantém a conexão aberta no caminho)
-  rtIniciado = true; rtTent++; rtTentEm = millis();
+void rtCair(const String &motivo) { if (rtLigado) rtCai++; rtLigado = false; rtUlt = motivo; tlsRt.stop(); }
+bool rtConectar() {
+  rtTent++; rtTentEm = millis();
+  if (!rtTopico.length()) {
+    uint8_t h[32]; mbedtls_sha256_ret((const unsigned char *)CHAVE.c_str(), CHAVE.length(), h, 0);
+    char hx[25]; for (int i = 0; i < 12; i++) sprintf(hx + i * 2, "%02x", h[i]);
+    rtTopico = String("ar-") + hx;
+  }
+  tlsRt.setCACert(CERTS); tlsRt.setTimeout(8);
+  if (!tlsRt.connect(RT_HOST, 443)) { char e[64] = ""; tlsRt.lastError(e, sizeof(e)); rtUlt = String("tls: ") + e; tlsRt.stop(); return false; }
+  uint8_t chave[16]; for (int i = 0; i < 16; i++) chave[i] = random(256);
+  unsigned char b64[32]; size_t nb = 0; mbedtls_base64_encode(b64, sizeof(b64), &nb, chave, 16); b64[nb] = 0;
+  tlsRt.print(String("GET /realtime/v1/websocket?apikey=") + SB_CHAVE + "&vsn=1.0.0 HTTP/1.1\r\nHost: " + RT_HOST +
+              "\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: " + (char *)b64 +
+              "\r\nUser-Agent: nossa-casinha\r\n\r\n");
+  String linha = tlsRt.readStringUntil('\n');
+  if (linha.indexOf(" 101") < 0) { rtUlt = "http: " + linha.substring(0, 60); tlsRt.stop(); return false; }
+  unsigned long t0 = millis();
+  while (millis() - t0 < 5000) { String l = tlsRt.readStringUntil('\n'); if (l.length() <= 1) break; }  // pula os cabeçalhos
+  rtLigado = true; rtCon++; rtBatida = millis(); rtUlt = "ok";
+  rtQuadro(1, "{\"topic\":\"realtime:" + rtTopico + "\",\"event\":\"phx_join\",\"payload\":{\"config\":{\"broadcast\":{\"self\":false},\"private\":false}},\"ref\":\"1\"}");
+  return true;
+}
+void rtLer() {
+  while (tlsRt.available() >= 2) {
+    uint8_t b0 = tlsRt.read(), b1 = tlsRt.read(); size_t n = b1 & 0x7F;
+    if (n == 126) { uint8_t x[2]; if (tlsRt.readBytes(x, 2) != 2) { rtCair("quadro"); return; } n = (x[0] << 8) | x[1]; }
+    else if (n == 127) { rtCair("quadro grande"); return; }
+    uint8_t m[4] = {0, 0, 0, 0}; if (b1 & 0x80) tlsRt.readBytes(m, 4);
+    if (n > 4000) { rtCair("quadro grande"); return; }
+    String txt; txt.reserve(n);
+    for (size_t i = 0; i < n; i++) { int c = -1; unsigned long t = millis(); while ((c = tlsRt.read()) < 0 && millis() - t < 2000) delay(1); if (c < 0) { rtCair("quadro cortado"); return; } txt += (char)(c ^ m[i % 4]); }
+    uint8_t op = b0 & 0x0F;
+    if (op == 1) { if (txt.indexOf("\"broadcast\"") >= 0) { acordar = true; rtAcorda++; } rtUlt = txt.substring(0, 80); }
+    else if (op == 9) rtQuadro(10, txt);   // ping -> pong
+    else if (op == 8) { rtCair("servidor fechou"); return; }
+  }
 }
 void cuidarRealtime() {
-  if (WiFi.status() != WL_CONNECTED) return;
-  // Versão 12: antes de cada tentativa fecha a conexão da busca de 3 s (tlsNuvem) para sobrar memória contínua para
-  // a do websocket; a busca reabre a dela sozinha depois. Nova tentativa a cada 20 s enquanto não conectar.
-  if (!rtIniciado || (!rt.isConnected() && millis() - rtTentEm > 20000)) {
-    if (CHAVE.length() && millis() > 15000) { if (rtIniciado) rt.disconnect(); tlsNuvem.stop(); rtComecar(); }
-    return;
-  }
-  rt.loop();
-  if ((rtLigado || rt.isConnected()) && millis() - rtBatida > 25000) { rtBatida = millis(); rt.sendTXT("{\"topic\":\"phoenix\",\"event\":\"heartbeat\",\"payload\":{},\"ref\":\"hb\"}"); }
+  if (WiFi.status() != WL_CONNECTED || !CHAVE.length() || millis() < 15000) return;
+  rtIniciado = true;
+  if (rtLigado && !tlsRt.connected()) rtCair("caiu");
+  if (!rtLigado) { if (millis() - rtTentEm > 20000 || rtTent == 0) rtConectar(); return; }
+  rtLer();
+  if (rtLigado && millis() - rtBatida > 25000) { rtBatida = millis(); rtQuadro(1, "{\"topic\":\"phoenix\",\"event\":\"heartbeat\",\"payload\":{},\"ref\":\"hb\"}"); }
   if (acordar && millis() - ultAcordar > 300) { acordar = false; ultAcordar = millis(); ultSync = millis(); sincronizar(); }
 }
 
@@ -553,7 +577,7 @@ void otaChecar(bool avisar) {
 void otaInstalar() {
   fwMsg = "Atualizando… a placa reinicia sozinha em cerca de 1 minuto.";
   sincronizar();
-  if (rtIniciado) rt.disconnect();  // libera memória para baixar a versão nova
+  if (rtLigado) tlsRt.stop();  // libera memória para baixar a versão nova
   Serial.printf("atualizando para a versao %d\n", fwNova);
   httpUpdate.rebootOnUpdate(true);
   httpUpdate.update(tlsGh, fwUrl);  // se der certo, reinicia aqui

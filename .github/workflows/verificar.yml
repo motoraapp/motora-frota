@@ -44,7 +44,7 @@ jobs:
             || { echo "::error::$(tail -c 900 log.txt | tr '\n' ' ')"; exit 1; }
       - name: Instalar bibliotecas
         run: |
-          arduino-cli lib install "IRremoteESP8266@2.8.6" "DHT sensor library@1.4.6" "Adafruit Unified Sensor@1.1.15" "ArduinoJson@7.2.1" "WebSockets@2.7.2" > log.txt 2>&1 \
+          arduino-cli lib install "IRremoteESP8266@2.8.6" "DHT sensor library@1.4.6" "Adafruit Unified Sensor@1.1.15" "ArduinoJson@7.2.1" > log.txt 2>&1 \
             || { echo "::error::$(tail -c 900 log.txt | tr '\n' ' ')"; exit 1; }
       - name: Compilar a placa
         run: |
