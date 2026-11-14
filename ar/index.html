@@ -25,7 +25,7 @@ label{font-size:14px;color:var(--muted)}input{width:100%;padding:14px;font-size:
 .big{font-size:28px;letter-spacing:6px;text-align:center}
 #msg{min-height:20px;font-size:14px;color:var(--warn);text-align:center}
 details{width:100%;margin-top:24px;background:var(--card);border-radius:14px;padding:4px 16px}summary{padding:12px 0;font-size:16px;cursor:pointer}
-.gfil{display:flex;gap:6px;margin:2px 0 8px}.gfil button{padding:10px 8px;font-size:15px;min-height:44px}.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 52px;padding:8px;font-size:22px;min-height:44px}.gnav b{flex:1;text-align:center;font-weight:600}#gsvg svg{display:block;width:100%;height:auto}#gsvg .gb{cursor:pointer}.gres{display:flex;justify-content:space-around;text-align:center;margin:2px 0 6px}.gres span{color:var(--muted);font-size:14px}.gres b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}#gdet{color:var(--muted);font-size:14px;text-align:center;min-height:20px}
+.gfil{display:flex;gap:6px;margin:2px 0 8px}.gfil button{padding:10px 8px;font-size:15px;min-height:44px}.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 52px;padding:8px;font-size:22px;min-height:44px}.gnav b{flex:1;text-align:center;font-weight:600}#gsvg svg{display:block;width:100%;height:auto}#gsvg .gb{cursor:pointer}.gres{display:flex;justify-content:space-around;text-align:center;margin:2px 0 6px}.gres span{color:var(--muted);font-size:14px}.gres small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.gres b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}#gdet{color:var(--muted);font-size:14px;text-align:center;min-height:20px}
 details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
 #rx code{color:#8fd3ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:#8fa3d6;padding:8px;min-width:0;text-decoration:underline}
 [hidden]{display:none!important}
@@ -52,7 +52,7 @@ details p{margin:6px 0 10px}#rx{background:var(--bg);border-radius:10px;padding:
  <button id="p">ON/OFF</button><div class="t"><span id="t">24</span>°</div>
  <div class="r"><button data-d="-1">−</button><button data-d="1">+</button></div>
  <div class="r" id="m"></div><div class="r" id="f"></div><div class="r" id="x"></div>
- <details id="graf" open><summary>Temperatura máxima do quarto</summary><div class="gfil" role="group" aria-label="Período"><button data-g="7" class="on">7 dias</button><button data-g="mes">Mês</button><button data-g="ano">Ano</button></div><div class="gnav" id="gnav" hidden><button id="gant" aria-label="Período anterior">‹</button><b id="gper"></b><button id="gprox" aria-label="Próximo período">›</button></div><div id="gsvg"></div><div class="gres"><div><span>Mais quente</span><b id="gq">—</b></div><div><span>Média das máximas</span><b id="gm">—</b></div></div><p id="gdet"></p></details>
+ <details id="graf" open><summary>Temperatura máxima do quarto</summary><div class="gfil" role="group" aria-label="Período"><button data-g="7" class="on">7 dias</button><button data-g="mes">Mês</button><button data-g="ano">Ano</button></div><div class="gnav" id="gnav" hidden><button id="gant" aria-label="Período anterior">‹</button><b id="gper"></b><button id="gprox" aria-label="Próximo período">›</button></div><div id="gsvg"></div><div class="gres"><div><span>Mais quente</span><b id="gq">—</b><small id="gqh"></small></div><div><span>Média das máximas</span><b id="gm">—</b></div></div><p id="gdet"></p></details>
  <details id="hor"></details>
  <details id="aj"><summary>Ajustes do controle</summary>
   <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
@@ -192,10 +192,10 @@ async function carregarGraf(){ gUlt=Date.now(); const [de,ate]=gFaixa(),pedido=g
 function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],hm=iso=>new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   if(gModo==='ano'){for(let m=0;m<12;m++){const ds=GD.filter(x=>+x.dia.slice(5,7)===m+1);let r=null;ds.forEach(x=>{if(!r||+x.max>+r.max)r=x});
     const mn=ds.length?Math.min(...ds.map(x=>+x.min)):null,nome=gMES[m]+'/'+de.getFullYear();
-    it.push({a:gMES[m],b:'',v:r?+r.max:null,atual:m===new Date().getMonth()&&gDesl===0,quando:r?r.dia.slice(8)+'/'+r.dia.slice(5,7):'',
+    it.push({a:gMES[m],b:'',v:r?+r.max:null,h:r?hm(r.max_em):'',atual:m===new Date().getMonth()&&gDesl===0,quando:r?r.dia.slice(8)+'/'+r.dia.slice(5,7):'',
       det:nome+': '+(r?'máxima '+gVg(+r.max)+' °C em '+r.dia.slice(8)+'/'+r.dia.slice(5,7)+' às '+hm(r.max_em)+' · mínima do mês '+gVg(mn)+' °C':'sem leitura')})}return it}
   for(let d=new Date(de);d<=ate;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const iso=gIso(d),r=GD.find(x=>x.dia===iso),n=d.getDate(),dm=gP2(n)+'/'+gP2(d.getMonth()+1);
-    it.push({a:gModo==='7'?(iso===hoje?'hoje':gSEM[d.getDay()]):(n===1||n%5===0?String(n):''),b:gModo==='7'?dm:'',v:r?+r.max:null,atual:iso===hoje,quando:dm,
+    it.push({a:gModo==='7'?(iso===hoje?'hoje':gSEM[d.getDay()]):(n===1||n%5===0?String(n):''),b:gModo==='7'?dm:'',v:r?+r.max:null,h:r?hm(r.max_em):'',atual:iso===hoje,quando:dm,
       det:(iso===hoje?'Hoje':dm)+': '+(r?'máxima '+gVg(+r.max)+' °C às '+hm(r.max_em)+' · mínima '+gVg(+r.min)+' °C':'sem leitura')})}
   return it}
 function desenharGraf(){
@@ -204,9 +204,9 @@ function desenharGraf(){
   $('gper').textContent=gModo==='ano'?String(de.getFullYear()):de.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
   document.querySelectorAll('.gfil button').forEach(b=>{b.className=b.dataset.g===gModo?'on':'';b.setAttribute('aria-pressed',b.dataset.g===gModo)});
   const vals=it.filter(x=>x.v!==null).map(x=>x.v),alvo=S.auto&&S.auto.on?Number(S.auto.alvo):null;
-  if(!vals.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">Sem leituras neste período. O histórico começa em 14/11/2026.</p>';$('gq').textContent=$('gm').textContent='—';$('gdet').textContent='';return}
+  if(!vals.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">Sem leituras neste período. O histórico começa em 14/11/2026.</p>';$('gq').textContent=$('gm').textContent='—';$('gqh').textContent='';$('gdet').textContent='';return}
   if(gSel<0||gSel>=n){gSel=it.findIndex(x=>x.atual);if(gSel<0||it[gSel].v===null)for(let i=n-1;i>=0;i--)if(it[i].v!==null){gSel=i;break}}
-  const todos=alvo===null?vals:vals.concat(alvo),W=340,H=280,L=34,R=330,T=24,B=gModo==='7'?236:250;
+  const todos=alvo===null?vals:vals.concat(alvo),W=340,H=280,L=34,R=330,T=gModo==='7'?40:24,B=gModo==='7'?236:250;
   const lo=Math.floor(Math.min(...todos)-2),passo=Math.max(1,Math.ceil((Math.ceil(Math.max(...todos)+1)-lo)/4)),hi=lo+passo*4;
   const y=v=>B-(v-lo)/(hi-lo)*(B-T),sl=(R-L)/n,bw=Math.max(3,Math.min(30,sl*(n>12?0.7:0.62))),maior=Math.max(...vals),fs=n>12?10:n>7?11:12;
   let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Temperatura máxima do quarto">';
@@ -214,14 +214,14 @@ function desenharGraf(){
   it.forEach((x,i)=>{const cx=L+sl*i+sl/2,sel=i===gSel,rot=n<=12||sel||x.v===maior;
     s+='<g class="gb" data-i="'+i+'"><rect x="'+(L+sl*i).toFixed(1)+'" y="'+T+'" width="'+sl.toFixed(1)+'" height="'+(H-T)+'" fill="transparent"/>';
     if(x.v!==null){const yy=y(x.v);s+='<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="#f5a524" fill-opacity="'+(sel?0.9:0.32)+'"/>';
-      if(rot)s+='<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yy-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#e8eefc">'+gVg(x.v)+(n>7?'':'°')+'</text>'}
+      if(rot)s+='<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yy-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#e8eefc">'+gVg(x.v)+(n>7?'':'°')+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yy-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a9b6d6">'+x.h+'</text>':'')}
     else if(n<=12)s+='<text x="'+cx.toFixed(1)+'" y="'+(B-6)+'" text-anchor="middle" font-size="12" fill="#5d6a87">—</text>';
     s+='<text x="'+cx.toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="'+(sel?'#e8eefc':'#a9b6d6')+'">'+x.a+'</text>'+
       (x.b?'<text x="'+cx.toFixed(1)+'" y="'+(B+33)+'" text-anchor="middle" font-size="10" fill="#7d8aa8">'+x.b+'</text>':'')+'</g>'});
   if(alvo!==null){const yy=y(alvo).toFixed(1);s+='<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#e5484d" stroke-width="2" stroke-dasharray="6 4"/>'}
   $('gsvg').innerHTML=s+'</svg>'+(alvo!==null?'<p style="margin:2px 0 6px;font-size:13px;color:var(--muted);text-align:center"><span style="color:#ff6b6b">- - -</span> automático liga acima de '+alvo+' °C</p>':'');
   const q=it.filter(x=>x.v!==null).reduce((a,b)=>b.v>a.v?b:a);
-  $('gq').textContent=gVg(q.v)+' °C'+(gModo==='7'?'':' ('+q.quando+')');$('gm').textContent=gVg((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1))+' °C';
+  $('gq').textContent=gVg(q.v)+' °C';$('gqh').textContent=q.quando+' às '+q.h;$('gm').textContent=gVg((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1))+' °C';
   $('gdet').textContent=gSel>=0?it[gSel].det:'';
 }
 $('gsvg').onclick=e=>{const g=e.target.closest('[data-i]');if(g){gSel=+g.dataset.i;desenharGraf()}};
