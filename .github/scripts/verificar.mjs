@@ -178,6 +178,24 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
     if (!ruim.length) console.log('ok   ar: lá fora é temperatura medida (não previsão)');
     else { erros++; console.log(`ERRO ar: ${ruim.join('; ')}`); }
   }
+  // Cachorros do Nossa casinha (15/11/2026): módulos em ar/caes (ES module), regras dos avisos iguais na página e na função.
+  {
+    const dir = join(raiz, 'ar/caes');
+    if (existsSync(dir)) {
+      for (const f of readdirSync(dir).filter((n) => n.endsWith('.js'))) {
+        const arq = join(temp, 'caes-' + f.replace(/\.js$/, '.mjs'));
+        writeFileSync(arq, readFileSync(join(dir, f), 'utf8'));
+        checarJs('ar/caes/' + f, arq);
+      }
+      const a = readFileSync(join(dir, 'logica.js'), 'utf8').replace(/\r\n/g, '\n'), fn = join(raiz, 'supabase/functions/ar-caes/logica.js');
+      const b = existsSync(fn) ? readFileSync(fn, 'utf8').replace(/\r\n/g, '\n') : null;
+      const app = readFileSync(join(raiz, 'ar/index.html'), 'utf8');
+      const ruim = [a !== b && 'logica.js diferente entre ar/caes e supabase/functions/ar-caes',
+        !app.includes('caes/iniciar.js') && 'ar/index.html não carrega caes/iniciar.js', !app.includes('id="bCaesAv"') && 'ar/index.html sem os botões dos cachorros em Ajustes'].filter(Boolean);
+      if (!ruim.length) console.log('ok   ar: cachorros ligados no app e regras dos avisos iguais na função');
+      else { erros++; console.log('ERRO ar: ' + ruim.join('; ')); }
+    }
+  }
   if (existsSync(join(raiz, 'ar/manifest.json'))) {
     try { JSON.parse(readFileSync(join(raiz, 'ar/manifest.json'), 'utf8')); console.log('ok   ar/manifest.json'); }
     catch (e) { erros++; console.log(`ERRO ar/manifest.json: ${e.message}`); }

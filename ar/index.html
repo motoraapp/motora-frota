@@ -52,7 +52,7 @@ details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;pa
 [hidden]{display:none!important}
 #avisos{margin:10px 0}#avisos .r{margin-top:8px}#siri{display:flex;flex-direction:column;gap:8px;margin:10px 0}#siri ol{margin:4px 0 0;padding-left:22px;color:var(--muted);font-size:14px;line-height:1.5}#siri li{margin:6px 0}#siri b{color:var(--ink)}
 .cp{display:flex;gap:8px;align-items:center;background:rgba(0,0,0,.25);border-radius:12px;padding:8px 8px 8px 12px}.cp code{flex:1;min-width:0;word-break:break-all;color:#64d2ff;font-size:13px}.cp button{flex:none;padding:10px 14px;font-size:14px}
-</style></head><body><div class="wrap">
+</style><link rel="stylesheet" href="caes/dogs3d.css"><style>body.com-caes .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom))}</style></head><body><div class="wrap">
 
 <section id="vLogin" class="card" hidden>
  <h1>Nossa casinha</h1><p>Entre com o mesmo usuário e senha do MOTORA (conta do dono).</p>
@@ -81,6 +81,7 @@ details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;pa
   <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
   <p><b>Último sinal do controle original</b> (lido pela placa em casa):</p><div id="rx">Nenhum sinal lido ainda.</div>
   <div id="avisos"><p><b>Avisos no celular.</b> <span id="avst">Verificando…</span></p><div class="r"><button id="bAvisos">Ativar avisos neste celular</button></div></div>
+  <div id="caes"><p><b>Cachorros na tela.</b> Elvis, Belinha e Maya aparecem de vez em quando, brincam e pedem comida e água (arraste 🍖 e 💧 da barra de baixo para a tela). Só eles recebem toque.</p><div class="r mb"><button id="bCaes">Desligar cachorros</button><button id="bSom">Ligar som dos latidos</button></div><div class="r"><button id="bCaesAv">Avisar quando estiverem com fome ou sede 🔔</button></div><p id="caesAvTxt" style="color:var(--muted);font-size:14px"></p><p id="caesInstalar" style="color:var(--muted);font-size:14px" hidden>No iPhone, os avisos só funcionam com o app na Tela de Início: no Safari, toque em Compartilhar → Adicionar à Tela de Início, abra o Nossa casinha por lá e volte aqui.</p></div>
   <div id="siri">
    <p><b>Siri (iPhone).</b> Diga "E aí Siri, Casinha" e depois o pedido: "ligue o ar no 18", "desligue o ar", "ligue a TV", "aumente o volume", "coloque no canal 13".</p>
    <div class="r"><button id="bSiri">Criar chave da Siri</button></div>
@@ -525,4 +526,4 @@ ui(); start();
     if(t.includes('</bo'+'dy>')&&tudo(nova)!==meu){let u=0;try{u=+sessionStorage.getItem('arRecarga')||0}catch(e){}
       if(Date.now()-u>60000){try{sessionStorage.setItem('arRecarga',Date.now())}catch(e){}location.reload()}}}catch(e){}}
   conferir();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')conferir()});})();
-</script></body></html>
+</script><script type="module" src="caes/iniciar.js"></script></body></html>

@@ -1,0 +1,36 @@
+/* Estilos dos cachorros (camada por cima do app). A página precisa de espaço embaixo para a barra: padding-bottom ≈ 76px. */
+.caes-camada { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.caes-tela { position: absolute; inset: 0; width: 100%; height: 100%; }
+.caes-pocas, .caes-baloes { position: absolute; inset: 0; }
+.caes-balao { position: absolute; left: 0; top: 0; margin: 0 0 0 -4px; padding: 3px 9px; border-radius: 12px; background: #f5f5f7; color: #1c1c1e;
+  font: 700 13px/1.2 -apple-system, system-ui, sans-serif; opacity: 0; transition: opacity .2s; white-space: nowrap; translate: -10% -100%;
+  box-shadow: 0 2px 8px rgba(0,0,0,.35); will-change: transform; }
+.caes-balao::after { content: ''; position: absolute; left: 10px; bottom: -5px; border: 5px solid transparent; border-top-color: #f5f5f7; border-bottom: 0; }
+.caes-balao.esq { translate: -90% -100%; } .caes-balao.esq::after { left: auto; right: 10px; }
+.caes-balao.leve { background: transparent; color: #c7c7cc; box-shadow: none; font-weight: 600; font-style: italic; }
+.caes-balao.leve::after { display: none; }
+.caes-ind { position: absolute; left: 0; top: 0; width: 122px; padding: 8px 10px; border-radius: 12px; background: rgba(28,28,30,.92); color: #f5f5f7;
+  font: 12px/1.3 -apple-system, system-ui, sans-serif; opacity: 0; transition: opacity .2s; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+.caes-ind.on { opacity: 1; }
+.caes-ind strong { display: block; font-size: 13px; margin-bottom: 4px; }
+.caes-ind span { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.caes-ind i { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,.15); overflow: hidden; }
+.caes-ind b { display: block; height: 100%; border-radius: 3px; }
+.caes-poca { position: absolute; border-radius: 50%; opacity: 0; transition: opacity 1.2s;
+  background: radial-gradient(closest-side, rgba(236,205,92,.55), rgba(236,205,92,.25) 70%, rgba(236,205,92,0)); }
+.caes-poca.on { opacity: 1; transition: opacity .8s; }
+.caes-barra { position: fixed; left: 0; right: 0; bottom: 0; z-index: 59; height: calc(62px + env(safe-area-inset-bottom)); padding: 0 14px env(safe-area-inset-bottom);
+  display: flex; align-items: center; gap: 8px; background: linear-gradient(to top, rgba(14,16,22,.94), rgba(14,16,22,.72)); border-top: 1px solid rgba(255,255,255,.07); }
+.caes-item { width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.09); font-size: 22px; touch-action: none; cursor: grab;
+  -webkit-user-select: none; user-select: none; transition: transform 80ms; }
+.caes-item:active { transform: scale(.92); }
+.caes-dica { font: 12px -apple-system, system-ui, sans-serif; color: #8e8e93; opacity: 0; transition: opacity .3s; }
+.caes-barra.dica .caes-dica, .caes-barra.chama .caes-dica { opacity: 1; }
+.caes-barra.chama .caes-item { animation: caes-pulso 1s ease-in-out 4; }
+@keyframes caes-pulso { 50% { transform: scale(1.18); background: rgba(255,159,10,.35); } }
+.caes-fantasma { position: fixed; left: 0; top: 0; z-index: 70; font-size: 34px; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+.caes-emoji { position: absolute; left: 0; top: 0; line-height: 1; }
+.caes-emoji.late { animation: caes-late .3s; }
+.caes-emoji.tig { translate: -50% -50%; font-size: 26px; }
+@keyframes caes-late { 40% { translate: 0 -6px; } }
+@media (prefers-reduced-motion: reduce) { .caes-barra.chama .caes-item { animation: none; } }
