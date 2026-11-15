@@ -521,4 +521,14 @@ const u0=ui;ui=function(){u0();renderTv()};
 })();
 
 ui(); start();
+</script>
+<script>
+// App sempre na versão nova (15/11/2026): o GitHub Pages deixa o iPhone guardar a página por 10 min. Ao abrir e ao voltar
+// para o app, busca a página direto do servidor (cache:'reload' também renova a cópia guardada); se algum script
+// mudou, recarrega. No máximo 1 recarga por minuto, para nunca ficar em loop.
+(function(){const CR=String.fromCharCode(13),tudo=d=>[...d.scripts].map(x=>x.src||x.textContent.split(CR).join('')).join('|'),meu=tudo(document);
+  async function conferir(){try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const t=await r.text(),nova=new DOMParser().parseFromString(t,'text/html');
+    if(t.includes('</bo'+'dy>')&&tudo(nova)!==meu){let u=0;try{u=+sessionStorage.getItem('arRecarga')||0}catch(e){}
+      if(Date.now()-u>60000){try{sessionStorage.setItem('arRecarga',Date.now())}catch(e){}location.reload()}}}catch(e){}}
+  conferir();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')conferir()});})();
 </script></body></html>
