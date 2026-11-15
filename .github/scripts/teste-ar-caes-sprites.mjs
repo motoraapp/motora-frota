@@ -124,7 +124,7 @@ await t('Maya com fome: de pé nas 2 patas SEM erguer os braços (só o desenho 
   for (const id of ['elvis', 'belinha']) assert.ok(sequencia(quadros(id, 'bark', 2)).includes('latindo'));
 });
 
-await t('andar em 4 tempos (passo, passagem, outro passo, passagem) com sobe e desce leve', () => {
+await t('andar um passo por vez (passo, em pé, outro passo, em pé) com sobe e desce leve', () => {
   for (const id of ['elvis', 'belinha', 'maya']) {
     const w = []; for (let f = 0; f < Math.PI * 2; f += 0.02) w.push({ ...quadroDe(cao(id, 'walk', 0, { fase: f })) });
     const seq = sequencia(w);
@@ -212,4 +212,31 @@ await t('personalidade: pinschers latem muito e não param; Maya cochila muito, 
   assert.match(m, /function irDormir\(d\) \{\s*tarefas\(d, \[\{ t: 'acao', a: 'deitar'/, 'dormir sempre com a volta antes');
 });
 
+// regressões de 16/11/2026: "quando viram a cabeça o corpo muda de tamanho" e "não mostra um passo por vez"
+await t('virar a cabeça não muda o tamanho do corpo; passo devagar o bastante para ver cada passo', () => {
+  const src = readFileSync(join(raiz, 'ferramentas/caes-sprites.ps1'), 'utf8');
+  assert.match(src, /centro de massa só do corpo e patas/, 'o encaixe tem que ser pelo corpo (a cabeça virada não empurra)');
+  // o corpo (do pescoço para baixo) da pose tem que coincidir com o do em pé na MESMA escala: procura a escala em que as silhuetas
+  // mais coincidem (pés na mesma linha, encaixe do app) e exige que seja 1,00 ± 0,03
+  for (const id of ['elvis', 'belinha', 'maya']) {
+    const ref = id === 'maya' ? 'boca_fechada' : 'base', R = SPRITES[id][ref], rb = lerPng(join(raiz, 'ar/caes/img/sprites', id, ref + '.png'));
+    for (const n of ['mexendo_cabeca', 'latindo']) {
+      const P = SPRITES[id][n], pb = lerPng(join(raiz, 'ar/caes/img/sprites', id, n + '.png')), esp = P[4] < 0, corte = R[3] - R[1] * 0.55;
+      let melhor = [0, 1];
+      for (let sc = 0.85; sc <= 1.1501; sc += 0.01) {
+        let inter = 0, uni = 0;
+        for (let y = Math.floor(corte); y < R[3]; y += 2) for (let x = -20; x < R[0] + 20; x += 2) {
+          const a = x >= 0 && x < rb.w && rb.A(x, y) > 100, dx = (x - R[2]) / sc, px = Math.round(esp ? P[2] - dx : P[2] + dx), py = Math.round(P[3] + (y - R[3]) / sc);
+          const b = px >= 0 && py >= 0 && px < pb.w && py < pb.h && pb.A(px, py) > 100; if (a && b) inter++; if (a || b) uni++;
+        }
+        if (inter / uni > melhor[0]) melhor = [inter / uni, sc];
+      }
+      assert.ok(Math.abs(melhor[1] - 1) <= 0.03 + 1e-9, `${id}/${n}: o corpo fica ${((1 / melhor[1] - 1) * 100).toFixed(0)}% maior/menor que no em pé`);
+    }
+  }
+  const m = readFileSync(join(raiz, 'ar/caes/dogs3d.js'), 'utf8');
+  const div = +m.match(/modo === 'run' \? 0\.55 : (0\.\d+)\)\)\) \* PI/)[1];
+  // cada quadro do passo = PI/2 de fase = tam*div/2 px; na velocidade de andar do mais agitado (tam*(0,95+0,35)) tem que durar >= 0,17 s
+  assert.ok((div / 2) / (0.95 + 0.35) >= 0.17, `quadro de passo dura só ${((div / 2) / 1.3).toFixed(2)} s`);
+});
 console.log(`\n${ok} testes ok`);

@@ -55,8 +55,8 @@ export function quadroDe(d) {
   const fechada = maya ? 'boca_fechada' : 'base'; // Maya: o desenho base é de boca aberta (língua)
   const aberta = maya ? 'base' : 'boca_aberta';
   switch (a) {
-    case 'walk': case 'walkback': case 'sniff': { // passo em 4 tempos: pé à frente, passagem, outro pé, passagem (com sobe e desce leve)
-      const meio = tem(id, 'andando_frente') ? 'andando_frente' : fechada, u = ((d.fase / Math.PI) % 2 + 2) % 2;
+    case 'walk': case 'walkback': case 'sniff': { // um passo por vez: pata à frente, apoia (em pé), a outra pata, apoia (pedido do dono 16/11/2026)
+      const meio = fechada, u = ((d.fase / Math.PI) % 2 + 2) % 2;
       q.s = u < 0.5 ? 'andando_1' : u < 1 ? meio : u < 1.5 ? 'andando_2' : meio;
       q.dy = 0.014 * Math.abs(Math.sin(d.fase * 2)); break;
     }

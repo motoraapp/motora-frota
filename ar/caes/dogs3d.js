@@ -142,7 +142,7 @@ export function iniciarCachorros(op = {}) {
     if (t.t === 'sumir') { d.visivel = false; proxima(d); }
     if (t.t === 'aparecer') { d.x = t.x; d.y = t.y; d.visivel = true; proxima(d); }
   }
-  const velocidade = (d, modo) => d.tam * (modo === 'run' ? 3.4 + d.energia : modo === 'sniff' ? 0.45 + d.energia * 0.2 : 1.0 + d.energia * 0.5);
+  const velocidade = (d, modo) => d.tam * (modo === 'run' ? 3.4 + d.energia : modo === 'sniff' ? 0.45 + d.energia * 0.2 : 0.95 + d.energia * 0.35);
 
   // quanto além da borda o cachorro precisa ir para sumir inteiro (o desenho correndo/deitado é mais comprido que alto)
   const foraDe = (d) => d.tam * 1.6 + 10;
@@ -160,7 +160,7 @@ export function iniciarCachorros(op = {}) {
     if (!t.re) d.ang = dx > 0 ? PI / 2 : -PI / 2; // vira para o lado em que anda
     const v = Math.min(dist, velocidade(d, modo) * dt * (t.re ? 0.45 : 1));
     d.x += Math.sign(dx) * v;
-    d.fase += ((t.re ? -v : v) / (d.tam * (modo === 'run' ? 0.55 : 0.32))) * PI; // troca de quadro casada com a distância (o pé não escorrega)
+    d.fase += ((t.re ? -v : v) / (d.tam * (modo === 'run' ? 0.55 : 0.5))) * PI; // andando: cada quadro do passo dura ~0,2 s // troca de quadro casada com a distância (o pé não escorrega)
     return false;
   }
 
