@@ -45,7 +45,7 @@ summary{list-style:none;display:flex;align-items:center;justify-content:space-be
 summary::after{content:"";width:8px;height:8px;border-right:2px solid #8e8e93;border-bottom:2px solid #8e8e93;transform:rotate(-45deg);margin-right:4px;transition:transform 120ms ease-out}
 details[open]>summary::after{transform:rotate(45deg)}details[open]{padding-bottom:12px}
 .gfil{display:flex;gap:2px;margin:2px 0 10px;padding:3px;background:rgba(118,118,128,.24);border-radius:10px}.gfil button{flex:1;padding:7px 8px;font-size:15px;min-height:36px;border-radius:8px;background:none;color:var(--muted)}.gfil button.on{background:#636366;color:#f5f5f7}
-.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 44px;padding:0;font-size:22px;min-height:44px;border-radius:22px}.gnav b{flex:1;text-align:center;font-weight:600}.gmet{margin-top:-4px}#fora{color:var(--muted);font-size:15px;margin:-8px 0 14px;text-align:center}#gleg{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 6px}#gleg i{display:inline-block;vertical-align:middle;margin:0 4px 0 10px}#gsvg svg{display:block;width:100%;height:auto}#gsvg .gb{cursor:pointer}
+.gnav{display:flex;align-items:center;gap:8px;margin:0 0 4px}.gnav button{flex:0 0 44px;padding:0;font-size:22px;min-height:44px;border-radius:22px}.gnav b{flex:1;text-align:center;font-weight:600}.gmet{margin-top:-4px}#fora{color:var(--muted);font-size:15px;margin:-8px 0 14px;text-align:center}#gleg{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 6px}#gleg i{display:inline-block;vertical-align:middle;margin:0 4px 0 10px}#gsvg svg{display:block;width:100%;height:auto;touch-action:pan-y}#gsvg .gb{cursor:pointer}
 .gres{display:flex;justify-content:space-around;text-align:center;margin:2px 0 6px}.gres span{color:var(--muted);font-size:13px}.gres small{display:block;color:var(--muted);font-size:13px;margin-top:2px}.gres b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}#gdet{color:var(--muted);font-size:14px;text-align:center;min-height:20px}
 details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;padding:12px;font-size:13px;word-break:break-word;color:var(--muted)}
 #rx code{color:#64d2ff;font-size:14px}.mb button{min-width:0;flex:1}.link{background:none;color:var(--on);padding:8px;min-width:0;flex:none;white-space:nowrap}
@@ -282,16 +282,26 @@ function desenhar24(){
   if(fx.length>1)s.push('<polyline points="'+fx.map(p=>x(p[0]).toFixed(1)+','+y(p[1]).toFixed(1)).join(' ')+'" fill="none" stroke="#8e8e93" stroke-width="1.5" stroke-dasharray="4 4"/>');
   let seg2=[],ant=null;ls.forEach(p=>{const ms=new Date(p.em).getTime();if(ant&&ms-ant>12e5){if(seg2.length)s.push('<polyline points="'+seg2.join(' ')+'" fill="none" stroke="#ff9f0a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');seg2=[]}seg2.push(x(ms).toFixed(1)+','+y(+p.t).toFixed(1));ant=ms});
   if(seg2.length)s.push('<polyline points="'+seg2.join(' ')+'" fill="none" stroke="#ff9f0a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>');
-  const sel=ls[gSel>=0&&gSel<ls.length?gSel:ls.length-1],sm=new Date(sel.em).getTime();
-  s.push('<line x1="'+x(sm).toFixed(1)+'" x2="'+x(sm).toFixed(1)+'" y1="'+T+'" y2="'+B+'" stroke="rgba(255,255,255,.35)" stroke-width="1"/><circle cx="'+x(sm).toFixed(1)+'" cy="'+y(+sel.t).toFixed(1)+'" r="5" fill="#ff9f0a" stroke="#10141c" stroke-width="2"/>');
-  s.push('<rect class="g24" x="'+L+'" y="'+T+'" width="'+(R-L)+'" height="'+(H-T)+'" fill="transparent"/></svg>');
-  $('gsvg').innerHTML=s.join('');
-  const q=ls.reduce((a,b)=>+b.t>+a.t?b:a),ligado=us.some(u=>new Date(u.inicio).getTime()<=sm&&(!u.fim||new Date(u.fim).getTime()>=sm));
-  let fora=null,dm=Infinity;fx.forEach(p=>{const d=Math.abs(p[0]-sm);if(d<dm){dm=d;fora=p[1]}});
+  // Toque ou arraste no gráfico: escolhe qualquer horário (gSel guarda o horário em ms; -1 = última leitura).
+  const ult=new Date(ls[ls.length-1].em).getTime(),sm=gSel>t0?Math.min(gSel,agora):ult;
+  let sel=null,dq=Infinity;ls.forEach(p=>{const d=Math.abs(new Date(p.em).getTime()-sm);if(d<dq){dq=d;sel=p}});if(dq>6e5)sel=null;
+  let fora=null;for(let i=0;i<fx.length;i++){const a=fx[i],b=fx[i+1];if(a[0]<=sm&&b&&b[0]>=sm){fora=a[1]+(b[1]-a[1])*(sm-a[0])/(b[0]-a[0]);break}if(!b&&Math.abs(a[0]-sm)<=36e5)fora=a[1]}
+  if(fora===null&&fx.length&&sm<fx[0][0]&&fx[0][0]-sm<=36e5)fora=fx[0][1];
+  const sx=(sel?x(new Date(sel.em).getTime()):x(sm)).toFixed(1);
+  s.push('<line x1="'+sx+'" x2="'+sx+'" y1="'+T+'" y2="'+B+'" stroke="rgba(255,255,255,.35)" stroke-width="1"/>');
+  if(fora!==null)s.push('<circle cx="'+sx+'" cy="'+y(fora).toFixed(1)+'" r="4" fill="#8e8e93" stroke="#10141c" stroke-width="2"/>');
+  if(sel)s.push('<circle cx="'+sx+'" cy="'+y(+sel.t).toFixed(1)+'" r="5" fill="#ff9f0a" stroke="#10141c" stroke-width="2"/>');
+  s.push('<rect class="g24" x="0" y="'+T+'" width="'+W+'" height="'+(H-T)+'" fill="transparent"/></svg>');
+  $('gsvg').innerHTML=s.join('');G24geo={t0,L,R,W};
+  const ems=sel?new Date(sel.em).getTime():sm,q=ls.reduce((a,b)=>+b.t>+a.t?b:a),ligado=us.some(u=>new Date(u.inicio).getTime()<=ems&&(!u.fim||new Date(u.fim).getTime()>=ems));
   $('gq').textContent=gVg(+q.t)+' °C';$('gqh').textContent='às '+gHm(q.em);$('gm').textContent=seg>0?gH(seg):'0 min';
-  $('gdet').textContent='Às '+gHm(sel.em)+': quarto '+gVg(+sel.t)+' °C'+(fora!==null&&dm<=36e5?' · lá fora '+gVg(fora)+' °C':'')+' · ar '+(ligado?'ligado':'desligado');
-  $('gsvg').querySelector('.g24').onclick=e=>{const r=e.currentTarget.ownerSVGElement.getBoundingClientRect(),ms=t0+((e.clientX-r.left)/r.width*W-L)/(R-L)*864e5;let bi=0,bd=Infinity;ls.forEach((p,i)=>{const d=Math.abs(new Date(p.em).getTime()-ms);if(d<bd){bd=d;bi=i}});gSel=bi;desenharGraf()};
+  $('gdet').textContent='Às '+gHm(sel?sel.em:new Date(sm).toISOString())+': '+(sel?'quarto '+gVg(+sel.t)+' °C':'quarto sem leitura')+(fora!==null?' · lá fora '+gVg(Math.round(fora*10)/10)+' °C':'')+(sel?' · ar '+(ligado?'ligado':'desligado'):'');
 }
+let G24geo=null,g24Arr=false;
+function g24Toque(e){if(gModo!=='24'||!G24geo||!e.target.closest('.g24'))return false;const r=e.target.ownerSVGElement.getBoundingClientRect(),g=G24geo,ms=g.t0+((e.clientX-r.left)/r.width*g.W-g.L)/(g.R-g.L)*864e5;gSel=Math.max(g.t0+1,Math.min(Date.now(),ms));desenhar24();return true}
+$('gsvg').addEventListener('pointerdown',e=>{g24Arr=g24Toque(e)});
+$('gsvg').addEventListener('pointermove',e=>{if(g24Arr)g24Toque(e)});
+addEventListener('pointerup',()=>{g24Arr=false});addEventListener('pointercancel',()=>{g24Arr=false});
 function desenharGraf(){
   const [de]=gFaixa(),uso=gMet==='uso';
   $('gnav').hidden=gModo==='7'||gModo==='24';$('gmet').hidden=gModo==='24';$('gprox').disabled=gDesl>=0;
