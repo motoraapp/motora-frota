@@ -27,6 +27,8 @@ export function precarregar(cfgs) {
 }
 // o quadro ainda não carregou: mantém o último que já apareceu (nunca mostra outro desenho por engano)
 const ultimo = new Map();
+// quanto a boca fica à frente do meio do cachorro (px na tela) numa pose: para parar com o focinho dentro da tigela
+export function bocaDe(cfg, pose) { const S = SPRITES[cfg.id], p = S && S[pose]; return p ? ((p[4] < 0 ? p[2] : p[0] - p[2]) - 10 * p[0] / 300) * (cfg.tamanho * ALT / S._ref) : cfg.tamanho * 0.5; }
 export function larguraDe(cfg) { const s = SPRITES[cfg.id]?.base; return s ? s[0] / s[1] : 0.75; }
 
 // ---------- qual quadro mostrar ----------
@@ -53,8 +55,10 @@ export function quadroDe(d) {
   const fechada = maya ? 'boca_fechada' : 'base'; // Maya: o desenho base é de boca aberta (língua)
   const aberta = maya ? 'base' : 'boca_aberta';
   switch (a) {
-    case 'walk': case 'walkback': case 'sniff': {
-      q.s = Math.sin(d.fase) >= 0 ? 'andando_1' : 'andando_2'; q.dy = 0.012 * Math.abs(Math.sin(d.fase)); break;
+    case 'walk': case 'walkback': case 'sniff': { // passo em 4 tempos: pé à frente, passagem, outro pé, passagem (com sobe e desce leve)
+      const meio = tem(id, 'andando_frente') ? 'andando_frente' : fechada, u = ((d.fase / Math.PI) % 2 + 2) % 2;
+      q.s = u < 0.5 ? 'andando_1' : u < 1 ? meio : u < 1.5 ? 'andando_2' : meio;
+      q.dy = 0.014 * Math.abs(Math.sin(d.fase * 2)); break;
     }
     case 'run': { // galope: 1 = esticado no ar (sobe um pouco), 2 = encolhido no chão
       const s = Math.sin(d.fase); q.s = s >= 0 ? 'correndo_1' : 'correndo_2'; q.dy = s >= 0 ? 0.07 * s : 0; break;
@@ -79,7 +83,9 @@ export function quadroDe(d) {
     case 'tilt': case 'cabeca': q.s = seq([['mexendo_cabeca', 320], [fechada, 260]], t)[0]; break; // mexe a cabeça
     case 'shake': q.s = seq([['mexendo_cabeca', 70], [fechada, 70]], t)[0]; q.dx = t < 1.1 ? Math.sin(d.t * 45) * 2 : 0; break;
     case 'encostar': q.s = 'encostando_giro_frente'; break;
-    case 'pedir': q.s = tem(id, 'pedindo_patas_no_ar') ? seq([['pedindo_patas_no_ar', 260], ['pedindo_patas_no_ar_2', 260]], t)[0] : seq([['latindo', 150], [aberta, 200]], t)[0]; break;
+    // pedir comida: a Maya fica de pé nas 2 patas com as patinhas junto do peito (NÃO ergue os braços: o desenho _2 não é usado,
+    // pedido do dono 16/11/2026), dando pulinhos leves; os pinschers latem
+    case 'pedir': if (tem(id, 'pedindo_patas_no_ar')) { q.s = 'pedindo_patas_no_ar'; q.dy = 0.025 * Math.abs(Math.sin(t * 5.5)); } else q.s = seq([['latindo', 150], [aberta, 200]], t)[0]; break;
     case 'frente': q.s = tem(id, 'andando_frente') ? 'andando_frente' : 'encostando_giro_frente'; break;
     case 'lingua': q.s = tem(id, 'lingua') ? 'lingua' : aberta; break;
     case 'rodar': case 'deitar': { // volta completa no próprio eixo (deitar: termina deitando)
@@ -122,13 +128,30 @@ export function desenharCao(c, d, lado = 1, comSombra = true) {
   c.restore();
 }
 
+// tigela com a comida (grãozinhos de ração) ou a água (com brilho) DENTRO dela; desenhada na frente do cachorro, então o focinho
+// fica dentro da tigela. cheio: 1 cheia … 0 vazia (vai baixando enquanto ele come/bebe)
 export function desenharTigela(c, t) {
-  const r = 17, ol = '#3a2418';
+  const r = 17, borda = '#3a2418';
   c.save(); c.translate(t.x, t.y);
-  c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 2, r * 1.1, r * 0.35, 0, 0, 7); c.fill();
-  c.fillStyle = ol; c.beginPath(); c.ellipse(0, -5, r + 2, r * 0.45 + 2, 0, 0, 7); c.fill();
-  c.fillStyle = '#d94f45'; c.beginPath(); c.moveTo(-r, -6); c.lineTo(-r * 0.75, 0); c.lineTo(r * 0.75, 0); c.lineTo(r, -6); c.closePath(); c.fill();
-  c.fillStyle = '#b8392f'; c.beginPath(); c.ellipse(0, -6, r, r * 0.38, 0, 0, 7); c.fill();
-  if (t.cheio > 0.05) { const kk = Math.sqrt(t.cheio); c.fillStyle = t.tipo === 'comida' ? '#8a5a2e' : '#6fc3ff'; c.beginPath(); c.ellipse(0, -6, r * 0.82 * kk, r * 0.28 * kk, 0, 0, 7); c.fill(); }
+  c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 2, r * 1.15, r * 0.35, 0, 0, 7); c.fill();
+  // boca da tigela (lá dentro) e conteúdo
+  c.fillStyle = '#7d2a22'; c.beginPath(); c.ellipse(0, -10, r, r * 0.36, 0, 0, 7); c.fill();
+  if (t.cheio > 0.04) {
+    c.save(); c.beginPath(); c.ellipse(0, -10, r - 1.5, r * 0.36 - 1, 0, 0, 7); c.clip();
+    const nivel = -10 + (1 - t.cheio) * 5;
+    if (t.tipo === 'comida') {
+      c.fillStyle = '#7a4a22'; c.fillRect(-r, nivel - 1, r * 2, 20);
+      for (let k = 0; k < 22; k++) { const a = k * 2.4, rr = (k % 7) / 7; const x = Math.cos(a) * (r - 4) * rr, y = nivel + 0.5 + Math.sin(a) * 3.5 * rr;
+        c.fillStyle = k % 3 ? '#a8692f' : '#8c5426'; c.beginPath(); c.ellipse(x, y, 2.6, 1.8, a, 0, 7); c.fill(); }
+    } else {
+      c.fillStyle = '#4fb3f0'; c.fillRect(-r, nivel - 1, r * 2, 20);
+      c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(-4, nivel + 1, 5, 1.3, -0.1, 0, 7); c.fill();
+    }
+    c.restore();
+  }
+  // parede da frente da tigela (cobre a parte de baixo do focinho)
+  c.fillStyle = '#d94f45'; c.strokeStyle = borda; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(-r, -10); c.lineTo(-r * 0.78, 0); c.quadraticCurveTo(0, 3, r * 0.78, 0); c.lineTo(r, -10); c.ellipse(0, -10, r, r * 0.36, 0, 0, Math.PI); c.closePath(); c.fill(); c.stroke();
+  c.strokeStyle = '#f28a80'; c.lineWidth = 1.2; c.beginPath(); c.ellipse(0, -10, r, r * 0.36, 0, 0.15, Math.PI - 0.15); c.stroke();
   c.restore();
 }

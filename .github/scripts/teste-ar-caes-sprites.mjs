@@ -115,10 +115,33 @@ await t('piscar: olho fechado de 80 a 120 ms nas poses paradas e sentadas', () =
   }
 });
 
-await t('Maya com fome: de pé nas 2 patas alternando os dois desenhos; pinschers latem', () => {
-  const seq = sequencia(quadros('maya', 'pedir', 2));
-  assert.ok(seq.length >= 6 && seq.every((s, i) => s === (i % 2 ? 'pedindo_patas_no_ar_2' : 'pedindo_patas_no_ar')), seq.join(' > '));
+await t('Maya com fome: de pé nas 2 patas SEM erguer os braços (só o desenho de patinhas no peito); pinschers latem', () => {
+  const qs = quadros('maya', 'pedir', 3);
+  assert.ok(qs.every((q) => q.s === 'pedindo_patas_no_ar'), 'a Maya não pode erguer os braços (pedindo_patas_no_ar_2)');
+  assert.ok(Math.max(...qs.map((q) => q.dy)) > 0.01, 'sem os pulinhos de pedir');
+  const src = readFileSync(join(raiz, 'ar/caes/desenho.js'), 'utf8');
+  assert.ok(!/'pedindo_patas_no_ar_2'/.test(src), 'desenho.js não pode usar o desenho de braços erguidos');
   for (const id of ['elvis', 'belinha']) assert.ok(sequencia(quadros(id, 'bark', 2)).includes('latindo'));
+});
+
+await t('andar em 4 tempos (passo, passagem, outro passo, passagem) com sobe e desce leve', () => {
+  for (const id of ['elvis', 'belinha', 'maya']) {
+    const w = []; for (let f = 0; f < Math.PI * 2; f += 0.02) w.push({ ...quadroDe(cao(id, 'walk', 0, { fase: f })) });
+    const seq = sequencia(w);
+    assert.equal(seq.length, 4, id + ': ' + seq.join(' > '));
+    assert.ok(seq[0] === 'andando_1' && seq[2] === 'andando_2' && seq[1] === seq[3], id + ': ' + seq.join(' > '));
+    assert.ok(Math.max(...w.map((q) => q.dy)) < 0.03, id + ': pulando demais ao andar');
+  }
+});
+
+await t('Elvis nunca rosna para a Maya; comida e água dentro da tigela com o focinho nela', () => {
+  const m = readFileSync(join(raiz, 'ar/caes/dogs3d.js'), 'utf8'), br = m.slice(m.indexOf('briga(a, b) {'), m.indexOf('pegar(d ='));
+  assert.ok(br.includes("const manso = (d, outro) => d.cfg.id === 'elvis' && ehMaya(outro);"), 'falta a regra do Elvis manso com a Maya');
+  const rosnaSemRegra = br.replace(/manso\(d, outro\) \? '\w+' : '(rosnar|fight)'/g, '').replace(/ehMaya\(d\) \? \{ t: 'acao', a: 'rosnar'/g, '');
+  assert.ok(!/a: '(rosnar|fight)'/.test(rosnaSemRegra), 'na briga, rosnar/brigar só depois de checar o Elvis com a Maya');
+  assert.ok(m.includes("bocaDe(d.cfg, tipo === 'comida' ? 'comendo' : 'bebendo')"), 'o cachorro tem que parar com a boca na tigela');
+  const q = m.slice(m.indexOf('function quadro('));
+  assert.ok(q.indexOf('desenharTigela(c2') > q.indexOf('desenharCao(c2'), 'a tigela vem na frente do cachorro (focinho dentro dela)');
 });
 
 await t('xixi: Elvis de pata levantada, Belinha e Maya agachadas; comer e beber com pausa de cabeça erguida', () => {

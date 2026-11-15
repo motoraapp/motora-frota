@@ -6,7 +6,7 @@
 import { CACHORROS } from './config.js';
 import { ACOES, aplicarPose, N, MISTURA, NY, HX, HY, BLINK, JAW } from './animacoes.js';
 import { criarNecessidades } from './necessidades.js';
-import { desenharCao, desenharTigela, alturaCabeca, precarregar } from './desenho.js';
+import { desenharCao, desenharTigela, alturaCabeca, precarregar, bocaDe } from './desenho.js';
 import { rota } from './rota.js';
 
 const INCLINA = 0.42;                 // câmera um pouco de cima
@@ -247,11 +247,13 @@ export function iniciarCachorros(op = {}) {
       if (!a || !b) return false;
       iniciarEvento('briga', [a, b]);
       const mx = W() * rand(0.35, 0.65), my = faixa(), g = { n: 0, total: 2 }, sep = (a.tam + b.tam) * 0.42;
-      const roteiro = (d, s) => [
+      // o Elvis nunca rosna para a Maya (regra do dono, 16/11/2026): com ela, ele pula e rebola em vez de rosnar
+      const manso = (d, outro) => d.cfg.id === 'elvis' && ehMaya(outro);
+      const roteiro = (d, s, outro = s < 0 ? b : a) => [
         { t: 'ir', x: mx + s * sep, y: my, modo: 'run' }, { t: 'sincronizar', g }, { t: 'virar', ang: s > 0 ? -PI / 2 : PI / 2 },
-        { t: 'acao', a: 'rosnar', dur: 0.9 }, { t: 'acao', a: 'fight', dur: 1.6 }, { t: 'acao', a: 'jump', dur: 0.8 },
-        { t: 'fn', f: () => balao(d, s > 0 ? 'grrr' : 'rrr…', 0.9) }, ehMaya(d) ? { t: 'acao', a: 'rosnar', dur: 1.2 } : latidos(2, 3),
-        { t: 'ir', x: mx + s * sep * 1.4, y: my, re: true }, { t: 'acao', a: 'fight', dur: 1.2 },
+        { t: 'acao', a: manso(d, outro) ? 'wiggle' : 'rosnar', dur: 0.9 }, { t: 'acao', a: manso(d, outro) ? 'hop' : 'fight', dur: 1.6 }, { t: 'acao', a: 'jump', dur: 0.8 },
+        { t: 'fn', f: () => balao(d, manso(d, outro) ? '♥' : s > 0 ? 'grrr' : 'rrr…', 0.9) }, ehMaya(d) ? { t: 'acao', a: 'rosnar', dur: 1.2 } : latidos(2, 3),
+        { t: 'ir', x: mx + s * sep * 1.4, y: my, re: true }, { t: 'acao', a: manso(d, outro) ? 'wiggle' : 'fight', dur: 1.2 },
         { t: 'fn', f: () => { d.alegria = 1; } }, { t: 'acao', a: 'idle', dur: 0.5 }, ...voltarParaCasa(d, 'run'),
       ];
       tarefas(a, roteiro(a, -1)); tarefas(b, roteiro(b, 1));
@@ -523,7 +525,7 @@ export function iniciarCachorros(op = {}) {
     const cand = caes.filter((d) => !eventoAtivo || !eventoAtivo.caes.includes(d) || true);
     const d = cand.sort((a, b) => (nec.de(b.cfg.id)[campo] - Math.hypot(b.x - x, b.y - y) * 0.05) - (nec.de(a.cfg.id)[campo] - Math.hypot(a.x - x, a.y - y) * 0.05))[0];
     if (eventoAtivo?.caes.includes(d)) { eventoAtivo.caes.forEach((c) => { if (c !== d) tarefas(c, voltarParaCasa(c)); }); eventoAtivo = null; }
-    const lado = d.x < x ? -1 : 1, fx = x + lado * d.tam * 0.5, fy = y + 2;
+    const lado = d.x < x ? -1 : 1, fx = x + lado * bocaDe(d.cfg, tipo === 'comida' ? 'comendo' : 'bebendo') * 0.9, fy = y + 2; // para com o focinho dentro da tigela
     const pre = d.visivel ? [] : [{ t: 'aparecer', ...borda(lado, fy, d) }];
     const fim = () => {
       nec.alimentar(d.cfg.id, tipo); op.aoAlimentar?.(nec.resumo());
@@ -557,9 +559,9 @@ export function iniciarCachorros(op = {}) {
     if (gl) renderer.render(cena, camera);
     else {
       c2.setTransform(pr2, 0, 0, pr2, 0, 0); c2.clearRect(0, 0, W(), H());
-      for (const tb of tigelas) desenharTigela(c2, tb);
       ordem.sort(porY);
       for (const d of ordem) if (d.visivel) desenharCao(c2, d, d.lado);
+      for (const tb of tigelas) desenharTigela(c2, tb); // na frente: o focinho fica dentro da tigela
     }
   }
   const porY = (a, b) => a.y - b.y;

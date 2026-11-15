@@ -41,10 +41,10 @@ function Caixa($bmp) {
   $r = New-Object System.Drawing.Rectangle 0, 0, $bmp.Width, $bmp.Height
   $d = $bmp.LockBits($r, [System.Drawing.Imaging.ImageLockMode]::ReadOnly, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
   $n = $d.Stride * $bmp.Height; $buf = New-Object byte[] $n; [System.Runtime.InteropServices.Marshal]::Copy($d.Scan0, $buf, 0, $n); $bmp.UnlockBits($d)
-  $x1 = $bmp.Width; $y1 = $bmp.Height; $x2 = -1; $y2 = -1
+  $x1 = $bmp.Width; $y1 = $bmp.Height; $x2 = -1; $y2 = -1; $sx = 0.0; $sa = 0.0
   for ($y = 0; $y -lt $bmp.Height; $y++) { $o = $y * $d.Stride
-    for ($x = 0; $x -lt $bmp.Width; $x++) { if ($buf[$o + $x * 4 + 3] -gt 20) { if ($x -lt $x1) { $x1 = $x }; if ($x -gt $x2) { $x2 = $x }; if ($y -lt $y1) { $y1 = $y }; if ($y -gt $y2) { $y2 = $y } } } }
-  return @($x1, $y1, $x2, $y2)
+    for ($x = 0; $x -lt $bmp.Width; $x++) { $a = $buf[$o + $x * 4 + 3]; if ($a -gt 20) { $sx += $x * $a; $sa += $a; if ($x -lt $x1) { $x1 = $x }; if ($x -gt $x2) { $x2 = $x }; if ($y -lt $y1) { $y1 = $y }; if ($y -gt $y2) { $y2 = $y } } } }
+  return @($x1, $y1, $x2, $y2, ($sx / $sa))
 }
 
 $dados = [ordered]@{}
@@ -69,8 +69,8 @@ foreach ($id in $CAES.Keys) {
     $g.DrawImage($src, (New-Object System.Drawing.Rectangle 0, 0, $w, $h), $sx, $sy, $sw, $sh, [System.Drawing.GraphicsUnit]::Pixel, $at)
     $g.Dispose(); $src.Dispose()
     $out.Save((Join-Path $dir "$nome.png"), [System.Drawing.Imaging.ImageFormat]::Png); $out.Dispose()
-    # âncora: meio da caixa do desenho (x) e linha dos pés (y), em px do sprite gerado
-    $ax = [Math]::Round((($b[0] + $b[2]) / 2 - $sx) * $k, 1); $ay = [Math]::Round(($b[3] + 1 - $sy) * $k, 1)
+    # âncora x = centro de massa do desenho (não pula para o lado ao trocar de passo); y = linha dos pés
+    $ax = [Math]::Round(($b[4] - $sx) * $k, 1); $ay = [Math]::Round(($b[3] + 1 - $sy) * $k, 1)
     $olha = if ($c.olha.ContainsKey($nome)) { $c.olha[$nome] } else { 1 }
     $lista[$nome] = @($w, $h, $ax, $ay, $olha)
     $lista['_ref'] = $ALT
