@@ -6,7 +6,7 @@
 import { CACHORROS } from './config.js';
 import { ACOES, aplicarPose, N, MISTURA, NY, HX, HY, BLINK, JAW } from './animacoes.js';
 import { criarNecessidades } from './necessidades.js';
-import { desenharCao, desenharTigela, alturaCabeca } from './desenho.js';
+import { desenharCao, desenharTigela, alturaCabeca, precarregar } from './desenho.js';
 
 const INCLINA = 0.42;                 // câmera um pouco de cima
 const FPS = 30;
@@ -70,7 +70,7 @@ export function iniciarCachorros(op = {}) {
     mAgua = new THREE.MeshStandardMaterial({ color: 0x6fc3ff, roughness: 0.08, transparent: true, opacity: 0.85 });
   } else {
     tela2 = document.createElement('canvas'); tela2.className = 'caes-tela'; c2 = tela2.getContext('2d');
-    camada.insertBefore(tela2, baloes);
+    camada.insertBefore(tela2, baloes); precarregar(cfgs);
   }
 
   cfgs.forEach((cfg, i) => {
