@@ -154,7 +154,7 @@ export function iniciarCachorros(op = {}) {
     if (!t.re) d.ang += difAng(angAlvo, d.ang) * Math.min(1, dt * (modo === 'run' ? 9 : 6));
     const v = Math.min(dist, velocidade(d, modo) * dt * (t.re ? 0.45 : 1));
     d.x += (dx / dist) * v; d.y += (dy / dist) * v;
-    d.fase += ((t.re ? -v : v) / (d.tam * (modo === 'run' ? 1.05 : 0.5))) * PI;
+    d.fase += ((t.re ? -v : v) / (d.tam * (modo === 'run' ? 0.8 : 0.3))) * PI; // passos casados com a velocidade (o pé não escorrega)
     return false;
   }
 
