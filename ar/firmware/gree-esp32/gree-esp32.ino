@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 20
+#define FW_VERSAO 21
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -530,8 +530,8 @@ void checarAuto() {
   } else if (r == AUTO_DESLIGAR) {
     S.power = false; enviar(S, S.proto); salvarEstado();
     Serial.println("automatico: quarto frio, desligando");
-  } else if (AM.ligou && S.power && temSala() && millis() - autoFaixaEm >= 300000UL) {
-    // Versão 19: no máximo uma troca a cada 5 min, conforme o quarto chega perto da temperatura escolhida.
+  } else if (AM.ligou && S.power && temSala() && millis() - autoFaixaEm >= 60000UL) {
+    // Versão 19 (desde a 21, pedido do dono: 1 min; antes 5): no máximo uma troca por minuto, conforme o quarto chega perto da temperatura escolhida.
     int f = regraFaixa(autoFaixa, salaT - A.alvo);
     if (f != autoFaixa) { aplicarFaixa(f); enviar(S, S.proto); salvarEstado(); Serial.printf("automatico: faixa %d\n", f); }
   }
