@@ -232,7 +232,7 @@ const u0=ui;ui=function(){u0();renderHor()};
 })();
 
 // Histórico do quarto (só no app de fora). Período: 24 h (linha a cada 5 min, faixas = ar ligado, tracejado = lá fora) |
-// 7 dias | Mês | Ano (barras). O que mostrar: Temperatura (máxima do dia; bolinha = máxima lá fora) ou Ar ligado (horas por dia).
+// 7 dias | Mês | Ano (barras). O que mostrar: Temperatura (máxima do dia; linha cinza com bolinhas = máxima lá fora) ou Ar ligado (horas por dia).
 // Banco: ar.temp_dia, ar.uso, ar.leitura (SQL supabase/2026-11-14-ar-temp-dia.sql e 2026-11-14-ar-historico.sql).
 // Lá fora: Open-Meteo (sem chave), Trindade-GO (setor Maysa), pedido do dono.
 let GD=[],GU=[],G24=null,gUlt=0,gSel=-1,gModo='7',gMet='temp',gDesl=0,WX=null,WXd={},wxUlt=0;
@@ -317,21 +317,24 @@ function desenharGraf(){
   $('gql').textContent=uso?'Mais tempo ligado':'Mais quente';$('gml').textContent=uso?'Total no período':'Média das máximas';
   const it=gItens(),n=it.length,vals=it.filter(x=>x.v!==null).map(x=>x.v),foras=it.filter(x=>x.fora!=null).map(x=>x.fora),alvo=!uso&&S.auto&&S.auto.on?Number(S.auto.alvo):null;
   const agoraTxt=!uso&&gModo!=='ano'&&S.sala&&it.some(x=>x.atual&&x.v!==null&&Number(S.sala.t)<x.v)?'<i style="width:12px;height:12px;background:#64d2ff;border-radius:3px"></i>agora '+gVg(S.sala.t)+' °C':'';
-  $('gleg').innerHTML=uso?'':agoraTxt+(alvo!==null?'<i style="width:16px;height:0;border-top:2px dashed #ff453a"></i>automático liga acima de '+alvo+' °C':'')+(foras.length?'<i style="width:14px;height:3px;background:#f5f5f7;border-radius:2px"></i>máxima lá fora':'');
+  $('gleg').innerHTML=uso?'':agoraTxt+(alvo!==null?'<i style="width:16px;height:0;border-top:2px dashed #ff453a"></i>automático liga acima de '+alvo+' °C':'')+(foras.length?'<i style="width:16px;height:0;border-top:2px dashed #8e8e93"></i>máxima lá fora':'');
   if(!vals.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">'+(uso?'O ar não ficou ligado neste período (a contagem começou em 14/11/2026).':'Sem leituras neste período. O histórico começa em 14/11/2026.')+'</p>';$('gq').textContent=$('gm').textContent='—';$('gqh').textContent='';$('gdet').textContent='';return}
   if(gSel<0||gSel>=n){gSel=it.findIndex(x=>x.atual);if(gSel<0||it[gSel].v===null)for(let i=n-1;i>=0;i--)if(it[i].v!==null){gSel=i;break}}
   const agoraV=!uso&&gModo!=='ano'&&S.sala&&it.some(x=>x.atual&&x.v!==null&&Number(S.sala.t)<x.v)?Number(S.sala.t):null,todos=vals.concat(alvo===null?[]:[alvo],foras,agoraV===null?[]:[agoraV]),W=340,H=280,L=34,R=330,T=gModo==='7'?40:24,B=gModo==='7'?236:250;
   const lo=uso?0:Math.floor(Math.min(...todos)-2),passo=Math.max(1,Math.ceil((Math.ceil(Math.max(...todos)+(uso?0.5:1))-lo)/4)),hi=lo+passo*4;
   const y=v=>B-(v-lo)/(hi-lo)*(B-T),sl=(R-L)/n,bw=Math.max(3,Math.min(30,sl*(n>12?0.7:0.62))),maior=Math.max(...vals),fs=n>12?10:n>7?11:12,cor=uso?'#64d2ff':'#ff9f0a';
   const s=['<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+(uso?'Horas de ar ligado':'Temperatura máxima do quarto')+'">'];grade(s,lo,hi,passo,y,L,R,uso?'h':'°');
+  // Lá fora (máxima do dia): linha cinza tracejada + bolinha em cada dia, desenhada antes das barras.
+  const fp=it.map((x,i)=>x.fora!=null?[L+sl*i+sl/2,y(x.fora)]:null).filter(Boolean);
+  if(fp.length>1)s.push('<polyline points="'+fp.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="#8e8e93" stroke-width="1.5" stroke-dasharray="4 4"/>');
+  fp.forEach(p=>s.push('<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(n>12?2.5:3.5)+'" fill="#8e8e93"/>'));
   const fmt=v=>uso?(v<10?gVg(Math.round(v*10)/10):Math.round(v))+(n>7?'':'h'):gVg(v)+(n>7?'':'°');
   it.forEach((x,i)=>{const cx=L+sl*i+sl/2,sel=i===gSel,rot=n<=12||sel||x.v===maior;
     s.push('<g class="gb" data-i="'+i+'"><rect x="'+(L+sl*i).toFixed(1)+'" y="'+T+'" width="'+sl.toFixed(1)+'" height="'+(H-T)+'" fill="transparent"/>');
-    if(x.v!==null){const yy=y(x.v),yt=x.fora!=null?Math.min(yy,y(x.fora)-4):yy;s.push('<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="'+cor+'" fill-opacity="'+(sel?0.9:0.32)+'"/>');
-      if(rot)s.push('<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yt-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#f5f5f7">'+fmt(x.v)+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yt-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a1a1a6">'+x.h+'</text>':''))}
+    if(x.v!==null){const yy=y(x.v),yt=yy;s.push('<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,B-yy).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="'+cor+'" fill-opacity="'+(sel?0.9:0.32)+'"/>');
+      if(rot)s.push('<text x="'+Math.min(R-12,Math.max(L+12,cx)).toFixed(1)+'" y="'+(yt-6).toFixed(1)+'" text-anchor="middle" font-size="'+fs+'" font-weight="600" fill="#f5f5f7" stroke="#1e222a" stroke-width="3" paint-order="stroke">'+fmt(x.v)+'</text>'+(n<=7&&x.h?'<text x="'+cx.toFixed(1)+'" y="'+(yt-20).toFixed(1)+'" text-anchor="middle" font-size="10" fill="#a1a1a6" stroke="#1e222a" stroke-width="3" paint-order="stroke">'+x.h+'</text>':''))}
     else if(n<=12)s.push('<text x="'+cx.toFixed(1)+'" y="'+(B-6)+'" text-anchor="middle" font-size="12" fill="#636366">—</text>');
     if(x.atual&&!uso&&gModo!=='ano'&&x.v!==null&&S.sala&&Number(S.sala.t)<x.v){const ya=y(Number(S.sala.t));s.push('<rect x="'+(cx-bw/2).toFixed(1)+'" y="'+ya.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,B-ya).toFixed(1)+'" rx="'+(n>12?2:5)+'" fill="#64d2ff" fill-opacity=".9"/>')}
-    if(x.fora!=null)s.push('<line x1="'+(cx-bw/2-2).toFixed(1)+'" x2="'+(cx+bw/2+2).toFixed(1)+'" y1="'+y(x.fora).toFixed(1)+'" y2="'+y(x.fora).toFixed(1)+'" stroke="#f5f5f7" stroke-width="2.5" stroke-linecap="round"/>');
     s.push('<text x="'+cx.toFixed(1)+'" y="'+(B+18)+'" text-anchor="middle" font-size="11" fill="'+(sel?'#f5f5f7':'#a1a1a6')+'">'+x.a+'</text>'+(x.b?'<text x="'+cx.toFixed(1)+'" y="'+(B+33)+'" text-anchor="middle" font-size="10" fill="#8e8e93">'+x.b+'</text>':'')+'</g>')});
   if(alvo!==null){const yy=y(alvo).toFixed(1);s.push('<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="#ff453a" stroke-width="2" stroke-dasharray="6 4"/>')}
   $('gsvg').innerHTML=s.join('')+'</svg>';
