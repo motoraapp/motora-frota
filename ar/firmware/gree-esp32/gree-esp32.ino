@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 17
+#define FW_VERSAO 18
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -174,7 +174,9 @@ void enviar(const Estado &e, int proto) {
 struct TeclaTv { const char *k; uint8_t f; };
 const TeclaTv TECLAS_TV[] = {{"power", 1}, {"mute", 4}, {"fonte", 5}, {"menu", 10}, {"volUp", 12}, {"volDn", 16}, {"chUp", 24}, {"chDn", 28},
   {"info", 64}, {"voltar", 68}, {"sleep", 19}, {"tela", 20}, {"n0", 65}, {"n1", 21}, {"n2", 22}, {"n3", 23}, {"n4", 25}, {"n5", 26},
-  {"n6", 27}, {"n7", 29}, {"n8", 30}, {"n9", 31}};
+  {"n6", 27}, {"n7", 29}, {"n8", 30}, {"n9", 31},
+  // versão 18: navegação. 255 = a AOC não tem esse botão (só funciona na Sony ou ensinando).
+  {"cima", 24}, {"baixo", 28}, {"esq", 16}, {"dir", 12}, {"ok", 255}, {"inicio", 255}, {"retorno", 255}, {"sair", 255}, {"netflix", 255}};
 const int N_TECLAS_TV = sizeof(TECLAS_TV) / sizeof(TECLAS_TV[0]);
 const uint16_t AOC_ENDERECO = 0xBD00;  // 1º byte 0, 2º byte 189 (NEC estendido)
 IRsend irsend(PINO_TX);
@@ -215,9 +217,25 @@ void tvBuscaCmd(const String &c) {
   if (c == "next") { TB.sozinho = false; if (TB.i < N_FAMILIAS_TV - 1) TB.i++; tvBuscaTestar(); }
   else if (c == "prev") { TB.sozinho = false; if (TB.i > 0) TB.i--; tvBuscaTestar(); }
   else if (c == "again") { TB.sozinho = false; tvBuscaTestar(); }
-  else if (c == "ok") { tvFam = TB.i; gravaNum("tv_fam", tvFam); TB.on = false; tvAvisar("TV encontrada. Ligar, volume, canal e mudo já usam os códigos dela."); }
+  else if (c == "ok") { tvFam = TB.i; gravaNum("tv_fam", tvFam); TB.on = false; tvAvisar(sonyIndice("ok") >= 0 ? "TV Sony encontrada. Todos os botões já usam os códigos dela." : "TV encontrada. Ligar, volume, canal e mudo já usam os códigos dela."); }
   else if (c == "stop") TB.on = false;
 }
+// ---------- TV Sony: os outros botões (versão 18) ----------
+// A busca só traz ligar, volume, mudo e canal. Para a família Sony (protocolo SIRC, aparelho 1 = TV) estes são os
+// demais botões: lista pública irdb (codes/Sony/TV/1,-1.csv e 26,-1.csv) e códigos IRCC das Bravia
+// (Voltar e Netflix são de 15 bits, aparelhos 151 e 26). b = bits, d = aparelho, c = comando.
+struct TeclaSony { const char *k; uint8_t b, d, c; };
+const TeclaSony TECLAS_SONY[] = {{"fonte", 12, 1, 37}, {"menu", 12, 1, 96}, {"inicio", 12, 1, 96}, {"ok", 12, 1, 101},
+  {"cima", 12, 1, 116}, {"baixo", 12, 1, 117}, {"esq", 12, 1, 52}, {"dir", 12, 1, 51}, {"retorno", 15, 151, 35},
+  {"sair", 12, 1, 99}, {"netflix", 15, 26, 124}, {"info", 12, 1, 58}, {"voltar", 12, 1, 59}, {"sleep", 12, 1, 54},
+  {"n1", 12, 1, 0}, {"n2", 12, 1, 1}, {"n3", 12, 1, 2}, {"n4", 12, 1, 3}, {"n5", 12, 1, 4}, {"n6", 12, 1, 5},
+  {"n7", 12, 1, 6}, {"n8", 12, 1, 7}, {"n9", 12, 1, 8}, {"n0", 12, 1, 9}};
+int sonyIndice(const String &k) {
+  if (tvFam < 0 || tvFam >= N_FAMILIAS_TV || FAMILIAS_TV[tvFam].p != 7 || FAMILIAS_TV[tvFam].a != 1) return -1;
+  for (int i = 0; i < (int)(sizeof(TECLAS_SONY) / sizeof(TECLAS_SONY[0])); i++) if (k == TECLAS_SONY[i].k) return i;
+  return -1;
+}
+
 void tvTecla(const String &k) {
   int i = tvIndice(k);
   if (i < 0) return;
@@ -226,13 +244,22 @@ void tvTecla(const String &k) {
   int t = -1;
   for (int j = 0; j < 6; j++) if (k == TECLAS_FAMILIA[j]) t = j;
   bool daFamilia = tvFam >= 0 && tvFam < N_FAMILIAS_TV;
-  if (!(c1 > 0 && c2 > c1) && daFamilia && (t < 0 || FAMILIAS_TV[tvFam].c[t] < 0) && FAMILIAS_TV[tvFam].a != AOC_ENDERECO) {
+  int sy = (t >= 0 && daFamilia && FAMILIAS_TV[tvFam].c[t] >= 0) ? -1 : sonyIndice(k);
+  bool aprendido = c1 > 0 && c2 > c1;
+  if (!aprendido && sy < 0 && (!daFamilia || FAMILIAS_TV[tvFam].a == AOC_ENDERECO) && TECLAS_TV[i].f == 255) {
+    tvAvisar("Esse botão não existe no controle da AOC. Dá para ensinar a placa.");
+    return;
+  }
+  if (!aprendido && sy < 0 && daFamilia && (t < 0 || FAMILIAS_TV[tvFam].c[t] < 0) && FAMILIAS_TV[tvFam].a != AOC_ENDERECO) {
     tvAvisar("Esse botão ainda não tem código para a sua TV.");
     return;
   }
   irrecv.disableIRIn();
   if (c1 > 0 && c2 > c1) {
     irsend.send((decode_type_t)ap.substring(0, c1).toInt(), strtoull(ap.substring(c2 + 1).c_str(), NULL, 16), ap.substring(c1 + 1, c2).toInt());
+  } else if (sy >= 0) {
+    const TeclaSony &x = TECLAS_SONY[sy];
+    irsend.sendSony(irsend.encodeSony(x.b, x.c, x.d), x.b, 2);
   } else if (daFamilia && t >= 0 && FAMILIAS_TV[tvFam].c[t] >= 0) {
     tvMandarCodigo(FAMILIAS_TV[tvFam].p, FAMILIAS_TV[tvFam].a, FAMILIAS_TV[tvFam].c[t]);
   } else {

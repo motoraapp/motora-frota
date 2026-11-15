@@ -189,6 +189,11 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
     const naTela = [...(nObj ? nObj[1] : '').matchAll(/(\w+):'/g)].map(m => m[1]).concat([...Array(10)].map((_, i) => 'n' + i)).sort();
     if (naPlaca.length && JSON.stringify(naPlaca) === JSON.stringify(naTela)) console.log(`ok   ar: ${naPlaca.length} botões da TV iguais na tela e na placa`);
     else { erros++; console.log(`ERRO ar: botões da TV diferentes. Placa: ${naPlaca.join(',')} | Tela: ${naTela.join(',')}`); }
+    // TV Sony (versão 18): todo botão da tabela TECLAS_SONY tem que existir em TECLAS_TV (senão a placa nunca manda).
+    const tsy = ino.indexOf('TECLAS_SONY[] = {'), sony = tsy < 0 ? [] : [...ino.slice(tsy, ino.indexOf('};', tsy)).matchAll(/\{"(\w+)", \d+, \d+, \d+\}/g)].map(m => m[1]);
+    const semPar = sony.filter(k => !naPlaca.includes(k));
+    if (sony.length >= 20 && !semPar.length) console.log(`ok   ar: ${sony.length} botões Sony com par na placa`);
+    else { erros++; console.log(`ERRO ar: tabela TECLAS_SONY com problema (${sony.length} botões; sem par: ${semPar.join(',')})`); }
     // Controle universal de TV: tabela gerada do Flipper; cada família tem protocolo conhecido e código de ligar.
     const tvu = join(raiz, 'ar/firmware/gree-esp32/tv_universal.h');
     if (existsSync(tvu)) {

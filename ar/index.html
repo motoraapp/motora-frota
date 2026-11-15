@@ -425,7 +425,7 @@ const $=i=>document.getElementById(i),pw=$('p'),pai=pw.parentNode,aj=$('aj');
 const P={ar:'M4 5h16v8H4zM7 9h10M8 17l-1 3M12 17v3M16 17l1 3',tv:'M3 5h18v12H3zM8 21h8M12 17v4',pwr:'M12 3v8M6.3 7a8 8 0 1 0 11.4 0',
  up:'M6 15l6-6 6 6',down:'M6 9l6 6 6-6',left:'M15 6l-6 6 6 6',right:'M9 6l6 6-6 6',mute:'M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6'};
 const ic=k=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+P[k]+'"/></svg>';
-const N={power:'Ligar ou desligar a TV',chUp:'Canal +',chDn:'Canal −',volUp:'Volume +',volDn:'Volume −',menu:'Menu',mute:'Mudo',fonte:'TV/AV',info:'Info',voltar:'Último canal',sleep:'Sleep',tela:'Tela'};
+const N={power:'Ligar ou desligar a TV',chUp:'Canal +',chDn:'Canal −',volUp:'Volume +',volDn:'Volume −',menu:'Menu',mute:'Mudo',fonte:'Entrada (HDMI, TV)',ok:'OK',cima:'Seta para cima',baixo:'Seta para baixo',esq:'Seta para a esquerda',dir:'Seta para a direita',inicio:'Início',retorno:'Voltar',sair:'Sair',netflix:'Netflix',info:'Info',voltar:'Último canal',sleep:'Sleep',tela:'Tela'};
 for(let i=0;i<10;i++)N['n'+i]='Número '+i;
 const st=document.createElement('style');st.textContent=
 '.abas{display:flex;gap:2px;width:100%;max-width:440px;padding:3px;margin:4px 0 18px;background:rgba(118,118,128,.24);border-radius:12px}'+
@@ -437,6 +437,7 @@ const st=document.createElement('style');st.textContent=
 '#pTv .tk svg{color:#f5f5f7}#pTv .tk.vai{background:#0a84ff;color:#fff;transition:none}#pTv .tk.ap::after{content:"";position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:4px;background:#30d158}'+
 '#pTv .tvp{width:88px;height:88px;border-radius:44px;background:#ff453a}#pTv .tvp svg{width:34px;height:34px;color:#fff}'+
 '.tvx{display:grid;grid-template-columns:repeat(3,80px);grid-template-rows:repeat(3,64px);gap:8px}.tvx .tk{border-radius:16px}.tvx [data-k=menu]{border-radius:32px;color:#f5f5f7;font-size:14px}'+
+'.tvnav{grid-template-rows:repeat(3,56px)}.tvnav .tk{border-radius:28px}.tvnav [data-k=ok]{background:rgba(255,255,255,.18);color:#f5f5f7;font-size:16px;font-weight:600}#pTv [data-k=netflix]{color:#ff453a;font-weight:600}'+
 '.tvvol{width:100%;background:rgba(255,255,255,.07);border-radius:18px;padding:10px 16px 4px}.tvvt{display:flex;justify-content:space-between;align-items:baseline;font-size:15px;color:#a1a1a6}.tvvt b{color:#f5f5f7;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}#tvv{width:100%;height:44px;margin:0;accent-color:#0a84ff;touch-action:none}'+
  '.tvr,.tvn{display:grid;gap:8px;width:100%}.tvr{grid-template-columns:repeat(4,1fr)}.tvr .tk{height:60px}.tvn{grid-template-columns:repeat(3,1fr)}'+
 '.tvn .tk{height:56px;font-size:21px;color:#f5f5f7;font-variant-numeric:tabular-nums}.tvn [data-k=sleep],.tvn [data-k=tela]{font-size:14px;color:#a1a1a6}'+
@@ -456,7 +457,9 @@ const b=(k,c)=>'<button class="tk'+(c?' '+c:'')+'" data-k="'+k+'" aria-label="'+
 tv.innerHTML=b('power','tvp')+ic('pwr')+'</button>'+
  '<div class="tvx"><i></i>'+b('chUp')+ic('up')+'Canal</button><i></i>'+b('volDn')+ic('left')+'Vol</button>'+b('menu')+'Menu</button>'+b('volUp')+ic('right')+'Vol</button><i></i>'+b('chDn')+ic('down')+'Canal</button><i></i></div>'+
  '<div class="tvvol"><div class="tvvt"><label for="tvv">Volume</label><b id="tvvn">0</b></div><input type="range" id="tvv" min="0" max="100" step="1" value="0"></div>'+
- '<div class="tvr">'+b('mute')+ic('mute')+'Mudo</button>'+b('fonte')+'TV/AV</button>'+b('info')+'Info</button>'+b('voltar')+'Último</button></div>'+
+ '<div class="tvx tvnav"><i></i>'+b('cima')+ic('up')+'</button><i></i>'+b('esq')+ic('left')+'</button>'+b('ok')+'OK</button>'+b('dir')+ic('right')+'</button><i></i>'+b('baixo')+ic('down')+'</button><i></i></div>'+
+ '<div class="tvr">'+b('inicio')+'Início</button>'+b('retorno')+'Voltar</button>'+b('sair')+'Sair</button>'+b('netflix')+'Netflix</button></div>'+
+ '<div class="tvr">'+b('mute')+ic('mute')+'Mudo</button>'+b('fonte')+'Entrada</button>'+b('info')+'Info</button>'+b('voltar')+'Último</button></div>'+
  '<div class="tvn">'+[1,2,3,4,5,6,7,8,9].map(i=>b('n'+i)+i+'</button>').join('')+b('sleep')+'Sleep</button>'+b('n0')+'0</button>'+b('tela')+'Tela</button></div>'+
  '<p id="tvmsg" role="status" aria-live="polite"></p>'+
  '<details id="tvaj"><summary>Ajustar botões da TV</summary>'+
