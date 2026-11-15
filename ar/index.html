@@ -246,6 +246,9 @@ async function carregarTempo(){ if(Date.now()-wxUlt<900000&&WX) return; wxUlt=Da
 async function carregarTempoDias(de,ate){ const hoje=new Date(); if((hoje-de)/864e5>88) return;
   try{ const r=await fetch(WXURL+'&daily=temperature_2m_max,weather_code&start_date='+gIso(de)+'&end_date='+gIso(ate>hoje?hoje:ate)); if(!r.ok) return; const j=await r.json();
     (j.daily&&j.daily.time||[]).forEach((d,i)=>{ if(j.daily.temperature_2m_max[i]!==null) WXd[d]={max:j.daily.temperature_2m_max[i],c:j.daily.weather_code[i]} }); }catch(e){} }
+// Hoje: a máxima diária do Open-Meteo é PREVISÃO do dia inteiro (de madrugada mostrava 30 °C com 22 °C lá fora).
+// Para hoje vale a maior temperatura de hora em hora até a hora atual (agora = 'AAAA-MM-DDTHH:00').
+function wxMaxHoje(h,hoje,agora){let m=null;if(!h||!h.time)return m;h.time.forEach((t,i)=>{const v=h.temperature_2m[i];if(t.slice(0,10)===hoje&&t<=agora&&v!==null&&(m===null||v>m))m=v});return m}
 function mostrarFora(){ const s=$('sala'); if(!s||!WX||!WX.current) return; let e=$('fora'); if(!e){ e=document.createElement('div'); e.id='fora'; s.after(e); }
   e.textContent='Lá fora: '+gVg(Math.round(WX.current.temperature_2m*10)/10)+' °C, '+wxTxt(WX.current.weather_code)+' (Trindade)'; }
 function gFaixa(){const h=new Date();
@@ -255,7 +258,7 @@ function gFaixa(){const h=new Date();
 async function carregarGraf(){ gUlt=Date.now(); const pedido=gModo+gDesl+gMet; carregarTempo();
   if(gModo==='24'){ const {data,error}=await sb.rpc('ar_24h'); if(!error&&pedido===gModo+gDesl+gMet){ G24=data; desenharGraf(); } return; }
   const [de,ate]=gFaixa(),a={p_de:gIso(de),p_ate:gIso(ate)};
-  const [r1,r2]=await Promise.all([sb.rpc('ar_temp_periodo',a),sb.rpc('ar_uso_periodo',a),gModo==='ano'?null:carregarTempoDias(de,ate)]);
+  const [r1,r2]=await Promise.all([sb.rpc('ar_temp_periodo',a),sb.rpc('ar_uso_periodo',a),gModo==='ano'?null:carregarTempoDias(de,ate),carregarTempo()]);
   if(pedido===gModo+gDesl+gMet){ if(!r1.error) GD=r1.data||[]; if(!r2.error) GU=r2.data||[]; desenharGraf(); } }
 function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],uso=gMet==='uso';
   const val=(r,u)=>uso?(u?u.seg/3600:null):(r?+r.max:null);
@@ -263,9 +266,10 @@ function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],uso=gMet==
     const mn=ds.length?Math.min(...ds.map(x=>+x.min)):null,nome=gMES[m]+'/'+de.getFullYear(),seg=us.reduce((a,x)=>a+x.seg,0);
     it.push({a:gMES[m],b:'',v:uso?(seg?seg/3600:null):(r?+r.max:null),h:!uso&&r?gHm(r.max_em):'',atual:m===new Date().getMonth()&&gDesl===0,quando:uso?nome:(r?r.dia.slice(8)+'/'+r.dia.slice(5,7):''),
       det:nome+': '+(uso?(seg?'ar ligado '+gH(seg)+' no mês':'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C em '+r.dia.slice(8)+'/'+r.dia.slice(5,7)+' às '+gHm(r.max_em)+' · mínima do mês '+gVg(mn)+' °C':'sem leitura'))})}return it}
-  for(let d=new Date(de);d<=ate;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const iso=gIso(d),r=GD.find(x=>x.dia===iso),u=GU.find(x=>x.dia===iso),n=d.getDate(),dm=gP2(n)+'/'+gP2(d.getMonth()+1),w=WXd[iso];
+  for(let d=new Date(de);d<=ate;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const iso=gIso(d),r=GD.find(x=>x.dia===iso),u=GU.find(x=>x.dia===iso),n=d.getDate(),dm=gP2(n)+'/'+gP2(d.getMonth()+1);let w=WXd[iso];
+    if(iso===hoje){const ag=new Date(),mh=WX&&wxMaxHoje(WX.hourly,hoje,hoje+'T'+gP2(ag.getHours())+':00');w=mh!=null?{max:mh,c:WX.current?WX.current.weather_code:w&&w.c,ate:1}:null}
     it.push({a:gModo==='7'?(iso===hoje?'hoje':gSEM[d.getDay()]):(n===1||n%5===0?String(n):''),b:gModo==='7'?dm:'',v:val(r,u),h:!uso&&r?gHm(r.max_em):'',fora:!uso&&w?w.max:null,atual:iso===hoje,quando:dm,
-      det:(iso===hoje?'Hoje':dm)+': '+(uso?(u?'ar ligado '+gH(u.seg):'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C às '+gHm(r.max_em)+' · mínima '+gVg(+r.min)+' °C':'sem leitura')+(w?' · lá fora '+gVg(w.max)+' °C, '+wxTxt(w.c):''))})}
+      det:(iso===hoje?'Hoje':dm)+': '+(uso?(u?'ar ligado '+gH(u.seg):'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C às '+gHm(r.max_em)+' · mínima '+gVg(+r.min)+' °C':'sem leitura')+(w?' · lá fora '+(w.ate?'máxima até agora ':'')+gVg(w.max)+' °C, '+wxTxt(w.c):''))})}
   return it}
 function grade(s,lo,hi,passo,y,L,R,suf){for(let k=0;k<=4;k++){const v=lo+passo*k,yy=y(v).toFixed(1);s.push('<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,.1)" stroke-width="1"/><text x="'+(L-6)+'" y="'+(+yy+4)+'" text-anchor="end" font-size="11" fill="#a1a1a6">'+v+suf+'</text>')}}
 function desenhar24(){

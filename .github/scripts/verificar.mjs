@@ -168,6 +168,16 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
       checarJs(`ar/index.html (script ${i + 1})`, arq);
     });
   }
+  // Gráfico de 7 dias: a "máxima lá fora" de hoje é a maior até a hora atual, não a previsão do dia (erro de 15/11/2026).
+  if (existsSync(join(raiz, 'ar/index.html'))) {
+    const m = readFileSync(join(raiz, 'ar/index.html'), 'utf8').match(/function wxMaxHoje\(h,hoje,agora\)\{(.*)\}\r?\n/);
+    const fn = m && new Function('h', 'hoje', 'agora', m[1]);
+    const h = { time: ['2026-11-14T15:00', '2026-11-15T00:00', '2026-11-15T01:00', '2026-11-15T14:00'], temperature_2m: [33, 22.4, 21.9, 30.2] };
+    const casos = [['2026-11-15T01:00', 22.4], ['2026-11-15T14:00', 30.2], ['2026-11-14T14:00', null], ['2026-11-14T23:00', 33]];
+    const f = fn && casos.find(([ag, esp]) => fn(h, ag.slice(0, 10), ag) !== esp);
+    if (fn && !f) console.log('ok   ar: máxima lá fora de hoje só conta até a hora atual');
+    else { erros++; console.log(`ERRO ar: wxMaxHoje ${fn ? `(${f[0]}) -> ${fn(h, f[0].slice(0, 10), f[0])}, esperado ${f[1]}` : 'não encontrada em ar/index.html'}`); }
+  }
   if (existsSync(join(raiz, 'ar/manifest.json'))) {
     try { JSON.parse(readFileSync(join(raiz, 'ar/manifest.json'), 'utf8')); console.log('ok   ar/manifest.json'); }
     catch (e) { erros++; console.log(`ERRO ar/manifest.json: ${e.message}`); }
