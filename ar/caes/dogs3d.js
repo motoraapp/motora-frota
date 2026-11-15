@@ -12,7 +12,7 @@ const INCLINA = 0.42;                 // câmera um pouco de cima
 const FPS = 60; // movimento fluido (pedido do dono); pausa sozinho com o app em segundo plano
 const rand = (a, b) => a + Math.random() * (b - a);
 const escolher = (l) => l[(Math.random() * l.length) | 0];
-const PI = Math.PI;
+const PI = Math.PI, TAU = PI * 2;
 const difAng = (a, b) => { let d = (a - b) % (2 * PI); if (d > PI) d -= 2 * PI; if (d < -PI) d += 2 * PI; return d; };
 
 export function temWebGL() {
@@ -141,7 +141,7 @@ export function iniciarCachorros(op = {}) {
     if (t.t === 'sumir') { d.visivel = false; proxima(d); }
     if (t.t === 'aparecer') { d.x = t.x; d.y = t.y; d.visivel = true; proxima(d); }
   }
-  const velocidade = (d, modo) => d.tam * (modo === 'run' ? 3.4 + d.energia : 1.0 + d.energia * 0.5);
+  const velocidade = (d, modo) => d.tam * (modo === 'run' ? 3.4 + d.energia : modo === 'sniff' ? 0.45 + d.energia * 0.2 : 1.0 + d.energia * 0.5);
 
   function andar(d, t, dt) {
     const dx = t.x - d.x, dy = t.y - d.y, dist = Math.hypot(dx, dy);
@@ -175,14 +175,30 @@ export function iniciarCachorros(op = {}) {
         fim = Math.abs(difAng(alvo, d.ang)) < 0.06 || t.tt > 1.5; break;
       }
       case 'sincronizar': fim = t.g.n >= t.g.total || t.tt > 6; if (!t.contou) { t.g.n++; t.contou = true; } setAcao(d, 'idle'); break;
-      case 'puxar': { // morde o botão e puxa para trás alguns pixels; o botão volta com mola
-        setAcao(d, 'walk');
-        const k = Math.min(1, t.tt / 1.1), off = -t.dx * k;
+      case 'puxar': { // morde o botão e puxa para trás: a boca abre e fecha (mordidas), sacode a cabeça; o botão treme a cada mordida e volta com mola
+        setAcao(d, 'tug');
+        const dur = t.dur || 1.8, k = Math.min(1, t.tt / dur), off = -t.dx * (k < 0.15 ? k / 0.15 * 0.4 : 0.4 + 0.6 * k);
         if (!t.ini) { t.ini = true; t.el.style.transition = 'none'; t.x0 = d.x; }
-        d.x = t.x0 + off; d.fase -= dt * 9;
-        t.el.style.translate = `${off.toFixed(1)}px ${(Math.sin(t.tt * 18) * 1.2).toFixed(1)}px`;
-        t.el.style.rotate = `${(-off * 0.15).toFixed(1)}deg`;
+        const morde = Math.max(0, Math.sin(d.tA * 12)); // mesma mordida da boca (movimento.js 'tug')
+        d.x = t.x0 + off;
+        t.el.style.translate = `${(off + Math.sin(d.tA * 9) * 2.5).toFixed(1)}px ${(morde * 2.2 - 1).toFixed(1)}px`;
+        t.el.style.rotate = `${(-off * 0.15 + Math.sin(d.tA * 9 + 0.6) * 5).toFixed(1)}deg`;
         if (k >= 1) { soltarElemento(t.el); fim = true; }
+        break;
+      }
+      case 'girar': { // corre atrás do próprio rabo: rodinha pequena, virando de um lado para o outro
+        if (!t.ini) { t.ini = true; t.cx = d.x; t.cy = d.y; t.a0 = 0; }
+        setAcao(d, 'run');
+        const voltas = t.voltas || 2, a = (t.tt / (t.dur || 1.6)) * voltas * TAU, r = d.tam * 0.28;
+        d.x = t.cx + Math.sin(a) * r; d.y = t.cy + (Math.cos(a) - 1) * r * 0.35;
+        d.ang = Math.cos(a) > 0 ? PI / 2 : -PI / 2; d.fase += dt * 16;
+        if (t.tt >= (t.dur || 1.6)) { d.x = t.cx; d.y = t.cy; fim = true; }
+        break;
+      }
+      case 'seguir': { // corre atrás de outro cachorro (pega-pega)
+        const al = t.alvo, lado = al.x > d.x ? -1 : 1;
+        const fimSeg = andar(d, { x: al.x + lado * (al.tam + d.tam) * 0.45, y: al.y + 4, modo: 'run' }, dt);
+        fim = t.tt >= t.dur || (!al.ocupado && fimSeg);
         break;
       }
       default: fim = true;
@@ -244,8 +260,9 @@ export function iniciarCachorros(op = {}) {
       iniciarEvento('pegar', [d]);
       tarefas(d, [
         { t: 'ir', x: fx + (daEsq ? -40 : 40), y: fy + 10, modo: 'run' }, { t: 'ir', x: fx, y: fy }, { t: 'virar', ang: daEsq ? PI / 2 : -PI / 2 },
-        { t: 'acao', a: 'bark', dur: 0.3 }, { t: 'puxar', el, dx: (daEsq ? 1 : -1) * rand(14, 24) }, { t: 'virar', alvo: 'usuario' },
-        { t: 'latir', n: 1, texto: 'hehe' }, ...voltarParaCasa(d, 'run'),
+        { t: 'acao', a: 'wiggle', dur: 0.5 }, { t: 'fn', f: () => balao(d, 'nhac!', 0.8) },
+        { t: 'puxar', el, dx: (daEsq ? 1 : -1) * rand(16, 26), dur: d.energia > 0.8 ? rand(1.8, 2.6) : 1.6 }, { t: 'virar', alvo: 'usuario' },
+        { t: 'acao', a: 'hop', dur: d.energia > 0.8 ? 0.9 : 0.45 }, { t: 'latir', n: 1, texto: 'hehe' }, ...voltarParaCasa(d, 'run'),
       ]);
       return true;
     },
@@ -264,6 +281,43 @@ export function iniciarCachorros(op = {}) {
       ]);
       return true;
     },
+    // ---- novos (16/11/2026, pedido do dono: mais agitados, "me surpreenda") ----
+    zoomies(d = sortear(livres())) { // corrida maluca: dispara pela tela em zigue-zague, com pulinhos e rodopio
+      if (!d) return false;
+      const lim = barra.el.getBoundingClientRect().top - 30, pts = [], n = d.energia > 0.8 ? 5 : 3;
+      for (let i = 0; i < n; i++) pts.push({ t: 'ir', x: rand(0.12, 0.88) * W(), y: rand(0.3, 0.95) * lim, modo: 'run' }, ...(i === 1 ? [{ t: 'girar', voltas: 2, dur: 1.2 }] : []), ...(i === 2 ? [{ t: 'acao', a: 'hop', dur: 0.6 }] : []));
+      iniciarEvento('zoomies', [d]);
+      tarefas(d, [{ t: 'acao', a: 'playbow', dur: 0.5 }, { t: 'fn', f: () => balao(d, 'zuuum!', 0.9) }, ...pts, { t: 'acao', a: 'pant', dur: 1.2 }, ...voltarParaCasa(d, 'run')]);
+      return true;
+    },
+    pegaPega() { // um chama para brincar e o outro corre atrás dele pela tela; no fim os dois rebolam de alegria
+      const l = livres(); if (l.length < 2) return false;
+      const a = sortear(l), b = sortear(l.filter((x) => x !== a)); if (!a || !b) return false;
+      iniciarEvento('pegaPega', [a, b]);
+      const lim = barra.el.getBoundingClientRect().top - 30, pts = [];
+      for (let i = 0; i < 4; i++) pts.push({ t: 'ir', x: rand(0.12, 0.88) * W(), y: rand(0.35, 0.95) * lim, modo: 'run' });
+      tarefas(a, [{ t: 'virar', alvo: b }, { t: 'acao', a: 'playbow', dur: 0.7 }, { t: 'fn', f: () => balao(a, 'pega eu!', 1) }, ...pts,
+        { t: 'virar', ang: PI / 2 }, { t: 'acao', a: 'wiggle', dur: 1.2 }, ...voltarParaCasa(a, 'run')]);
+      tarefas(b, [{ t: 'esperar', dur: 0.9 }, { t: 'latir', n: 2 }, { t: 'seguir', alvo: a, dur: 14 }, { t: 'acao', a: 'hop', dur: 0.7 }, { t: 'acao', a: 'wiggle', dur: 0.8 }, ...voltarParaCasa(b, 'run')]);
+      return true;
+    },
+    rabo(d = sortear(livres())) { // corre atrás do próprio rabo, para tonto, sacode e late
+      if (!d) return false;
+      iniciarEvento('rabo', [d]);
+      tarefas(d, [{ t: 'acao', a: 'tilt', dur: 0.6 }, { t: 'girar', voltas: d.energia > 0.8 ? 3 : 2, dur: d.energia > 0.8 ? 1.8 : 1.6 }, { t: 'acao', a: 'idle', dur: 0.25 },
+        { t: 'girar', voltas: 2, dur: 1.2 }, { t: 'acao', a: 'shake', dur: 1.1 }, { t: 'latir', n: 1, texto: 'au!' }, { t: 'fn', f: () => { eventoAtivo = null; } }], true);
+      return true;
+    },
+    cheirar() { // dois amigos se encontram: cheiram o focinho, inclinam a cabeça e rebolam
+      const l = livres(); if (l.length < 2) return false;
+      const a = sortear(l), b = sortear(l.filter((x) => x !== a)); if (!a || !b) return false;
+      iniciarEvento('cheirar', [a, b]);
+      const mx = (a.x + b.x) / 2, my = Math.max(a.y, b.y) - rand(40, 120), g = { n: 0, total: 2 }, sep = (a.tam + b.tam) * 0.32;
+      const rot = (d, s) => [{ t: 'ir', x: mx + s * sep, y: my, modo: 'sniff' }, { t: 'sincronizar', g }, { t: 'virar', ang: s > 0 ? -PI / 2 : PI / 2 },
+        { t: 'acao', a: 'sniff', dur: 1.2 }, { t: 'acao', a: 'tilt', dur: 1.1 }, { t: 'acao', a: 'wiggle', dur: 1 }, ...voltarParaCasa(d)];
+      tarefas(a, rot(a, -1)); tarefas(b, rot(b, 1));
+      return true;
+    },
     ar(d = escolher(livres())) { // calor: vai para perto do ar
       const el = document.querySelector(SEL_AR); if (!d || !el) return false;
       const r = el.getBoundingClientRect(); if (r.bottom < 0 || r.top > H()) return false;
@@ -279,9 +333,10 @@ export function iniciarCachorros(op = {}) {
     if (eventoAtivo || amb.noite) return;
     proxEvento -= dt;
     if (proxEvento > 0) return;
-    proxEvento = rand(22, 48) * (amb.ar ? 1.6 : 1);
-    const bex = caes.reduce((s, d) => Math.max(s, nec.de(d.cfg.id).bexiga), 0);
-    const opcoes = [['visita', 4], ['briga', livres().length >= 2 ? 2 : 0], ['pegar', 1.5], ['xixi', bex / 35], ['ar', amb.calor ? 3 : 0]];
+    proxEvento = rand(11, 24) * (amb.ar ? 1.4 : 1); // mais brincadeiras (pedido do dono, 16/11/2026)
+    const bex = caes.reduce((s, d) => Math.max(s, nec.de(d.cfg.id).bexiga), 0), dois = livres().length >= 2 ? 1 : 0;
+    const opcoes = [['visita', 3], ['briga', 2 * dois], ['pegar', 2.5], ['xixi', bex / 35], ['ar', amb.calor ? 3 : 0],
+      ['zoomies', amb.calor ? 0.5 : 2], ['pegaPega', 2 * dois], ['rabo', 1.5], ['cheirar', 1.5 * dois]];
     let tot = opcoes.reduce((s, o) => s + o[1], 0), r = Math.random() * tot;
     for (const [nome, peso] of opcoes) { r -= peso; if (r <= 0) { EVENTOS[nome](); break; } }
   }
@@ -305,13 +360,21 @@ export function iniciarCachorros(op = {}) {
       return;
     }
     d.prox -= dt; if (d.prox > 0) return;
-    d.prox = rand(5, 12) * (1.4 - d.energia * 0.9); // o agitado troca de posição mais vezes
+    // o agitado troca de posição bem mais vezes: Belinha a cada ~1,5 a 4 s, Elvis ~2 a 5 s, Maya ~5 a 11 s
+    d.prox = rand(4.5, 11) * (1.35 - d.energia * 1.0);
     let a;
-    if (amb.frio) a = escolher(['shiver', 'curl', 'curl']);
-    else if (amb.calor) a = escolher(['pant', 'pant', amb.ar ? 'lie' : 'pant']);
-    else if (amb.ar) a = escolher(d.energia > 0.8 ? ['lie', 'sit', 'idle'] : ['lie', 'lie', d.energia < 0.5 ? 'sleep' : 'sit']);
-    else a = escolher(d.energia > 0.8 ? ['idle', 'idle', 'sit', 'playbow'] : d.energia > 0.5 ? ['idle', 'sit', 'lie'] : ['lie', 'sit', 'lie', 'idle']);
-    if (a === 'playbow') { tarefas(d, [{ t: 'acao', a: 'playbow', dur: 1 }, { t: 'acao', a: 'idle', dur: 0.1 }], false); return; }
+    // Belinha (a mais agitada), Elvis (agitado) e Maya (calma, mas também brinca)
+    const BRINCA = d.energia > 0.95 ? ['idle', 'wiggle', 'hop', 'tilt', 'sniff', 'rodinha', 'shake', 'playbow', 'hop', 'wiggle', 'sit']
+      : d.energia > 0.8 ? ['idle', 'wiggle', 'tilt', 'sniff', 'hop', 'shake', 'playbow', 'rodinha', 'sit', 'idle']
+      : ['lie', 'sit', 'idle', 'tilt', 'wiggle', 'sniff', 'lie', 'sit', 'shake'];
+    if (amb.frio) a = escolher(['shiver', 'curl', 'curl', 'shake']);
+    else if (amb.calor) a = escolher(['pant', 'pant', amb.ar ? 'lie' : 'pant', 'tilt']);
+    else if (amb.ar) a = escolher(d.energia > 0.8 ? ['lie', 'sit', 'idle', 'wiggle', 'tilt', 'sniff'] : ['lie', 'lie', d.energia < 0.5 ? 'sleep' : 'sit', 'tilt']);
+    else a = escolher(BRINCA);
+    const curta = { wiggle: [1, 1.8], hop: [0.7, 1.3], tilt: [1.2, 2.4], shake: [1.1, 1.1], playbow: [0.8, 1.2] }[a];
+    if (curta) { tarefas(d, [{ t: 'acao', a, dur: rand(curta[0], curta[1]) }, { t: 'acao', a: 'idle', dur: 0.1 }], false); return; }
+    if (a === 'rodinha') { tarefas(d, [{ t: 'girar', voltas: d.energia > 0.95 ? 2 : 1, dur: d.energia > 0.95 ? 1.2 : 0.8 }, { t: 'acao', a: 'idle', dur: 0.1 }], false); return; }
+    if (a === 'sniff') { const c = casa(d); tarefas(d, [{ t: 'ir', x: c.x + rand(-40, 40), y: c.y - rand(0, 18), modo: 'sniff' }, { t: 'ir', x: c.x, y: c.y, modo: 'sniff' }, { t: 'virar', ang: rand(-0.6, 0.6) }], false); return; }
     if (Math.random() < 0.15 + 0.45 * d.energia && !amb.frio) { // dá uma voltinha em casa (o agitado, quase sempre)
       const c = casa(d);
       tarefas(d, [{ t: 'ir', x: c.x + rand(-22, 22), y: c.y }, { t: 'virar', ang: rand(-0.7, 0.7) }, { t: 'acao', a, dur: 0.1 }], false);
@@ -352,7 +415,11 @@ export function iniciarCachorros(op = {}) {
       return;
     }
     if (d.ocupado) { balao(d, 'au!', 0.8); latido(d); return; }
-    tarefas(d, [{ t: 'virar', alvo: 'usuario' }, { t: 'latir', n: d.energia > 0.8 ? 2 : 1 }, { t: 'acao', a: 'idle', dur: 0.4 }], false);
+    // carinho: cada toque tem uma reação diferente (os agitados pulam e rebolam; a Maya inclina a cabeça e abana)
+    const reacao = escolher(d.energia > 0.8 ? ['hop', 'wiggle', 'tilt', 'rodinha', 'latir'] : ['tilt', 'wiggle', 'latir']);
+    const fim = reacao === 'latir' ? [{ t: 'latir', n: d.energia > 0.8 ? 2 : 1 }] : reacao === 'rodinha' ? [{ t: 'girar', voltas: 1, dur: 0.8 }, { t: 'latir', n: 1, texto: 'au!' }]
+      : [{ t: 'acao', a: reacao, dur: reacao === 'tilt' ? 1.3 : 0.9 }, { t: 'fn', f: () => balao(d, reacao === 'tilt' ? '?' : '♥', 0.9) }];
+    tarefas(d, [{ t: 'virar', alvo: 'usuario' }, ...fim, { t: 'acao', a: 'idle', dur: 0.4 }], false);
   }
 
   const pool = [];
@@ -430,7 +497,7 @@ export function iniciarCachorros(op = {}) {
     d.acordadoAte = tempo + 30;
     tarefas(d, [...pre, { t: 'ir', x: fx, y: fy, modo: Math.hypot(d.x - fx, d.y - fy) > 160 ? 'run' : 'walk' }, { t: 'virar', ang: lado > 0 ? -PI / 2 : PI / 2 },
       { t: 'acao', a: tipo === 'comida' ? 'eat' : 'drink', dur: 3.6 }, { t: 'fn', f: fim }, { t: 'virar', alvo: 'usuario' },
-      { t: 'fn', f: () => { d.alegria = 1; balao(d, tipo === 'comida' ? 'nham!' : 'slurp!', 1); } }, { t: 'acao', a: 'idle', dur: 1.4 }, ...voltarParaCasa(d)]);
+      { t: 'fn', f: () => { d.alegria = 1; balao(d, tipo === 'comida' ? 'nham!' : 'slurp!', 1); } }, { t: 'acao', a: tipo === 'comida' ? 'wiggle' : 'shake', dur: 1.2 }, { t: 'acao', a: 'idle', dur: 0.3 }, ...voltarParaCasa(d)]);
     const tb = tigelas[tigelas.length - 1]; tb.dono = d; tb.campo = tipo;
   }
   function removerTigela(tg) {

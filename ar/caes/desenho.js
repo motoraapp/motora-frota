@@ -5,6 +5,7 @@
 // Olhos fechados (piscar, dormir) e boca aberta/fechada (comer, latir, ofegar) vêm dos desenhos do dono, por cima da cabeça.
 // O movimento (ângulos de cada parte) vem de movimento.js. As imagens olham para a direita; o app espelha ao andar para a esquerda.
 import { transformar, piscar, poseSentada, angulosDe } from './movimento.js';
+import { POSES_DESENHADAS } from './poses-desenhadas.js';
 
 const ALT = 1.3; // altura do desenho = tamanho × 1,3
 export const alturaCabeca = () => ALT;
@@ -15,7 +16,12 @@ function img(arq) {
   return IMG[arq];
 }
 const pronta = (i) => i && i.complete && i.naturalWidth > 0;
-export function precarregar(cfgs) { for (const c of cfgs) { img(c.imagem); if (c.olhos) img(c.olhos); if (c.boca2) img(c.boca2.imagem); if (c.poseSentada) img(c.poseSentada.imagem); } }
+export function precarregar(cfgs) {
+  for (const c of cfgs) {
+    img(c.imagem); if (c.olhos) img(c.olhos); if (c.boca2) img(c.boca2.imagem); if (c.poseSentada) img(c.poseSentada.imagem);
+    for (const p of Object.values(POSES_DESENHADAS[c.id] || {})) img(p.imagem);
+  }
+}
 
 // ---------- montar as peças (uma vez, quando a imagem carrega) ----------
 const valida = (r) => r && r[2] > 0 && r[3] > 0;
@@ -193,7 +199,8 @@ export function montarDe(cfg, pose, D, extra = {}) {
   }
   for (const L of legs) {
     const ex = (x, y) => L.extra.has(y * nw + x);
-    L.coxa = limpa(D, (x, y) => (L.naPata(x, y) && y < L.jy) || perto0(x, y, L.hip, L.rq) || (ex(x, y) && y < L.jy));         // tampinha do quadril pega um pouco do corpo
+    // tampinha do quadril: só a metade de baixo do círculo (a de cima pegava o contorno do bumbum, que ao sentar saía para trás como um 2º rabo)
+    L.coxa = limpa(D, (x, y) => (L.naPata(x, y) && y < L.jy) || (perto0(x, y, L.hip, L.rq) && y >= L.hip[1] - 2) || (ex(x, y) && y < L.jy));
     L.canela = limpa(D, (x, y) => (L.naPata(x, y) || ex(x, y)) && ((y >= L.jy && y < L.wy) || perto0(x, y, L.j, L.rj)));
     L.pe = limpa(D, (x, y) => ((L.naPata(x, y) || ex(x, y)) && (y >= L.wy || perto0(x, y, L.w, L.rw))), 25);
   }
@@ -280,7 +287,53 @@ export function desenharSombra(c, d, aspecto) {
 }
 export function larguraDe(cfg) { const i = img(cfg.imagem); return pronta(i) ? i.naturalWidth / i.naturalHeight : 0.75; }
 
+// ---------- poses desenhadas (desenhos inteiros do dono para comer, beber, dormir, xixi, latir, calor, frio, sentar) ----------
+// poses-desenhadas.js (gerado no PC do dono) diz qual imagem cada ação usa; ela já vem na escala do desenho em pé.
+// O cachorro vira o desenho inteiro da ação, com uma mexidinha (respira, ofega, treme...) e troca suave (mesma mistura das ações).
+export const poseDesenhada = (cfg, a) => { const p = POSES_DESENHADAS[cfg.id] && POSES_DESENHADAS[cfg.id][a]; return p && pronta(img(p.imagem)) ? p : null; };
+const suaveP = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+function mexidinha(a, t, H) { // [deslocar x, subir, esticar em pé] em px da tela
+  switch (a) {
+    case 'pant': return [0, 0, 0.012 * Math.sin(t * 15)];                       // ofegando
+    case 'shiver': return [0.006 * H * Math.sin(t * 110), 0, 0];                // tremendo
+    case 'sleep': case 'curl': return [0, 0, 0.02 * Math.sin(t * 1.8)];       // respira devagar
+    case 'bark': return [0, 0.02 * H * Math.max(0, Math.sin(t * 9)), 0];      // pulinho do latido
+    case 'eat': case 'drink': return [0, 0.004 * H * Math.sin(t * 7), 0];     // cabeça mexendo
+    default: return [0, 0, 0.008 * Math.sin(t * 2.4)];                          // respira
+  }
+}
+function desenharPose(c, d, lado, P, alfa, nh) {
+  const im = img(P.imagem), H = d.tam * ALT, k = H / nh, m = mexidinha(P.acao, d.t || 0, H);
+  const w = P.w * k, h = P.h * k * (1 + m[2]);
+  c.save(); c.globalAlpha = alfa;
+  c.beginPath(); c.rect(d.x - H * 3, d.y - H * 4, H * 6, H * 4 + 2); c.clip(); // abaixo do chão não aparece
+  c.translate(d.x + m[0], d.y - 2 * k - m[1]); c.scale(lado, 1);
+  c.imageSmoothingQuality = 'high';
+  c.drawImage(im, -w / 2, -h, w, h);
+  c.restore();
+}
+
 export function desenharCao(c, d, lado, comSombra = true) {
+  const cfg = d.cfg;
+  // troca curta no meio da mistura (40% a 60%): desenhos diferentes meio transparentes um sobre o outro parecem fantasma
+  const pA = poseDesenhada(cfg, d.acao), pB = d.mist < 1 ? poseDesenhada(cfg, d.acaoAnt) : null, k = d.mist < 1 ? suaveP((d.mist - 0.4) / 0.2) : 1;
+  if (pA || pB) {
+    const base = img(cfg.imagem), nh = pronta(base) ? base.naturalHeight : 300;
+    if (comSombra) desenharSombra(c, d, ((pA || pB).w / (pA || pB).h));
+    // o que vai sumindo fica embaixo; o que está chegando aparece por cima
+    if (!pA || !pB) { // troca entre pose desenhada e as peças: as peças aparecem/somem com transparência
+      const pecas = pA ? 1 - k : k;
+      if (pecas > 0.01) { c.save(); c.globalAlpha = pecas; desenharPecas(c, d, lado, false); c.restore(); }
+    }
+    if (pB) desenharPose(c, d, lado, { ...pB, acao: d.acaoAnt }, 1 - k, nh);
+    if (pA) desenharPose(c, d, lado, { ...pA, acao: d.acao }, k, nh);
+    return;
+  }
+  desenharPecas(c, d, lado, comSombra);
+}
+
+function desenharPecas(c, d, lado, comSombra) {
+  const alfa0 = c.globalAlpha; // na troca com uma pose desenhada as peças vêm com transparência
   const cfg = d.cfg, sent = !!cfg.poseSentada && poseSentada(cfg, d.acao);
   const B = bonecoDe(cfg, sent) || (sent ? bonecoDe(cfg, false) : null);
   if (!B) return;
@@ -299,10 +352,10 @@ export function desenharCao(c, d, lado, comSombra = true) {
   c.save(); emVolta(c, B.cab.p, A.cab + A.pesc);                   // cabeça
   por(c, B.cabeca);
   const aberta = Math.max(0, Math.min(1, (A.boca - 0.08) / 0.14)); // 0 boca fechada … 1 aberta
-  if (B.boca) { const al = B.bocaAberta ? aberta : 1 - aberta; if (al > 0.02) { c.globalAlpha = al; por(c, B.boca); c.globalAlpha = 1; } }
+  if (B.boca) { const al = B.bocaAberta ? aberta : 1 - aberta; if (al > 0.02) { c.globalAlpha = alfa0 * al; por(c, B.boca); c.globalAlpha = alfa0; } }
   if (B.mandibula) { c.save(); emVolta(c, B.mandibula.p, A.boca * 0.8); por(c, B.mandibula.c); c.restore(); }
   const p = B.olhos ? piscar(d) : 0;
-  if (p > 0.02) { c.globalAlpha = p; por(c, B.olhos); c.globalAlpha = 1; }
+  if (p > 0.02) { c.globalAlpha = alfa0 * p; por(c, B.olhos); c.globalAlpha = alfa0; }
   for (const o of B.orelhas) { c.save(); emVolta(c, o.p, o.i === 0 ? A.orA : A.orB); por(c, o.c); c.restore(); }
   c.restore();
   c.restore();

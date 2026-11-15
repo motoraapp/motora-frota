@@ -74,6 +74,12 @@ for (const cfg of CACHORROS) {
     const p = pedacos(mascara([L.coxa, L.canela, L.pe], w, h), w, h);
     if (p.length !== 1) falha(`${cfg.nome}: a pata ${L.k} tem ${p.length} pedaços (${p.join(', ')}); pedaço de outra pata ou do chão`);
   }
+  // 2º rabo ao sentar (16/11/2026): a coxa não pode levar nada acima do quadril (o contorno do bumbum girava junto e saía para trás)
+  for (const L of B.legs) {
+    const m = mascara([L.coxa], w, h); let n = 0;
+    for (let y = 0; y < Math.max(0, Math.min(L.hip[1], L.corte) - 3); y++) for (let x = 0; x < w; x++) n += m[y * w + x]; // acima do começo da pata
+    if (n) falha(`${cfg.nome}: a coxa da pata ${L.k} leva ${n} px acima do quadril (vira um 2º rabo ao sentar)`);
+  }
   const nuca = cfg.ossos.cabeca.nuca;
   if (nuca) {
     const m = mascara([B.cabeca], w, h); let n = 0;
@@ -83,7 +89,7 @@ for (const cfg of CACHORROS) {
 }
 // buracos com o cachorro em movimento: monta cada ação em 12 quadros e procura fundo aparecendo por dentro do desenho
 // (vão entre o rabo e as costas, furinho na barriga ao girar a pata, buraco nas costas quando o cabelo mexe)
-const { buracosNovos } = await import('./caes-buracos.mjs');
+const { buracosNovos, ACOES } = await import('./caes-buracos.mjs');
 const cache = {};
 const boneco = (cfg, sent) => {
   const k = cfg.id + sent; if (k in cache) return cache[k];
@@ -94,7 +100,7 @@ for (const cfg of CACHORROS) {
   const b = buracosNovos(cfg, boneco);
   const porAcao = {}; for (const x of b) (porAcao[x.acao] ||= []).push(`q${x.quadro}:${x.px}px@${x.x},${x.y}`);
   for (const [a, l] of Object.entries(porAcao)) falha(`${cfg.nome} ${a}: buraco aparecendo em ${l.length} quadro(s): ${l.slice(0, 4).join(' ')}`);
-  if (!b.length) console.log(`${cfg.nome}: nenhum buraco nas 16 ações (12 quadros cada)`);
+  if (!b.length) console.log(`${cfg.nome}: nenhum buraco nas ${ACOES.length} ações (12 quadros cada)`);
 }
 // o pé de uma pata entrando na região da outra não pode virar o começo dela (pontinhos do Elvis)
 const elvis = CACHORROS.find((c) => c.id === 'elvis');

@@ -48,6 +48,12 @@ function corpo(a, t, tA, f, p0, sentada) {
     case 'peeF': return [-0.1, -0.08, 0];
     case 'fight': return [0.08 * S(t * 8), Math.max(0, S(t * 5)) * 0.04, 0.015 * S(t * 8)];
     case 'playbow': return [0.2, -0.06, 0];
+    // novos (16/11/2026, pedido do dono: mais agitados)
+    case 'tug': return [-0.07 + 0.025 * S(t * 12), -0.02, -0.012 + 0.006 * S(t * 6)]; // puxando o botão: corpo para trás, sacode
+    case 'hop': return [-0.05 * C(t * 14), 0, 0];                                      // pulinhos de alegria (a altura vem de animacoes.js)
+    case 'wiggle': return [0.025 * S(t * 16), 0, 0.012 * S(t * 16 + 0.5)];          // rebolado: o corpo todo abana junto com o rabo
+    case 'shake': { const e = tA < 1.1 ? S((tA / 1.1) * PI) : 0; return [0.05 * S(t * 42) * e, 0.008 * e, 0.018 * S(t * 42 + 1) * e]; } // sacudir o pelo
+    case 'sniff': return [0.06 + 0.01 * S(f * 2 + 0.6), (0.5 - 0.5 * C(f * 2)) * 0.008, 0]; // cheirando o chão
     default: return [0.006 * degrau(t, 5.3, 7, 1.2), 0, 0]; // parado: troca o peso devagar
   }
 }
@@ -161,6 +167,36 @@ function angulos(a, t, tA, f, d, o) {
       o.p0 = -0.6 + 0.35 * S(t * 12); o.p1 = -0.6 + 0.35 * S(t * 12 + PI); o.j0 = 0.55 + 0.25 * S(t * 12 + 1); o.j1 = 0.55 + 0.25 * S(t * 12 + PI + 1); o.w0 = o.w1 = 0.4;
       o.pesc = 0.08 * S(t * 3); o.cab = 0.05 * S(t * 3.5); o.orA = o.orB = -0.2 + 0.1 * S(t * 8 - 1); o.rabo = 0.5 * S(t * 24); o.rabo2 = 0.4 * S(t * 24 - 0.8); break;
     case 'playbow': o.p0 = o.p1 = -0.7; o.j0 = o.j1 = 0.2; o.w0 = o.w1 = -0.1; o.pesc = 0.05; o.cab = -0.05; o.rabo = 0.5 * S(t * 26); o.rabo2 = 0.4 * S(t * 26 - 0.8); break;
+    // ---- novos (16/11/2026) ----
+    case 'tug': { // morde o botão e puxa: abre e fecha a boca (mordidas), sacode a cabeça, patas firmes, rabo a mil
+      const m = Math.max(0, S(t * 12)); o.boca = 0.08 + 0.36 * m;
+      o.pesc = (shih ? 0.06 : -0.06) + 0.1 * S(t * 9); o.cab = (shih ? 0.04 : -0.04) + 0.14 * S(t * 9 + 0.6); // Maya: cabeça não vai para trás (o cabelo descolava do rabo)
+      o.p0 = o.p1 = -0.3 + 0.06 * S(t * 6); o.j0 = o.j1 = 0.2; o.p2 = o.p3 = 0.22 + 0.06 * S(t * 6 + PI); o.j2 = o.j3 = 0.3;
+      o.orA = o.orB = -0.3 + 0.12 * S(t * 9 - 0.8); o.rabo = 0.45 + 0.35 * S(t * 24); o.rabo2 = 0.3 * S(t * 24 - 0.8); break;
+    }
+    case 'hop': { // pulinhos: no ar encolhe as patas, orelhas balançam, boca aberta de alegria
+      const ar = Math.abs(S(t * 7));
+      o.p0 = o.p1 = -0.3 * ar; o.j0 = o.j1 = 0.8 * ar; o.w0 = o.w1 = 0.4 * ar; o.p2 = o.p3 = 0.28 * ar; o.j2 = o.j3 = 0.5 * ar;
+      o.boca = 0.22; o.pesc = -0.05 * ar; o.orA = o.orB = -0.25 + 0.3 * S(t * 14 - 1); o.rabo = 0.5 + 0.35 * S(t * 26); o.rabo2 = 0.3 * S(t * 26 - 0.8); break;
+    }
+    case 'wiggle': { // rebolado de alegria: rabo e corpo abanam juntos, patinhas da frente sapateiam, sorriso
+      o.rabo = 0.25 + 0.5 * S(t * 16); o.rabo2 = 0.45 * S(t * 16 - 0.8); o.boca = 0.18 + 0.05 * S(t * 16);
+      o.cab = 0.06 * S(t * 16 + 1); o.orA = o.orB = -0.15 + 0.08 * S(t * 16 - 0.5);
+      o.p0 = -0.18 * Math.max(0, S(t * 8)); o.j0 = 0.5 * Math.max(0, S(t * 8)); o.p1 = -0.18 * Math.max(0, S(t * 8 + PI)); o.j1 = 0.5 * Math.max(0, S(t * 8 + PI)); break;
+    }
+    case 'tilt': { // cabeça de lado (curioso): inclina para um lado, para, inclina para o outro; orelhas em pé
+      const lado = degrau(t, 1.3, ph + 21, 0.22);
+      o.cab = 0.3 * lado; o.pesc = -0.05; o.orA = -0.28 + 0.1 * lado; o.orB = -0.28 - 0.1 * lado; o.rabo = 0.2 + 0.15 * S(t * 10); o.rabo2 = 0.12 * S(t * 10 - 0.8); break;
+    }
+    case 'shake': { // sacode o pelo (depois de beber, ao acordar): cabeça, orelhas e rabo chacoalham e param
+      const e = tA < 1.1 ? S((tA / 1.1) * PI) : 0;
+      o.pesc = 0.2 * S(t * 42) * e; o.cab = 0.25 * S(t * 42 + 0.7) * e; o.orA = 0.6 * S(t * 42 + 1.4) * e; o.orB = 0.6 * S(t * 42 + 2) * e;
+      o.rabo = 0.5 * S(t * 42 + 1) * e; o.rabo2 = 0.4 * S(t * 42 + 1.8) * e; o.boca = 0.1 * e; break;
+    }
+    case 'sniff': { // anda devagar cheirando o chão: passada curta, focinho baixo que treme
+      for (let i = 0; i < 4; i++) { const frente = i < 2; passada(u + ANDAR[i], 0.65, (frente ? 0.2 : 0.18) * (shih ? 0.75 : 1), tmp); o['p' + i] = tmp[0]; o['j' + i] = tmp[1] * (frente ? 0.55 : 0.35); o['w' + i] = tmp[2] < 0 ? 0 : 0.4 * S(tmp[2] * PI); }
+      o.pesc = 0.3 + 0.02 * S(f * 2); o.cab = 0.16 + 0.025 * S(t * 30); o.orA = o.orB = 0.1; o.rabo = 0.25 + 0.3 * abano; o.rabo2 = 0.3 * abanoAtras; break;
+    }
     default: break; // idle
   }
 }
@@ -175,7 +211,7 @@ export function angulosDe(d) {
     for (const c of CHAVES) A1[c] = A2[c] + (A1[c] - A2[c]) * k;
   }
   if (d.cfg.raca === 'shihtzu') { // cabeça grande e pelo comprido: mexe menos (senão o pelo abre)
-    A1.pesc *= 0.3; A1.cab *= 0.3; A1.orA *= 0.2; A1.orB *= 0.2; A1.rabo *= 0.3; A1.rabo2 *= 0.3; // rabo em volta, cheio de pelo: balança pouco
+    A1.pesc *= 0.4; A1.cab *= 0.4; A1.orA *= 0.2; A1.orB *= 0.2; A1.rabo *= 0.36; A1.rabo2 *= 0.36; // mais movimento que antes (16/11/2026), ainda bem menos que os pinschers
     const deitada = d.acao === 'sleep' || d.acao === 'curl' || d.acao === 'lie';
     for (let i = 0; i < 4; i++) { const k = deitada ? 0 : 0.5; A1['p' + i] *= k; A1['j' + i] *= k; A1['w' + i] *= k; }
   }

@@ -100,3 +100,4 @@ Horários (crons): ver `select jobname, schedule from cron.job` no Supabase (UTC
 | Peças, juntas e solas | `ar/cachorros/rig.js` (gerado); poses desenhadas e escalas em `ar/cachorros/poses.js` (gerado) |
 | Origem (fora do Git) | PC do dono, `Desktop/Thiago/cachorro`: `animar.html` e `ferramentas/` (`recortar.py`, `listar_poses.py`, `testar_pose.py`, `verificar_movimentos.py`, `publicar.py`) |
 | Teste | `.github/scripts/teste-ar-cachorros.mjs` |
+| Poses desenhadas nos cachorros da tela do app | `ar/caes/desenho.js`: `poseDesenhada`, `desenharPose`, `desenharCao` (escolhe) e `desenharPecas`; tabela gerada `ar/caes/poses-desenhadas.js` (`poses_app.py`) |

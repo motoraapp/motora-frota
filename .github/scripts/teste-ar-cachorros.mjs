@@ -35,7 +35,7 @@ const BOCA_ABERTA = {   // quais cabeças estão de boca aberta (null = cabeça 
   maya: { null: true, olhos_fechados: true, boca_fechada: false },
 };
 
-let ok = 0; const t = (n, f) => { f(); ok++; console.log('ok   ' + n); };
+let ok = 0; const t = async (n, f) => { await f(); ok++; console.log('ok   ' + n); };
 const pose = (c, m, tt) => { ctx.atual = c; ctx.mov = m; return vm.runInContext(`pose(${tt})`, ctx); };
 
 // mesma conta do canvas: matriz de cada peça e ponto mais baixo da sola de cada pé
@@ -54,7 +54,7 @@ function folgas(c, P) {
   return r;
 }
 
-t('toda imagem citada em rig.js e poses.js existe', () => {
+await t('toda imagem citada em rig.js e poses.js existe', () => {
   const faltam = [];
   for (const r of Object.values(RIGS)) {
     for (const f of [r.original, ...r.partes.map(p => p.arquivo), ...Object.values(r.cabecas).map(c => c.arquivo)])
@@ -65,7 +65,7 @@ t('toda imagem citada em rig.js e poses.js existe', () => {
   assert.deepEqual(faltam, []);
 });
 
-t('cada cachorro tem cabeça, tronco e as 4 patas com 3 pedaços e solas', () => {
+await t('cada cachorro tem cabeça, tronco e as 4 patas com 3 pedaços e solas', () => {
   for (const [c, r] of Object.entries(RIGS)) {
     const ids = new Set(r.partes.map(p => p.id));
     for (const id of ['cabeca', 'tronco']) assert.ok(ids.has(id), `${c} sem ${id}`);
@@ -76,7 +76,7 @@ t('cada cachorro tem cabeça, tronco e as 4 patas com 3 pedaços e solas', () =>
 });
 
 for (const c of Object.keys(RIGS)) for (const [m, dur] of Object.entries(MOVS)) {
-  t(`${c} / ${m}: pés no chão, sem tranco e sem pulinho do corpo`, () => {
+  await t(`${c} / ${m}: pés no chão, sem tranco e sem pulinho do corpo`, () => {
     const n = Math.round(dur * 2 * 60) + 2, Ps = [];
     for (let i = 0; i < n; i++) Ps.push(pose(c, m, i / 60));
     for (const [i, P] of Ps.entries()) {
@@ -97,7 +97,7 @@ for (const c of Object.keys(RIGS)) for (const [m, dur] of Object.entries(MOVS)) 
   });
 }
 
-t('piscar nunca troca a boca (nem no meio do latido)', () => {
+await t('piscar nunca troca a boca (nem no meio do latido)', () => {
   for (const c of Object.keys(RIGS)) for (const m of Object.keys(MOVS)) for (let i = 0; i < 120; i += 3) {
     const P = pose(c, m, i / 60), rig = RIGS[c];
     const nome = pisca => { const img = ctx.cabecaAtual(rig, P, pisca); return img ? Object.keys(rig.cabecas).find(k => rig.cabecas[k] === img) : null; };
@@ -106,7 +106,7 @@ t('piscar nunca troca a boca (nem no meio do latido)', () => {
   }
 });
 
-t('poses desenhadas: de um cachorro que existe e com escala razoável', () => {
+await t('poses desenhadas: de um cachorro que existe e com escala razoável', () => {
   for (const [c, d] of Object.entries(POSES)) {
     assert.ok(RIGS[c], `pose de cachorro que não existe: ${c}`);
     for (const p of d.poses) for (const q of p.quadros)
@@ -114,7 +114,18 @@ t('poses desenhadas: de um cachorro que existe e com escala razoável', () => {
   }
 });
 
-t('script da página compila', () => {
+await t('cachorros da tela: toda pose desenhada existe e é de uma ação que o app usa', async () => {
+  const { POSES_DESENHADAS } = await import('../../ar/caes/poses-desenhadas.js');
+  const { NOMES_ACOES } = await import('../../ar/caes/animacoes.js');
+  const acoes = new Set([...NOMES_ACOES, 'peeM', 'peeF']);
+  for (const [id, d] of Object.entries(POSES_DESENHADAS)) for (const [a, p] of Object.entries(d)) {
+    assert.ok(acoes.has(a), `${id}: ação ${a} não existe no app`);
+    assert.ok(existsSync(join(raiz, 'ar/caes/img', p.imagem)), `${id}: falta ${p.imagem}`);
+    assert.ok(!['walk', 'run', 'bark'].includes(a), `${id}: ${a} tem que continuar com as peças`);
+  }
+});
+
+await t('script da página compila', () => {
   const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
   assert.ok(scripts.length >= 1);
   for (const s of scripts) new vm.Script(s);
