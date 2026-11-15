@@ -59,7 +59,7 @@ export function xf(a, t, tA, f, p0, sentada) {
 
 // movimento do corpo todo, já misturado com a ação anterior. Devolve [sx, sy, rot, subir (px), deslocar x (px)]
 export function transformar(d, H, saida = [0, 0, 0, 0, 0]) {
-  const sentada = d.cfg.raca === 'shihtzu', p0 = d.p ? d.p[0] : 0;
+  const sentada = !!d.cfg.sentada, p0 = d.p ? d.p[0] : 0; // sentada = desenho de cachorro sentado (anda pulando)
   const a = xf(d.acao, d.t, d.tA, d.fase, p0, sentada);
   if (d.mist < 1) {
     const b = xf(d.acaoAnt, d.t, d.tAnt, d.fase, 0, sentada), k = suave(d.mist);
@@ -89,7 +89,7 @@ const tmp = [0, 0];
 // ângulos (rad; + = sentido horário na tela). cab + = cabeça para baixo; rabo + = para cima; patas + = pé para trás;
 // j = dobra do joelho/pulso (+ = pé dobra para trás e para cima); k = encolher a pata
 function angulos(a, t, tA, f, d, o) {
-  const E = d.energia, al = d.alegria == null ? 0.5 : d.alegria, ph = d.sem || 0, u = f / TAU;
+  const E = d.energia, al = d.alegria == null ? 0.5 : d.alegria, ph = d.sem || 0, u = f / TAU, shih = d.cfg.raca === 'shihtzu';
   // parado: olhar que fica e muda de repente + microbalanço da respiração; orelha treme sozinha; rabo abana em rajadas
   const olhar = 0.07 * degrau(t, 2.3 + E, ph, 0.25) + 0.012 * S(t * 2.6);
   const trem = pulso(t, 1.7, ph + 3, 0.16, 0.22);
@@ -100,9 +100,9 @@ function angulos(a, t, tA, f, d, o) {
   switch (a) {
     case 'walk': {
       for (let i = 0; i < 4; i++) {
-        const frente = i < 2; passada(u + ANDAR[i], 0.62, frente ? 0.36 : 0.32, tmp);
+        const frente = i < 2; passada(u + ANDAR[i], 0.62, (frente ? 0.36 : 0.32) * (shih ? 0.75 : 1), tmp); // shih tzu: patas curtas, passo menor
         o['p' + i] = tmp[0] - (frente ? 0.1 * tmp[1] : 0);             // a da frente estica para a frente no alto do passo
-        o['j' + i] = tmp[1] * (frente ? 1.05 : 0.55);                  // dobra o pulso/jarrete ao subir: hackney na frente, trás discreto
+        o['j' + i] = tmp[1] * (shih ? (frente ? 0.55 : 0.45) : (frente ? 1.05 : 0.55)); // dobra ao subir: pinscher alto na frente (hackney); shih tzu macio
         o['k' + i] = 1 - tmp[1] * (frente ? 0.08 : 0.04);
       }
       o.cab = 0.035 * S(f * 2 + 0.9) + olhar * 0.4;                    // a cabeça acompanha as patas da frente (2 vezes por passada)

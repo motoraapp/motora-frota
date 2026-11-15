@@ -31,16 +31,17 @@ export const CACHORROS = [
     },
   },
   {
-    id: 'maya', nome: 'Maya', artigo: 'a', sexo: 'F', raca: 'shihtzu', imagem: 'maya.png', // shih tzu com laços rosa, a maior
+    id: 'maya', nome: 'Maya', artigo: 'a', sexo: 'F', raca: 'shihtzu', imagem: 'maya.png', // shih tzu em pé com laços rosa, a maior
     tamanho: 80,
     energia: 0.35,        // calma
     voz: 0.95,
     corpo: { perna: 0.34 },
-    ossos: { // sentada: só cabeça, orelhas e rabo (as patas não se mexem; ela anda "pulando")
-      cabeca: { p: [150, 190], r: [40, -60, 330, 205], f: 18 },
-      orelhas: [{ p: [92, 70], r: [40, 40, 128, 190], f: 12 }, { p: [238, 50], r: [212, 10, 330, 175], f: 10 }],
-      rabo: { p: [55, 228], r: [-40, 175, 62, 270], f: 12 },
-      pernas: [{ p: [0, 0], r: [-10, -10, -5, -5], f: 1 }, { p: [0, 0], r: [-10, -10, -5, -5], f: 1 }, { p: [0, 0], r: [-10, -10, -5, -5], f: 1 }, { p: [0, 0], r: [-10, -10, -5, -5], f: 1 }],
+    ossos: { // em pé (imagem 280x300)
+      cabeca: { p: [184, 156], r: [95, -60, 330, 160], f: 16 },
+      orelhas: [{ p: [126, 44], r: [96, 40, 150, 160], f: 10 }, { p: [252, 33], r: [232, 25, 330, 150], f: 10 }],
+      rabo: { p: [75, 136], r: [-40, 70, 85, 165], f: 12 },
+      pernas: [{ p: [153, 177], r: [124, 180, 180, 400], f: 10 }, { p: [208, 172], r: [182, 178, 234, 400], f: 10 },
+        { p: [51, 177], r: [16, 177, 70, 400], f: 10 }, { p: [95, 180], r: [74, 182, 114, 400], f: 10 }],
     },
   },
 ];
