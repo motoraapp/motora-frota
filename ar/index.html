@@ -234,31 +234,26 @@ const u0=ui;ui=function(){u0();renderHor()};
 // Histórico do quarto (só no app de fora). Período: 24 h (linha a cada 5 min, faixas = ar ligado, tracejado = lá fora) |
 // 7 dias | Mês | Ano (barras). O que mostrar: Temperatura (máxima do dia; linha cinza com bolinhas = máxima lá fora) ou Ar ligado (horas por dia).
 // Banco: ar.temp_dia, ar.uso, ar.leitura (SQL supabase/2026-11-14-ar-temp-dia.sql e 2026-11-14-ar-historico.sql).
-// Lá fora: Open-Meteo (sem chave), Trindade-GO (setor Maysa), pedido do dono.
-let GD=[],GU=[],G24=null,gUlt=0,gSel=-1,gModo='7',gMet='temp',gDesl=0,WX=null,WXd={},wxUlt=0;
+// Lá fora: temperatura MEDIDA de hora em hora na estação do aeroporto de Goiânia (METAR SBGO), gravada no banco (ar.fora)
+// pela função ar-aviso a cada 15 min; o app lê por ar_fora(de, ate). Nada de previsão (pedido do dono, 15/11/2026).
+let GD=[],GU=[],G24=null,gUlt=0,gSel=-1,gModo='7',gMet='temp',gDesl=0,FR=null,WXd={},wxUlt=0;
 const gP2=n=>String(n).padStart(2,'0'),gIso=d=>d.getFullYear()+'-'+gP2(d.getMonth()+1)+'-'+gP2(d.getDate()),gVg=n=>String(n).replace('.',',');
 const gMES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'],gSEM=['dom','seg','ter','qua','qui','sex','sáb'];
 const gHm=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),gH=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h'+(m%60?' '+gP2(m%60):'')};
-const WXLAT=-16.66,WXLON=-49.5,WXURL='https://api.open-meteo.com/v1/forecast?latitude='+WXLAT+'&longitude='+WXLON+'&timezone=America%2FSao_Paulo';
-const wxTxt=c=>c===0?'céu limpo':c<=2?'poucas nuvens':c===3?'nublado':c<=48?'neblina':c<=57?'garoa':c<=67?'chuva':c<=82?'pancadas de chuva':c<=99?'trovoada':'';
-async function carregarTempo(){ if(Date.now()-wxUlt<900000&&WX) return; wxUlt=Date.now();
-  try{ const r=await fetch(WXURL+'&current=temperature_2m,weather_code&hourly=temperature_2m&past_days=1&forecast_days=1'); if(r.ok){ WX=await r.json(); mostrarFora(); } }catch(e){} }
-async function carregarTempoDias(de,ate){ const hoje=new Date(); if((hoje-de)/864e5>88) return;
-  try{ const r=await fetch(WXURL+'&daily=temperature_2m_max,weather_code&start_date='+gIso(de)+'&end_date='+gIso(ate>hoje?hoje:ate)); if(!r.ok) return; const j=await r.json();
-    (j.daily&&j.daily.time||[]).forEach((d,i)=>{ if(j.daily.temperature_2m_max[i]!==null) WXd[d]={max:j.daily.temperature_2m_max[i],c:j.daily.weather_code[i]} }); }catch(e){} }
-// Hoje: a máxima diária do Open-Meteo é PREVISÃO do dia inteiro (de madrugada mostrava 30 °C com 22 °C lá fora).
-// Para hoje vale a maior temperatura de hora em hora até a hora atual (agora = 'AAAA-MM-DDTHH:00').
-function wxMaxHoje(h,hoje,agora){let m=null;if(!h||!h.time)return m;h.time.forEach((t,i)=>{const v=h.temperature_2m[i];if(t.slice(0,10)===hoje&&t<=agora&&v!==null&&(m===null||v>m))m=v});return m}
-function mostrarFora(){ const s=$('sala'); if(!s||!WX||!WX.current) return; let e=$('fora'); if(!e){ e=document.createElement('div'); e.id='fora'; s.after(e); }
-  e.textContent='Lá fora: '+gVg(Math.round(WX.current.temperature_2m*10)/10)+' °C, '+wxTxt(WX.current.weather_code)+' (Trindade)'; }
+// ar_fora: {agora:{em,t,ceu}, horas:[{em,t}] (últimas 25 h), dias:[{dia,max,ceu}]} (máxima medida de cada dia; hoje = até agora).
+async function carregarFora(de,ate){ const k=gIso(de)+gIso(ate); if(FR&&FR.k===k&&Date.now()-wxUlt<300000) return;
+  try{ const {data,error}=await sb.rpc('ar_fora',{p_de:gIso(de),p_ate:gIso(ate)}); if(error||!data) return; wxUlt=Date.now(); FR=data; FR.k=k;
+    WXd={}; (data.dias||[]).forEach(d=>{WXd[d.dia]={max:+d.max,c:d.ceu||''}}); mostrarFora(); }catch(e){} }
+function mostrarFora(){ const s=$('sala'),a=FR&&FR.agora; if(!s||!a) return; let e=$('fora'); if(!e){ e=document.createElement('div'); e.id='fora'; s.after(e); }
+  e.textContent='Lá fora: '+gVg(+a.t)+' °C'+(a.ceu?', '+a.ceu:'')+' (aeroporto de Goiânia, às '+gHm(a.em)+')'; }
 function gFaixa(){const h=new Date();
   if(gModo==='mes'){const a=new Date(h.getFullYear(),h.getMonth()+gDesl,1);return[a,new Date(a.getFullYear(),a.getMonth()+1,0)]}
   if(gModo==='ano'){const y=h.getFullYear()+gDesl;return[new Date(y,0,1),new Date(y,11,31)]}
   return[new Date(h.getFullYear(),h.getMonth(),h.getDate()-6),h]}
-async function carregarGraf(){ gUlt=Date.now(); const pedido=gModo+gDesl+gMet; carregarTempo();
-  if(gModo==='24'){ const {data,error}=await sb.rpc('ar_24h'); if(!error&&pedido===gModo+gDesl+gMet){ G24=data; desenharGraf(); } return; }
+async function carregarGraf(){ gUlt=Date.now(); const pedido=gModo+gDesl+gMet;
+  if(gModo==='24'){ const h=new Date(),[{data,error}]=await Promise.all([sb.rpc('ar_24h'),carregarFora(new Date(h.getFullYear(),h.getMonth(),h.getDate()-1),h)]); if(!error&&pedido===gModo+gDesl+gMet){ G24=data; desenharGraf(); } return; }
   const [de,ate]=gFaixa(),a={p_de:gIso(de),p_ate:gIso(ate)};
-  const [r1,r2]=await Promise.all([sb.rpc('ar_temp_periodo',a),sb.rpc('ar_uso_periodo',a),gModo==='ano'?null:carregarTempoDias(de,ate),carregarTempo()]);
+  const [r1,r2]=await Promise.all([sb.rpc('ar_temp_periodo',a),sb.rpc('ar_uso_periodo',a),carregarFora(de,ate)]);
   if(pedido===gModo+gDesl+gMet){ if(!r1.error) GD=r1.data||[]; if(!r2.error) GU=r2.data||[]; desenharGraf(); } }
 function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],uso=gMet==='uso';
   const val=(r,u)=>uso?(u?u.seg/3600:null):(r?+r.max:null);
@@ -266,15 +261,14 @@ function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],uso=gMet==
     const mn=ds.length?Math.min(...ds.map(x=>+x.min)):null,nome=gMES[m]+'/'+de.getFullYear(),seg=us.reduce((a,x)=>a+x.seg,0);
     it.push({a:gMES[m],b:'',v:uso?(seg?seg/3600:null):(r?+r.max:null),h:!uso&&r?gHm(r.max_em):'',atual:m===new Date().getMonth()&&gDesl===0,quando:uso?nome:(r?r.dia.slice(8)+'/'+r.dia.slice(5,7):''),
       det:nome+': '+(uso?(seg?'ar ligado '+gH(seg)+' no mês':'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C em '+r.dia.slice(8)+'/'+r.dia.slice(5,7)+' às '+gHm(r.max_em)+' · mínima do mês '+gVg(mn)+' °C':'sem leitura'))})}return it}
-  for(let d=new Date(de);d<=ate;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const iso=gIso(d),r=GD.find(x=>x.dia===iso),u=GU.find(x=>x.dia===iso),n=d.getDate(),dm=gP2(n)+'/'+gP2(d.getMonth()+1);let w=WXd[iso];
-    if(iso===hoje){const ag=new Date(),mh=WX&&wxMaxHoje(WX.hourly,hoje,hoje+'T'+gP2(ag.getHours())+':00');w=mh!=null?{max:mh,c:WX.current?WX.current.weather_code:w&&w.c,ate:1}:null}
+  for(let d=new Date(de);d<=ate;d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1)){const iso=gIso(d),r=GD.find(x=>x.dia===iso),u=GU.find(x=>x.dia===iso),n=d.getDate(),dm=gP2(n)+'/'+gP2(d.getMonth()+1),w=WXd[iso];
     it.push({a:gModo==='7'?(iso===hoje?'hoje':gSEM[d.getDay()]):(n===1||n%5===0?String(n):''),b:gModo==='7'?dm:'',v:val(r,u),h:!uso&&r?gHm(r.max_em):'',fora:!uso&&w?w.max:null,atual:iso===hoje,quando:dm,
-      det:(iso===hoje?'Hoje':dm)+': '+(uso?(u?'ar ligado '+gH(u.seg):'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C às '+gHm(r.max_em)+' · mínima '+gVg(+r.min)+' °C':'sem leitura')+(w?' · lá fora '+(w.ate?'máxima até agora ':'')+gVg(w.max)+' °C, '+wxTxt(w.c):''))})}
+      det:(iso===hoje?'Hoje':dm)+': '+(uso?(u?'ar ligado '+gH(u.seg):'ar não ligou'):(r?'máxima '+gVg(+r.max)+' °C às '+gHm(r.max_em)+' · mínima '+gVg(+r.min)+' °C':'sem leitura')+(w?' · lá fora '+(iso===hoje?'máxima até agora ':'máxima ')+gVg(w.max)+' °C'+(w.c?', '+w.c:''):''))})}
   return it}
 function grade(s,lo,hi,passo,y,L,R,suf){for(let k=0;k<=4;k++){const v=lo+passo*k,yy=y(v).toFixed(1);s.push('<line x1="'+L+'" x2="'+R+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,.1)" stroke-width="1"/><text x="'+(L-6)+'" y="'+(+yy+4)+'" text-anchor="end" font-size="11" fill="#a1a1a6">'+v+suf+'</text>')}}
 function desenhar24(){
   const ls=(G24&&G24.leituras)||[],us=(G24&&G24.uso)||[],agora=Date.now(),t0=agora-864e5,fx=[];
-  if(WX&&WX.hourly) WX.hourly.time.forEach((h,i)=>{const ms=new Date(h+':00-03:00').getTime();if(ms>=t0&&ms<=agora&&WX.hourly.temperature_2m[i]!==null)fx.push([ms,WX.hourly.temperature_2m[i]])});
+  if(FR&&FR.horas) FR.horas.forEach(p=>{const ms=new Date(p.em).getTime();if(ms>=t0&&ms<=agora)fx.push([ms,+p.t])});
   $('gleg').innerHTML='<i style="width:16px;height:3px;background:#ff9f0a;border-radius:2px"></i>quarto<i style="width:16px;height:0;border-top:2px dashed #8e8e93"></i>lá fora<i style="width:12px;height:12px;background:rgba(100,210,255,.3);border-radius:3px"></i>ar ligado';
   const seg=us.reduce((a,u)=>a+(Math.min(u.fim?new Date(u.fim).getTime():agora,agora)-Math.max(new Date(u.inicio).getTime(),t0))/1000,0);
   if(!ls.length){$('gsvg').innerHTML='<p style="color:var(--muted);text-align:center">As leituras de 5 em 5 minutos começaram em 14/11/2026. Volte daqui a pouco.</p>';$('gq').textContent='—';$('gqh').textContent='';$('gm').textContent=seg>0?gH(seg):'0 min';$('gdet').textContent='';return}
