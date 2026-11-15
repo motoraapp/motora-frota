@@ -1,6 +1,6 @@
 # Mapa de linhas do código (gerado por ferramentas/mapa.mjs, não edite à mão)
 
-Gerado em 14/11/2026, 20:16:56. Procure aqui com Grep e leia só as linhas indicadas.
+Gerado em 15/11/2026, 15:49:37. Procure aqui com Grep e leia só as linhas indicadas.
 Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 ## index.html (13639 linhas)
@@ -932,11 +932,20 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 (sem itens)
 
-## supabase/functions/ar-aviso/index.ts (51 linhas)
+## supabase/functions/ar-aviso/index.ts (84 linhas)
 
 11: json()
 12: secret()
 14: mandar()
+32: ceuMetar()
+
+## supabase/functions/ar-caes/index.ts (84 linhas)
+
+11: json()
+12: secret()
+15: limpar()
+17: configurar()
+23: enviar()
 
 ## supabase/functions/ar-siri/index.ts (28 linhas)
 
@@ -1364,3 +1373,6 @@ Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 - supabase/2026-11-14-ar-push.sql: Nossa casinha: avisos no celular pelo próprio app (14/11/2026). Antes os avisos do ar iam como "master_alert" do
 - supabase/2026-11-14-ar-siri.sql: Siri do "Nossa casinha": atalho do iPhone manda a frase para a função ar-siri, que usa uma chave só do dono.
 - supabase/2026-11-14-ar-temp-dia.sql: Nossa casinha: máxima e mínima do quarto por dia (14/11/2026), para o gráfico "Temperatura máxima · últimos 7 dias".
+- supabase/2026-11-15-ar-caes.sql: Nossa casinha: avisos de fome e sede dos cachorros Elvis, Belinha e Maya (15/11/2026).
+- supabase/2026-11-15-ar-fora-real.sql: Nossa casinha: temperatura de lá fora MEDIDA, não prevista (15/11/2026, pedido do dono).
+- supabase/2026-11-15-ar-janela.sql: Nossa casinha: lá fora mais frio = abrir a janela (15/11/2026, pedido do dono; placa versão 20).

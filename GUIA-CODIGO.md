@@ -90,3 +90,13 @@ Código: `robo-whatsapp/nucleo.js` (lógica) + `robo.js` (liga). No PC roda a c�
 | `gemini.ts` (cópia em várias funções) | `tentarGemini`: troca de modelo até responder (regra fixa do dono) |
 
 Horários (crons): ver `select jobname, schedule from cron.job` no Supabase (UTC = Brasília + 3h). SQL de cada mudança: `supabase/*.sql` (lista no fim do `MAPA-LINHAS.md`).
+
+## Página "Cachorros articulados" (`ar/cachorros/`, gerada; não edite à mão)
+
+| Assunto | Onde |
+|---|---|
+| Página, botões e desenho no canvas | `ar/cachorros/index.html`: `montarPoses`, `atualizarBotoes`, `desenhar`, `terminarQuadro` (troca suave pela `foto`), `desenharPose`/`efeitoPose` (poses desenhadas) |
+| Contas do movimento (testadas) | trecho `// ---------- poses ----------`: `pataPose`, `pose`, `apoiarNoChao` (pés no chão); `suavizarTroca`; `cabecaAtual` + `BOCA_DO_PISCAR` (piscar) |
+| Peças, juntas e solas | `ar/cachorros/rig.js` (gerado); poses desenhadas e escalas em `ar/cachorros/poses.js` (gerado) |
+| Origem (fora do Git) | PC do dono, `Desktop/Thiago/cachorro`: `animar.html` e `ferramentas/` (`recortar.py`, `listar_poses.py`, `testar_pose.py`, `verificar_movimentos.py`, `publicar.py`) |
+| Teste | `.github/scripts/teste-ar-cachorros.mjs` |

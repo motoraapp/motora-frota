@@ -29,6 +29,8 @@ jobs:
         run: node .github/scripts/teste-ar-caes.mjs
       - name: Teste das peças dos cachorros (sem pedaço solto de pata nem palitinho na nuca)
         run: node .github/scripts/teste-ar-caes-pecas.mjs
+      - name: Teste da página Cachorros articulados (pés no chão, sem tranco, piscar sem trocar a boca)
+        run: node .github/scripts/teste-ar-cachorros.mjs
 
   placa-ar:
     # Compila o programa da placa do ar-condicionado (ar/firmware/gree-esp32) para garantir que não quebrou.
