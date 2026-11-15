@@ -89,3 +89,10 @@ int ventFaixa(int f) {
   if (f == 3) return 2;
   return 1;
 }
+
+// Lá fora mais frio (versão 20, pedido do dono): se lá fora estiver JANELA_DIF °C ou mais frio do que o quarto, o
+// automático não liga o ar e avisa para abrir a janela. temFora = a placa tem a temperatura de lá fora de menos de 1 h.
+#define JANELA_DIF 3
+bool foraMaisFrio(bool temFora, float fora, float quarto) {
+  return temFora && fora <= quarto - JANELA_DIF;
+}

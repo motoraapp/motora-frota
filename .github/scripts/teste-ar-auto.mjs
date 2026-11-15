@@ -11,7 +11,7 @@ const js = cpp
   .replace(/^struct\s+\w+\s*\{[^}]*\};/gm, '')
   .replace(/^(?:bool|int|void|float)\s+(\w+)\(([^)]*)\)\s*\{/gm, (_, nome, ps) =>
     `function ${nome}(${ps.split(',').map(p => p.trim().split(/[\s&]+/).pop()).join(', ')}) {`);
-const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, regraMimi, volDepois, faixaDe, regraFaixa, tempFaixa, ventFaixa, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
+const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, regraMimi, volDepois, faixaDe, regraFaixa, tempFaixa, ventFaixa, foraMaisFrio, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
 const NOME = { [R.AUTO_NADA]: 'nada', [R.AUTO_LIGAR]: 'ligar', [R.AUTO_DESLIGAR]: 'desligar' };
 
 let erros = 0;
@@ -95,6 +95,13 @@ caso('faixas: com 22°, quarto sobe a 26 vai para 18°; a 27,3 volta ao máximo'
 caso('faixas: com 18°, quarto em 27,2 ainda não volta ao 16° (precisa 27,3)', faixas([26, 27.2]).map(x => x[1]), [18, 18]);
 caso('faixas: escolhida 17: o meio-termo nunca fica mais quente do que ela', faixas([19, 18], 17).map(x => x[1]), [17, 17]);
 caso('faixas: escolhida 19: 18° no 2º passo e 18° no 3º (não desce a 17°)', faixas([20.6, 19.6], 19).map(x => x[1]), [18, 18]);
+
+// Lá fora mais frio (versão 20, pedido do dono): o automático não liga o ar e avisa para abrir a janela.
+caso('janela: lá fora 21 e quarto 26 (5° mais frio) não liga', R.foraMaisFrio(true, 21, 26), true);
+caso('janela: lá fora 23 e quarto 26 (exatamente 3° mais frio) não liga', R.foraMaisFrio(true, 23, 26), true);
+caso('janela: lá fora 23,5 e quarto 26 (só 2,5° mais frio) liga normal', R.foraMaisFrio(true, 23.5, 26), false);
+caso('janela: lá fora mais quente liga normal', R.foraMaisFrio(true, 30, 26), false);
+caso('janela: sem temperatura de lá fora (ou velha) liga normal', R.foraMaisFrio(false, 10, 26), false);
 
 console.log(erros ? `\n${erros} problema(s) no modo automático.` : '\nModo automático: tudo certo.');
 process.exit(erros ? 1 : 0);

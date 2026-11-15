@@ -1,4 +1,4 @@
-// Avisos do "Nossa casinha" no celular (14/11/2026). Só vai para os celulares que ativaram os avisos no próprio app
+// Avisos do "Nossa casinha" no celular (14/11/2026; desde 15/11/2026 também leva a temperatura de lá fora à placa). Só vai para os celulares que ativaram os avisos no próprio app
 // (ar.push), nunca para o MOTORA. Duas entradas:
 //  - gatilhos do banco (x-cron-token): {device_id, title, body}  -> ar ligado/desligado pelo automático, quarto quente
 //  - o app (login do dono): {teste: true}                       -> aviso de teste para conferir
@@ -34,6 +34,15 @@ Deno.serve(async (req) => {
   const tok = req.headers.get('x-cron-token');
   if (tok) {
     if (tok !== (await secret('cron_token'))) return json({ error: 'proibido' }, 403);
+    // {tempo: true} (cron ar-tempo, a cada 15 min): temperatura de lá fora agora em Trindade-GO (Open-Meteo, sem chave)
+    // vai para a placa como comando {fora: 21.3} (versão 20: lá fora mais frio = o automático não liga e pede a janela).
+    if (corpo.tempo) {
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-16.66&longitude=-49.5&current=temperature_2m&timezone=America%2FSao_Paulo');
+      const t = Number((await r.json().catch(() => ({})))?.current?.temperature_2m);
+      if (!r.ok || !Number.isFinite(t)) return json({ error: 'tempo' }, 502);
+      const { error } = await admin.rpc('ar_fora_gravar', { p_t: t });
+      return json(error ? { error: error.message } : { fora: t }, error ? 500 : 200);
+    }
     const device = String(corpo.device_id || '');
     if (!/^[0-9a-f]{16}$/.test(device)) return json({ error: 'placa' }, 400);
     return json({ sent: await mandar(device, { title: String(corpo.title || 'Nossa casinha').slice(0, 80), body: String(corpo.body || '').slice(0, 200), url: './' }) });

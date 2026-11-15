@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 19
+#define FW_VERSAO 20
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -97,6 +97,10 @@ Automatico A;
 AutoMem AM = {false, false};
 // Versão 19: faixa em uso pelo automático (regraFaixa em regras.h; 0 = nenhuma) e quando mudou por último.
 int autoFaixa = 0; unsigned long autoFaixaEm = 0;
+// Versão 20: temperatura de lá fora mandada pelo servidor a cada 15 min ({fora: 21.3}); vale por 1 h.
+// janela = o automático queria ligar, mas lá fora está mais frio (foraMaisFrio): o servidor avisa para abrir a janela.
+float foraT = 0; unsigned long foraEm = 0; bool janela = false;
+bool temFora() { return foraEm && millis() - foraEm < 3600000UL; }
 void aplicarFaixa(int f) { autoFaixa = f; autoFaixaEm = millis(); S.mode = 1; S.temp = tempFaixa(f, A.alvo); S.fan = ventFaixa(f); S.turbo = f == 1; }
 
 void salvarEstado() {
@@ -417,13 +421,14 @@ void estadoJson(JsonObject d) {
     o["d"] = H[i].d; o["h"] = H[i].h; o["m"] = H[i].m; o["a"] = H[i].a; o["t"] = H[i].t; o["o"] = H[i].o; o["e"] = H[i].e;
   }
   JsonObject a = d["auto"].to<JsonObject>();
-  a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou; if (AM.ligou && autoFaixa) a["fx"] = autoFaixa;
+  a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou; if (janela) a["jan"] = true; if (AM.ligou && autoFaixa) a["fx"] = autoFaixa;
   d["fw"] = FW_VERSAO;
   d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
   if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = tlsRt.connected(); x["m"] = rtUlt; x["t"] = rtTent; }
   d["hmax"] = (int)(ESP.getMaxAllocHeap() / 1024);
   { JsonObject y = d["sy"].to<JsonObject>(); y["ms"] = syMs; y["max"] = syMax; y["r"] = syReuso; y["n"] = syNova; }
   if (MI.on) { JsonObject mm = d["mimi"].to<JsonObject>(); mm["f"] = MI.fase; if (MI.fase == 1) mm["r"] = (long)(MIMI_FASE1 - (millis() - miEm)) / 1000; }
+  if (temFora()) d["fora"] = foraT;
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
   if (fwMsg.length()) d["fwMsg"] = fwMsg;
   if (BU.on) { JsonObject b = d["scan"].to<JsonObject>(); b["i"] = BU.i + 1; b["n"] = NORD; b["p"] = ORD[BU.i]; b["auto"] = BU.sozinho; }
@@ -480,6 +485,7 @@ void aplicar(JsonObject p) {
   if (p["tvEsquecer"].is<const char *>()) tvEsquecer(p["tvEsquecer"].as<String>());
   if (p["tvBusca"].is<const char *>()) tvBuscaCmd(p["tvBusca"].as<String>());
   if (p["tvFam"].is<int>()) { int f = p["tvFam"]; if (f >= 0 && f <= N_FAMILIAS_TV) { tvFam = f - 1; gravaNum("tv_fam", tvFam); } }
+  if (p["fora"].is<float>()) { foraT = p["fora"]; foraEm = millis(); if (!foraEm) foraEm = 1; }
   if (p["ota"].is<const char *>()) { String o = p["ota"].as<String>(); otaPedido = o == "now" ? 2 : (o == "check" ? 1 : 0); }
   if (mandar) {
     if (S.power != antes) { autoManual(AM, S.power, A.on); salvarAuto(); }
@@ -516,6 +522,8 @@ void checarAuto() {
   bool noHorario = horaOk && dentroHorario(tm.tm_hour * 60 + tm.tm_min, A.de, A.ate);
   AutoMem antes = AM;
   int r = regraAuto(AM, A.on, temSala(), salaT, A.alvo, noHorario, S.power);
+  janela = false;
+  if (r == AUTO_LIGAR && foraMaisFrio(temFora(), foraT, salaT)) { AM.ligou = false; r = AUTO_NADA; janela = true; }
   if (r == AUTO_LIGAR) {
     S.power = true; aplicarFaixa(regraFaixa(0, salaT - A.alvo)); enviar(S, S.proto); salvarEstado();
     Serial.println("automatico: quarto quente, ligando");

@@ -41,7 +41,7 @@ O workflow `verificar.yml` (tarefa `placa-ar`) compila a cada push.
 2. Copie `build/gree-esp32.ino.bin` para `gree-vN.bin` e gere a imagem completa (`esptool merge_bin`: bootloader 0x1000, partições 0x8000, boot_app0 0xe000, programa 0x10000).
 3. Troque `versao.json` para `{"versao":N,"url":".../gree-vN.bin"}`. A placa instala sozinha de madrugada, ou na hora em Ajustes do controle → Atualizar agora.
 
-Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1 (a do código perdido); `gree-v19.bin` e `gree-esp32-completo-v19.bin` = versão 19 (as versões 2 a 18 estão no histórico do Git). Instalada na placa em 13/11/2026: versão 2, testada e funcionando (mesma identidade, ligada à conta).
+Arquivos: `gree.bin` e `gree-esp32-completo.bin` = versão 1 (a do código perdido); `gree-v20.bin` e `gree-esp32-completo-v20.bin` = versão 20 (as versões 2 a 19 estão no histórico do Git). Instalada na placa em 13/11/2026: versão 2, testada e funcionando (mesma identidade, ligada à conta).
 
 ## Esquema de ligação
 
