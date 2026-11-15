@@ -5,17 +5,17 @@
 import { articular, transformar, piscar, poseSentada } from './movimento.js';
 
 const VS = `
-attribute vec2 aUV; attribute vec4 aWa; attribute vec4 aWb; attribute vec4 aWc;
-uniform vec2 uNat; uniform vec4 uM[12]; uniform vec2 uT[12];
+attribute vec2 aUV; attribute vec4 aWa; attribute vec4 aWb; attribute vec4 aWc; attribute vec4 aWd;
+uniform vec2 uNat; uniform vec4 uM[16]; uniform vec2 uT[16];
 uniform vec4 uG; uniform vec4 uP; uniform vec2 uRes;
-varying vec2 vUV;
+varying vec2 vUV; varying float vY;
 void main() {
   vec2 p0 = aUV * uNat;
-  float w[12];
+  float w[16];
   w[0] = aWa.x; w[1] = aWa.y; w[2] = aWa.z; w[3] = aWa.w; w[4] = aWb.x; w[5] = aWb.y; w[6] = aWb.z; w[7] = aWb.w;
-  w[8] = aWc.x; w[9] = aWc.y; w[10] = aWc.z; w[11] = aWc.w;
+  w[8] = aWc.x; w[9] = aWc.y; w[10] = aWc.z; w[11] = aWc.w; w[12] = aWd.x; w[13] = aWd.y; w[14] = aWd.z; w[15] = aWd.w;
   vec2 p = p0;
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < 16; i++) {
     vec4 m = uM[i];
     vec2 q = vec2(m.x * p0.x + m.z * p0.y, m.y * p0.x + m.w * p0.y) + uT[i];
     p += w[i] * (q - p0);
@@ -26,10 +26,10 @@ void main() {
   l.x *= uG.y;
   vec2 sc = vec2(uP.x + l.x, uP.y + l.y);
   gl_Position = vec4(sc.x / uRes.x * 2.0 - 1.0, 1.0 - sc.y / uRes.y * 2.0, 0.0, 1.0);
-  vUV = aUV;
+  vUV = aUV; vY = sc.y;
 }`;
-const FS = `precision mediump float; varying vec2 vUV; uniform sampler2D uTex; uniform sampler2D uOlhos; uniform float uPisca; uniform float uAlfa;
-void main() { vec4 a = texture2D(uTex, vUV); vec4 b = texture2D(uOlhos, vUV) * uPisca; gl_FragColor = (a * (1.0 - b.a) + b) * uAlfa; }`;
+const FS = `precision mediump float; varying vec2 vUV; varying float vY; uniform sampler2D uTex; uniform sampler2D uOlhos; uniform float uPisca; uniform float uAlfa; uniform float uChao;
+void main() { if (vY > uChao) discard; vec4 a = texture2D(uTex, vUV); vec4 b = texture2D(uOlhos, vUV) * uPisca; gl_FragColor = (a * (1.0 - b.a) + b) * uAlfa; }`;
 
 const NX = 26, NY = 34; // grade de pontos
 const sm = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
@@ -45,10 +45,10 @@ export function criarMalha(cfgs) {
   const pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
   if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
   gl.useProgram(pr); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-  const L = { aUV: gl.getAttribLocation(pr, 'aUV'), aWa: gl.getAttribLocation(pr, 'aWa'), aWb: gl.getAttribLocation(pr, 'aWb'), aWc: gl.getAttribLocation(pr, 'aWc') };
-  const U = {}; for (const n of ['uNat', 'uM', 'uT', 'uG', 'uP', 'uRes', 'uTex', 'uOlhos', 'uPisca', 'uAlfa']) U[n] = gl.getUniformLocation(pr, n);
+  const L = { aUV: gl.getAttribLocation(pr, 'aUV'), aWa: gl.getAttribLocation(pr, 'aWa'), aWb: gl.getAttribLocation(pr, 'aWb'), aWc: gl.getAttribLocation(pr, 'aWc'), aWd: gl.getAttribLocation(pr, 'aWd') };
+  const U = {}; for (const n of ['uNat', 'uM', 'uT', 'uG', 'uP', 'uRes', 'uTex', 'uOlhos', 'uPisca', 'uAlfa', 'uChao']) U[n] = gl.getUniformLocation(pr, n);
   gl.uniform1i(U.uTex, 0); gl.uniform1i(U.uOlhos, 1);
-  for (const k of ['aUV', 'aWa', 'aWb', 'aWc']) gl.enableVertexAttribArray(L[k]);
+  for (const k of ['aUV', 'aWa', 'aWb', 'aWc', 'aWd']) gl.enableVertexAttribArray(L[k]);
 
   const textura = (fonte) => {
     const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
@@ -66,14 +66,16 @@ export function criarMalha(cfgs) {
     const img = P.img, nw = img.naturalWidth, nh = img.naturalHeight, os = P.ossos;
     const regs = [os.cabeca, os.orelhas[0], os.orelhas[1], os.rabo, ...os.pernas]; // mesma ordem das articulações
     for (const pe of os.pernas) if (!pe.j) pe.j = [pe.p[0], pe.p[1] + (nh - pe.p[1]) * 0.5]; // joelho/pulso: meio da pata, se config.js não disser
-    const dados = new Float32Array(NX * NY * 14);
+    const boca = os.boca || { p: [0, 0], r: [-10, -10, -5, -5], f: 1 };
+    const dados = new Float32Array(NX * NY * 18);
     for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
-      const u = i / (NX - 1), v = j / (NY - 1), x = u * nw, y = v * nh, w = new Array(12).fill(0);
+      const u = i / (NX - 1), v = j / (NY - 1), x = u * nw, y = v * nh, w = new Array(16).fill(0);
       for (let k = 0; k < 8; k++) w[k] = regiao(x, y, regs[k].r, regs[k].f);
       for (let k = 0; k < 4; k++) { const pe = os.pernas[k], baixo = sm((y - pe.j[1]) / (pe.f * 1.6) + 0.5); w[8 + k] = w[4 + k] * baixo; w[4 + k] *= 1 - baixo; } // abaixo do joelho segue o joelho
-      w[0] *= 1 - Math.max(w[1], w[2]);                         // a cabeça não leva junto o que a orelha mexe sozinha
-      const soma = w.reduce((a, b) => a + b, 0); if (soma > 1) for (let k = 0; k < 12; k++) w[k] /= soma;
-      const b = (j * NX + i) * 14; dados[b] = u; dados[b + 1] = v; for (let k = 0; k < 12; k++) dados[b + 2 + k] = w[k];
+      w[12] = regiao(x, y, boca.r, boca.f);                     // mandíbula (abre e fecha a boca)
+      w[0] *= 1 - Math.max(w[1], w[2], w[12]);                  // a cabeça não leva junto o que a orelha e a boca mexem sozinhas
+      const soma = w.reduce((a, b) => a + b, 0); if (soma > 1) for (let k = 0; k < 16; k++) w[k] /= soma;
+      const b = (j * NX + i) * 18; dados[b] = u; dados[b + 1] = v; for (let k = 0; k < 16; k++) dados[b + 2 + k] = w[k];
     }
     const idx = new Uint16Array((NX - 1) * (NY - 1) * 6); let q = 0;
     for (let j = 0; j < NY - 1; j++) for (let i = 0; i < NX - 1; i++) { const a = j * NX + i, b = a + 1, c = a + NX, d = c + 1; idx.set([a, b, c, b, d, c], q); q += 6; }
@@ -92,20 +94,20 @@ export function criarMalha(cfgs) {
     if (cfg.poseSentada) { const s = o.sentada = { ossos: cfg.poseSentada.ossos, olhosTex: vazia, pronto: false }; s.img = carregar(cfg.poseSentada.imagem, () => construir(s)); }
   }
 
-  const M = new Float32Array(48), T = new Float32Array(24), xfm = [0, 0, 0, 0, 0];
+  const M = new Float32Array(64), T = new Float32Array(32), xfm = [0, 0, 0, 0, 0];
   let W = 1, H = 1;
   function desenharPose(P, d, lado, alfa, sentada) {
     const alt = d.tam * 1.3, t = transformar(d, alt, xfm, sentada);
     articular(d, P.ossos, M, T);
     gl.bindBuffer(gl.ARRAY_BUFFER, P.buf); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, P.idx);
-    gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 56, 0); gl.vertexAttribPointer(L.aWa, 4, gl.FLOAT, false, 56, 8); gl.vertexAttribPointer(L.aWb, 4, gl.FLOAT, false, 56, 24); gl.vertexAttribPointer(L.aWc, 4, gl.FLOAT, false, 56, 40);
+    gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 72, 0); gl.vertexAttribPointer(L.aWa, 4, gl.FLOAT, false, 72, 8); gl.vertexAttribPointer(L.aWb, 4, gl.FLOAT, false, 72, 24); gl.vertexAttribPointer(L.aWc, 4, gl.FLOAT, false, 72, 40); gl.vertexAttribPointer(L.aWd, 4, gl.FLOAT, false, 72, 56);
     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, P.olhosTex);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, P.tex);
     gl.uniform1f(U.uPisca, P.olhosTex === vazia ? 0 : piscar(d)); gl.uniform1f(U.uAlfa, alfa);
     gl.uniform2f(U.uNat, P.nat[0], P.nat[1]); gl.uniform4fv(U.uM, M); gl.uniform2fv(U.uT, T);
     gl.uniform4f(U.uG, alt / P.nat[1], lado, t[2], 0);
     gl.uniform4f(U.uP, d.x + t[4] * lado, d.y - t[3], t[0], t[1]);
-    gl.uniform2f(U.uRes, W, H);
+    gl.uniform2f(U.uRes, W, H); gl.uniform1f(U.uChao, d.y + 2); // abaixo do chão não aparece (patas "dobradas por baixo" ao deitar)
     gl.drawElements(gl.TRIANGLES, P.n, gl.UNSIGNED_SHORT, 0);
   }
 

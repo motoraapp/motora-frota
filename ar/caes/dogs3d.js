@@ -10,7 +10,7 @@ import { desenharCao, desenharSombra, desenharTigela, alturaCabeca, precarregar 
 import { criarMalha } from './malha.js';
 
 const INCLINA = 0.42;                 // câmera um pouco de cima
-const FPS = 30;
+const FPS = 60; // movimento fluido (pedido do dono); pausa sozinho com o app em segundo plano
 const rand = (a, b) => a + Math.random() * (b - a);
 const escolher = (l) => l[(Math.random() * l.length) | 0];
 const PI = Math.PI;
@@ -204,10 +204,11 @@ export function iniciarCachorros(op = {}) {
     return [{ t: 'ir', x: c.x, y: c.y, modo }, { t: 'virar', ang: rand(-0.5, 0.5) }, { t: 'fn', f: () => { if (eventoAtivo && eventoAtivo.caes.every((x) => x === d || !x.ocupado)) eventoAtivo = null; } }];
   }
   const livres = () => caes.filter((d) => !d.ocupado && !d.dormindo);
+  const sortear = (l) => { let s = l.reduce((a, d) => a + 0.4 + d.energia, 0) * Math.random(); for (const d of l) { s -= 0.4 + d.energia; if (s <= 0) return d; } return l[0]; }; // o agitado entra em mais brincadeiras
   function iniciarEvento(nome, caesEv) { eventoAtivo = { nome, caes: caesEv }; }
 
   const EVENTOS = {
-    visita(d = escolher(livres())) {
+    visita(d = sortear(livres())) {
       if (!d) return false;
       const lado = d.x < W() / 2 ? -1 : 1, ent = escolher([-1, 1]), py = rand(0.28, 0.6) * H(), px = rand(0.25, 0.75) * W();
       iniciarEvento('visita', [d]);
@@ -235,7 +236,7 @@ export function iniciarCachorros(op = {}) {
       tarefas(a, roteiro(a, -1, b)); tarefas(b, roteiro(b, 1, a));
       return true;
     },
-    pegar(d = escolher(livres())) {
+    pegar(d = sortear(livres())) {
       if (!d) return false;
       const lim = barra.el.getBoundingClientRect().top - 20;
       const els = [...document.querySelectorAll(SEL_PEGA)].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.top > 40 && r.bottom < lim - d.tam * 0.2 && r.left > 0 && r.right < W(); });
@@ -306,14 +307,14 @@ export function iniciarCachorros(op = {}) {
       return;
     }
     d.prox -= dt; if (d.prox > 0) return;
-    d.prox = rand(6, 15) * (1.4 - d.energia * 0.6);
+    d.prox = rand(5, 12) * (1.4 - d.energia * 0.9); // o agitado troca de posição mais vezes
     let a;
     if (amb.frio) a = escolher(['shiver', 'curl', 'curl']);
     else if (amb.calor) a = escolher(['pant', 'pant', amb.ar ? 'lie' : 'pant']);
     else if (amb.ar) a = escolher(d.energia > 0.8 ? ['lie', 'sit', 'idle'] : ['lie', 'lie', d.energia < 0.5 ? 'sleep' : 'sit']);
     else a = escolher(d.energia > 0.8 ? ['idle', 'idle', 'sit', 'playbow'] : d.energia > 0.5 ? ['idle', 'sit', 'lie'] : ['lie', 'sit', 'lie', 'idle']);
     if (a === 'playbow') { tarefas(d, [{ t: 'acao', a: 'playbow', dur: 1 }, { t: 'acao', a: 'idle', dur: 0.1 }], false); return; }
-    if (Math.random() < 0.25 && !amb.frio) { // às vezes dá uma voltinha em casa
+    if (Math.random() < 0.15 + 0.45 * d.energia && !amb.frio) { // dá uma voltinha em casa (o agitado, quase sempre)
       const c = casa(d);
       tarefas(d, [{ t: 'ir', x: c.x + rand(-22, 22), y: c.y }, { t: 'virar', ang: rand(-0.7, 0.7) }, { t: 'acao', a, dur: 0.1 }], false);
       return;

@@ -28,6 +28,7 @@ export function desenharCao(c, d, lado) {
   const H = d.tam * ALT, W = (H * im.naturalWidth) / im.naturalHeight, a = transformar(d, H, tmp, !!s);
   desenharSombra(c, d, pe.naturalWidth / pe.naturalHeight);
   c.save();
+  c.beginPath(); c.rect(d.x - H * 2, d.y - H * 3, H * 4, H * 3 + 2); c.clip(); // abaixo do chão não aparece
   c.translate(d.x + a[4] * lado, d.y - a[3]);
   c.scale(lado, 1); c.rotate(a[2]); c.scale(a[0], a[1]);
   c.drawImage(im, -W / 2, -H, W, H);
