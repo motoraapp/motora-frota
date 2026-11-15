@@ -38,7 +38,7 @@ function corpo(a, t, tA, f, p0, sentada) {
     case 'walk': return sentada ? [0, 0, 0] : [0.01 * S(f * 2 + 0.6), (0.5 - 0.5 * C(f * 2)) * 0.012, 0]; // 2 subidinhas por passada
     case 'run': return [0.03 * C(f) + 0.02, Math.max(0, S(f - 0.5)) * 0.06, 0];
     case 'jump': return [-0.05, 0, 0];
-    case 'sit': return sentada ? [-0.02, 0, 0] : [-0.2, -0.07, -0.03];     // pinscher: traseiro no chão, peito alto
+    case 'sit': return sentada ? [-0.02, 0, 0] : [-0.24, -0.12, -0.03];     // pinscher: traseiro no chão, peito alto
     case 'lie': return sentada ? [0.02, -0.02, 0] : [0, -0.3, 0];            // barriga no chão
     case 'sleep': case 'curl': return [0.02, -0.31, 0];
     case 'shiver': return [0.012 * S(t * 63), -0.03, 0.004 * S(t * 57)];
@@ -134,7 +134,7 @@ function angulos(a, t, tA, f, d, o) {
     }
     case 'run': {
       for (let i = 0; i < 4; i++) {
-        passada(u + GALOPE[i], 0.4, shih ? 0.25 : 0.45, tmp); // shih tzu: patas curtas e peludas, galope curto
+        passada(u + GALOPE[i], 0.4, shih ? 0.25 : 0.36, tmp); // 0,36: com mais abertura a emenda da pata com a barriga aparecia // shih tzu: patas curtas e peludas, galope curto
         o['p' + i] = tmp[0]; o['j' + i] = tmp[1] * (i < 2 ? 0.7 : 0.5) * (shih ? 0.5 : 1); o['w' + i] = tmp[2] < 0 ? 0 : 0.6 * S(tmp[2] * PI);
       }
       o.pesc = -0.05 + 0.04 * S(f + 2.2); o.cab = -0.03 + 0.02 * S(f + 2.6); o.orA = o.orB = -0.32 + 0.1 * S(f * 2 - 1);
@@ -142,9 +142,9 @@ function angulos(a, t, tA, f, d, o) {
     }
     case 'jump': o.p0 = o.p1 = -0.55; o.p2 = o.p3 = 0.4; o.j0 = o.j1 = 0.7; o.j2 = o.j3 = 0.45; o.w0 = o.w1 = 0.5; o.w2 = o.w3 = 0.4;
       o.pesc = -0.08; o.cab = -0.05; o.orA = o.orB = -0.4; o.rabo = 0.5; o.rabo2 = 0.2; break;
-    case 'sit': o.p0 = o.p1 = 0.2; o.p2 = o.p3 = -0.95; o.j2 = o.j3 = 2.1; o.w2 = o.w3 = -0.9; o.pesc = -0.02 + olhar * 0.4; o.rabo = abano * 0.4; o.rabo2 = abanoAtras * 0.3; break;
-    case 'lie': o.p0 = o.p1 = -1.4; o.j0 = o.j1 = 0.25; o.w0 = o.w1 = -0.2; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9; o.pesc = 0.05 + olhar * 0.3; o.cab = 0.03 + olhar * 0.4; o.rabo = abano * 0.25; o.rabo2 = abanoAtras * 0.2; break;
-    case 'sleep': o.p0 = o.p1 = -1.4; o.j0 = o.j1 = 0.25; o.w0 = o.w1 = -0.2; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9;
+    case 'sit': o.p0 = o.p1 = 0.24; o.p2 = o.p3 = -0.5; o.j2 = o.j3 = 1.0; o.w2 = o.w3 = -0.5; o.pesc = -0.02 + olhar * 0.4; o.rabo = abano * 0.4; o.rabo2 = abanoAtras * 0.3; break;
+    case 'lie': o.p0 = o.p1 = -0.9; o.j0 = o.j1 = 1.9; o.w0 = o.w1 = -0.6; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9; o.pesc = 0.05 + olhar * 0.3; o.cab = 0.03 + olhar * 0.4; o.rabo = abano * 0.25; o.rabo2 = abanoAtras * 0.2; break;
+    case 'sleep': o.p0 = o.p1 = -0.9; o.j0 = o.j1 = 1.9; o.w0 = o.w1 = -0.6; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9;
       o.pesc = 0.2 + 0.01 * S(t * 1.3); o.cab = 0.12; o.orA = 0.1; o.orB = 0.1 - 0.2 * pulso(t, 4.1, ph, 0.12, 0.3); o.rabo = 0.03 * S(t * 1.3); o.rabo2 = 0; break; // sonhando: a orelha mexe
     case 'curl': o.p0 = o.p1 = -1.2; o.j0 = o.j1 = 0.6; o.w0 = o.w1 = 0.2; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9;
       o.pesc = 0.25; o.cab = 0.15; o.orA = o.orB = -0.3; o.rabo = -0.6 + 0.03 * S(t * 63); o.rabo2 = -0.3; break;
@@ -153,7 +153,7 @@ function angulos(a, t, tA, f, d, o) {
     case 'bark': { const k = salto(tA); o.boca = 0.42 * k; o.pesc = -0.12 * k; o.cab = -0.1 * k; o.orA = o.orB = -0.22 * k; o.p0 = o.p1 = -0.08 * k; o.rabo = 0.4 * S(t * 24); o.rabo2 = 0.3 * S(t * 24 - 0.8); break; }
     case 'eat': case 'drink': { const m = a === 'eat' ? S(t * 9) : S(t * 13); // comer mastiga; beber lambe mais rápido
       o.boca = a === 'eat' ? 0.42 * Math.max(0, m) : 0.2 * Math.max(0, m);
-      o.pesc = 0.35 + 0.03 * m; o.cab = 0.18 + 0.04 * m; o.orA = o.orB = 0.15 + 0.04 * S(t * 9 - 0.8); o.p0 = o.p1 = -0.12; o.j0 = o.j1 = 0.1;
+      o.pesc = 0.26 + 0.03 * m; o.cab = 0.14 + 0.04 * m; o.orA = o.orB = 0.15 + 0.04 * S(t * 9 - 0.8); o.p0 = o.p1 = -0.12; o.j0 = o.j1 = 0.1;
       o.rabo = 0.25 * S(t * 19 + ph); o.rabo2 = 0.2 * S(t * 19 + ph - 0.8); break; }
     case 'peeM': o.p2 = -1.0; o.j2 = 0.5; o.w2 = 0.3; o.pesc = -0.06 + olhar * 0.3; o.rabo = 0.25; break;
     case 'peeF': o.p2 = o.p3 = -0.3; o.j2 = o.j3 = 0.5; o.pesc = 0.06; o.rabo = 0.35; break;
@@ -174,7 +174,11 @@ export function angulosDe(d) {
     const k = suave(d.mist);
     for (const c of CHAVES) A1[c] = A2[c] + (A1[c] - A2[c]) * k;
   }
-  if (d.cfg.raca === 'shihtzu') { A1.pesc *= 0.3; A1.cab *= 0.3; A1.orA *= 0.6; A1.orB *= 0.6; } // cabeça grande e pelo comprido: mexe menos
+  if (d.cfg.raca === 'shihtzu') { // cabeça grande e pelo comprido: mexe menos (senão o pelo abre)
+    A1.pesc *= 0.3; A1.cab *= 0.3; A1.orA *= 0.2; A1.orB *= 0.2; A1.rabo *= 0.3; A1.rabo2 *= 0.3; // rabo em volta, cheio de pelo: balança pouco
+    const deitada = d.acao === 'sleep' || d.acao === 'curl' || d.acao === 'lie';
+    for (let i = 0; i < 4; i++) { const k = deitada ? 0 : 0.5; A1['p' + i] *= k; A1['j' + i] *= k; A1['w' + i] *= k; }
+  }
   return A1;
 }
 // escreve as matrizes das 24 articulações em M (96 números) e T (48 números). Ordem: 0 pescoço, 1 cabeça, 2 boca, 3 orelha A,

@@ -1,7 +1,7 @@
 // Animações feitas por código. Cada ação escreve uma "pose" (lista de números) e o motor mistura a anterior com a nova em 0,25 s.
 export const Y = 0, PX = 1, RZ = 2, TZ = 3, NX = 4, NY = 5, HX = 6, HY = 7, HZ = 8, JAW = 9, TONG = 10,
   EARX = 11, EARZ = 12, TAILX = 13, TAILY = 14, TAILC = 15, HIP = 16, KNEE = 20, LIFT = 24, BLINK = 28, SQ = 29, N = 30;
-export const MISTURA = 0.25; // segundos
+export const MISTURA = 0.35; // segundos
 
 const S = Math.sin, C = Math.cos, mx = Math.max, TAU = Math.PI * 2;
 

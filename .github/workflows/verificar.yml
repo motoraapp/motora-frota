@@ -27,6 +27,8 @@ jobs:
         run: node .github/scripts/teste-ar-siri.mjs
       - name: Teste dos avisos de fome e sede dos cachorros (Nossa casinha)
         run: node .github/scripts/teste-ar-caes.mjs
+      - name: Teste das peças dos cachorros (sem pedaço solto de pata nem palitinho na nuca)
+        run: node .github/scripts/teste-ar-caes-pecas.mjs
 
   placa-ar:
     # Compila o programa da placa do ar-condicionado (ar/firmware/gree-esp32) para garantir que não quebrou.

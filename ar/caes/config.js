@@ -12,7 +12,7 @@ export const CACHORROS = [
     ossos: { // articulações no desenho (pixels da imagem): p = ponto onde gira, r = região que acompanha [x1, y1, x2, y2], f = (sem uso)
       // cada peça é recortada pela região r e gira em volta de p (peça rígida, sem esticar). (joelho j e pulso w de cada pata são achados sozinhos no desenho; dá para fixar com j: [x, y] e w: [x, y]. rabo.p2 = onde a ponta dobra)
       pescoco: { p: [112, 172], r: [84, 100, 160, 182], f: 8 }, // base do pescoço (ombros)
-      cabeca: { p: [128, 128], r: [66, -60, 240, 135], f: 8 },
+      cabeca: { p: [128, 128], r: [66, -60, 240, 135], f: 8, nuca: [104, 112] }, // nuca: atrás (x <) e abaixo (y >) disso são as costas, ficam no corpo
       boca: { p: [152, 112], r: [150, 111, 230, 134], f: 3 }, // mandíbula: gira no canto da boca
       orelhas: [{ p: [118, 78], r: [70, 22, 120, 84], f: 4 }, { p: [166, 56], r: [158, -20, 220, 62], f: 4 }],
       rabo: { p: [0, 0], r: [-10, -10, -5, -5], f: 1 }, // sem rabo
@@ -21,6 +21,7 @@ export const CACHORROS = [
     },
   },
   {
+    beiraPata: true, // o contorno do alto das patas vai só com a pata (correndo, ficava pendurado embaixo da barriga)
     id: 'belinha', nome: 'Belinha', artigo: 'a', sexo: 'F', raca: 'pinscher', imagem: 'belinha.png', olhos: 'belinha-olhos.png', // pinscher fêmea caramela, média
     tamanho: 66,
     energia: 1.0,         // a mais agitada de todas (pedido do dono)
@@ -32,7 +33,7 @@ export const CACHORROS = [
       boca: { p: [138, 106], r: [136, 105, 230, 128], f: 3 },
       orelhas: [{ p: [116, 72], r: [66, -10, 120, 78], f: 4 }, { p: [162, 64], r: [154, -20, 240, 70], f: 4 }],
       rabo: { p: [36, 152], p2: [26, 140], r: [-40, 124, 40, 158], f: 4 },
-      pernas: [{ p: [128, 192], r: [108, 190, 146, 400], f: 4 }, { p: [152, 198], r: [140, 196, 172, 400], f: 4 },
+      pernas: [{ p: [128, 192], r: [100, 190, 134, 400], f: 4 }, { p: [150, 198], r: [133, 196, 172, 400], f: 4 }, // a pata de longe começa em x 133 no desenho
         { p: [40, 175], r: [-10, 173, 54, 400], f: 4 }, { p: [62, 190], r: [52, 188, 80, 400], f: 4 }],
     },
   },
@@ -43,10 +44,15 @@ export const CACHORROS = [
     voz: 0.95,
     corpo: { perna: 0.34 },
     ossos: { // em pé (imagem 280x300)
-      cabeca: { p: [184, 156], r: [95, -60, 330, 160], f: 10 },
+      cabeca: { p: [184, 156], r: [86, -60, 330, 160], f: 10, nuca: [100, 120] },
       boca: { p: [190, 100], r: [180, 99, 245, 140], f: 4 },
-      orelhas: [{ p: [130, 44], r: [90, 35, 152, 165], f: 6 }, { p: [248, 30], r: [232, 15, 330, 152], f: 6 }],
-      rabo: { p: [78, 140], p2: [36, 108], r: [-40, 70, 88, 158], f: 6 },
+      // sem orelhas soltas: o cabelo comprido dos lados é pesado e vai junto com a cabeça (o recorte dele levava pelo do corpo e abria buraco nas costas)
+      orelhas: [],
+      // rabo em volta: uma peça só, recortada pelo contorno do traseiro (poli = acima/à esquerda da linha das costas), gira na base
+      rabo: { p: [62, 136], r: [-40, 60, 100, 176], f: 6,
+        poli: [[-5, 55], [96, 55], [96, 125], [75, 125], [60, 130], [48, 137], [40, 147], [33, 157], [26, 168], [20, 176], [-5, 176]],
+        // pele entre o traseiro (parado) e a parte de baixo do rabo (gira): não abre fresta quando o rabo balança (fora do miolo da volta)
+        pele: { corpo: [[52, 137], [44, 144], [38, 151], [33, 158]], rabo: [[47, 131], [39, 137], [32, 145], [27, 153]] } },
       pernas: [{ p: [153, 177], r: [124, 178, 180, 400], f: 5, corte: 26 }, { p: [208, 172], r: [182, 176, 234, 400], f: 5, corte: 26 }, // Maya: só a parte de baixo das patas se mexe (o pelo da barriga fica)
         { p: [51, 177], r: [16, 175, 70, 400], f: 5, corte: 26 }, { p: [95, 180], r: [74, 180, 114, 400], f: 5, corte: 26 }],
     },    poseSentada: { // desenho dela sentada (265x300): usado ao sentar e deitar; mexe cabeça, orelhas e rabo
