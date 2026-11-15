@@ -1,7 +1,8 @@
 // Boneco articulado em WebGL: cada desenho (ar/caes/img/*.png) vira uma grade de triângulos e as articulações (cabeça, orelhas, rabo,
-// 4 patas com ombro/quadril e joelho/pulso; ver `ossos` em config.js) puxam os pontos da grade, com transição suave entre as partes. Mantém a aparência do desenho e
-// dá movimento de verdade. Se o aparelho não tiver WebGL, dogs3d.js usa desenho.js (imagem inteira, sem articulações).
-import { articular, transformar } from './movimento.js';
+// 4 patas com ombro/quadril e joelho/pulso; ver `ossos` em config.js) puxam os pontos da grade, com transição suave entre as partes.
+// Piscar e dormir: a camada `olhos` (pedaço do desenho de olhos fechados) aparece por cima. Maya: troca para o desenho sentada ao
+// sentar/deitar, com transição suave. Se o aparelho não tiver WebGL, dogs3d.js usa desenho.js (imagem inteira, sem articulações).
+import { articular, transformar, piscar, poseSentada } from './movimento.js';
 
 const VS = `
 attribute vec2 aUV; attribute vec4 aWa; attribute vec4 aWb; attribute vec4 aWc;
@@ -27,7 +28,8 @@ void main() {
   gl_Position = vec4(sc.x / uRes.x * 2.0 - 1.0, 1.0 - sc.y / uRes.y * 2.0, 0.0, 1.0);
   vUV = aUV;
 }`;
-const FS = `precision mediump float; varying vec2 vUV; uniform sampler2D uTex; void main() { gl_FragColor = texture2D(uTex, vUV); }`;
+const FS = `precision mediump float; varying vec2 vUV; uniform sampler2D uTex; uniform sampler2D uOlhos; uniform float uPisca; uniform float uAlfa;
+void main() { vec4 a = texture2D(uTex, vUV); vec4 b = texture2D(uOlhos, vUV) * uPisca; gl_FragColor = (a * (1.0 - b.a) + b) * uAlfa; }`;
 
 const NX = 26, NY = 34; // grade de pontos
 const sm = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
@@ -44,16 +46,24 @@ export function criarMalha(cfgs) {
   if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
   gl.useProgram(pr); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
   const L = { aUV: gl.getAttribLocation(pr, 'aUV'), aWa: gl.getAttribLocation(pr, 'aWa'), aWb: gl.getAttribLocation(pr, 'aWb'), aWc: gl.getAttribLocation(pr, 'aWc') };
-  const U = {}; for (const n of ['uNat', 'uM', 'uT', 'uG', 'uP', 'uRes', 'uTex']) U[n] = gl.getUniformLocation(pr, n);
-  gl.uniform1i(U.uTex, 0);
-  gl.enableVertexAttribArray(L.aUV); gl.enableVertexAttribArray(L.aWa); gl.enableVertexAttribArray(L.aWb); gl.enableVertexAttribArray(L.aWc);
+  const U = {}; for (const n of ['uNat', 'uM', 'uT', 'uG', 'uP', 'uRes', 'uTex', 'uOlhos', 'uPisca', 'uAlfa']) U[n] = gl.getUniformLocation(pr, n);
+  gl.uniform1i(U.uTex, 0); gl.uniform1i(U.uOlhos, 1);
+  for (const k of ['aUV', 'aWa', 'aWb', 'aWc']) gl.enableVertexAttribArray(L[k]);
 
-  const imgs = {}; // id -> { img, tex, buf, idx, n, pronto }
-  const M = new Float32Array(48), T = new Float32Array(24), xfm = [0, 0, 0, 0, 0];
-  let W = 1, H = 1;
+  const textura = (fonte) => {
+    const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    if (fonte) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fonte);
+    else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  };
+  const vazia = textura(null); // sem olhos fechados
+  const todas = [vazia], buffers = [];
 
-  function construir(cfg, o) {
-    const img = o.img, nw = img.naturalWidth, nh = img.naturalHeight, os = cfg.ossos;
+  // uma pose = um desenho com as articulações dele
+  function construir(P) {
+    const img = P.img, nw = img.naturalWidth, nh = img.naturalHeight, os = P.ossos;
     const regs = [os.cabeca, os.orelhas[0], os.orelhas[1], os.rabo, ...os.pernas]; // mesma ordem das articulações
     for (const pe of os.pernas) if (!pe.j) pe.j = [pe.p[0], pe.p[1] + (nh - pe.p[1]) * 0.5]; // joelho/pulso: meio da pata, se config.js não disser
     const dados = new Float32Array(NX * NY * 14);
@@ -67,39 +77,53 @@ export function criarMalha(cfgs) {
     }
     const idx = new Uint16Array((NX - 1) * (NY - 1) * 6); let q = 0;
     for (let j = 0; j < NY - 1; j++) for (let i = 0; i < NX - 1; i++) { const a = j * NX + i, b = a + 1, c = a + NX, d = c + 1; idx.set([a, b, c, b, d, c], q); q += 6; }
-    o.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, o.buf); gl.bufferData(gl.ARRAY_BUFFER, dados, gl.STATIC_DRAW);
-    o.idx = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.idx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
-    o.n = idx.length;
-    o.tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, o.tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    o.nat = [nw, nh]; o.pronto = true;
+    P.buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, P.buf); gl.bufferData(gl.ARRAY_BUFFER, dados, gl.STATIC_DRAW);
+    P.idx = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, P.idx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
+    buffers.push(P.buf, P.idx);
+    P.n = idx.length; P.tex = textura(img); todas.push(P.tex); P.nat = [nw, nh]; P.pronto = true;
   }
+  const carregar = (arq, pronto) => { const i = new Image(); i.decoding = 'async'; i.onload = () => { if (!gl.isContextLost()) pronto(i); }; i.src = new URL('./img/' + arq, import.meta.url).href; return i; };
+  const poses = {}; // id -> { pe, sentada }
   for (const cfg of cfgs) {
-    const o = imgs[cfg.id] = { img: new Image(), pronto: false };
-    o.img.decoding = 'async'; o.img.onload = () => { if (!gl.isContextLost()) construir(cfg, o); };
-    o.img.src = new URL('./img/' + cfg.imagem, import.meta.url).href;
+    const pe = { ossos: cfg.ossos, olhosTex: vazia, pronto: false };
+    pe.img = carregar(cfg.imagem, () => construir(pe));
+    if (cfg.olhos) carregar(cfg.olhos, (i) => { pe.olhosTex = textura(i); todas.push(pe.olhosTex); });
+    const o = poses[cfg.id] = { pe, sentada: null };
+    if (cfg.poseSentada) { const s = o.sentada = { ossos: cfg.poseSentada.ossos, olhosTex: vazia, pronto: false }; s.img = carregar(cfg.poseSentada.imagem, () => construir(s)); }
+  }
+
+  const M = new Float32Array(48), T = new Float32Array(24), xfm = [0, 0, 0, 0, 0];
+  let W = 1, H = 1;
+  function desenharPose(P, d, lado, alfa, sentada) {
+    const alt = d.tam * 1.3, t = transformar(d, alt, xfm, sentada);
+    articular(d, P.ossos, M, T);
+    gl.bindBuffer(gl.ARRAY_BUFFER, P.buf); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, P.idx);
+    gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 56, 0); gl.vertexAttribPointer(L.aWa, 4, gl.FLOAT, false, 56, 8); gl.vertexAttribPointer(L.aWb, 4, gl.FLOAT, false, 56, 24); gl.vertexAttribPointer(L.aWc, 4, gl.FLOAT, false, 56, 40);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, P.olhosTex);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, P.tex);
+    gl.uniform1f(U.uPisca, P.olhosTex === vazia ? 0 : piscar(d)); gl.uniform1f(U.uAlfa, alfa);
+    gl.uniform2f(U.uNat, P.nat[0], P.nat[1]); gl.uniform4fv(U.uM, M); gl.uniform2fv(U.uT, T);
+    gl.uniform4f(U.uG, alt / P.nat[1], lado, t[2], 0);
+    gl.uniform4f(U.uP, d.x + t[4] * lado, d.y - t[3], t[0], t[1]);
+    gl.uniform2f(U.uRes, W, H);
+    gl.drawElements(gl.TRIANGLES, P.n, gl.UNSIGNED_SHORT, 0);
   }
 
   return {
     canvas: cv,
     tamanho(w, h, dpr) { W = w; H = h; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); gl.viewport(0, 0, cv.width, cv.height); },
     limpar() { gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT); },
-    larguraDe(cfg) { const o = imgs[cfg.id]; return o && o.pronto ? o.nat[0] / o.nat[1] : 0.75; },
+    larguraDe(cfg) { const P = poses[cfg.id] && poses[cfg.id].pe; return P && P.pronto ? P.nat[0] / P.nat[1] : 0.75; },
     desenhar(d, lado) {
-      const o = imgs[d.cfg.id]; if (!o || !o.pronto) return;
-      const alt = d.tam * 1.3, t = transformar(d, alt, xfm);
-      articular(d, d.cfg.ossos, M, T);
-      gl.bindBuffer(gl.ARRAY_BUFFER, o.buf); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.idx);
-      gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 56, 0); gl.vertexAttribPointer(L.aWa, 4, gl.FLOAT, false, 56, 8); gl.vertexAttribPointer(L.aWb, 4, gl.FLOAT, false, 56, 24); gl.vertexAttribPointer(L.aWc, 4, gl.FLOAT, false, 56, 40);
-      gl.bindTexture(gl.TEXTURE_2D, o.tex);
-      gl.uniform2f(U.uNat, o.nat[0], o.nat[1]); gl.uniform4fv(U.uM, M); gl.uniform2fv(U.uT, T);
-      gl.uniform4f(U.uG, alt / o.nat[1], lado, t[2], 0);
-      gl.uniform4f(U.uP, d.x + t[4] * lado, d.y - t[3], t[0], t[1]);
-      gl.uniform2f(U.uRes, W, H);
-      gl.drawElements(gl.TRIANGLES, o.n, gl.UNSIGNED_SHORT, 0);
+      const o = poses[d.cfg.id]; if (!o || !o.pe.pronto) return;
+      const pode = o.sentada && o.sentada.pronto;
+      const agora = pode && poseSentada(d.cfg, d.acao), antes = pode && poseSentada(d.cfg, d.acaoAnt);
+      if (d.mist < 1 && agora !== antes) { // troca de desenho (em pé <-> sentada) com transição suave
+        const k = d.mist * d.mist * (3 - 2 * d.mist);
+        desenharPose(antes ? o.sentada : o.pe, d, lado, 1 - k, antes);
+        desenharPose(agora ? o.sentada : o.pe, d, lado, k, agora);
+      } else desenharPose(agora ? o.sentada : o.pe, d, lado, 1, agora);
     },
-    destruir() { for (const id in imgs) { const o = imgs[id]; if (o.tex) gl.deleteTexture(o.tex); if (o.buf) gl.deleteBuffer(o.buf); if (o.idx) gl.deleteBuffer(o.idx); } gl.getExtension('WEBGL_lose_context')?.loseContext(); cv.remove(); },
+    destruir() { for (const t of todas) gl.deleteTexture(t); for (const b of buffers) gl.deleteBuffer(b); gl.getExtension('WEBGL_lose_context')?.loseContext(); cv.remove(); },
   };
 }

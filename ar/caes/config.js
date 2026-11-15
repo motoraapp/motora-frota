@@ -1,9 +1,10 @@
-// Os 3 cachorros. A aparência vem dos desenhos em ar/caes/img (elvis.png, belinha.png, maya.png): para mudar o visual, troque o PNG
+// Os 3 cachorros. A aparência vem dos desenhos em ar/caes/img (elvis.png, belinha.png, maya.png; *-olhos.png = olhos fechados, para
+// piscar e dormir; maya-sentada.png = Maya sentada): para mudar o visual, troque o PNG
 // (fundo transparente, cachorro olhando para a direita). Aqui se ajusta nome, tamanho e jeito de cada um.
 // nome/artigo aparecem nos balões e nos avisos ("O Elvis está com fome!").
 export const CACHORROS = [
   {
-    id: 'elvis', nome: 'Elvis', artigo: 'o', sexo: 'M', raca: 'pinscher', imagem: 'elvis.png', // pinscher macho branco malhado, sem rabo, o menor
+    id: 'elvis', nome: 'Elvis', artigo: 'o', sexo: 'M', raca: 'pinscher', imagem: 'elvis.png', olhos: 'elvis-olhos.png', // pinscher macho branco malhado, sem rabo, o menor
     tamanho: 54,          // tamanho em pixels (o desenho tem 1,3 vez isso de altura)
     energia: 1.0,         // 0 calmo … 1 agitado (velocidade, frequência dos eventos)
     voz: 1.35,            // agudo do latido
@@ -17,7 +18,7 @@ export const CACHORROS = [
     },
   },
   {
-    id: 'belinha', nome: 'Belinha', artigo: 'a', sexo: 'F', raca: 'pinscher', imagem: 'belinha.png', // pinscher fêmea caramela, média
+    id: 'belinha', nome: 'Belinha', artigo: 'a', sexo: 'F', raca: 'pinscher', imagem: 'belinha.png', olhos: 'belinha-olhos.png', // pinscher fêmea caramela, média
     tamanho: 66,
     energia: 0.75,        // atrevida
     voz: 1.15,
@@ -31,7 +32,7 @@ export const CACHORROS = [
     },
   },
   {
-    id: 'maya', nome: 'Maya', artigo: 'a', sexo: 'F', raca: 'shihtzu', imagem: 'maya.png', // shih tzu em pé com laços rosa, a maior
+    id: 'maya', nome: 'Maya', artigo: 'a', sexo: 'F', raca: 'shihtzu', imagem: 'maya.png', olhos: 'maya-olhos.png', // shih tzu em pé com laços rosa, a maior
     tamanho: 80,
     energia: 0.35,        // calma
     voz: 0.95,
@@ -42,6 +43,15 @@ export const CACHORROS = [
       rabo: { p: [75, 136], r: [-40, 70, 85, 165], f: 12 },
       pernas: [{ p: [153, 177], r: [124, 180, 180, 400], f: 10 }, { p: [208, 172], r: [182, 178, 234, 400], f: 10 },
         { p: [51, 177], r: [16, 177, 70, 400], f: 10 }, { p: [95, 180], r: [74, 182, 114, 400], f: 10 }],
+    },    poseSentada: { // desenho dela sentada (265x300): usado ao sentar e deitar; mexe cabeça, orelhas e rabo
+      imagem: 'maya-sentada.png',
+      ossos: {
+        cabeca: { p: [150, 190], r: [40, -60, 330, 205], f: 18 },
+        orelhas: [{ p: [92, 70], r: [40, 40, 128, 190], f: 12 }, { p: [238, 50], r: [212, 10, 330, 175], f: 10 }],
+        rabo: { p: [55, 228], r: [-40, 175, 62, 270], f: 12 },
+        pernas: [0, 1, 2, 3].map(() => ({ p: [0, 0], r: [-10, -10, -5, -5], f: 1 })),
+      },
     },
+
   },
 ];

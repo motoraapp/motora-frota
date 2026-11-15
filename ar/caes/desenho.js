@@ -1,13 +1,15 @@
-// Sem WebGL: o desenho inteiro (ar/caes/img/*.png) com movimento do corpo todo (movimento.js): respirar, pulinhos, achatar para deitar.
-// Com WebGL, malha.js articula cabeça, orelhas, rabo e patas. As imagens olham para a direita; o app espelha ao andar para a esquerda.
-import { transformar } from './movimento.js';
+// Sem WebGL: o desenho inteiro (ar/caes/img/*.png) com movimento do corpo todo (movimento.js): respirar, pulinhos, achatar para deitar,
+// piscar e dormir de olhos fechados (camada `olhos`), Maya sentada ao sentar/deitar. Com WebGL, malha.js também articula cabeça,
+// orelhas, rabo e patas. As imagens olham para a direita; o app espelha ao andar para a esquerda.
+import { transformar, piscar, poseSentada } from './movimento.js';
 
 const IMG = {};
-function carregar(cfg) {
-  if (!IMG[cfg.id]) { const i = new Image(); i.decoding = 'async'; i.src = new URL('./img/' + cfg.imagem, import.meta.url).href; IMG[cfg.id] = i; }
-  return IMG[cfg.id];
+function img(arq) {
+  if (!IMG[arq]) { const i = new Image(); i.decoding = 'async'; i.src = new URL('./img/' + arq, import.meta.url).href; IMG[arq] = i; }
+  return IMG[arq];
 }
-export function precarregar(cfgs) { cfgs.forEach(carregar); }
+const pronta = (i) => i && i.complete && i.naturalWidth;
+export function precarregar(cfgs) { for (const c of cfgs) { img(c.imagem); if (c.olhos) img(c.olhos); if (c.poseSentada) img(c.poseSentada.imagem); } }
 
 const ALT = 1.3; // altura do desenho = tamanho × 1,3
 export const alturaCabeca = () => ALT;
@@ -19,14 +21,18 @@ export function desenharSombra(c, d, aspecto) {
 }
 
 export function desenharCao(c, d, lado) {
-  const im = carregar(d.cfg);
-  if (!im.complete || !im.naturalWidth) return;
-  const H = d.tam * ALT, W = (H * im.naturalWidth) / im.naturalHeight, a = transformar(d, H, tmp);
-  desenharSombra(c, d, im.naturalWidth / im.naturalHeight);
+  const cfg = d.cfg, pe = img(cfg.imagem);
+  if (!pronta(pe)) return;
+  const s = cfg.poseSentada && poseSentada(cfg, d.acao) && pronta(img(cfg.poseSentada.imagem));
+  const im = s ? img(cfg.poseSentada.imagem) : pe;
+  const H = d.tam * ALT, W = (H * im.naturalWidth) / im.naturalHeight, a = transformar(d, H, tmp, !!s);
+  desenharSombra(c, d, pe.naturalWidth / pe.naturalHeight);
   c.save();
   c.translate(d.x + a[4] * lado, d.y - a[3]);
   c.scale(lado, 1); c.rotate(a[2]); c.scale(a[0], a[1]);
   c.drawImage(im, -W / 2, -H, W, H);
+  const ol = !s && cfg.olhos ? img(cfg.olhos) : null, p = ol ? piscar(d) : 0;
+  if (p > 0.01 && pronta(ol)) { c.globalAlpha = p; c.drawImage(ol, -W / 2, -H, W, H); }
   c.restore();
 }
 

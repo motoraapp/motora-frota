@@ -41,8 +41,8 @@ export function xf(a, t, tA, f, p0, sentada) {
     case 'run': { const k = S(f); // galope: estica no ar, encolhe ao juntar as patas
       return [1 + 0.07 * k, 1 - 0.05 * k, 0.07 * C(f) + 0.04, Math.max(0, S(f - 0.5)) * (sentada ? 0.16 : 0.1), 0]; }
     case 'jump': { const u = Math.max(0, p0); return [1 / (1 + u * 0.35), 1 + u * 0.35, -0.05, 0, 0]; }
-    case 'sit': return [1.03, (sentada ? 1 : 0.9) + 0.01 * resp, -0.03, 0, 0];
-    case 'lie': return [1.1, 0.64 + 0.012 * resp, 0, 0, 0];
+    case 'sit': return sentada ? [1, 1 + 0.01 * resp, -0.02, 0, 0] : [1.03, 0.9 + 0.01 * resp, -0.03, 0, 0];
+    case 'lie': return sentada ? [1.05, 0.87 + 0.01 * resp, 0.02, 0, 0] : [1.1, 0.64 + 0.012 * resp, 0, 0, 0];
     case 'sleep': return [1.12, 0.6 + 0.03 * S(t * 1.3), 0.02, 0, 0];                                // dormindo respira fundo e devagar
     case 'curl': return [1.05, 0.62 + 0.01 * resp, 0.03, 0, 0.004 * S(t * 63)];
     case 'shiver': return [1, 0.96, 0.014 * S(t * 63), 0, 0.005 * S(t * 57)];                        // tremor ~10 por segundo
@@ -58,8 +58,9 @@ export function xf(a, t, tA, f, p0, sentada) {
 }
 
 // movimento do corpo todo, já misturado com a ação anterior. Devolve [sx, sy, rot, subir (px), deslocar x (px)]
-export function transformar(d, H, saida = [0, 0, 0, 0, 0]) {
-  const sentada = !!d.cfg.sentada, p0 = d.p ? d.p[0] : 0; // sentada = desenho de cachorro sentado (anda pulando)
+// sentada = está usando o desenho de cachorro sentado (Maya ao sentar/deitar)
+export function transformar(d, H, saida = [0, 0, 0, 0, 0], sentada = false) {
+  const p0 = d.p ? d.p[0] : 0;
   const a = xf(d.acao, d.t, d.tA, d.fase, p0, sentada);
   if (d.mist < 1) {
     const b = xf(d.acaoAnt, d.t, d.tAnt, d.fase, 0, sentada), k = suave(d.mist);
@@ -69,6 +70,20 @@ export function transformar(d, H, saida = [0, 0, 0, 0, 0]) {
   saida[3] = a[3] * H + Math.max(0, p0) * d.tam; // pulo grande do evento de brincar (p[0] = subir)
   saida[4] = a[4] * H;
   return saida;
+}
+
+// usa o desenho sentado (config.poseSentada) nestas ações
+export const poseSentada = (cfg, a) => !!cfg.poseSentada && (a === 'sit' || a === 'lie');
+
+// olhos fechados (0 aberto … 1 fechado): pisca a cada 2 a 5 s (às vezes duas vezes seguidas), fecha ao dormir
+export function piscar(d) {
+  const t = (d.t || 0) + (d.sem || 0) * 1.7, a = d.acao, per = 3.6, n = Math.floor(t / per);
+  const x = t - n * per - (0.5 + 0.5 * acaso(n, 9)) * (per - 0.6);
+  let v = x > 0 && x < 0.16 ? S((x / 0.16) * PI) : 0;
+  if (acaso(n, 11) > 0.55) { const y = x - 0.3; if (y > 0 && y < 0.16) v = Math.max(v, S((y / 0.16) * PI)); }
+  if (a === 'sleep') v = 1;
+  if (d.mist < 1 && (d.acaoAnt === 'sleep') !== (a === 'sleep')) { const k = suave(d.mist); v = Math.max(v, a === 'sleep' ? k : 1 - k); }
+  return v;
 }
 
 // ---- articulações ----
