@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 18
+#define FW_VERSAO 19
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -95,6 +95,9 @@ Estado S;
 Horario H[8]; int nH = 0;
 Automatico A;
 AutoMem AM = {false, false};
+// Versão 19: faixa em uso pelo automático (regraFaixa em regras.h; 0 = nenhuma) e quando mudou por último.
+int autoFaixa = 0; unsigned long autoFaixaEm = 0;
+void aplicarFaixa(int f) { autoFaixa = f; autoFaixaEm = millis(); S.mode = 1; S.temp = tempFaixa(f, A.alvo); S.fan = ventFaixa(f); S.turbo = f == 1; }
 
 void salvarEstado() {
   gravaNum("power", S.power); gravaNum("mode", S.mode); gravaNum("temp", S.temp); gravaNum("fan", S.fan);
@@ -414,7 +417,7 @@ void estadoJson(JsonObject d) {
     o["d"] = H[i].d; o["h"] = H[i].h; o["m"] = H[i].m; o["a"] = H[i].a; o["t"] = H[i].t; o["o"] = H[i].o; o["e"] = H[i].e;
   }
   JsonObject a = d["auto"].to<JsonObject>();
-  a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou;
+  a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou; if (AM.ligou && autoFaixa) a["fx"] = autoFaixa;
   d["fw"] = FW_VERSAO;
   d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
   if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = tlsRt.connected(); x["m"] = rtUlt; x["t"] = rtTent; }
@@ -480,6 +483,8 @@ void aplicar(JsonObject p) {
   if (p["ota"].is<const char *>()) { String o = p["ota"].as<String>(); otaPedido = o == "now" ? 2 : (o == "check" ? 1 : 0); }
   if (mandar) {
     if (S.power != antes) { autoManual(AM, S.power, A.on); salvarAuto(); }
+    // Versão 19: mexer na temperatura, modo, ventilação ou turbo tira o ar do automático (ele para de regular e não desliga).
+    else if (AM.ligou && (p["mode"].is<int>() || p["temp"].is<int>() || p["fan"].is<int>() || p["turbo"].is<bool>() || p["mimi"].is<bool>())) { AM.ligou = false; autoFaixa = 0; salvarAuto(); }
     enviar(S, S.proto); salvarEstado();
   }
 }
@@ -512,12 +517,17 @@ void checarAuto() {
   AutoMem antes = AM;
   int r = regraAuto(AM, A.on, temSala(), salaT, A.alvo, noHorario, S.power);
   if (r == AUTO_LIGAR) {
-    S.power = true; S.mode = 1; S.temp = A.alvo; enviar(S, S.proto); salvarEstado();
+    S.power = true; aplicarFaixa(regraFaixa(0, salaT - A.alvo)); enviar(S, S.proto); salvarEstado();
     Serial.println("automatico: quarto quente, ligando");
   } else if (r == AUTO_DESLIGAR) {
     S.power = false; enviar(S, S.proto); salvarEstado();
     Serial.println("automatico: quarto frio, desligando");
+  } else if (AM.ligou && S.power && temSala() && millis() - autoFaixaEm >= 300000UL) {
+    // Versão 19: no máximo uma troca a cada 5 min, conforme o quarto chega perto da temperatura escolhida.
+    int f = regraFaixa(autoFaixa, salaT - A.alvo);
+    if (f != autoFaixa) { aplicarFaixa(f); enviar(S, S.proto); salvarEstado(); Serial.printf("automatico: faixa %d\n", f); }
   }
+  if (!AM.ligou) autoFaixa = 0;
   if (AM.ligou != antes.ligou || AM.espera != antes.espera) salvarAuto();
 }
 

@@ -11,7 +11,7 @@ const js = cpp
   .replace(/^struct\s+\w+\s*\{[^}]*\};/gm, '')
   .replace(/^(?:bool|int|void|float)\s+(\w+)\(([^)]*)\)\s*\{/gm, (_, nome, ps) =>
     `function ${nome}(${ps.split(',').map(p => p.trim().split(/[\s&]+/).pop()).join(', ')}) {`);
-const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, regraMimi, volDepois, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
+const R = new Function(`${js}; return { dentroHorario, regraAuto, autoManual, regraMimi, volDepois, faixaDe, regraFaixa, tempFaixa, ventFaixa, AUTO_NADA, AUTO_LIGAR, AUTO_DESLIGAR };`)();
 const NOME = { [R.AUTO_NADA]: 'nada', [R.AUTO_LIGAR]: 'ligar', [R.AUTO_DESLIGAR]: 'desligar' };
 
 let erros = 0;
@@ -81,6 +81,20 @@ caso('volume: logo depois (menos de 1 s), do 50 ao 40 são 10 toques', barra(50,
 caso('volume: depois de mais de 1 s, do 50 ao 40 são 11 toques', barra(50, 40, sobe[2] + 3000, sobe[2]).slice(0, 2), [11, 40]);
 caso('volume: não passa de 100 nem de 0', [R.volDepois(100, true, true), R.volDepois(0, true, false)], [100, 0]);
 caso('volume: zerar (acha que está no 100) chega no 0 em 101 toques', barra(100, 0, 0, null).slice(0, 2), [101, 0]);
+
+// Faixas do automático (versão 19, pedido do dono): alvo 24. Longe = 16° turbo vent 3; chegando = vai suavizando.
+// Cada passo: temperatura do quarto. Devolve [faixa, temperatura no visor, ventilação, turbo] depois de cada leitura.
+function faixas(qs, alvo = 24) { let f = 0; return qs.map(q => { f = R.regraFaixa(f, q - alvo); return [f, R.tempFaixa(f, alvo), R.ventFaixa(f), f === 1]; }); }
+caso('faixas: quarto 28 (4° acima) liga no máximo: 16°, ventilação 3, turbo', faixas([28]), [[1, 16, 3, true]]);
+caso('faixas: quarto 26 liga em 18° com ventilação 3', faixas([26]), [[2, 18, 3, false]]);
+caso('faixas: quarto 25 liga em 22° com ventilação 2', faixas([25]), [[3, 22, 2, false]]);
+caso('faixas: quarto 24,3 liga em 24° com ventilação 1', faixas([24.3]), [[4, 24, 1, false]]);
+caso('faixas: esfriando de 28 até 24 vai suavizando', faixas([28, 27.5, 26.9, 25.6, 25.4, 24.4]).map(x => x[1]), [16, 16, 18, 18, 22, 24]);
+caso('faixas: com 24°, quarto volta a 24,6 não esfria de novo (precisa 0,3° além: 24,8)', faixas([24.4, 24.6, 24.8]).map(x => x[0]), [4, 4, 3]);
+caso('faixas: com 22°, quarto sobe a 26 vai para 18°; a 27,3 volta ao máximo', faixas([25, 26, 27.3]).map(x => x[1]), [22, 18, 16]);
+caso('faixas: com 18°, quarto em 27,2 ainda não volta ao 16° (precisa 27,3)', faixas([26, 27.2]).map(x => x[1]), [18, 18]);
+caso('faixas: escolhida 17: o meio-termo nunca fica mais quente do que ela', faixas([19, 18], 17).map(x => x[1]), [17, 17]);
+caso('faixas: escolhida 19: 18° no 2º passo e 18° no 3º (não desce a 17°)', faixas([20.6, 19.6], 19).map(x => x[1]), [18, 18]);
 
 console.log(erros ? `\n${erros} problema(s) no modo automático.` : '\nModo automático: tudo certo.');
 process.exit(erros ? 1 : 0);

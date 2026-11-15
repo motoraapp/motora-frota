@@ -58,3 +58,34 @@ int volDepois(int vol, bool visivel, bool sobe) {
   if (sobe) return vol < 100 ? vol + 1 : 100;
   return vol > 0 ? vol - 1 : 0;
 }
+
+// Faixas do automático (versão 19, pedido do dono): o ar começa no máximo e vai suavizando perto da temperatura escolhida.
+// d = quarto − escolhida. Faixa 1 (d >= 3): 16°, turbo, ventilação 3 | 2 (d >= 1,5): 18°, ventilação 3 |
+// 3 (d >= 0,5): escolhida − 2, ventilação 2 | 4: a escolhida, ventilação 1. Cada troca dá um bipe no ar, então:
+// para uma faixa mais quente troca na hora; para uma mais fria só com 0,3 °C além do limite (AUTO_FOLGA).
+#define AUTO_FOLGA 0.3
+int faixaDe(float d) {
+  if (d >= 3) return 1;
+  if (d >= 1.5) return 2;
+  if (d >= 0.5) return 3;
+  return 4;
+}
+// atual = faixa em uso (0 = acabou de ligar). Devolve a faixa nova.
+int regraFaixa(int atual, float d) {
+  if (atual < 1 || atual > 4) return faixaDe(d);
+  if (faixaDe(d) > atual) return faixaDe(d);
+  if (faixaDe(d - AUTO_FOLGA) < atual) return faixaDe(d - AUTO_FOLGA);
+  return atual;
+}
+// Temperatura no visor do ar em cada faixa (nunca mais quente do que a escolhida; o meio-termo não desce de 18°).
+int tempFaixa(int f, int alvo) {
+  if (f == 1) return 16;
+  if (f == 2) return alvo < 18 ? alvo : 18;
+  if (f == 3) return alvo - 2 < 18 ? (alvo < 18 ? alvo : 18) : alvo - 2;
+  return alvo;
+}
+int ventFaixa(int f) {
+  if (f <= 2) return 3;
+  if (f == 3) return 2;
+  return 1;
+}
