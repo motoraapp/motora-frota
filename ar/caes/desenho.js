@@ -19,7 +19,7 @@ const pronta = (i) => i && i.complete && i.naturalWidth > 0;
 export function precarregar(cfgs) {
   for (const c of cfgs) {
     img(c.imagem); if (c.olhos) img(c.olhos); if (c.boca2) img(c.boca2.imagem); if (c.poseSentada) img(c.poseSentada.imagem);
-    for (const p of Object.values(POSES_DESENHADAS[c.id] || {})) img(p.imagem);
+    for (const p of Object.values(POSES_DESENHADAS[c.id] || {})) for (const q of p.quadros || [p]) img(q.imagem);
   }
 }
 
@@ -291,20 +291,32 @@ export function larguraDe(cfg) { const i = img(cfg.imagem); return pronta(i) ? i
 // poses-desenhadas.js (gerado no PC do dono) diz qual imagem cada ação usa; ela já vem na escala do desenho em pé.
 // O cachorro vira o desenho inteiro da ação, com uma mexidinha (respira, ofega, treme...) e troca suave (mesma mistura das ações).
 export const poseDesenhada = (cfg, a) => { const p = POSES_DESENHADAS[cfg.id] && POSES_DESENHADAS[cfg.id][a]; return p && pronta(img(p.imagem)) ? p : null; };
+// latido: o desenho "latindo" (boca aberta, cabeça para cima) só no instante de cada au; entre um au e outro, as peças
+const AU = 0.45; // duração de um latido (mesma do dogs3d.js, tarefa 'latir')
+const noAu = (d, a, tA) => a !== 'bark' || (tA % AU) < AU * 0.32; // mesma janela da boca aberta (salto em movimento.js) e do som
 const suaveP = (u) => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
-function mexidinha(a, t, H) { // [deslocar x, subir, esticar em pé] em px da tela
+function mexidinha(a, t, H, fase = 0) { // [deslocar x, subir, esticar em pé] em px da tela
   switch (a) {
+    case 'run': return [0, 0.035 * H * Math.abs(Math.sin(fase)), 0];            // Maya correndo: sobe e desce a cada passada
     case 'pant': return [0, 0, 0.012 * Math.sin(t * 15)];                       // ofegando
     case 'shiver': return [0.006 * H * Math.sin(t * 110), 0, 0];                // tremendo
     case 'sleep': case 'curl': return [0, 0, 0.02 * Math.sin(t * 1.8)];       // respira devagar
     case 'bark': return [0, 0.02 * H * Math.max(0, Math.sin(t * 9)), 0];      // pulinho do latido
     case 'eat': case 'drink': return [0, 0.004 * H * Math.sin(t * 7), 0];     // cabeça mexendo
+    case 'fight': return [0.01 * H * Math.sin(t * 8), 0.012 * H * Math.max(0, Math.sin(t * 5)), 0.01 * Math.sin(t * 16)]; // rosnando: avança e recua, treme
+    case 'hop': return [0, 0.09 * H * Math.abs(Math.sin(t * 7)), 0];          // Maya pedindo: pulinhos nas patas de trás
+    case 'carinho': return [0.006 * H * Math.sin(t * 3), 0, 0.006 * Math.sin(t * 6)]; // se encostando: balança devagar
     default: return [0, 0, 0.008 * Math.sin(t * 2.4)];                          // respira
   }
 }
+const alturaBase = (cfg) => { const b = img(cfg.imagem); return pronta(b) ? b.naturalHeight : 300; };
+function desenharSombraPose(c, d, P, comSombra) { if (comSombra) desenharSombra(c, d, P.w / P.h); }
 function desenharPose(c, d, lado, P, alfa, nh) {
-  const im = img(P.imagem), H = d.tam * ALT, k = H / nh, m = mexidinha(P.acao, d.t || 0, H);
-  const w = P.w * k, h = P.h * k * (1 + m[2]);
+  // pose com mais de um desenho (Maya correndo): troca a cada meia passada (d.fase anda PI por meia passada)
+  const Q = P.quadros ? P.quadros[Math.floor(Math.abs(d.fase || 0) / Math.PI) % P.quadros.length] : P;
+  const im = img(Q.imagem), H = d.tam * ALT, k = H / nh, m = mexidinha(P.acao, d.t || 0, H, d.fase || 0);
+  if (!pronta(im)) return;
+  const w = Q.w * k, h = Q.h * k * (1 + m[2]);
   c.save(); c.globalAlpha = alfa;
   c.beginPath(); c.rect(d.x - H * 3, d.y - H * 4, H * 6, H * 4 + 2); c.clip(); // abaixo do chão não aparece
   c.translate(d.x + m[0], d.y - 2 * k - m[1]); c.scale(lado, 1);
@@ -316,10 +328,14 @@ function desenharPose(c, d, lado, P, alfa, nh) {
 export function desenharCao(c, d, lado, comSombra = true) {
   const cfg = d.cfg;
   // troca curta no meio da mistura (40% a 60%): desenhos diferentes meio transparentes um sobre o outro parecem fantasma
-  const pA = poseDesenhada(cfg, d.acao), pB = d.mist < 1 ? poseDesenhada(cfg, d.acaoAnt) : null, k = d.mist < 1 ? suaveP((d.mist - 0.4) / 0.2) : 1;
+  let pA = poseDesenhada(cfg, d.acao), pB = d.mist < 1 ? poseDesenhada(cfg, d.acaoAnt) : null;
+  const k = d.mist < 1 ? suaveP((d.mist - 0.4) / 0.2) : 1;
+  if (pA && !noAu(d, d.acao, d.tA)) pA = null;          // entre um au e outro: peças, na hora (sem mistura)
+  if (pB && !noAu(d, d.acaoAnt, d.tAnt)) pB = null;
+  if (d.acao === 'bark' && !pB) { if (pA) { desenharSombraPose(c, d, pA, comSombra); desenharPose(c, d, lado, { ...pA, acao: 'bark' }, 1, alturaBase(cfg)); return; } return desenharPecas(c, d, lado, comSombra); }
   if (pA || pB) {
-    const base = img(cfg.imagem), nh = pronta(base) ? base.naturalHeight : 300;
-    if (comSombra) desenharSombra(c, d, ((pA || pB).w / (pA || pB).h));
+    const nh = alturaBase(cfg);
+    desenharSombraPose(c, d, pA || pB, comSombra);
     // o que vai sumindo fica embaixo; o que está chegando aparece por cima
     if (!pA || !pB) { // troca entre pose desenhada e as peças: as peças aparecem/somem com transparência
       const pecas = pA ? 1 - k : k;

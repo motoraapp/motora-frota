@@ -119,10 +119,10 @@ const A = {
   },
 };
 A.walkback = A.walk;
-// novos (16/11/2026): no desenho 2D o ângulo de cada parte vem de movimento.js; aqui só a altura do corpo (p[Y]) importa
+// novos (15/11/2026): no desenho 2D o ângulo de cada parte vem de movimento.js; aqui só a altura do corpo (p[Y]) importa
 A.tug = (p, t, d) => { A.idle(p, t, d); p[Y] = 0; p[JAW] = 0.4 * mx(0, S(t * 12)); };
 A.hop = (p, t, d) => { A.idle(p, t, d); p[Y] = 0.16 * Math.abs(S(t * 7)); }; // pulinhos de verdade
-A.wiggle = A.tilt = A.shake = A.idle;
+A.wiggle = A.tilt = A.shake = A.carinho = A.idle; // carinho (15/11/2026): desenho "se encostando" do dono (desenho.js)
 A.sniff = A.walk;
 export const ACOES = A;
 export const NOMES_ACOES = Object.keys(A);

@@ -47,6 +47,21 @@ export const POSES_DESENHADAS = {
    "imagem": "elvis-sentado.png",
    "w": 158,
    "h": 296
+  },
+  "bark": {
+   "imagem": "elvis-latindo.png",
+   "w": 200,
+   "h": 286
+  },
+  "fight": {
+   "imagem": "elvis-rosnando.png",
+   "w": 243,
+   "h": 237
+  },
+  "carinho": {
+   "imagem": "elvis-encostando-giro-frente.png",
+   "w": 193,
+   "h": 282
   }
  },
  "belinha": {
@@ -94,6 +109,21 @@ export const POSES_DESENHADAS = {
    "imagem": "belinha-sentado.png",
    "w": 166,
    "h": 290
+  },
+  "bark": {
+   "imagem": "belinha-latindo.png",
+   "w": 200,
+   "h": 284
+  },
+  "fight": {
+   "imagem": "belinha-rosnando.png",
+   "w": 232,
+   "h": 239
+  },
+  "carinho": {
+   "imagem": "belinha-encostando-giro-frente.png",
+   "w": 172,
+   "h": 296
   }
  },
  "maya": {
@@ -111,6 +141,38 @@ export const POSES_DESENHADAS = {
    "imagem": "maya-fazendo-xixi.png",
    "w": 317,
    "h": 285
+  },
+  "bark": {
+   "imagem": "maya-latindo.png",
+   "w": 279,
+   "h": 290
+  },
+  "fight": {
+   "imagem": "maya-rosnando.png",
+   "w": 321,
+   "h": 248
+  },
+  "hop": {
+   "imagem": "maya-pedindo-patas-no-ar.png",
+   "w": 241,
+   "h": 326
+  },
+  "run": {
+   "imagem": "maya-correndo-1.png",
+   "w": 321,
+   "h": 247,
+   "quadros": [
+    {
+     "imagem": "maya-correndo-1.png",
+     "w": 321,
+     "h": 247
+    },
+    {
+     "imagem": "maya-correndo-2.png",
+     "w": 321,
+     "h": 238
+    }
+   ]
   }
  }
 };

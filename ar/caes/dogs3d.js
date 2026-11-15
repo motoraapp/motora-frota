@@ -6,7 +6,7 @@
 import { CACHORROS } from './config.js';
 import { ACOES, aplicarPose, N, MISTURA, NY, HX, HY, BLINK, JAW } from './animacoes.js';
 import { criarNecessidades } from './necessidades.js';
-import { desenharCao, desenharTigela, alturaCabeca, precarregar } from './desenho.js';
+import { desenharCao, desenharTigela, alturaCabeca, precarregar, poseDesenhada } from './desenho.js';
 
 const INCLINA = 0.42;                 // câmera um pouco de cima
 const FPS = 60; // movimento fluido (pedido do dono); pausa sozinho com o app em segundo plano
@@ -274,14 +274,15 @@ export function iniciarCachorros(op = {}) {
       iniciarEvento('xixi', [d]);
       const lado = canto[0] < W() / 2 ? 1 : -1;
       tarefas(d, [
-        { t: 'ir', x: canto[0] + lado * 10, y: canto[1], modo: 'walk' }, { t: 'acao', a: 'eat', dur: 0.9 }, // cheirinho
+        // cheira o canto andando devagar (antes era a ação de comer: com o desenho "comendo" aparecia sem tigela)
+        { t: 'ir', x: canto[0] - lado * 6, y: canto[1], modo: 'walk' }, { t: 'ir', x: canto[0] + lado * 10, y: canto[1], modo: 'sniff' },
         { t: 'virar', ang: lado > 0 ? PI / 2 : -PI / 2 },
         { t: 'fn', f: () => poca(d) }, { t: 'acao', a: d.cfg.sexo === 'M' ? 'peeM' : 'peeF', dur: 2.6 },
         { t: 'fn', f: () => nec.definir(d.cfg.id, 'bexiga', 0) }, { t: 'acao', a: 'idle', dur: 0.4 }, ...voltarParaCasa(d),
       ]);
       return true;
     },
-    // ---- novos (16/11/2026, pedido do dono: mais agitados, "me surpreenda") ----
+    // ---- novos (15/11/2026, pedido do dono: mais agitados, "me surpreenda") ----
     zoomies(d = sortear(livres())) { // corrida maluca: dispara pela tela em zigue-zague, com pulinhos e rodopio
       if (!d) return false;
       const lim = barra.el.getBoundingClientRect().top - 30, pts = [], n = d.energia > 0.8 ? 5 : 3;
@@ -333,7 +334,7 @@ export function iniciarCachorros(op = {}) {
     if (eventoAtivo || amb.noite) return;
     proxEvento -= dt;
     if (proxEvento > 0) return;
-    proxEvento = rand(11, 24) * (amb.ar ? 1.4 : 1); // mais brincadeiras (pedido do dono, 16/11/2026)
+    proxEvento = rand(11, 24) * (amb.ar ? 1.4 : 1); // mais brincadeiras (pedido do dono, 15/11/2026)
     const bex = caes.reduce((s, d) => Math.max(s, nec.de(d.cfg.id).bexiga), 0), dois = livres().length >= 2 ? 1 : 0;
     const opcoes = [['visita', 3], ['briga', 2 * dois], ['pegar', 2.5], ['xixi', bex / 35], ['ar', amb.calor ? 3 : 0],
       ['zoomies', amb.calor ? 0.5 : 2], ['pegaPega', 2 * dois], ['rabo', 1.5], ['cheirar', 1.5 * dois]];
@@ -416,9 +417,10 @@ export function iniciarCachorros(op = {}) {
     }
     if (d.ocupado) { balao(d, 'au!', 0.8); latido(d); return; }
     // carinho: cada toque tem uma reação diferente (os agitados pulam e rebolam; a Maya inclina a cabeça e abana)
-    const reacao = escolher(d.energia > 0.8 ? ['hop', 'wiggle', 'tilt', 'rodinha', 'latir'] : ['tilt', 'wiggle', 'latir']);
+    const reacao = escolher([...(d.energia > 0.8 ? ['hop', 'wiggle', 'tilt', 'rodinha', 'latir'] : ['tilt', 'wiggle', 'latir']),
+      ...(poseDesenhada(d.cfg, 'carinho') ? ['carinho', 'carinho'] : [])]); // se encosta (desenho do dono), quando o cachorro tem esse desenho
     const fim = reacao === 'latir' ? [{ t: 'latir', n: d.energia > 0.8 ? 2 : 1 }] : reacao === 'rodinha' ? [{ t: 'girar', voltas: 1, dur: 0.8 }, { t: 'latir', n: 1, texto: 'au!' }]
-      : [{ t: 'acao', a: reacao, dur: reacao === 'tilt' ? 1.3 : 0.9 }, { t: 'fn', f: () => balao(d, reacao === 'tilt' ? '?' : '♥', 0.9) }];
+      : [{ t: 'acao', a: reacao, dur: reacao === 'tilt' ? 1.3 : reacao === 'carinho' ? 1.8 : 0.9 }, { t: 'fn', f: () => balao(d, reacao === 'tilt' ? '?' : '♥', 0.9) }];
     tarefas(d, [{ t: 'virar', alvo: 'usuario' }, ...fim, { t: 'acao', a: 'idle', dur: 0.4 }], false);
   }
 

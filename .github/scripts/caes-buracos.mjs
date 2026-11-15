@@ -5,7 +5,7 @@ import { angulosDe, poseSentada } from '../../ar/caes/movimento.js';
 
 export const ACOES = [['idle', 2.4], ['walk', 0.8], ['run', 0.45], ['sit', 2.4], ['lie', 2.4], ['sleep', 4.8], ['eat', 0.698], ['drink', 0.483],
   ['bark', 0.45], ['pant', 0.4], ['jump', 0.8], ['playbow', 1.2], ['shiver', 0.2], ['pee', 1.2], ['fight', 0.785], ['curl', 2.4],
-  ['tug', 0.52], ['hop', 0.45], ['wiggle', 0.39], ['tilt', 2.6], ['shake', 1.1], ['sniff', 0.8]]; // novos de 16/11/2026
+  ['tug', 0.52], ['hop', 0.45], ['wiggle', 0.39], ['tilt', 2.6], ['shake', 1.1], ['sniff', 0.8]]; // novos de 15/11/2026
 
 const mul = (A, B) => [A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1], A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
   A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]];

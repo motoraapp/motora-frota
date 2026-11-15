@@ -120,9 +120,20 @@ await t('cachorros da tela: toda pose desenhada existe e é de uma ação que o 
   const acoes = new Set([...NOMES_ACOES, 'peeM', 'peeF']);
   for (const [id, d] of Object.entries(POSES_DESENHADAS)) for (const [a, p] of Object.entries(d)) {
     assert.ok(acoes.has(a), `${id}: ação ${a} não existe no app`);
-    assert.ok(existsSync(join(raiz, 'ar/caes/img', p.imagem)), `${id}: falta ${p.imagem}`);
-    assert.ok(!['walk', 'run', 'bark'].includes(a), `${id}: ${a} tem que continuar com as peças`);
+    for (const q of p.quadros || [p]) assert.ok(existsSync(join(raiz, 'ar/caes/img', q.imagem)), `${id}: falta ${q.imagem}`);
+    assert.ok(a !== 'walk', `${id}: andar tem que continuar com as peças (passada de 4 patas)`);
+    if (a === 'run') assert.ok((p.quadros || []).length >= 2, `${id}: correr com desenho precisa de 2 quadros (senão desliza parado)`);
   }
+  // regressão: antes do xixi o cachorro "cheirava" com a ação de comer e aparecia o desenho comendo sem tigela
+  const motor = readFileSync(join(raiz, 'ar/caes/dogs3d.js'), 'utf8');
+  const xixi = motor.slice(motor.indexOf('xixi(d) {'), motor.indexOf('zoomies('));
+  assert.ok(!/a: 'eat'/.test(xixi), 'xixi não pode usar a ação de comer para cheirar');
+});
+
+await t('latido: desenho "latindo" só no instante de cada au (mesma janela da boca)', async () => {
+  const des = readFileSync(join(raiz, 'ar/caes/desenho.js'), 'utf8'), mov = readFileSync(join(raiz, 'ar/caes/movimento.js'), 'utf8');
+  const janela = +des.match(/AU \* (0\.\d+)/)[1], boca = +mov.match(/const salto = .*?return k < (0\.\d+)/)[1];
+  assert.equal(janela, boca, 'o desenho do au tem que aparecer junto com a boca aberta');
 });
 
 await t('script da página compila', () => {

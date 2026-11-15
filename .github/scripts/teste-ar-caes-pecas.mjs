@@ -74,7 +74,7 @@ for (const cfg of CACHORROS) {
     const p = pedacos(mascara([L.coxa, L.canela, L.pe], w, h), w, h);
     if (p.length !== 1) falha(`${cfg.nome}: a pata ${L.k} tem ${p.length} pedaços (${p.join(', ')}); pedaço de outra pata ou do chão`);
   }
-  // 2º rabo ao sentar (16/11/2026): a coxa não pode levar nada acima do quadril (o contorno do bumbum girava junto e saía para trás)
+  // 2º rabo ao sentar (15/11/2026): a coxa não pode levar nada acima do quadril (o contorno do bumbum girava junto e saía para trás)
   for (const L of B.legs) {
     const m = mascara([L.coxa], w, h); let n = 0;
     for (let y = 0; y < Math.max(0, Math.min(L.hip[1], L.corte) - 3); y++) for (let x = 0; x < w; x++) n += m[y * w + x]; // acima do começo da pata

@@ -48,7 +48,7 @@ function corpo(a, t, tA, f, p0, sentada) {
     case 'peeF': return [-0.1, -0.08, 0];
     case 'fight': return [0.08 * S(t * 8), Math.max(0, S(t * 5)) * 0.04, 0.015 * S(t * 8)];
     case 'playbow': return [0.2, -0.06, 0];
-    // novos (16/11/2026, pedido do dono: mais agitados)
+    // novos (15/11/2026, pedido do dono: mais agitados)
     case 'tug': return [-0.07 + 0.025 * S(t * 12), -0.02, -0.012 + 0.006 * S(t * 6)]; // puxando o botão: corpo para trás, sacode
     case 'hop': return [-0.05 * C(t * 14), 0, 0];                                      // pulinhos de alegria (a altura vem de animacoes.js)
     case 'wiggle': return [0.025 * S(t * 16), 0, 0.012 * S(t * 16 + 0.5)];          // rebolado: o corpo todo abana junto com o rabo
@@ -167,7 +167,7 @@ function angulos(a, t, tA, f, d, o) {
       o.p0 = -0.6 + 0.35 * S(t * 12); o.p1 = -0.6 + 0.35 * S(t * 12 + PI); o.j0 = 0.55 + 0.25 * S(t * 12 + 1); o.j1 = 0.55 + 0.25 * S(t * 12 + PI + 1); o.w0 = o.w1 = 0.4;
       o.pesc = 0.08 * S(t * 3); o.cab = 0.05 * S(t * 3.5); o.orA = o.orB = -0.2 + 0.1 * S(t * 8 - 1); o.rabo = 0.5 * S(t * 24); o.rabo2 = 0.4 * S(t * 24 - 0.8); break;
     case 'playbow': o.p0 = o.p1 = -0.7; o.j0 = o.j1 = 0.2; o.w0 = o.w1 = -0.1; o.pesc = 0.05; o.cab = -0.05; o.rabo = 0.5 * S(t * 26); o.rabo2 = 0.4 * S(t * 26 - 0.8); break;
-    // ---- novos (16/11/2026) ----
+    // ---- novos (15/11/2026) ----
     case 'tug': { // morde o botão e puxa: abre e fecha a boca (mordidas), sacode a cabeça, patas firmes, rabo a mil
       const m = Math.max(0, S(t * 12)); o.boca = 0.08 + 0.36 * m;
       o.pesc = (shih ? 0.06 : -0.06) + 0.1 * S(t * 9); o.cab = (shih ? 0.04 : -0.04) + 0.14 * S(t * 9 + 0.6); // Maya: cabeça não vai para trás (o cabelo descolava do rabo)
@@ -211,7 +211,7 @@ export function angulosDe(d) {
     for (const c of CHAVES) A1[c] = A2[c] + (A1[c] - A2[c]) * k;
   }
   if (d.cfg.raca === 'shihtzu') { // cabeça grande e pelo comprido: mexe menos (senão o pelo abre)
-    A1.pesc *= 0.4; A1.cab *= 0.4; A1.orA *= 0.2; A1.orB *= 0.2; A1.rabo *= 0.36; A1.rabo2 *= 0.36; // mais movimento que antes (16/11/2026), ainda bem menos que os pinschers
+    A1.pesc *= 0.4; A1.cab *= 0.4; A1.orA *= 0.2; A1.orB *= 0.2; A1.rabo *= 0.36; A1.rabo2 *= 0.36; // mais movimento que antes (15/11/2026), ainda bem menos que os pinschers
     const deitada = d.acao === 'sleep' || d.acao === 'curl' || d.acao === 'lie';
     for (let i = 0; i < 4; i++) { const k = deitada ? 0 : 0.5; A1['p' + i] *= k; A1['j' + i] *= k; A1['w' + i] *= k; }
   }
