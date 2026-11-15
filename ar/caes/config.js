@@ -1,6 +1,6 @@
-// Os 3 cachorros. A aparência vem dos desenhos em ar/caes/img (elvis.png, belinha.png, maya.png; *-olhos.png = olhos fechados, para
-// piscar e dormir; maya-sentada.png = Maya sentada): para mudar o visual, troque o PNG
-// (fundo transparente, cachorro olhando para a direita). Aqui se ajusta nome, tamanho e jeito de cada um.
+// Os 3 cachorros. A aparência vem dos sprites do dono (PNG transparentes 1024x1024 em Desktop/Thiago/animacao, fora do Git),
+// preparados por ferramentas/caes-sprites.ps1 em ar/caes/img/sprites (16/11/2026). Aqui se ajusta nome, tamanho e jeito de cada um.
+// (imagem/olhos/boca2/ossos/poseSentada abaixo são do desenho antigo por peças e do 3D, que o app não usa mais.)
 // nome/artigo aparecem nos balões e nos avisos ("O Elvis está com fome!").
 export const CACHORROS = [
   {

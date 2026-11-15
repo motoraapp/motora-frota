@@ -124,6 +124,8 @@ A.tug = (p, t, d) => { A.idle(p, t, d); p[Y] = 0; p[JAW] = 0.4 * mx(0, S(t * 12)
 A.hop = (p, t, d) => { A.idle(p, t, d); p[Y] = 0.16 * Math.abs(S(t * 7)); }; // pulinhos de verdade
 A.wiggle = A.tilt = A.shake = A.carinho = A.idle; // carinho (15/11/2026): desenho "se encostando" do dono (desenho.js)
 A.sniff = A.walk;
+// sprites (16/11/2026): ações só do desenho por quadros (desenho.js `quadroDe`); no 3D antigo valem como parado
+A.rosnar = A.pedir = A.deitar = A.encostar = A.rodar = A.cabeca = A.frente = A.lingua = A.idle;
 export const ACOES = A;
 export const NOMES_ACOES = Object.keys(A);
 

@@ -27,8 +27,8 @@ jobs:
         run: node .github/scripts/teste-ar-siri.mjs
       - name: Teste dos avisos de fome e sede dos cachorros (Nossa casinha)
         run: node .github/scripts/teste-ar-caes.mjs
-      - name: Teste das peças dos cachorros (sem pedaço solto de pata nem palitinho na nuca)
-        run: node .github/scripts/teste-ar-caes-pecas.mjs
+      - name: Teste dos cachorros por sprites (desenhos, quadros, só andar na horizontal)
+        run: node .github/scripts/teste-ar-caes-sprites.mjs
       - name: Teste da página Cachorros articulados (pés no chão, sem tranco, piscar sem trocar a boca)
         run: node .github/scripts/teste-ar-cachorros.mjs
 
