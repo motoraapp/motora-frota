@@ -83,10 +83,11 @@ const mul = (M, N) => [M[0] * N[0] + M[2] * N[1], M[1] * N[0] + M[3] * N[1], M[0
 // fração do ciclo em que cada pata pisa. Patas: 0 e 1 = da frente, 2 e 3 = de trás (0 e 2 do mesmo lado).
 const ANDAR = [0.25, 0.75, 0, 0.5];     // lateral de 4 tempos: trás, frente do mesmo lado, trás do outro, frente do outro
 const GALOPE = [0.5, 0.62, 0, 0.1];     // as de trás empurram quase juntas, depois as da frente
-const CHAVES = ['cab', 'orA', 'orB', 'rabo', 'p0', 'p1', 'p2', 'p3', 'k0', 'k1', 'k2', 'k3'];
+const CHAVES = ['cab', 'orA', 'orB', 'rabo', 'p0', 'p1', 'p2', 'p3', 'k0', 'k1', 'k2', 'k3', 'j0', 'j1', 'j2', 'j3'];
 const tmp = [0, 0];
 
-// ângulos (rad; + = sentido horário na tela). cab + = cabeça para baixo; rabo + = para cima; patas + = pé para trás; k = encolher a pata
+// ângulos (rad; + = sentido horário na tela). cab + = cabeça para baixo; rabo + = para cima; patas + = pé para trás;
+// j = dobra do joelho/pulso (+ = pé dobra para trás e para cima); k = encolher a pata
 function angulos(a, t, tA, f, d, o) {
   const E = d.energia, al = d.alegria == null ? 0.5 : d.alegria, ph = d.sem || 0, u = f / TAU;
   // parado: olhar que fica e muda de repente + microbalanço da respiração; orelha treme sozinha; rabo abana em rajadas
@@ -95,23 +96,24 @@ function angulos(a, t, tA, f, d, o) {
   const rajada = 0.25 + 0.75 * suave(0.5 + 0.5 * degrau(t, 1.9, ph + 5, 0.4) + (al - 0.5));
   const abano = (0.14 + 0.34 * al) * rajada * S(t * (17 + 9 * E) + ph); // 3 a 4 abanadas por segundo
   o.cab = olhar; o.orA = 0.03 * S(t * 2.6 - 0.6); o.orB = o.orA - 0.3 * trem; o.rabo = abano;
-  for (let i = 0; i < 4; i++) { o['p' + i] = 0; o['k' + i] = 1; }
+  for (let i = 0; i < 4; i++) { o['p' + i] = 0; o['k' + i] = 1; o['j' + i] = 0; }
   switch (a) {
     case 'walk': {
       for (let i = 0; i < 4; i++) {
         const frente = i < 2; passada(u + ANDAR[i], 0.62, frente ? 0.36 : 0.32, tmp);
         o['p' + i] = tmp[0] - (frente ? 0.1 * tmp[1] : 0);             // a da frente estica para a frente no alto do passo
-        o['k' + i] = 1 - tmp[1] * (frente ? 0.24 : 0.12);              // hackney: frente sobe alto, trás quase não levanta
+        o['j' + i] = tmp[1] * (frente ? 1.05 : 0.55);                  // dobra o pulso/jarrete ao subir: hackney na frente, trás discreto
+        o['k' + i] = 1 - tmp[1] * (frente ? 0.08 : 0.04);
       }
       o.cab = 0.035 * S(f * 2 + 0.9) + olhar * 0.4;                    // a cabeça acompanha as patas da frente (2 vezes por passada)
       o.orA = o.orB = 0.07 * S(f * 2 - 0.7);                           // orelhas atrasadas em relação ao corpo
       o.rabo = 0.12 + 0.6 * abano + 0.05 * S(f * 2 - 1.2); break;
     }
     case 'run': {
-      for (let i = 0; i < 4; i++) { passada(u + GALOPE[i], 0.38, 0.72, tmp); o['p' + i] = tmp[0]; o['k' + i] = 1 - tmp[1] * 0.3; }
+      for (let i = 0; i < 4; i++) { passada(u + GALOPE[i], 0.38, 0.72, tmp); o['p' + i] = tmp[0]; o['j' + i] = tmp[1] * (i < 2 ? 1.2 : 0.8); o['k' + i] = 1 - tmp[1] * 0.1; }
       o.cab = -0.1 + 0.07 * S(f + 2.2); o.orA = o.orB = -0.42 + 0.14 * S(f * 2 - 1); o.rabo = 0.3 + 0.25 * S(f - 1.5); break;
     }
-    case 'jump': o.p0 = o.p1 = -0.8; o.p2 = o.p3 = 0.55; o.k0 = o.k1 = 0.8; o.cab = -0.12; o.orA = o.orB = -0.4; o.rabo = 0.5; break;
+    case 'jump': o.p0 = o.p1 = -0.8; o.p2 = o.p3 = 0.55; o.j0 = o.j1 = 1.0; o.j2 = o.j3 = 0.6; o.cab = -0.12; o.orA = o.orB = -0.4; o.rabo = 0.5; break;
     case 'sit': o.cab = -0.05 + olhar; o.rabo = abano * 0.5; break;
     case 'lie': o.cab = 0.1 + olhar * 0.7; o.rabo = abano * 0.25; break;
     case 'sleep': o.cab = 0.45 + 0.02 * S(t * 1.3); o.orA = 0.1; o.orB = 0.1 - 0.2 * pulso(t, 4.1, ph, 0.12, 0.3); o.rabo = 0.03 * S(t * 1.3); break; // sonhando: a orelha mexe
@@ -121,16 +123,16 @@ function angulos(a, t, tA, f, d, o) {
     case 'bark': { const k = salto(tA); o.cab = -0.22 * k; o.orA = o.orB = -0.22 * k; o.p0 = o.p1 = -0.1 * k; o.rabo = 0.4 * S(t * 24); break; }
     case 'eat': case 'drink': { const m = a === 'eat' ? S(t * 9) : S(t * 13); // comer mastiga; beber lambe mais rápido
       o.cab = 0.55 + 0.06 * m; o.orA = o.orB = 0.15 + 0.04 * S(t * 9 - 0.8); o.p0 = o.p1 = -0.14; o.rabo = 0.25 * S(t * 19 + ph); break; }
-    case 'peeM': o.p2 = -1.15; o.k2 = 0.85; o.cab = -0.1 + olhar * 0.5; o.rabo = 0.25; break;
+    case 'peeM': o.p2 = -1.15; o.j2 = 0.5; o.cab = -0.1 + olhar * 0.5; o.rabo = 0.25; break;
     case 'peeF': o.cab = 0.1; o.rabo = 0.35; break;
-    case 'fight': o.p0 = -0.9 + 0.5 * S(t * 12); o.p1 = -0.9 + 0.5 * S(t * 12 + PI); o.cab = 0.15 * S(t * 3); o.orA = o.orB = -0.2 + 0.1 * S(t * 8 - 1); o.rabo = 0.5 * S(t * 24); break;
+    case 'fight': o.p0 = -0.9 + 0.5 * S(t * 12); o.p1 = -0.9 + 0.5 * S(t * 12 + PI); o.j0 = 0.6 + 0.4 * S(t * 12 + 1); o.j1 = 0.6 + 0.4 * S(t * 12 + PI + 1); o.cab = 0.15 * S(t * 3); o.orA = o.orB = -0.2 + 0.1 * S(t * 8 - 1); o.rabo = 0.5 * S(t * 24); break;
     case 'playbow': o.p0 = o.p1 = -0.55; o.cab = 0.25; o.rabo = 0.5 * S(t * 26); break;
     default: break; // idle
   }
 }
 
 const A1 = {}, A2 = {};
-// escreve as matrizes das 8 articulações em M (32 números) e T (16 números), na ordem: cabeça, orelha A, orelha B, rabo, 4 patas
+// escreve as matrizes das 12 articulações em M (48 números) e T (24 números): cabeça, orelha A, orelha B, rabo, 4 patas (ombro/quadril), 4 joelhos
 export function articular(d, ossos, M, T) {
   angulos(d.acao, d.t, d.tA, d.fase, d, A1);
   if (d.mist < 1) {
@@ -143,5 +145,6 @@ export function articular(d, ossos, M, T) {
   const mats = [mh, mul(mh, junta(A1.orA, ossos.orelhas[0].p[0], ossos.orelhas[0].p[1])), mul(mh, junta(A1.orB, ossos.orelhas[1].p[0], ossos.orelhas[1].p[1])),
     junta(A1.rabo, ossos.rabo.p[0], ossos.rabo.p[1])];
   for (let i = 0; i < 4; i++) mats.push(junta(A1['p' + i], ossos.pernas[i].p[0], ossos.pernas[i].p[1], A1['k' + i]));
-  for (let i = 0; i < 8; i++) { const m = mats[i]; M[i * 4] = m[0]; M[i * 4 + 1] = m[1]; M[i * 4 + 2] = m[2]; M[i * 4 + 3] = m[3]; T[i * 2] = m[4]; T[i * 2 + 1] = m[5]; }
+  for (let i = 0; i < 4; i++) { const pe = ossos.pernas[i], jo = pe.j || [pe.p[0], pe.p[1] + 50]; mats.push(mul(mats[4 + i], junta(A1['j' + i], jo[0], jo[1]))); }
+  for (let i = 0; i < 12; i++) { const m = mats[i]; M[i * 4] = m[0]; M[i * 4 + 1] = m[1]; M[i * 4 + 2] = m[2]; M[i * 4 + 3] = m[3]; T[i * 2] = m[4]; T[i * 2 + 1] = m[5]; }
 }

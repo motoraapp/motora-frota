@@ -1,19 +1,20 @@
 // Boneco articulado em WebGL: cada desenho (ar/caes/img/*.png) vira uma grade de triângulos e as articulações (cabeça, orelhas, rabo,
-// 4 patas; ver `ossos` em config.js) puxam os pontos da grade, com transição suave entre as partes. Mantém a aparência do desenho e
+// 4 patas com ombro/quadril e joelho/pulso; ver `ossos` em config.js) puxam os pontos da grade, com transição suave entre as partes. Mantém a aparência do desenho e
 // dá movimento de verdade. Se o aparelho não tiver WebGL, dogs3d.js usa desenho.js (imagem inteira, sem articulações).
 import { articular, transformar } from './movimento.js';
 
 const VS = `
-attribute vec2 aUV; attribute vec4 aWa; attribute vec4 aWb;
-uniform vec2 uNat; uniform vec4 uM[8]; uniform vec2 uT[8];
+attribute vec2 aUV; attribute vec4 aWa; attribute vec4 aWb; attribute vec4 aWc;
+uniform vec2 uNat; uniform vec4 uM[12]; uniform vec2 uT[12];
 uniform vec4 uG; uniform vec4 uP; uniform vec2 uRes;
 varying vec2 vUV;
 void main() {
   vec2 p0 = aUV * uNat;
-  float w[8];
+  float w[12];
   w[0] = aWa.x; w[1] = aWa.y; w[2] = aWa.z; w[3] = aWa.w; w[4] = aWb.x; w[5] = aWb.y; w[6] = aWb.z; w[7] = aWb.w;
+  w[8] = aWc.x; w[9] = aWc.y; w[10] = aWc.z; w[11] = aWc.w;
   vec2 p = p0;
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 12; i++) {
     vec4 m = uM[i];
     vec2 q = vec2(m.x * p0.x + m.z * p0.y, m.y * p0.x + m.w * p0.y) + uT[i];
     p += w[i] * (q - p0);
@@ -42,25 +43,27 @@ export function criarMalha(cfgs) {
   const pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
   if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
   gl.useProgram(pr); gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-  const L = { aUV: gl.getAttribLocation(pr, 'aUV'), aWa: gl.getAttribLocation(pr, 'aWa'), aWb: gl.getAttribLocation(pr, 'aWb') };
+  const L = { aUV: gl.getAttribLocation(pr, 'aUV'), aWa: gl.getAttribLocation(pr, 'aWa'), aWb: gl.getAttribLocation(pr, 'aWb'), aWc: gl.getAttribLocation(pr, 'aWc') };
   const U = {}; for (const n of ['uNat', 'uM', 'uT', 'uG', 'uP', 'uRes', 'uTex']) U[n] = gl.getUniformLocation(pr, n);
   gl.uniform1i(U.uTex, 0);
-  gl.enableVertexAttribArray(L.aUV); gl.enableVertexAttribArray(L.aWa); gl.enableVertexAttribArray(L.aWb);
+  gl.enableVertexAttribArray(L.aUV); gl.enableVertexAttribArray(L.aWa); gl.enableVertexAttribArray(L.aWb); gl.enableVertexAttribArray(L.aWc);
 
   const imgs = {}; // id -> { img, tex, buf, idx, n, pronto }
-  const M = new Float32Array(32), T = new Float32Array(16), xfm = [0, 0, 0, 0, 0];
+  const M = new Float32Array(48), T = new Float32Array(24), xfm = [0, 0, 0, 0, 0];
   let W = 1, H = 1;
 
   function construir(cfg, o) {
     const img = o.img, nw = img.naturalWidth, nh = img.naturalHeight, os = cfg.ossos;
     const regs = [os.cabeca, os.orelhas[0], os.orelhas[1], os.rabo, ...os.pernas]; // mesma ordem das articulações
-    const dados = new Float32Array(NX * NY * 10);
+    for (const pe of os.pernas) if (!pe.j) pe.j = [pe.p[0], pe.p[1] + (nh - pe.p[1]) * 0.5]; // joelho/pulso: meio da pata, se config.js não disser
+    const dados = new Float32Array(NX * NY * 14);
     for (let j = 0; j < NY; j++) for (let i = 0; i < NX; i++) {
-      const u = i / (NX - 1), v = j / (NY - 1), x = u * nw, y = v * nh, w = new Array(8);
+      const u = i / (NX - 1), v = j / (NY - 1), x = u * nw, y = v * nh, w = new Array(12).fill(0);
       for (let k = 0; k < 8; k++) w[k] = regiao(x, y, regs[k].r, regs[k].f);
+      for (let k = 0; k < 4; k++) { const pe = os.pernas[k], baixo = sm((y - pe.j[1]) / (pe.f * 1.6) + 0.5); w[8 + k] = w[4 + k] * baixo; w[4 + k] *= 1 - baixo; } // abaixo do joelho segue o joelho
       w[0] *= 1 - Math.max(w[1], w[2]);                         // a cabeça não leva junto o que a orelha mexe sozinha
-      const soma = w.reduce((a, b) => a + b, 0); if (soma > 1) for (let k = 0; k < 8; k++) w[k] /= soma;
-      const b = (j * NX + i) * 10; dados[b] = u; dados[b + 1] = v; for (let k = 0; k < 8; k++) dados[b + 2 + k] = w[k];
+      const soma = w.reduce((a, b) => a + b, 0); if (soma > 1) for (let k = 0; k < 12; k++) w[k] /= soma;
+      const b = (j * NX + i) * 14; dados[b] = u; dados[b + 1] = v; for (let k = 0; k < 12; k++) dados[b + 2 + k] = w[k];
     }
     const idx = new Uint16Array((NX - 1) * (NY - 1) * 6); let q = 0;
     for (let j = 0; j < NY - 1; j++) for (let i = 0; i < NX - 1; i++) { const a = j * NX + i, b = a + 1, c = a + NX, d = c + 1; idx.set([a, b, c, b, d, c], q); q += 6; }
@@ -89,7 +92,7 @@ export function criarMalha(cfgs) {
       const alt = d.tam * 1.3, t = transformar(d, alt, xfm);
       articular(d, d.cfg.ossos, M, T);
       gl.bindBuffer(gl.ARRAY_BUFFER, o.buf); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.idx);
-      gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 40, 0); gl.vertexAttribPointer(L.aWa, 4, gl.FLOAT, false, 40, 8); gl.vertexAttribPointer(L.aWb, 4, gl.FLOAT, false, 40, 24);
+      gl.vertexAttribPointer(L.aUV, 2, gl.FLOAT, false, 56, 0); gl.vertexAttribPointer(L.aWa, 4, gl.FLOAT, false, 56, 8); gl.vertexAttribPointer(L.aWb, 4, gl.FLOAT, false, 56, 24); gl.vertexAttribPointer(L.aWc, 4, gl.FLOAT, false, 56, 40);
       gl.bindTexture(gl.TEXTURE_2D, o.tex);
       gl.uniform2f(U.uNat, o.nat[0], o.nat[1]); gl.uniform4fv(U.uM, M); gl.uniform2fv(U.uT, T);
       gl.uniform4f(U.uG, alt / o.nat[1], lado, t[2], 0);
