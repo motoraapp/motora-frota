@@ -1,12 +1,13 @@
 // Movimento dos cachorros desenhados (revisado em 15/11/2026 para ficar natural; referências: estudos de marcha de cães e padrões das raças).
-// Regra: o desenho NUNCA é achatado nem esticado. Sentar, deitar e dormir = baixar o corpo; o que passa da linha do chão não aparece
-// (as patas ficam "dobradas por baixo"), assim o desenho não amassa.
-//  - andar = passada lateral de 4 tempos (pata de trás e depois a da frente do mesmo lado), cada pata ~62% do tempo no chão,
-//    volta rápido pelo ar dobrando o pulso; o pinscher levanta alto as da frente (passo "hackney"), a shih tzu anda macio;
+// Regra: o desenho NUNCA é achatado nem esticado. Sentar, deitar e dormir = baixar o corpo; o que passa da linha do chão não aparece.
+// Articulações (usadas por desenho.js): pescoço, cabeça, boca, 2 orelhas, rabo em 2 partes e, em cada pata, ombro/quadril, joelho e pulso.
+//  - andar = passada lateral de 4 tempos (pata de trás e depois a da frente do mesmo lado), cada pata ~62% do tempo no chão; ao subir
+//    dobra o joelho e o pulso (o pé "pendura") e estica antes de pisar; pinscher levanta alto as da frente (hackney), shih tzu anda macio;
 //  - correr = galope: as de trás empurram juntas, as da frente alcançam juntas, com fase no ar;
-//  - parado: olha em volta mudando o olhar de repente, mexe uma orelha, troca o peso; o pinscher (agitado) se mexe mais;
-//  - rabo abana em rajadas; ofegar ~5 vezes por segundo; tremer ~10 por segundo; piscar a cada 2 a 5 s.
-// Duas camadas: transformar() = corpo todo (inclinar, subir/baixar); articular() = cabeça, 2 orelhas, rabo, 4 patas com joelho (malha.js).
+//  - cabeça: o pescoço leva uma parte do movimento e a cabeça o resto; orelhas e ponta do rabo atrasam um pouco (balanço natural);
+//  - parado: olha em volta mudando o olhar de repente, mexe uma orelha, troca o peso; os agitados (Belinha, Elvis) se mexem mais;
+//  - rabo abana em onda e em rajadas; ofegar ~5 vezes por segundo; tremer ~10 por segundo; piscar a cada 2 a 5 s.
+export const NB = 24; // número de articulações
 const S = Math.sin, C = Math.cos, PI = Math.PI, TAU = PI * 2;
 const salto = (t) => { const k = (t % 0.45) / 0.45; return k < 0.32 ? S((k / 0.32) * PI) : 0; };
 const suave = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
@@ -23,11 +24,11 @@ function pulso(t, periodo, s, chance, dur) {
   const n = Math.floor(t / periodo), u = (t - n * periodo) / dur;
   return acaso(n, s) > 1 - chance * 2 && u < 1 ? S(u * PI) : 0;
 }
-// uma pata no ciclo da passada: u = 0..1; no chão (apoio) por `apoio` do ciclo indo para trás, depois volta pelo ar
+// uma pata no ciclo da passada: u = 0..1. Devolve [ângulo da pata, quanto está no ar (0..1), andamento no ar (0..1; -1 = no chão)]
 function passada(u, apoio, amp, saida) {
   u -= Math.floor(u);
-  if (u < apoio) { saida[0] = -amp + 2 * amp * (u / apoio); saida[1] = 0; }
-  else { const w = (u - apoio) / (1 - apoio); saida[0] = amp - 2 * amp * suave(w); saida[1] = S(w * PI); }
+  if (u < apoio) { saida[0] = -amp + 2 * amp * (u / apoio); saida[1] = 0; saida[2] = -1; }
+  else { const w = (u - apoio) / (1 - apoio); saida[0] = amp - 2 * amp * suave(w); saida[1] = S(w * PI); saida[2] = w; }
   return saida;
 }
 
@@ -93,65 +94,91 @@ const mul = (M, N) => [M[0] * N[0] + M[2] * N[1], M[1] * N[0] + M[3] * N[1], M[0
 // fração do ciclo em que cada pata pisa. Patas: 0 e 1 = da frente, 2 e 3 = de trás (0 e 2 do mesmo lado).
 const ANDAR = [0.25, 0.75, 0, 0.5];     // lateral de 4 tempos: trás, frente do mesmo lado, trás do outro, frente do outro
 const GALOPE = [0.5, 0.62, 0, 0.1];     // as de trás empurram quase juntas, depois as da frente
-const CHAVES = ['cab', 'orA', 'orB', 'rabo', 'p0', 'p1', 'p2', 'p3', 'j0', 'j1', 'j2', 'j3', 'boca'];
-const tmp = [0, 0];
+const CHAVES = ['pesc', 'cab', 'boca', 'orA', 'orB', 'rabo', 'rabo2', 'p0', 'p1', 'p2', 'p3', 'j0', 'j1', 'j2', 'j3', 'w0', 'w1', 'w2', 'w3'];
+const tmp = [0, 0, 0];
 
-// ângulos (rad; + = sentido horário na tela). cab + = cabeça para baixo; rabo + = para cima; patas + = pé para trás;
-// j = dobra do joelho/pulso (+ = pé dobra para trás e para cima)
+// olhar (cabeça) do cachorro parado num instante t
+const olharEm = (t, ph, agitado) => (agitado ? 0.1 : 0.07) * degrau(t, agitado ? 1.4 : 2.6, ph, agitado ? 0.18 : 0.25);
+// abano do rabo num instante t (em rajadas quando está feliz)
+function abanoEm(t, ph, E, al) {
+  const rajada = 0.25 + 0.75 * suave(0.5 + 0.5 * degrau(t, 1.9, ph + 5, 0.4) + (al - 0.5));
+  return (0.14 + 0.34 * al) * rajada * S(t * (17 + 9 * E) + ph); // 3 a 4 abanadas por segundo
+}
+
+// ângulos (rad; + = sentido horário na tela). pesc/cab + = para baixo; boca + = abre; rabo + = para cima;
+// p = pata inteira (+ = pé para trás); j = joelho/cotovelo (+ = dobra para trás); w = pulso/jarrete (+ = pé dobra para trás)
 function angulos(a, t, tA, f, d, o) {
   const E = d.energia, al = d.alegria == null ? 0.5 : d.alegria, ph = d.sem || 0, u = f / TAU, shih = d.cfg.raca === 'shihtzu';
-  const agitado = E > 0.8; // Elvis: olha mais vezes, mexe mais as orelhas, troca as patinhas
-  const olhar = (agitado ? 0.1 : 0.07) * degrau(t, agitado ? 1.4 : 2.3 + E, ph, agitado ? 0.18 : 0.25) + 0.012 * S(t * 2.6);
+  const agitado = E > 0.8;
+  const olhar = olharEm(t, ph, agitado) + 0.012 * S(t * 2.6);
+  const virada = olharEm(t, ph, agitado) - olharEm(t - 0.12, ph, agitado); // a cabeça acabou de virar: as orelhas balançam atrasadas
   const trem = pulso(t, agitado ? 1.1 : 1.7, ph + 3, agitado ? 0.3 : 0.16, 0.22);
-  const rajada = 0.25 + 0.75 * suave(0.5 + 0.5 * degrau(t, 1.9, ph + 5, 0.4) + (al - 0.5));
-  const abano = (0.14 + 0.34 * al) * rajada * S(t * (17 + 9 * E) + ph); // 3 a 4 abanadas por segundo
-  o.cab = olhar; o.orA = 0.03 * S(t * 2.6 - 0.6) - (agitado ? 0.2 * pulso(t, 1.6, ph + 8, 0.25, 0.2) : 0); o.orB = o.orA - 0.3 * trem; o.rabo = abano;
-  for (let i = 0; i < 4; i++) { o['p' + i] = 0; o['j' + i] = 0; }
-  o.boca = 0; // + = abre a boca (mandíbula desce)
-  if (agitado) { const pe = pulso(t, 2.2, ph + 13, 0.35, 0.35); o.p0 = -0.18 * pe; o.j0 = 0.75 * pe; } // levanta e baixa uma patinha da frente
+  const abano = abanoEm(t, ph, E, al), abanoAtras = abanoEm(t - 0.07, ph, E, al);
+  o.pesc = olhar * 0.4; o.cab = olhar * 0.6; o.boca = 0;
+  o.orA = 0.03 * S(t * 2.6 - 0.6) - 2.2 * virada - (agitado ? 0.2 * pulso(t, 1.6, ph + 8, 0.25, 0.2) : 0); o.orB = o.orA - 0.3 * trem;
+  o.rabo = abano; o.rabo2 = abanoAtras * 0.8; // a ponta acompanha atrasada: o rabo faz onda
+  for (let i = 0; i < 4; i++) { o['p' + i] = 0; o['j' + i] = 0; o['w' + i] = 0; }
+  if (agitado) { const pe = pulso(t, E > 0.95 ? 1.6 : 2.2, ph + 13, 0.35, 0.35); o.p0 = -0.15 * pe; o.j0 = 0.6 * pe; o.w0 = 0.5 * pe; } // levanta e baixa uma patinha
   switch (a) {
     case 'walk': {
       for (let i = 0; i < 4; i++) {
-        const frente = i < 2; passada(u + ANDAR[i], 0.62, (frente ? 0.32 : 0.28) * (shih ? 0.75 : 1), tmp);
-        o['p' + i] = tmp[0] - (frente ? 0.08 * tmp[1] : 0);
-        o['j' + i] = tmp[1] * (shih ? (frente ? 0.5 : 0.4) : (frente ? 0.9 : 0.5)); // dobra ao subir: pinscher alto na frente (hackney)
+        const frente = i < 2; passada(u + ANDAR[i], 0.62, (frente ? 0.3 : 0.26) * (shih ? 0.75 : 1), tmp);
+        const ar = tmp[1], prog = tmp[2];
+        o['p' + i] = tmp[0];
+        o['j' + i] = ar * (shih ? (frente ? 0.45 : 0.35) : (frente ? 0.8 : 0.45));         // dobra ao subir (pinscher alto na frente)
+        o['w' + i] = prog < 0 ? 0 : (frente ? 0.75 : 0.5) * S(prog * PI) * (1 - prog * 0.6) - (prog > 0.75 ? 0.12 * suave((prog - 0.75) / 0.25) : 0); // pé pendura e estica antes de pisar
       }
-      o.cab = 0.03 * S(f * 2 + 0.9) + olhar * 0.4;     // a cabeça acompanha as patas da frente
-      o.orA = o.orB = 0.06 * S(f * 2 - 0.7);           // orelhas atrasadas em relação ao corpo
-      o.rabo = 0.12 + 0.6 * abano + 0.05 * S(f * 2 - 1.2); break;
+      o.pesc = 0.025 * S(f * 2 + 0.9) + olhar * 0.25; o.cab = 0.012 * S(f * 2 + 1.4) + olhar * 0.35; // a cabeça acompanha as patas da frente
+      o.orA = o.orB = 0.06 * S(f * 2 - 0.7);                                                         // orelhas atrasadas em relação ao corpo
+      o.rabo = 0.12 + 0.6 * abano + 0.05 * S(f * 2 - 1.2); o.rabo2 = 0.5 * abanoAtras + 0.05 * S(f * 2 - 1.8); break;
     }
     case 'run': {
-      for (let i = 0; i < 4; i++) { passada(u + GALOPE[i], 0.4, 0.5, tmp); o['p' + i] = tmp[0]; o['j' + i] = tmp[1] * (i < 2 ? 0.8 : 0.55); }
-      o.cab = -0.07 + 0.05 * S(f + 2.2); o.orA = o.orB = -0.35 + 0.1 * S(f * 2 - 1); o.rabo = 0.3 + 0.2 * S(f - 1.5); break;
+      for (let i = 0; i < 4; i++) {
+        passada(u + GALOPE[i], 0.4, shih ? 0.25 : 0.45, tmp); // shih tzu: patas curtas e peludas, galope curto
+        o['p' + i] = tmp[0]; o['j' + i] = tmp[1] * (i < 2 ? 0.7 : 0.5) * (shih ? 0.5 : 1); o['w' + i] = tmp[2] < 0 ? 0 : 0.6 * S(tmp[2] * PI);
+      }
+      o.pesc = -0.05 + 0.04 * S(f + 2.2); o.cab = -0.03 + 0.02 * S(f + 2.6); o.orA = o.orB = -0.32 + 0.1 * S(f * 2 - 1);
+      o.rabo = 0.3 + 0.15 * S(f - 1.5); o.rabo2 = 0.15 * S(f - 2.1); break;
     }
-    case 'jump': o.p0 = o.p1 = -0.6; o.p2 = o.p3 = 0.45; o.j0 = o.j1 = 0.8; o.j2 = o.j3 = 0.5; o.cab = -0.12; o.orA = o.orB = -0.4; o.rabo = 0.5; break;
-    case 'sit': // pinscher sentado: patas da frente retas, traseiro abaixo do chão (escondido)
-      o.p0 = o.p1 = 0.2; o.p2 = o.p3 = -0.35; o.j2 = o.j3 = 0.6; o.cab = -0.02 + olhar; o.rabo = abano * 0.4; break;
-    case 'lie': // deitado: patas por baixo (escondidas pelo chão)
-      o.p0 = o.p1 = -0.35; o.j0 = o.j1 = 0.3; o.p2 = o.p3 = -0.3; o.j2 = o.j3 = 0.6; o.cab = 0.08 + olhar * 0.7; o.rabo = abano * 0.25; break;
-    case 'sleep':
-      o.p0 = o.p1 = -0.35; o.j0 = o.j1 = 0.3; o.p2 = o.p3 = -0.3; o.j2 = o.j3 = 0.6;
-      o.cab = 0.3 + 0.015 * S(t * 1.3); o.orA = 0.1; o.orB = 0.1 - 0.2 * pulso(t, 4.1, ph, 0.12, 0.3); o.rabo = 0.03 * S(t * 1.3); break; // sonhando: a orelha mexe
-    case 'curl':
-      o.p0 = o.p1 = -0.35; o.j0 = o.j1 = 0.3; o.p2 = o.p3 = -0.3; o.j2 = o.j3 = 0.6;
-      o.cab = 0.4; o.orA = o.orB = -0.3; o.rabo = -0.6 + 0.03 * S(t * 63); break;
-    case 'shiver': o.cab = 0.12 + 0.02 * S(t * 63); o.orA = o.orB = -0.3 + 0.03 * S(t * 57); o.rabo = -0.5 + 0.04 * S(t * 60); break;
-    case 'pant': o.cab = olhar * 0.6 + 0.02 * S(t * 31); o.boca = 0.1 + 0.05 * S(t * 31); o.rabo = abano; break;
-    case 'bark': { const k = salto(tA); o.boca = 0.42 * k; o.cab = -0.22 * k; o.orA = o.orB = -0.22 * k; o.p0 = o.p1 = -0.1 * k; o.rabo = 0.4 * S(t * 24); break; }
+    case 'jump': o.p0 = o.p1 = -0.55; o.p2 = o.p3 = 0.4; o.j0 = o.j1 = 0.7; o.j2 = o.j3 = 0.45; o.w0 = o.w1 = 0.5; o.w2 = o.w3 = 0.4;
+      o.pesc = -0.08; o.cab = -0.05; o.orA = o.orB = -0.4; o.rabo = 0.5; o.rabo2 = 0.2; break;
+    case 'sit': o.p0 = o.p1 = 0.2; o.p2 = o.p3 = -0.95; o.j2 = o.j3 = 2.1; o.w2 = o.w3 = -0.9; o.pesc = -0.02 + olhar * 0.4; o.rabo = abano * 0.4; o.rabo2 = abanoAtras * 0.3; break;
+    case 'lie': o.p0 = o.p1 = -1.4; o.j0 = o.j1 = 0.25; o.w0 = o.w1 = -0.2; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9; o.pesc = 0.05 + olhar * 0.3; o.cab = 0.03 + olhar * 0.4; o.rabo = abano * 0.25; o.rabo2 = abanoAtras * 0.2; break;
+    case 'sleep': o.p0 = o.p1 = -1.4; o.j0 = o.j1 = 0.25; o.w0 = o.w1 = -0.2; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9;
+      o.pesc = 0.2 + 0.01 * S(t * 1.3); o.cab = 0.12; o.orA = 0.1; o.orB = 0.1 - 0.2 * pulso(t, 4.1, ph, 0.12, 0.3); o.rabo = 0.03 * S(t * 1.3); o.rabo2 = 0; break; // sonhando: a orelha mexe
+    case 'curl': o.p0 = o.p1 = -1.2; o.j0 = o.j1 = 0.6; o.w0 = o.w1 = 0.2; o.p2 = o.p3 = -1.05; o.j2 = o.j3 = 2.15; o.w2 = o.w3 = -0.9;
+      o.pesc = 0.25; o.cab = 0.15; o.orA = o.orB = -0.3; o.rabo = -0.6 + 0.03 * S(t * 63); o.rabo2 = -0.3; break;
+    case 'shiver': o.pesc = 0.08 + 0.015 * S(t * 63); o.cab = 0.04; o.orA = o.orB = -0.3 + 0.03 * S(t * 57); o.rabo = -0.5 + 0.04 * S(t * 60); o.rabo2 = -0.3; break;
+    case 'pant': o.boca = 0.3 + 0.03 * S(t * 31); o.cab += 0.015 * S(t * 31); o.rabo = abano; break;
+    case 'bark': { const k = salto(tA); o.boca = 0.42 * k; o.pesc = -0.12 * k; o.cab = -0.1 * k; o.orA = o.orB = -0.22 * k; o.p0 = o.p1 = -0.08 * k; o.rabo = 0.4 * S(t * 24); o.rabo2 = 0.3 * S(t * 24 - 0.8); break; }
     case 'eat': case 'drink': { const m = a === 'eat' ? S(t * 9) : S(t * 13); // comer mastiga; beber lambe mais rápido
-      o.boca = a === 'eat' ? 0.42 * Math.max(0, m) : 0.2 * Math.max(0, m); // mastiga abrindo e fechando a boca; ao beber, lambidas curtas
-      o.cab = 0.5 + 0.06 * m; o.orA = o.orB = 0.15 + 0.04 * S(t * 9 - 0.8); o.p0 = o.p1 = -0.12; o.rabo = 0.25 * S(t * 19 + ph); break; }
-    case 'peeM': o.p2 = -1.0; o.j2 = 0.5; o.cab = -0.1 + olhar * 0.5; o.rabo = 0.25; break;
-    case 'peeF': o.p2 = o.p3 = -0.3; o.j2 = o.j3 = 0.5; o.cab = 0.1; o.rabo = 0.35; break;
-    case 'fight': o.boca = 0.25 * Math.max(0, S(t * 7)); o.p0 = -0.7 + 0.4 * S(t * 12); o.p1 = -0.7 + 0.4 * S(t * 12 + PI); o.j0 = 0.6 + 0.3 * S(t * 12 + 1); o.j1 = 0.6 + 0.3 * S(t * 12 + PI + 1);
-      o.cab = 0.12 * S(t * 3); o.orA = o.orB = -0.2 + 0.1 * S(t * 8 - 1); o.rabo = 0.5 * S(t * 24); break;
-    case 'playbow': o.p0 = o.p1 = -0.75; o.j0 = o.j1 = 0.2; o.cab = 0.1; o.rabo = 0.5 * S(t * 26); break;
+      o.boca = a === 'eat' ? 0.42 * Math.max(0, m) : 0.2 * Math.max(0, m);
+      o.pesc = 0.35 + 0.03 * m; o.cab = 0.18 + 0.04 * m; o.orA = o.orB = 0.15 + 0.04 * S(t * 9 - 0.8); o.p0 = o.p1 = -0.12; o.j0 = o.j1 = 0.1;
+      o.rabo = 0.25 * S(t * 19 + ph); o.rabo2 = 0.2 * S(t * 19 + ph - 0.8); break; }
+    case 'peeM': o.p2 = -1.0; o.j2 = 0.5; o.w2 = 0.3; o.pesc = -0.06 + olhar * 0.3; o.rabo = 0.25; break;
+    case 'peeF': o.p2 = o.p3 = -0.3; o.j2 = o.j3 = 0.5; o.pesc = 0.06; o.rabo = 0.35; break;
+    case 'fight': o.boca = 0.25 * Math.max(0, S(t * 7));
+      o.p0 = -0.6 + 0.35 * S(t * 12); o.p1 = -0.6 + 0.35 * S(t * 12 + PI); o.j0 = 0.55 + 0.25 * S(t * 12 + 1); o.j1 = 0.55 + 0.25 * S(t * 12 + PI + 1); o.w0 = o.w1 = 0.4;
+      o.pesc = 0.08 * S(t * 3); o.cab = 0.05 * S(t * 3.5); o.orA = o.orB = -0.2 + 0.1 * S(t * 8 - 1); o.rabo = 0.5 * S(t * 24); o.rabo2 = 0.4 * S(t * 24 - 0.8); break;
+    case 'playbow': o.p0 = o.p1 = -0.7; o.j0 = o.j1 = 0.2; o.w0 = o.w1 = -0.1; o.pesc = 0.05; o.cab = -0.05; o.rabo = 0.5 * S(t * 26); o.rabo2 = 0.4 * S(t * 26 - 0.8); break;
     default: break; // idle
   }
 }
 
 const A1 = {}, A2 = {};
-// escreve as matrizes das 16 articulações em M (64 números) e T (32 números): cabeça, orelha A, orelha B, rabo, 4 patas (ombro/quadril), 4 joelhos, boca, 3 livres
+// ângulos de todas as partes neste instante, já misturados com a ação anterior (usado por desenho.js)
+export function angulosDe(d) {
+  angulos(d.acao, d.t, d.tA, d.fase, d, A1);
+  if (d.mist < 1) {
+    angulos(d.acaoAnt, d.t, d.tAnt, d.fase, d, A2);
+    const k = suave(d.mist);
+    for (const c of CHAVES) A1[c] = A2[c] + (A1[c] - A2[c]) * k;
+  }
+  if (d.cfg.raca === 'shihtzu') { A1.pesc *= 0.3; A1.cab *= 0.3; A1.orA *= 0.6; A1.orB *= 0.6; } // cabeça grande e pelo comprido: mexe menos
+  return A1;
+}
+// escreve as matrizes das 24 articulações em M (96 números) e T (48 números). Ordem: 0 pescoço, 1 cabeça, 2 boca, 3 orelha A,
+// 4 orelha B, 5 rabo, 6 ponta do rabo, 7-10 ombro/quadril, 11-14 joelho, 15-18 pulso/jarrete, 19-23 livres.
 export function articular(d, ossos, M, T) {
   angulos(d.acao, d.t, d.tA, d.fase, d, A1);
   if (d.mist < 1) {
@@ -159,13 +186,20 @@ export function articular(d, ossos, M, T) {
     const k = suave(d.mist);
     for (const c of CHAVES) A1[c] = A2[c] + (A1[c] - A2[c]) * k;
   }
-  if (d.cfg.raca === 'shihtzu') { A1.cab *= 0.5; A1.orA *= 0.6; A1.orB *= 0.6; } // pelo comprido: cabeça e orelhas mexem menos
-  const mh = junta(A1.cab, ossos.cabeca.p[0], ossos.cabeca.p[1]);
-  const mats = [mh, mul(mh, junta(A1.orA, ossos.orelhas[0].p[0], ossos.orelhas[0].p[1])), mul(mh, junta(A1.orB, ossos.orelhas[1].p[0], ossos.orelhas[1].p[1])),
-    junta(A1.rabo, ossos.rabo.p[0], ossos.rabo.p[1])];
-  for (let i = 0; i < 4; i++) mats.push(junta(A1['p' + i], ossos.pernas[i].p[0], ossos.pernas[i].p[1]));
-  for (let i = 0; i < 4; i++) { const pe = ossos.pernas[i], jo = pe.j || [pe.p[0], pe.p[1] + 50]; mats.push(mul(mats[4 + i], junta(A1['j' + i], jo[0], jo[1]))); }
-  const bo = ossos.boca ? ossos.boca.p : [0, 0];
-  mats.push(mul(mh, junta(A1.boca, bo[0], bo[1])), ID, ID, ID); // a boca vai junto com a cabeça
-  for (let i = 0; i < 16; i++) { const m = mats[i]; M[i * 4] = m[0]; M[i * 4 + 1] = m[1]; M[i * 4 + 2] = m[2]; M[i * 4 + 3] = m[3]; T[i * 2] = m[4]; T[i * 2 + 1] = m[5]; }
+  if (d.cfg.raca === 'shihtzu') { A1.pesc *= 0.6; A1.cab *= 0.6; A1.orA *= 0.6; A1.orB *= 0.6; } // pelo comprido: cabeça e orelhas mexem menos
+  const pp = ossos.pescoco ? ossos.pescoco.p : ossos.cabeca.p;
+  const mn = junta(A1.pesc, pp[0], pp[1]);
+  const mh = mul(mn, junta(A1.cab, ossos.cabeca.p[0], ossos.cabeca.p[1]));
+  const bo = ossos.boca ? ossos.boca.p : ossos.cabeca.p;
+  const r = ossos.rabo, mr = junta(A1.rabo, r.p[0], r.p[1]), p2 = r.p2 || r.p;
+  const mats = [mn, mh, mul(mh, junta(A1.boca, bo[0], bo[1])),
+    mul(mh, junta(A1.orA, ossos.orelhas[0].p[0], ossos.orelhas[0].p[1])), mul(mh, junta(A1.orB, ossos.orelhas[1].p[0], ossos.orelhas[1].p[1])),
+    mr, mul(mr, junta(A1.rabo2, p2[0], p2[1]))];
+  const quadris = [], joelhos = [];
+  for (let i = 0; i < 4; i++) { const pe = ossos.pernas[i]; quadris.push(junta(A1['p' + i], pe.p[0], pe.p[1])); }
+  for (let i = 0; i < 4; i++) { const pe = ossos.pernas[i], jo = pe.j || pe.p; joelhos.push(mul(quadris[i], junta(A1['j' + i], jo[0], jo[1]))); }
+  mats.push(...quadris, ...joelhos);
+  for (let i = 0; i < 4; i++) { const pe = ossos.pernas[i], pu = pe.w || pe.j || pe.p; mats.push(mul(joelhos[i], junta(A1['w' + i], pu[0], pu[1]))); }
+  while (mats.length < NB) mats.push(ID);
+  for (let i = 0; i < NB; i++) { const m = mats[i]; M[i * 4] = m[0]; M[i * 4 + 1] = m[1]; M[i * 4 + 2] = m[2]; M[i * 4 + 3] = m[3]; T[i * 2] = m[4]; T[i * 2 + 1] = m[5]; }
 }

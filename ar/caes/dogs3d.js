@@ -6,8 +6,7 @@
 import { CACHORROS } from './config.js';
 import { ACOES, aplicarPose, N, MISTURA, NY, HX, HY, BLINK, JAW } from './animacoes.js';
 import { criarNecessidades } from './necessidades.js';
-import { desenharCao, desenharSombra, desenharTigela, alturaCabeca, precarregar } from './desenho.js';
-import { criarMalha } from './malha.js';
+import { desenharCao, desenharTigela, alturaCabeca, precarregar } from './desenho.js';
 
 const INCLINA = 0.42;                 // câmera um pouco de cima
 const FPS = 60; // movimento fluido (pedido do dono); pausa sozinho com o app em segundo plano
@@ -42,7 +41,7 @@ export function iniciarCachorros(op = {}) {
   // O 3D só carrega se a página pedir (op.motor3d = { THREE, ...módulo modelo.js }); assim o desenho não baixa a biblioteca 3D.
   const { THREE, criarModelo, sombraTextura, descartarCompartilhadas } = op.motor3d || {};
   const gl = op.estilo === '3d' && !!op.motor3d && temWebGL(); // padrão: desenho animado 2D (leve, funciona em qualquer aparelho)
-  let tela2 = null, c2 = null, pr2 = 1, malha = null;
+  let tela2 = null, c2 = null, pr2 = 1;
   const ordem = [];
   const caes = [];
   let renderer, cena, camera, rodando = true, raf = 0, tempo = 0, ultQuadro = 0, ultNec = Date.now(), fps = 0, qFps = 0, tFps = 0;
@@ -72,8 +71,7 @@ export function iniciarCachorros(op = {}) {
   } else {
     tela2 = document.createElement('canvas'); tela2.className = 'caes-tela'; c2 = tela2.getContext('2d');
     camada.insertBefore(tela2, baloes);
-    malha = op.semMalha ? null : criarMalha(cfgs); // cachorros articulados (WebGL); sem WebGL, a imagem inteira
-    if (malha) camada.insertBefore(malha.canvas, baloes); else precarregar(cfgs);
+    precarregar(cfgs); // desenho 2D: peças do desenho do dono + patas desenhadas (desenho.js)
   }
 
   cfgs.forEach((cfg, i) => {
@@ -103,7 +101,7 @@ export function iniciarCachorros(op = {}) {
   }
   function tamanhoTela() {
     if (gl) { renderer.setSize(W(), H()); camera.right = W(); camera.bottom = -H(); camera.updateProjectionMatrix(); }
-    else { pr2 = Math.min(2, window.devicePixelRatio || 1); tela2.width = Math.round(W() * pr2); tela2.height = Math.round(H() * pr2); if (malha) malha.tamanho(W(), H(), pr2); }
+    else { pr2 = Math.min(2, window.devicePixelRatio || 1); tela2.width = Math.round(W() * pr2); tela2.height = Math.round(H() * pr2); }
     for (const d of caes) if (!d.ocupado && !d.tarefa) { const c = casa(d); d.x = c.x; d.y = c.y; }
   }
   tamanhoTela();
@@ -459,8 +457,7 @@ export function iniciarCachorros(op = {}) {
       c2.setTransform(pr2, 0, 0, pr2, 0, 0); c2.clearRect(0, 0, W(), H());
       for (const tb of tigelas) desenharTigela(c2, tb);
       ordem.sort(porY);
-      if (malha) { malha.limpar(); for (const d of ordem) if (d.visivel) { desenharSombra(c2, d, malha.larguraDe(d.cfg)); malha.desenhar(d, d.lado); } }
-      else for (const d of ordem) if (d.visivel) desenharCao(c2, d, d.lado);
+      for (const d of ordem) if (d.visivel) desenharCao(c2, d, d.lado);
     }
   }
   const porY = (a, b) => a.y - b.y;
@@ -518,7 +515,7 @@ export function iniciarCachorros(op = {}) {
     destacarJogo() { barra.destacar(); },
     reler: lerAmbiente,
     ambiente: amb,
-    estilo: gl ? '3d' : malha ? 'desenho articulado' : 'desenho',
+    estilo: gl ? '3d' : 'desenho articulado 2D',
     stats: () => ({ fps: Math.round(fps), triangulos: gl ? renderer.info.render.triangles : 0, chamadas: gl ? renderer.info.render.calls : 0, porCachorro: caes.map((d) => [d.cfg.id, d.m?.tris || 0]), trisModelos: tris, pixelRatio: gl ? renderer.getPixelRatio() : 1 }),
     destruir() {
       cancelAnimationFrame(raf); rodando = false; nec.salvar();
@@ -529,7 +526,6 @@ export function iniciarCachorros(op = {}) {
         descartarCompartilhadas(); sombraTex.dispose(); geoTigela.dispose(); mTigela.dispose(); mRacao.dispose(); mAgua.dispose();
         renderer.dispose(); renderer.forceContextLoss?.();
       }
-      if (malha) malha.destruir();
       ac?.close?.(); camada.remove(); barra.el.remove();
     },
   };
