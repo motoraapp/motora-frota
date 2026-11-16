@@ -37,7 +37,8 @@ function lerPng(arq) {
 // os arquivos que o dono mandou (16/11/2026), pelo nome que o app usa
 const PEDIDOS = {
   elvis: ['base', 'olhos_fechados', 'boca_aberta', 'lingua', 'sentado', 'mexendo_cabeca', 'andando_1', 'andando_2', 'correndo_1', 'correndo_2',
-    'encostando_giro_frente', 'virando_costas', 'deitando_transicao', 'dormindo_deitado', 'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio'],
+    'encostando_giro_frente', 'virando_costas', 'deitando_transicao', 'dormindo_deitado', 'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio',
+    'andando_passo_1', 'andando_passo_2', 'andando_passo_4', 'correndo_entre_1', 'correndo_entre_2', 'correndo_inicio', 'sentando_meio'],
   belinha: ['base', 'olhos_fechados', 'boca_aberta', 'sentado', 'mexendo_cabeca', 'andando_1', 'andando_2', 'andando_frente', 'correndo_1', 'correndo_2',
     'encostando_giro_frente', 'virando_costas', 'dormindo_deitado', 'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio'],
   maya: ['sentado', 'sentado_olhos_fechados', 'base', 'boca_fechada', 'olhos_fechados', 'mexendo_cabeca', 'pedindo_patas_no_ar', 'pedindo_patas_no_ar_2',
@@ -45,7 +46,7 @@ const PEDIDOS = {
     'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio'],
 };
 
-await t('todos os sprites do dono existem (21 Elvis, 20 Belinha, 24 Maya), com o tamanho certo e fundo transparente', () => {
+await t('todos os sprites do dono existem (28 Elvis, 20 Belinha, 24 Maya), com o tamanho certo e fundo transparente', () => {
   for (const [id, nomes] of Object.entries(PEDIDOS)) {
     assert.ok(SPRITES[id], `sem sprites para ${id}`);
     assert.equal(Object.keys(SPRITES[id]).filter((n) => n !== '_ref').length, nomes.length, `${id}: quantidade de sprites`);
@@ -121,13 +122,19 @@ await t('Maya com fome: de pé nas 2 patas SEM erguer os braços (só o desenho 
   assert.ok(Math.max(...qs.map((q) => q.dy)) > 0.01, 'sem os pulinhos de pedir');
   const src = readFileSync(join(raiz, 'ar/caes/desenho.js'), 'utf8');
   assert.ok(!/'pedindo_patas_no_ar_2'/.test(src), 'desenho.js não pode usar o desenho de braços erguidos');
-  for (const id of ['elvis', 'belinha']) assert.ok(sequencia(quadros(id, 'bark', 2)).includes('latindo'));
+  // latir (e pedir dos pinschers, rebolar): a boca abre e fecha sem mexer as patas = só desenhos do mesmo corpo do em pé
+  const mesmoCorpo = { elvis: ['base', 'boca_aberta', 'olhos_fechados'], belinha: ['base', 'boca_aberta', 'olhos_fechados'], maya: ['base', 'boca_fechada', 'olhos_fechados'] };
+  for (const id of ['elvis', 'belinha', 'maya']) for (const a of ['bark', 'wiggle', ...(id === 'maya' ? [] : ['pedir'])]) {
+    const seq = sequencia(quadros(id, a, 3));
+    assert.ok(seq.length >= 4 && seq.every((x) => mesmoCorpo[id].includes(x)), id + '/' + a + ': ' + seq.join(' > '));
+  }
 });
 
 await t('andar um passo por vez (passo, em pé, outro passo, em pé) com sobe e desce leve', () => {
   for (const id of ['elvis', 'belinha', 'maya']) {
     const w = []; for (let f = 0; f < Math.PI * 2; f += 0.02) w.push({ ...quadroDe(cao(id, 'walk', 0, { fase: f })) });
     const seq = sequencia(w);
+    if (id === 'elvis') { assert.equal(seq.length, 5, id + ': ' + seq.join(' > ')); assert.ok(seq.every((x) => x.startsWith('andando_')), id + ': ' + seq.join(' > ')); continue; } // 5 desenhos: a pata sobe e desce aos poucos
     assert.equal(seq.length, 4, id + ': ' + seq.join(' > '));
     assert.ok(seq[0] === 'andando_1' && seq[2] === 'andando_2' && seq[1] === seq[3], id + ': ' + seq.join(' > '));
     assert.ok(Math.max(...w.map((q) => q.dy)) < 0.03, id + ': pulando demais ao andar');

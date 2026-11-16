@@ -37,6 +37,10 @@ $CAES = [ordered]@{
     olha = @{ dormindo_deitado = -1; encostando_giro_frente = -1 } }
 }
 
+# escalas: calculadas por ferramentas/caes-escalas.mjs (rode antes) e lidas do JSON; valem no lugar das de cima
+$escJson = Get-Content (Join-Path $PSScriptRoot 'caes-escalas.json') -Raw | ConvertFrom-Json
+foreach ($id in @($CAES.Keys)) { $h = @{}; foreach ($p in $escJson.$id.PSObject.Properties) { $h[$p.Name] = [double]$p.Value }; $CAES[$id].esc = $h }
+
 # caixa do desenho (alfa > 20) e linha dos pés, lendo os pixels
 function Caixa($bmp) {
   $r = New-Object System.Drawing.Rectangle 0, 0, $bmp.Width, $bmp.Height

@@ -45,6 +45,8 @@ function piscando(d) {
   const t = d.t + (d.sem || 0) * 1.7, per = 3.4, n = Math.floor(t / per), x = t - n * per - acaso(n, 9) * (per - 0.5);
   return (x > 0 && x < 0.1) || (acaso(n, 11) > 0.6 && x > 0.28 && x < 0.38);
 }
+const PASSOS = ['andando_passo_1', 'andando_passo_2', 'andando_2', 'andando_passo_4', 'andando_1']; // Elvis: a pata sobe e desce aos poucos
+const GALOPE = ['correndo_2', 'correndo_entre_1', 'correndo_inicio', 'correndo_entre_2', 'correndo_1'];
 const tem = (id, n) => !!SPRITES[id]?.[n];
 const quad = { s: 'base', f: 1, dx: 0, dy: 0, sy: 1 };
 
@@ -56,20 +58,31 @@ export function quadroDe(d) {
   const aberta = maya ? 'base' : 'boca_aberta';
   switch (a) {
     case 'walk': case 'walkback': case 'sniff': { // um passo por vez: pata à frente, apoia (em pé), a outra pata, apoia (pedido do dono 16/11/2026)
-      const meio = fechada, u = ((d.fase / Math.PI) % 2 + 2) % 2;
+      const u = ((d.fase / Math.PI) % 2 + 2) % 2;
+      if (tem(id, 'andando_passo_1')) { // Elvis: 5 desenhos, a pata da frente sobe e desce aos poucos (um passo de cada vez)
+        q.s = PASSOS[Math.floor(u / 2 * PASSOS.length) % PASSOS.length]; q.dy = 0.014 * Math.abs(Math.sin(d.fase * 2.5)); break;
+      }
+      const meio = fechada;
       q.s = u < 0.5 ? 'andando_1' : u < 1 ? meio : u < 1.5 ? 'andando_2' : meio;
       q.dy = 0.014 * Math.abs(Math.sin(d.fase * 2)); break;
     }
     case 'run': { // galope: 1 = esticado no ar (sobe um pouco), 2 = encolhido no chão
-      const s = Math.sin(d.fase); q.s = s >= 0 ? 'correndo_1' : 'correndo_2'; q.dy = s >= 0 ? 0.07 * s : 0; break;
+      const s = Math.sin(d.fase);
+      if (tem(id, 'correndo_inicio')) { // Elvis: galope em 5 desenhos (encolhido, pousando, impulso, esticando, esticado no ar)
+        const u = ((d.fase / (Math.PI * 2)) % 1 + 1) % 1; q.s = GALOPE[Math.floor(u * GALOPE.length) % GALOPE.length]; q.dy = q.s === 'correndo_1' ? 0.07 : q.s === 'correndo_entre_2' ? 0.03 : 0; break;
+      }
+      q.s = s >= 0 ? 'correndo_1' : 'correndo_2'; q.dy = s >= 0 ? 0.07 * s : 0; break;
     }
-    case 'sit': q.s = maya ? (piscando(d) ? 'sentado_olhos_fechados' : 'sentado') : 'sentado'; break;
+    case 'sit': if (tem(id, 'sentando_meio') && t < 0.28) { q.s = 'sentando_meio'; break; } // meio do caminho ao sentar
+      q.s = maya ? (piscando(d) ? 'sentado_olhos_fechados' : 'sentado') : 'sentado'; break;
     case 'lie': q.s = tem(id, 'deitando_transicao') ? 'deitando_transicao' : 'sentado'; break;
     case 'sleep': q.s = 'dormindo_deitado'; q.sy = 1 + 0.01 * Math.sin(d.t * 2.2); break; // respira devagar
     case 'curl': case 'shiver': // frio: deitado encolhido, tremendo (±1,5 px a cada ~45 ms)
       q.s = 'tremendo_frio'; q.dx = (Math.floor(d.t * 1000 / 45) % 2 ? 1.5 : -1.5); break;
     case 'pant': q.s = 'sentindo_calor'; q.sy = 1 + 0.015 * Math.sin(d.t * Math.PI * 2 * 2.2); break; // calor: ofegando (0,985 a 1,015)
-    case 'bark': q.s = seq([['latindo', 150], [aberta, 110], ['latindo', 150], [fechada, 190]], t)[0]; break;
+    // latir: só a boca abre e fecha, com desenhos de corpo igual (patas paradas; o desenho 'latindo' tem as patas em outra
+    // posição e parecia mexer a pata, pedido do dono 16/11/2026)
+    case 'bark': q.s = seq([[aberta, 160], [fechada, 140], [aberta, 160], [fechada, 240]], t)[0]; break;
     case 'rosnar': q.s = 'rosnando'; q.dx = Math.sin(d.t * 70) * 0.6; break;
     case 'eat': q.s = seq([['comendo', 900], [fechada, 380]], t)[0]; break;   // come e levanta a cabeça
     case 'drink': q.s = seq([['bebendo', 900], [fechada, 380]], t)[0]; break;
@@ -79,13 +92,13 @@ export function quadroDe(d) {
     case 'playbow': q.s = tem(id, 'deitando_transicao') ? 'deitando_transicao' : 'latindo'; break;
     case 'fight': q.s = seq([['rosnando', 220], ['latindo', 160], ['correndo_2', 200]], t)[0]; if (q.s === 'correndo_2') q.dy = 0.06; break;
     case 'tug': q.s = seq([['rosnando', 95], [fechada, 95]], t)[0]; q.dx = Math.sin(d.t * 18) * 1.2; break; // morde: abre e fecha a boca
-    case 'wiggle': q.s = seq(id === 'elvis' ? [['lingua', 170], ['boca_aberta', 170]] : [[aberta, 170], [fechada, 170]], t)[0]; q.dx = Math.sin(d.t * 16) * 2; break;
+    case 'wiggle': q.s = seq([[aberta, 170], [fechada, 170]], t)[0]; q.dx = Math.sin(d.t * 16) * 2; break;
     case 'tilt': case 'cabeca': q.s = seq([['mexendo_cabeca', 320], [fechada, 260]], t)[0]; break; // mexe a cabeça
     case 'shake': q.s = seq([['mexendo_cabeca', 70], [fechada, 70]], t)[0]; q.dx = t < 1.1 ? Math.sin(d.t * 45) * 2 : 0; break;
     case 'encostar': q.s = 'encostando_giro_frente'; break;
     // pedir comida: a Maya fica de pé nas 2 patas com as patinhas junto do peito (NÃO ergue os braços: o desenho _2 não é usado,
     // pedido do dono 16/11/2026), dando pulinhos leves; os pinschers latem
-    case 'pedir': if (tem(id, 'pedindo_patas_no_ar')) { q.s = 'pedindo_patas_no_ar'; q.dy = 0.025 * Math.abs(Math.sin(t * 5.5)); } else q.s = seq([['latindo', 150], [aberta, 200]], t)[0]; break;
+    case 'pedir': if (tem(id, 'pedindo_patas_no_ar')) { q.s = 'pedindo_patas_no_ar'; q.dy = 0.025 * Math.abs(Math.sin(t * 5.5)); } else q.s = seq([[aberta, 160], [fechada, 140]], t)[0]; break;
     case 'frente': q.s = tem(id, 'andando_frente') ? 'andando_frente' : 'encostando_giro_frente'; break;
     case 'lingua': q.s = tem(id, 'lingua') ? 'lingua' : aberta; break;
     case 'rodar': case 'deitar': { // volta completa no próprio eixo (deitar: termina deitando)
