@@ -359,7 +359,7 @@ export function iniciarCachorros(op = {}) {
 
   // deitar para dormir: antes dá uma volta completa no próprio eixo (desenho.js 'deitar'), depois dorme
   function irDormir(d) {
-    tarefas(d, [{ t: 'acao', a: 'deitar', dur: 1.45 }, { t: 'fn', f: () => { d.dormindo = true; setAcao(d, 'sleep'); } }], false);
+    tarefas(d, [{ t: 'acao', a: 'deitar', dur: 1.75 }, { t: 'fn', f: () => { d.dormindo = true; setAcao(d, 'sleep'); } }], false);
   }
   // Maya ranzinza: quando um pinscher chega perto ou fica latindo sem parar perto dela, fecha a cara e rosna
   function ranzinza(d, dt) {
@@ -388,7 +388,7 @@ export function iniciarCachorros(op = {}) {
       d.zzz -= dt; if (d.zzz < 0) { d.zzz = rand(3, 5); balao(d, 'zzz', 2.2, true); }
       return;
     }
-    if (d.dormindo) { d.dormindo = false; tarefas(d, [{ t: 'acao', a: 'shake', dur: 1.1 }, { t: 'acao', a: 'idle', dur: 0.2 }], false); return; } // acorda e sacode
+    if (d.dormindo) { d.dormindo = false; tarefas(d, [{ t: 'acao', a: 'acordar', dur: 1.0 }, { t: 'acao', a: 'shake', dur: 1.1 }, { t: 'acao', a: 'idle', dur: 0.2 }], false); return; } // acorda (levanta a cabeça) e sacode
     d.pedido -= dt;
     if (d.pedido < 0 && (n.fome >= (maya ? 55 : 70) || n.sede >= 70)) { // fome: a Maya fica de pé nas 2 patas pedindo; os pinschers latem
       d.pedido = maya ? rand(25, 45) : rand(40, 75);
@@ -448,7 +448,7 @@ export function iniciarCachorros(op = {}) {
     mostrarIndicador(d);
     if (d.dormindo || d.acao === 'sleep' || d.acao === 'deitar') {
       d.acordadoAte = tempo + 25; d.cochiloAte = 0; d.dormindo = false;
-      tarefas(d, [{ t: 'acao', a: 'shake', dur: 1 }, { t: 'virar', alvo: 'usuario' }, ehMaya(d) ? { t: 'acao', a: 'rosnar', dur: 0.8 } : { t: 'latir', n: 1, texto: 'au?' }], false);
+      tarefas(d, [{ t: 'acao', a: 'acordar', dur: 0.9 }, { t: 'acao', a: 'shake', dur: 1 }, { t: 'virar', alvo: 'usuario' }, ehMaya(d) ? { t: 'acao', a: 'rosnar', dur: 0.8 } : { t: 'latir', n: 1, texto: 'au?' }], false);
       return;
     }
     if (d.ocupado) { balao(d, 'au!', 0.8); latido(d); return; }

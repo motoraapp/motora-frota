@@ -20,7 +20,7 @@ $CAES = [ordered]@{
     esc = @{ base = 1; boca_aberta = 0.99; olhos_fechados = 1; lingua = 1.08; andando_1 = 1; andando_2 = 1; bebendo = 1; comendo = 1.15; correndo_1 = 1.5; correndo_2 = 1.05
       deitando_transicao = 0.95; dormindo_deitado = 0.88; encostando_giro_frente = 1.06; fazendo_xixi = 1.05; latindo = 1.04; mexendo_cabeca = 1.08; rosnando = 0.95
       sentado = 1; sentindo_calor = 1; tremendo_frio = 0.95; virando_costas = 1.05 }
-    olha = @{} }
+    olha = @{ lingua = -1; virando_costas = -1 } }
   belinha = @{ pasta = 'pincher_caramelo'; prefixo = 'caramelo_'; ref = '2_pincher_caramelo_transparente.png'
     nomes = @{ '2_pincher_caramelo_transparente.png' = 'base'; '2_pincher_caramelo_boca_aberta_transparente.png' = 'boca_aberta'; '2_pincher_caramelo_olhos_fechados_transparente.png' = 'olhos_fechados' }
     esc = @{ base = 1; boca_aberta = 1.03; olhos_fechados = 1; andando_1 = 1; andando_2 = 0.97; andando_frente = 1.03; bebendo = 1; comendo = 1; correndo_1 = 1.25; correndo_2 = 1
@@ -34,7 +34,8 @@ $CAES = [ordered]@{
       bebendo = 1.05; comendo = 1; correndo_1 = 1.25; correndo_2 = 1.25; deitando_transicao = 0.95; dormindo_deitado = 1; encostando_giro_frente = 0.95
       fazendo_xixi = 1.08; latindo = 0.97; mexendo_cabeca = 1.05; pedindo_patas_no_ar = 1; pedindo_patas_no_ar_2 = 1; rosnando = 1.2; sentindo_calor = 0.85
       tremendo_frio = 1; virando_costas = 1.09 }
-    olha = @{ dormindo_deitado = -1; encostando_giro_frente = -1 } }
+    olha = @{ dormindo_deitado = -1; encostando_giro_frente = -1 }
+    liberar = @('sentado_olhos_fechados', 'sentado', 'boca_fechada', 'olhos_fechados', 'base', 'andando_1', 'andando_2', 'andando_frente', 'bebendo', 'comendo', 'correndo_1', 'correndo_2', 'deitando_transicao', 'dormindo_deitado', 'encostando_giro_frente', 'fazendo_xixi', 'latindo', 'mexendo_cabeca', 'pedindo_patas_no_ar_2', 'pedindo_patas_no_ar', 'rosnando', 'sentindo_calor', 'tremendo_frio', 'virando_costas') } # Maya: só estes desenhos entram; os novos dela ainda estão chegando (16/11/2026) - acrescente aqui quando ela terminar
 }
 
 # escalas: calculadas por ferramentas/caes-escalas.mjs (rode antes) e lidas do JSON; valem no lugar das de cima
@@ -64,6 +65,7 @@ foreach ($id in $CAES.Keys) {
   $lista = [ordered]@{}
   foreach ($f in (Get-ChildItem (Join-Path $origem $c.pasta) -Filter *_transparente.png | Sort-Object Name)) {
     $nome = if ($c.nomes.ContainsKey($f.Name)) { $c.nomes[$f.Name] } else { $f.Name.Replace($c.prefixo, '').Replace('_transparente.png', '') }
+    if ($c.liberar -and -not ($c.liberar -contains $nome)) { continue }
     if (-not $c.esc.ContainsKey($nome)) { throw "sem escala para $id/$nome" }
     $src = New-Object System.Drawing.Bitmap $f.FullName; $b = Caixa $src
     $sx = [Math]::Max(0, $b[0] - $PAD); $sy = [Math]::Max(0, $b[1] - $PAD); $sw = [Math]::Min($src.Width, $b[2] + $PAD + 1) - $sx; $sh = [Math]::Min($src.Height, $b[3] + $PAD + 1) - $sy

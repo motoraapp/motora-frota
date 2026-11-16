@@ -38,15 +38,18 @@ function lerPng(arq) {
 const PEDIDOS = {
   elvis: ['base', 'olhos_fechados', 'boca_aberta', 'lingua', 'sentado', 'mexendo_cabeca', 'andando_1', 'andando_2', 'correndo_1', 'correndo_2',
     'encostando_giro_frente', 'virando_costas', 'deitando_transicao', 'dormindo_deitado', 'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio',
-    'andando_passo_1', 'andando_passo_2', 'andando_passo_4', 'correndo_entre_1', 'correndo_entre_2', 'correndo_inicio', 'sentando_meio'],
+    'andando_passo_1', 'andando_passo_2', 'andando_passo_3', 'andando_passo_4', 'correndo_entre_1', 'correndo_entre_2', 'correndo_inicio', 'correndo_2_pouso', 'sentando_meio',
+    'acordando', 'costas_total', 'curioso', 'frente_total', 'meio_comer', 'pulo_pouso', 'pulo_prep'],
   belinha: ['base', 'olhos_fechados', 'boca_aberta', 'sentado', 'mexendo_cabeca', 'andando_1', 'andando_2', 'andando_frente', 'correndo_1', 'correndo_2',
-    'encostando_giro_frente', 'virando_costas', 'dormindo_deitado', 'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio'],
+    'encostando_giro_frente', 'virando_costas', 'dormindo_deitado', 'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio',
+    'andando_passo_1', 'andando_passo_2', 'andando_passo_3', 'correndo_entre_1', 'deitando_transicao', 'sentando_meio',
+    'acordando', 'costas_total', 'frente_total', 'meio_comer', 'pulo_pouso', 'pulo_prep'],
   maya: ['sentado', 'sentado_olhos_fechados', 'base', 'boca_fechada', 'olhos_fechados', 'mexendo_cabeca', 'pedindo_patas_no_ar', 'pedindo_patas_no_ar_2',
     'andando_1', 'andando_2', 'andando_frente', 'correndo_1', 'correndo_2', 'encostando_giro_frente', 'virando_costas', 'deitando_transicao', 'dormindo_deitado',
     'fazendo_xixi', 'latindo', 'rosnando', 'comendo', 'bebendo', 'sentindo_calor', 'tremendo_frio'],
 };
 
-await t('todos os sprites do dono existem (28 Elvis, 20 Belinha, 24 Maya), com o tamanho certo e fundo transparente', () => {
+await t('todos os sprites do dono existem (37 Elvis, 32 Belinha, 24 Maya), com o tamanho certo e fundo transparente', () => {
   for (const [id, nomes] of Object.entries(PEDIDOS)) {
     assert.ok(SPRITES[id], `sem sprites para ${id}`);
     assert.equal(Object.keys(SPRITES[id]).filter((n) => n !== '_ref').length, nomes.length, `${id}: quantidade de sprites`);
@@ -81,8 +84,9 @@ const sequencia = (lista) => lista.reduce((a, q) => { const k = q.s + (q.f < 0 ?
 await t('antes de dormir: volta completa no próprio eixo e depois deita (os três)', () => {
   for (const id of ['elvis', 'belinha', 'maya']) {
     const seq = sequencia(quadros(id, 'deitar', 1.4));
-    const fim = id === 'belinha' ? 'sentado' : 'deitando_transicao';
-    assert.deepEqual(seq.slice(1), ['encostando_giro_frente', 'encostando_giro_frente(esp)', 'virando_costas(esp)', 'virando_costas', fim], `${id}: ${seq.join(' > ')}`);
+    const volta = id === 'maya' ? ['encostando_giro_frente', 'encostando_giro_frente(esp)', 'virando_costas(esp)', 'virando_costas']
+      : ['encostando_giro_frente', 'frente_total', 'encostando_giro_frente(esp)', 'virando_costas(esp)', 'costas_total', 'virando_costas'];
+    assert.deepEqual(seq.slice(1), [...volta, 'deitando_transicao'], `${id}: ${seq.join(' > ')}`);
     assert.equal(quadroDe(cao(id, 'sleep', 1)).s, 'dormindo_deitado');
   }
 });
@@ -136,7 +140,9 @@ await t('andar um passo por vez (passo, em pé, outro passo, em pé) com sobe e 
   for (const id of ['elvis', 'belinha', 'maya']) {
     const w = []; for (let f = 0; f < Math.PI * 2; f += 0.02) w.push({ ...quadroDe(cao(id, 'walk', 0, { fase: f })) });
     const seq = sequencia(w);
-    if (id === 'elvis') { assert.equal(seq.length, 5, id + ': ' + seq.join(' > ')); assert.ok(seq.every((x) => x.startsWith('andando_')), id + ': ' + seq.join(' > ')); continue; } // 5 desenhos: a pata sobe e desce aos poucos
+    if (id !== 'maya') { // 4 desenhos, uma pata no ar de cada vez: trás cá, frente cá, trás lá, frente lá
+      assert.deepEqual(seq, id === 'elvis' ? ['andando_passo_1', 'andando_passo_2', 'andando_passo_3', 'andando_passo_4'] : ['andando_passo_1', 'andando_passo_2', 'andando_passo_3', 'andando_frente'], id + ': ' + seq.join(' > ')); continue;
+    }
     assert.equal(seq.length, 4, id + ': ' + seq.join(' > '));
     assert.ok(seq[0] === 'andando_1' && seq[2] === 'andando_2' && seq[1] === seq[3], id + ': ' + seq.join(' > '));
     assert.ok(Math.max(...w.map((q) => q.dy)) < 0.03, id + ': pulando demais ao andar');
@@ -171,7 +177,7 @@ await t('correr alterna os 2 desenhos com um saltinho na fase no ar; andar alter
     assert.ok(run.some((q) => q.s === 'correndo_1' && q.dy > 0.03), `${id}: sem salto na fase no ar`);
     assert.ok(run.every((q) => q.s !== 'correndo_2' || q.dy === 0), `${id}: correndo_2 é no chão`);
     const walk = []; for (let f = 0; f < Math.PI * 4; f += 0.05) walk.push(quadroDe(cao(id, 'walk', 0, { fase: f })).s);
-    assert.ok(walk.includes('andando_1') && walk.includes('andando_2'));
+    assert.ok(id !== 'maya' ? walk.includes('andando_passo_1') && walk.includes('andando_passo_3') : walk.includes('andando_1') && walk.includes('andando_2'));
   }
 });
 
@@ -261,6 +267,6 @@ await t('comer e beber: o nariz para no meio da vasilha (posição achada no des
   const m = readFileSync(join(raiz, 'ar/caes/dogs3d.js'), 'utf8'), d = readFileSync(join(raiz, 'ar/caes/desenho.js'), 'utf8');
   assert.ok(m.includes("fx = x + lado * bocaDe(d.cfg, tipo === 'comida' ? 'comendo' : 'bebendo')"), 'o cachorro tem que parar com o nariz no centro da vasilha');
   assert.ok(m.includes('tb.r = Math.max(17, d.tam * 0.34)'), 'vasilha do tamanho de quem come');
-  assert.ok(d.includes("seq([['comendo', 2300], [fechada, 420]]"), 'come com o focinho na vasilha quase o tempo todo');
+  assert.ok(d.includes("['comendo', 2100]") && d.includes("[['comendo', 2300], [fechada, 420]]"), 'come com o focinho na vasilha quase o tempo todo');
 });
 console.log(`\n${ok} testes ok`);

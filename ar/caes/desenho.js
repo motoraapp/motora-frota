@@ -46,8 +46,10 @@ function piscando(d) {
   const t = d.t + (d.sem || 0) * 1.7, per = 3.4, n = Math.floor(t / per), x = t - n * per - acaso(n, 9) * (per - 0.5);
   return (x > 0 && x < 0.1) || (acaso(n, 11) > 0.6 && x > 0.28 && x < 0.38);
 }
-const PASSOS = ['andando_passo_1', 'andando_passo_2', 'andando_2', 'andando_passo_4', 'andando_1']; // Elvis: a pata sobe e desce aos poucos
-const GALOPE = ['correndo_2', 'correndo_entre_1', 'correndo_inicio', 'correndo_entre_2', 'correndo_1'];
+// andar UM PASSO POR VEZ (uma pata no ar de cada vez): trás do lado de cá, frente do lado de cá, trás do lado de lá, frente do lado de lá
+const PASSOS = { elvis: ['andando_passo_1', 'andando_passo_2', 'andando_passo_3', 'andando_passo_4'], belinha: ['andando_passo_1', 'andando_passo_2', 'andando_passo_3', 'andando_frente'] };
+// galope em quadros: encolhido, saindo, impulso, esticando, esticado no ar, pousando
+const GALOPE = { elvis: ['correndo_2', 'correndo_entre_1', 'correndo_inicio', 'correndo_entre_2', 'correndo_1', 'correndo_2_pouso'], belinha: ['correndo_2', 'correndo_entre_1', 'correndo_1'] };
 const tem = (id, n) => !!SPRITES[id]?.[n];
 const quad = { s: 'base', f: 1, dx: 0, dy: 0, sy: 1 };
 
@@ -60,8 +62,8 @@ export function quadroDe(d) {
   switch (a) {
     case 'walk': case 'walkback': case 'sniff': { // um passo por vez: pata à frente, apoia (em pé), a outra pata, apoia (pedido do dono 16/11/2026)
       const u = ((d.fase / Math.PI) % 2 + 2) % 2;
-      if (tem(id, 'andando_passo_1')) { // Elvis: 5 desenhos, a pata da frente sobe e desce aos poucos (um passo de cada vez)
-        q.s = PASSOS[Math.floor(u / 2 * PASSOS.length) % PASSOS.length]; q.dy = 0.014 * Math.abs(Math.sin(d.fase * 2.5)); break;
+      if (PASSOS[id]) { // Elvis e Belinha: 4 desenhos, uma pata no ar de cada vez (o passo de verdade)
+        q.s = PASSOS[id][Math.floor(u / 2 * 4) % 4]; q.dy = 0.012 * Math.abs(Math.sin(d.fase * 2)); break;
       }
       const meio = fechada;
       q.s = u < 0.5 ? 'andando_1' : u < 1 ? meio : u < 1.5 ? 'andando_2' : meio;
@@ -69,8 +71,8 @@ export function quadroDe(d) {
     }
     case 'run': { // galope: 1 = esticado no ar (sobe um pouco), 2 = encolhido no chão
       const s = Math.sin(d.fase);
-      if (tem(id, 'correndo_inicio')) { // Elvis: galope em 5 desenhos (encolhido, pousando, impulso, esticando, esticado no ar)
-        const u = ((d.fase / (Math.PI * 2)) % 1 + 1) % 1; q.s = GALOPE[Math.floor(u * GALOPE.length) % GALOPE.length]; q.dy = q.s === 'correndo_1' ? 0.07 : q.s === 'correndo_entre_2' ? 0.03 : 0; break;
+      if (GALOPE[id]) { // Elvis (6 desenhos) e Belinha (3): galope em vários quadros
+        const g = GALOPE[id], u = ((d.fase / (Math.PI * 2)) % 1 + 1) % 1; q.s = g[Math.floor(u * g.length) % g.length]; q.dy = q.s === 'correndo_1' ? 0.07 : q.s === 'correndo_entre_2' || q.s === 'correndo_entre_1' ? 0.03 : 0; break;
       }
       q.s = s >= 0 ? 'correndo_1' : 'correndo_2'; q.dy = s >= 0 ? 0.07 * s : 0; break;
     }
@@ -86,16 +88,18 @@ export function quadroDe(d) {
     case 'bark': { const k = (t % 0.45) / 0.45, au = k < 0.32 ? Math.sin((k / 0.32) * Math.PI) : 0; q.s = 'latindo'; q.dx = -1.2 * au; q.dy = 0.012 * au; break; }
     case 'rosnar': q.s = 'rosnando'; q.dx = Math.sin(d.t * 70) * 0.6; break;
     // come/bebe com o focinho na vasilha quase o tempo todo (balançando de leve); só de vez em quando levanta a cabeça
-    case 'eat': q.s = seq([['comendo', 2300], [fechada, 420]], t)[0]; if (q.s === 'comendo') q.dx = Math.sin(d.t * 18) * 0.8; break;
-    case 'drink': q.s = seq([['bebendo', 2300], [fechada, 420]], t)[0]; if (q.s === 'bebendo') q.dx = Math.sin(d.t * 22) * 0.6; break;
+    case 'eat': q.s = seq(tem(id, 'meio_comer') ? [['meio_comer', 200], ['comendo', 2100], ['meio_comer', 200], [fechada, 420]] : [['comendo', 2300], [fechada, 420]], t)[0]; if (q.s === 'comendo') q.dx = Math.sin(d.t * 18) * 0.8; break;
+    case 'drink': q.s = seq(tem(id, 'meio_comer') ? [['meio_comer', 200], ['bebendo', 2100], ['meio_comer', 200], [fechada, 420]] : [['bebendo', 2300], [fechada, 420]], t)[0]; if (q.s === 'bebendo') q.dx = Math.sin(d.t * 22) * 0.6; break;
     case 'peeM': case 'peeF': q.s = 'fazendo_xixi'; break;
-    case 'jump': { const k = Math.min(1, t / 0.8); q.s = k > 0.15 && k < 0.85 ? 'correndo_2' : 'base'; q.dy = Math.sin(Math.PI * k) * 0.5; break; }
-    case 'hop': { const ar = Math.abs(Math.sin(t * 7)); q.s = ar > 0.4 ? 'correndo_2' : aberta; q.dy = ar * 0.16; break; }
+    case 'jump': { const k = Math.min(1, t / 0.8); // agacha (pulo_prep), sobe esticado, desce com as patas da frente na frente (pulo_pouso)
+      q.s = tem(id, 'pulo_prep') ? (k < 0.18 ? 'pulo_prep' : k < 0.5 ? 'correndo_1' : k < 0.88 ? 'pulo_pouso' : 'pulo_prep') : (k > 0.15 && k < 0.85 ? 'correndo_2' : 'base'); q.dy = Math.sin(Math.PI * k) * 0.5; break; }
+    case 'hop': { const ar = Math.abs(Math.sin(t * 7)); q.s = ar > 0.4 ? (tem(id, 'pulo_pouso') ? 'pulo_pouso' : 'correndo_2') : (tem(id, 'pulo_prep') ? 'pulo_prep' : aberta); q.dy = ar * 0.16; break; }
     case 'playbow': q.s = tem(id, 'deitando_transicao') ? 'deitando_transicao' : 'latindo'; break;
     case 'fight': q.s = seq([['rosnando', 220], ['latindo', 160], ['correndo_2', 200]], t)[0]; if (q.s === 'correndo_2') q.dy = 0.06; break;
     case 'tug': q.s = seq([['rosnando', 95], [fechada, 95]], t)[0]; q.dx = Math.sin(d.t * 18) * 1.2; break; // morde: abre e fecha a boca
     case 'wiggle': q.s = seq([[aberta, 170], [fechada, 170]], t)[0]; q.dx = Math.sin(d.t * 16) * 2; break;
-    case 'tilt': case 'cabeca': q.s = seq([['mexendo_cabeca', 320], [fechada, 260]], t)[0]; break; // mexe a cabeça
+    case 'tilt': case 'cabeca': q.s = seq(tem(id, 'curioso') ? [['curioso', 900], ['mexendo_cabeca', 320], [fechada, 200]] : [['mexendo_cabeca', 320], [fechada, 260]], t)[0]; break; // curioso / mexe a cabeça
+    case 'acordar': q.s = tem(id, 'acordando') ? 'acordando' : tem(id, 'deitando_transicao') ? 'deitando_transicao' : fechada; break; // levanta a cabeça ao acordar
     case 'shake': q.s = seq([['mexendo_cabeca', 70], [fechada, 70]], t)[0]; q.dx = t < 1.1 ? Math.sin(d.t * 45) * 2 : 0; break;
     case 'encostar': q.s = 'encostando_giro_frente'; break;
     // pedir comida: a Maya fica de pé nas 2 patas com as patinhas junto do peito (NÃO ergue os braços: o desenho _2 não é usado,
@@ -104,14 +108,16 @@ export function quadroDe(d) {
     case 'frente': q.s = tem(id, 'andando_frente') ? 'andando_frente' : 'encostando_giro_frente'; break;
     case 'lingua': q.s = tem(id, 'lingua') ? 'lingua' : aberta; break;
     case 'rodar': case 'deitar': { // volta completa no próprio eixo (deitar: termina deitando)
-      const giro = [['encostando_giro_frente', 1], ['encostando_giro_frente', -1], ['virando_costas', -1], ['virando_costas', 1]];
-      const passo = 0.2, i = Math.floor(t / passo);
+      // com os desenhos de frente_total/costas_total (Elvis e Belinha) a volta tem 6 quadros; senão 4
+      const giro = tem(id, 'frente_total') ? [['encostando_giro_frente', 1], ['frente_total', 1], ['encostando_giro_frente', -1], ['virando_costas', -1], ['costas_total', 1], ['virando_costas', 1]]
+        : [['encostando_giro_frente', 1], ['encostando_giro_frente', -1], ['virando_costas', -1], ['virando_costas', 1]];
+      const passo = tem(id, 'frente_total') ? 0.18 : 0.2, i = Math.floor(t / passo);
       if (a === 'deitar') {
         if (i === 0) { q.s = fechada; break; }
-        if (i <= 4) { q.s = giro[i - 1][0]; q.f = giro[i - 1][1]; break; }
+        if (i <= giro.length) { q.s = giro[i - 1][0]; q.f = giro[i - 1][1]; break; }
         q.s = tem(id, 'deitando_transicao') ? 'deitando_transicao' : 'sentado'; break;
       }
-      const g = giro[i % 4]; q.s = g[0]; q.f = g[1]; break;
+      const g = giro[i % giro.length]; q.s = g[0]; q.f = g[1]; break;
     }
     default: // parado: pisca
       q.s = piscando(d) ? 'olhos_fechados' : fechada;

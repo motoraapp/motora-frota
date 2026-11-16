@@ -27,12 +27,31 @@ const CAES = {
     nomes: { '4_shih_tzu_de_pe_transparente.png': 'base', '4_shih_tzu_de_pe_boca_fechada_transparente.png': 'boca_fechada', '4_shih_tzu_de_pe_olhos_fechados_transparente.png': 'olhos_fechados', '3_shih_tzu_transparente.png': 'sentado', '3_shih_tzu_olhos_fechados_transparente.png': 'sentado_olhos_fechados' } },
 };
 // ajustes à mão (multiplicam o cálculo): poses em que a cor-marca não aparece bem ou o desenho é de outro enquadramento
-const AJUSTES = { elvis: {}, belinha: { virando_costas: 1.05, tremendo_frio: 0.95 }, maya: { sentado: 0.85, sentado_olhos_fechados: 0.85 } };
+const AJUSTES = { elvis: {}, belinha: {}, maya: {} };
 // valores FIXOS (ignoram o cálculo): poses em que a régua da cor-marca engana (cabeça de costas ou muito virada)
 const FIXOS = {
-  elvis: { virando_costas: 1.05, latindo: 0.96 },
-  belinha: { mexendo_cabeca: 0.98, latindo: 0.95, rosnando: 1.05, virando_costas: 1.05, andando_1: 0.98, andando_2: 1.0, andando_frente: 1.0, sentado: 0.93, sentindo_calor: 1.0, correndo_1: 1.15, correndo_2: 1.3 },
-  maya: { latindo: 0.94, andando_1: 1.08, andando_2: 1.0, andando_frente: 1.05, bebendo: 1.0, comendo: 1.08, fazendo_xixi: 1.1, deitando_transicao: 0.95, correndo_1: 1.2, correndo_2: 1.2, encostando_giro_frente: 0.9, sentindo_calor: 0.82 },
+  elvis: {
+    lingua: 0.94, andando_1: 1.00, andando_2: 0.95, andando_passo_1: 0.99, andando_passo_2: 0.99, andando_passo_4: 0.97,
+    bebendo: 0.97, comendo: 0.98, correndo_1: 1.22, correndo_2: 1.18, correndo_entre_1: 0.97, correndo_entre_2: 1.10, correndo_inicio: 1.06,
+    deitando_transicao: 1.00, dormindo_deitado: 1.00, encostando_giro_frente: 0.96, fazendo_xixi: 1.00,
+    latindo: 0.96, mexendo_cabeca: 1.00, rosnando: 0.92, sentado: 1.00, sentando_meio: 0.99, sentindo_calor: 1.00, tremendo_frio: 1.00, virando_costas: 0.96,
+    // desenhos novos de 16/11/2026: já vêm no MESMO enquadramento do em pé (topo y100, pés y949) = escala 1,00
+    acordando: 1, andando_passo_3: 1, correndo_2_pouso: 1, costas_total: 1, curioso: 1, frente_total: 1, meio_comer: 1, pulo_pouso: 1, pulo_prep: 1,
+  },
+  belinha: {
+    andando_1: 0.96, andando_2: 0.94, andando_frente: 0.99, bebendo: 1.01, comendo: 1.02,
+    correndo_1: 1.15, correndo_2: 1.26, dormindo_deitado: 0.97, encostando_giro_frente: 1.00, fazendo_xixi: 1.00,
+    latindo: 0.95, mexendo_cabeca: 0.98, rosnando: 0.89, sentado: 0.99, sentindo_calor: 1.00, tremendo_frio: 0.98, virando_costas: 0.98,
+    // desenhos novos de 16/11/2026: já vêm no MESMO enquadramento do em pé (topo y100, pés y949) = escala 1,00
+    acordando: 1, andando_passo_1: 1, andando_passo_2: 1, andando_passo_3: 1, correndo_entre_1: 1, costas_total: 1, deitando_transicao: 1, frente_total: 1, meio_comer: 1, pulo_pouso: 1, pulo_prep: 1, sentando_meio: 1,
+  },
+  maya: {
+    sentado: 0.94, sentado_olhos_fechados: 0.94,
+    andando_1: 0.96, andando_2: 0.94, andando_frente: 0.93, bebendo: 1.00, comendo: 0.96,
+    correndo_1: 1.04, correndo_2: 1.12, deitando_transicao: 0.97, dormindo_deitado: 1.05, encostando_giro_frente: 0.96, fazendo_xixi: 1.03,
+    latindo: 0.95, mexendo_cabeca: 1.00, pedindo_patas_no_ar: 1.00, pedindo_patas_no_ar_2: 1.00,
+    rosnando: 1.02, sentindo_calor: 0.95, tremendo_frio: 1.05, virando_costas: 1.02,
+  },
 };
 const res = {};
 for (const [id, c] of Object.entries(CAES)) {
