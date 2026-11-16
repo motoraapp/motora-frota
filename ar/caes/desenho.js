@@ -81,9 +81,9 @@ export function quadroDe(d) {
     case 'curl': case 'shiver': // frio: deitado encolhido, tremendo (±1,5 px a cada ~45 ms)
       q.s = 'tremendo_frio'; q.dx = (Math.floor(d.t * 1000 / 45) % 2 ? 1.5 : -1.5); break;
     case 'pant': q.s = 'sentindo_calor'; q.sy = 1 + 0.015 * Math.sin(d.t * Math.PI * 2 * 2.2); break; // calor: ofegando (0,985 a 1,015)
-    // latir: só a boca abre e fecha, com desenhos de corpo igual (patas paradas; o desenho 'latindo' tem as patas em outra
-    // posição e parecia mexer a pata, pedido do dono 16/11/2026)
-    case 'bark': q.s = seq([[aberta, 160], [fechada, 140], [aberta, 160], [fechada, 240]], t)[0]; break;
+    // latir: o desenho de LATINDO (boca aberta gritando, não a língua de fora) mantido o latido todo, sem trocar de pose (as patas não
+    // mexem); a cada 'au' (0,45 s) o corpo dá um impulso curto para trás e para cima
+    case 'bark': { const k = (t % 0.45) / 0.45, au = k < 0.32 ? Math.sin((k / 0.32) * Math.PI) : 0; q.s = 'latindo'; q.dx = -1.2 * au; q.dy = 0.012 * au; break; }
     case 'rosnar': q.s = 'rosnando'; q.dx = Math.sin(d.t * 70) * 0.6; break;
     // come/bebe com o focinho na vasilha quase o tempo todo (balançando de leve); só de vez em quando levanta a cabeça
     case 'eat': q.s = seq([['comendo', 2300], [fechada, 420]], t)[0]; if (q.s === 'comendo') q.dx = Math.sin(d.t * 18) * 0.8; break;

@@ -124,7 +124,9 @@ await t('Maya com fome: de pé nas 2 patas SEM erguer os braços (só o desenho 
   assert.ok(!/'pedindo_patas_no_ar_2'/.test(src), 'desenho.js não pode usar o desenho de braços erguidos');
   // latir (e pedir dos pinschers, rebolar): a boca abre e fecha sem mexer as patas = só desenhos do mesmo corpo do em pé
   const mesmoCorpo = { elvis: ['base', 'boca_aberta', 'olhos_fechados'], belinha: ['base', 'boca_aberta', 'olhos_fechados'], maya: ['base', 'boca_fechada', 'olhos_fechados'] };
-  for (const id of ['elvis', 'belinha', 'maya']) for (const a of ['bark', 'wiggle', ...(id === 'maya' ? [] : ['pedir'])]) {
+  // latir: SEMPRE o desenho de latindo (boca gritando; a língua de fora era errada), parado, sem trocar de pose
+  for (const id of ['elvis', 'belinha', 'maya']) assert.deepEqual(sequencia(quadros(id, 'bark', 3)), ['latindo'], id + ' latindo');
+  for (const id of ['elvis', 'belinha', 'maya']) for (const a of ['wiggle', ...(id === 'maya' ? [] : ['pedir'])]) {
     const seq = sequencia(quadros(id, a, 3));
     assert.ok(seq.length >= 4 && seq.every((x) => mesmoCorpo[id].includes(x)), id + '/' + a + ': ' + seq.join(' > '));
   }
