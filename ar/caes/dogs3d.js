@@ -519,13 +519,13 @@ export function iniciarCachorros(op = {}) {
       tg.scale.setScalar(34); tg.position.set(x, -y, y); cena.add(tg);
       tigelas.push({ g: tg, cont });
     } else {
-      tg = { x, y, tipo, cheio: 1 }; tigelas.push(tg);
+      tg = { x, y, tipo, cheio: 1, r: 0 }; tigelas.push(tg);
     }
     const campo = tipo === 'comida' ? 'fome' : 'sede';
     const cand = caes.filter((d) => !eventoAtivo || !eventoAtivo.caes.includes(d) || true);
     const d = cand.sort((a, b) => (nec.de(b.cfg.id)[campo] - Math.hypot(b.x - x, b.y - y) * 0.05) - (nec.de(a.cfg.id)[campo] - Math.hypot(a.x - x, a.y - y) * 0.05))[0];
     if (eventoAtivo?.caes.includes(d)) { eventoAtivo.caes.forEach((c) => { if (c !== d) tarefas(c, voltarParaCasa(c)); }); eventoAtivo = null; }
-    const lado = d.x < x ? -1 : 1, fx = x + lado * bocaDe(d.cfg, tipo === 'comida' ? 'comendo' : 'bebendo') * 0.9, fy = y + 2; // para com o focinho dentro da tigela
+    const lado = d.x < x ? -1 : 1, fx = x + lado * bocaDe(d.cfg, tipo === 'comida' ? 'comendo' : 'bebendo'), fy = y + 2; // para com o NARIZ no meio da vasilha
     const pre = d.visivel ? [] : [{ t: 'aparecer', ...borda(lado, fy, d) }];
     const fim = () => {
       nec.alimentar(d.cfg.id, tipo); op.aoAlimentar?.(nec.resumo());
@@ -535,7 +535,7 @@ export function iniciarCachorros(op = {}) {
     tarefas(d, [...pre, { t: 'ir', x: fx, y: fy, modo: Math.hypot(d.x - fx, d.y - fy) > 160 ? 'run' : 'walk' }, { t: 'virar', ang: lado > 0 ? -PI / 2 : PI / 2 },
       { t: 'acao', a: tipo === 'comida' ? 'eat' : 'drink', dur: 3.6 }, { t: 'fn', f: fim }, { t: 'virar', alvo: 'usuario' },
       { t: 'fn', f: () => { d.alegria = 1; balao(d, tipo === 'comida' ? 'nham!' : 'slurp!', 1); } }, { t: 'acao', a: tipo === 'comida' ? 'wiggle' : 'shake', dur: 1.2 }, { t: 'acao', a: 'idle', dur: 0.3 }, ...voltarParaCasa(d)]);
-    const tb = tigelas[tigelas.length - 1]; tb.dono = d; tb.campo = tipo;
+    const tb = tigelas[tigelas.length - 1]; tb.dono = d; tb.campo = tipo; tb.r = Math.max(17, d.tam * 0.34); // vasilha do tamanho de quem come
   }
   function removerTigela(tg) {
     if (!gl) { const j = tigelas.indexOf(tg); if (j >= 0) tigelas.splice(j, 1); return; }

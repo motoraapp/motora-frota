@@ -5,6 +5,7 @@
 // da caixa do desenho, então a troca de quadro não dá salto.
 // O que cada ação mostra (e os efeitos: tremor no frio, respiração no calor, piscar) fica em `quadroDe`.
 import { SPRITES } from './sprites-dados.js';
+import { NARIZ } from './narizes.js';
 
 const ALT = 1.3; // altura do cachorro em pé = tamanho × 1,3 (as escalas de sempre: Elvis 54, Belinha 66, Maya 80)
 export const alturaCabeca = () => ALT;
@@ -27,8 +28,8 @@ export function precarregar(cfgs) {
 }
 // o quadro ainda não carregou: mantém o último que já apareceu (nunca mostra outro desenho por engano)
 const ultimo = new Map();
-// quanto a boca fica à frente do meio do cachorro (px na tela) numa pose: para parar com o focinho dentro da tigela
-export function bocaDe(cfg, pose) { const S = SPRITES[cfg.id], p = S && S[pose]; return p ? ((p[4] < 0 ? p[2] : p[0] - p[2]) - 10 * p[0] / 300) * (cfg.tamanho * ALT / S._ref) : cfg.tamanho * 0.5; }
+// quanto o NARIZ fica à frente do meio do corpo numa pose (px na tela): o cachorro para com o nariz dentro da vasilha
+export function bocaDe(cfg, pose) { const S = SPRITES[cfg.id], n = NARIZ[cfg.id] && NARIZ[cfg.id][pose]; return n == null ? cfg.tamanho * 0.5 : n * (cfg.tamanho * ALT / S._ref); }
 export function larguraDe(cfg) { const s = SPRITES[cfg.id]?.base; return s ? s[0] / s[1] : 0.75; }
 
 // ---------- qual quadro mostrar ----------
@@ -84,8 +85,9 @@ export function quadroDe(d) {
     // posição e parecia mexer a pata, pedido do dono 16/11/2026)
     case 'bark': q.s = seq([[aberta, 160], [fechada, 140], [aberta, 160], [fechada, 240]], t)[0]; break;
     case 'rosnar': q.s = 'rosnando'; q.dx = Math.sin(d.t * 70) * 0.6; break;
-    case 'eat': q.s = seq([['comendo', 900], [fechada, 380]], t)[0]; break;   // come e levanta a cabeça
-    case 'drink': q.s = seq([['bebendo', 900], [fechada, 380]], t)[0]; break;
+    // come/bebe com o focinho na vasilha quase o tempo todo (balançando de leve); só de vez em quando levanta a cabeça
+    case 'eat': q.s = seq([['comendo', 2300], [fechada, 420]], t)[0]; if (q.s === 'comendo') q.dx = Math.sin(d.t * 18) * 0.8; break;
+    case 'drink': q.s = seq([['bebendo', 2300], [fechada, 420]], t)[0]; if (q.s === 'bebendo') q.dx = Math.sin(d.t * 22) * 0.6; break;
     case 'peeM': case 'peeF': q.s = 'fazendo_xixi'; break;
     case 'jump': { const k = Math.min(1, t / 0.8); q.s = k > 0.15 && k < 0.85 ? 'correndo_2' : 'base'; q.dy = Math.sin(Math.PI * k) * 0.5; break; }
     case 'hop': { const ar = Math.abs(Math.sin(t * 7)); q.s = ar > 0.4 ? 'correndo_2' : aberta; q.dy = ar * 0.16; break; }
@@ -144,8 +146,8 @@ export function desenharCao(c, d, lado = 1, comSombra = true) {
 // tigela com a comida (grãozinhos de ração) ou a água (com brilho) DENTRO dela; desenhada na frente do cachorro, então o focinho
 // fica dentro da tigela. cheio: 1 cheia … 0 vazia (vai baixando enquanto ele come/bebe)
 export function desenharTigela(c, t) {
-  const r = 17, borda = '#3a2418';
-  c.save(); c.translate(t.x, t.y);
+  const r = 17, borda = '#3a2418', k = (t.r || 17) / 17;
+  c.save(); c.translate(t.x, t.y); c.scale(k, k); // vasilha do tamanho do cachorro que come nela
   c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 2, r * 1.15, r * 0.35, 0, 0, 7); c.fill();
   // boca da tigela (lá dentro) e conteúdo
   c.fillStyle = '#7d2a22'; c.beginPath(); c.ellipse(0, -10, r, r * 0.36, 0, 0, 7); c.fill();

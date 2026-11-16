@@ -156,8 +156,8 @@ await t('xixi: Elvis de pata levantada, Belinha e Maya agachadas; comer e beber 
   assert.equal(quadroDe(cao('belinha', 'peeF', 1)).s, 'fazendo_xixi');
   assert.equal(quadroDe(cao('maya', 'peeF', 1)).s, 'fazendo_xixi');
   for (const id of ['elvis', 'belinha', 'maya']) for (const [a, s] of [['eat', 'comendo'], ['drink', 'bebendo']]) {
-    const seq = sequencia(quadros(id, a, 4));
-    assert.ok(seq.filter((x) => x === s).length >= 3 && seq.filter((x) => x !== s).length >= 2, `${id}/${a}: ${seq.join(' > ')}`);
+    const seq = sequencia(quadros(id, a, 6)); // vasilha quase o tempo todo, pausa de cabeça erguida a cada ~2,7 s
+    assert.ok(seq.filter((x) => x === s).length >= 2 && seq.filter((x) => x !== s).length >= 1, `${id}/${a}: ${seq.join(' > ')}`);
   }
 });
 
@@ -245,5 +245,16 @@ await t('virar a cabeça não muda o tamanho do corpo; passo devagar o bastante 
   const div = +m.match(/modo === 'run' \? 0\.55 : (0\.\d+)\)\)\) \* PI/)[1];
   // cada quadro do passo = PI/2 de fase = tam*div/2 px; na velocidade de andar do mais agitado (tam*(0,95+0,35)) tem que durar >= 0,17 s
   assert.ok((div / 2) / (0.95 + 0.35) >= 0.17, `quadro de passo dura só ${((div / 2) / 1.3).toFixed(2)} s`);
+});
+// regressão de 16/11/2026: "eles estão com a cara fora da vasilha e deve ser dentro"
+await t('comer e beber: o nariz para no meio da vasilha (posição achada no desenho) e a vasilha é do tamanho do cachorro', async () => {
+  const { NARIZ } = await import('../../ar/caes/narizes.js');
+  for (const id of ['elvis', 'belinha', 'maya']) for (const p of ['comendo', 'bebendo']) {
+    assert.ok(typeof NARIZ[id]?.[p] === 'number' && NARIZ[id][p] > 20, `${id}/${p}: sem a posição do nariz (rode ferramentas/caes-nariz.mjs)`);
+  }
+  const m = readFileSync(join(raiz, 'ar/caes/dogs3d.js'), 'utf8'), d = readFileSync(join(raiz, 'ar/caes/desenho.js'), 'utf8');
+  assert.ok(m.includes("fx = x + lado * bocaDe(d.cfg, tipo === 'comida' ? 'comendo' : 'bebendo')"), 'o cachorro tem que parar com o nariz no centro da vasilha');
+  assert.ok(m.includes('tb.r = Math.max(17, d.tam * 0.34)'), 'vasilha do tamanho de quem come');
+  assert.ok(d.includes("seq([['comendo', 2300], [fechada, 420]]"), 'come com o focinho na vasilha quase o tempo todo');
 });
 console.log(`\n${ok} testes ok`);
