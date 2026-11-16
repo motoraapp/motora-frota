@@ -31,8 +31,8 @@ const AJUSTES = { elvis: {}, belinha: { virando_costas: 1.05, tremendo_frio: 0.9
 // valores FIXOS (ignoram o cálculo): poses em que a régua da cor-marca engana (cabeça de costas ou muito virada)
 const FIXOS = {
   elvis: { virando_costas: 1.05, latindo: 0.96 },
-  belinha: { mexendo_cabeca: 0.98, latindo: 0.95, rosnando: 1.05, virando_costas: 1.05, andando_1: 1.05, andando_2: 1.0, andando_frente: 1.05, sentado: 1.0, sentindo_calor: 1.0, correndo_1: 1.25, correndo_2: 1.2 },
-  maya: { latindo: 0.94, andando_1: 1.0, andando_2: 1.0, andando_frente: 1.0, bebendo: 1.0, comendo: 1.0, deitando_transicao: 0.95, correndo_1: 1.25, correndo_2: 1.25, encostando_giro_frente: 0.9, sentindo_calor: 0.82 },
+  belinha: { mexendo_cabeca: 0.98, latindo: 0.95, rosnando: 1.05, virando_costas: 1.05, andando_1: 0.98, andando_2: 1.0, andando_frente: 1.0, sentado: 0.93, sentindo_calor: 1.0, correndo_1: 1.15, correndo_2: 1.3 },
+  maya: { latindo: 0.94, andando_1: 1.08, andando_2: 1.0, andando_frente: 1.05, bebendo: 1.0, comendo: 1.08, fazendo_xixi: 1.1, deitando_transicao: 0.95, correndo_1: 1.2, correndo_2: 1.2, encostando_giro_frente: 0.9, sentindo_calor: 0.82 },
 };
 const res = {};
 for (const [id, c] of Object.entries(CAES)) {
