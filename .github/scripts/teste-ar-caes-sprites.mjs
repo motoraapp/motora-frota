@@ -5,7 +5,7 @@
 //  - o mesmo cachorro tem o mesmo tamanho em todas as poses (escala calibrada: a régua é a largura da caixa da cabeça... aqui
 //    simplificado: nenhuma pose passa de 1,6x a altura do em pé nem fica menor que 0,3x);
 //  - qual quadro cada ação mostra (quadroDe): volta completa antes de deitar, tremor de ±1,5 px a cada ~45 ms no frio,
-//    respiração entre 0,985 e 1,015 no calor, piscar de 80 a 120 ms, Maya pedindo nas 2 patas alternando os 2 desenhos,
+//    respiração entre 0,985 e 1,015 no calor, piscar de 80 a 120 ms, Maya pedindo nas 2 patas só com o desenho de patinhas no peito,
 //    Elvis de pata levantada e as meninas agachadas no xixi, comer/beber com pausa de cabeça erguida, latido alternando;
 //  - rota.js: andar SÓ na horizontal; trocar de altura só fora da tela (sai pela lateral e entra de novo na faixa nova);
 //  - dogs3d.js: o motor usa a rota e nunca muda a altura do cachorro andando (regressão).
@@ -150,7 +150,8 @@ await t('Elvis nunca rosna para a Maya; comida e água dentro da tigela com o fo
   assert.ok(!/a: '(rosnar|fight)'/.test(rosnaSemRegra), 'na briga, rosnar/brigar só depois de checar o Elvis com a Maya');
   assert.ok(m.includes("bocaDe(d.cfg, tipo === 'comida' ? 'comendo' : 'bebendo')"), 'o cachorro tem que parar com a boca na tigela');
   const q = m.slice(m.indexOf('function quadro('));
-  assert.ok(q.indexOf('desenharTigela(c2') > q.indexOf('desenharCao(c2'), 'a tigela vem na frente do cachorro (focinho dentro dela)');
+  const fundo = q.indexOf("desenharTigela(c2, tb, 'fundo')"), cao = q.indexOf('desenharCao(c2'), frente = q.indexOf("desenharTigela(c2, tb, 'frente')");
+  assert.ok(fundo > 0 && fundo < cao && cao < frente, 'o fundo da vasilha vem ANTES do cachorro e a parede da frente DEPOIS (o focinho entra na vasilha)');
 });
 
 await t('xixi: Elvis de pata levantada, Belinha e Maya agachadas; comer e beber com pausa de cabeça erguida', () => {
@@ -229,7 +230,8 @@ await t('virar a cabeça não muda o tamanho do corpo; passo devagar o bastante 
   // mais coincidem (pés na mesma linha, encaixe do app) e exige que seja 1,00 ± 0,03
   for (const id of ['elvis', 'belinha', 'maya']) {
     const ref = id === 'maya' ? 'boca_fechada' : 'base', R = SPRITES[id][ref], rb = lerPng(join(raiz, 'ar/caes/img/sprites', id, ref + '.png'));
-    for (const n of ['mexendo_cabeca', 'latindo']) {
+    const posesCorpo = ['mexendo_cabeca', 'latindo', 'olhos_fechados', id === 'maya' ? 'base' : 'boca_aberta', ...(id === 'elvis' ? ['lingua'] : [])];
+    for (const n of posesCorpo) {
       const P = SPRITES[id][n], pb = lerPng(join(raiz, 'ar/caes/img/sprites', id, n + '.png')), esp = P[4] < 0, corte = R[3] - R[1] * 0.55;
       let melhor = [0, 1];
       for (let sc = 0.85; sc <= 1.1501; sc += 0.01) {
@@ -243,6 +245,8 @@ await t('virar a cabeça não muda o tamanho do corpo; passo devagar o bastante 
       assert.ok(Math.abs(melhor[1] - 1) <= 0.03 + 1e-9, `${id}/${n}: o corpo fica ${((1 / melhor[1] - 1) * 100).toFixed(0)}% maior/menor que no em pé`);
     }
   }
+  // Maya sentada piscando nao pode mudar de tamanho
+  assert.ok(Math.abs(SPRITES.maya.sentado[1] - SPRITES.maya.sentado_olhos_fechados[1]) <= 3, 'Maya sentada muda de tamanho ao piscar');
   const m = readFileSync(join(raiz, 'ar/caes/dogs3d.js'), 'utf8');
   const div = +m.match(/modo === 'run' \? 0\.55 : (0\.\d+)\)\)\) \* PI/)[1];
   // cada quadro do passo = PI/2 de fase = tam*div/2 px; na velocidade de andar do mais agitado (tam*(0,95+0,35)) tem que durar >= 0,17 s

@@ -143,30 +143,33 @@ export function desenharCao(c, d, lado = 1, comSombra = true) {
   c.restore();
 }
 
-// tigela com a comida (grãozinhos de ração) ou a água (com brilho) DENTRO dela; desenhada na frente do cachorro, então o focinho
-// fica dentro da tigela. cheio: 1 cheia … 0 vazia (vai baixando enquanto ele come/bebe)
-export function desenharTigela(c, t) {
-  const r = 17, borda = '#3a2418', k = (t.r || 17) / 17;
-  c.save(); c.translate(t.x, t.y); c.scale(k, k); // vasilha do tamanho do cachorro que come nela
-  c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 2, r * 1.15, r * 0.35, 0, 0, 7); c.fill();
-  // boca da tigela (lá dentro) e conteúdo
-  c.fillStyle = '#7d2a22'; c.beginPath(); c.ellipse(0, -10, r, r * 0.36, 0, 0, 7); c.fill();
-  if (t.cheio > 0.04) {
-    c.save(); c.beginPath(); c.ellipse(0, -10, r - 1.5, r * 0.36 - 1, 0, 0, 7); c.clip();
-    const nivel = -10 + (1 - t.cheio) * 5;
-    if (t.tipo === 'comida') {
-      c.fillStyle = '#7a4a22'; c.fillRect(-r, nivel - 1, r * 2, 20);
-      for (let k = 0; k < 22; k++) { const a = k * 2.4, rr = (k % 7) / 7; const x = Math.cos(a) * (r - 4) * rr, y = nivel + 0.5 + Math.sin(a) * 3.5 * rr;
-        c.fillStyle = k % 3 ? '#a8692f' : '#8c5426'; c.beginPath(); c.ellipse(x, y, 2.6, 1.8, a, 0, 7); c.fill(); }
-    } else {
-      c.fillStyle = '#4fb3f0'; c.fillRect(-r, nivel - 1, r * 2, 20);
-      c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(-4, nivel + 1, 5, 1.3, -0.1, 0, 7); c.fill();
+// vasilha com a comida (grãozinhos de ração) ou a água (com brilho) DENTRO dela, em DUAS partes para o focinho entrar nela:
+// parte 'fundo' (sombra, interior e conteúdo) é desenhada ANTES do cachorro; parte 'frente' (a parede da frente) DEPOIS dele,
+// cobrindo a parte de baixo do focinho. cheio: 1 cheia … 0 vazia (vai baixando enquanto ele come/bebe)
+export function desenharTigela(c, t, parte = 'tudo') {
+  const r = 17, borda = '#3a2418', k = (t.r || 17) / 17, cy = -13; // cy: altura do centro da boca da vasilha
+  c.save(); c.translate(t.x, t.y); c.scale(k, k);
+  if (parte !== 'frente') {
+    c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 2, r * 1.15, r * 0.35, 0, 0, 7); c.fill();
+    c.fillStyle = '#7d2a22'; c.beginPath(); c.ellipse(0, cy, r, r * 0.36, 0, 0, 7); c.fill();
+    if (t.cheio > 0.04) {
+      c.save(); c.beginPath(); c.ellipse(0, cy, r - 1.5, r * 0.36 - 1, 0, 0, 7); c.clip();
+      const nivel = cy + (1 - t.cheio) * 5;
+      if (t.tipo === 'comida') {
+        c.fillStyle = '#7a4a22'; c.fillRect(-r, nivel - 1, r * 2, 20);
+        for (let q = 0; q < 22; q++) { const a = q * 2.4, rr = (q % 7) / 7; const x = Math.cos(a) * (r - 4) * rr, y = nivel + 0.5 + Math.sin(a) * 3.5 * rr;
+          c.fillStyle = q % 3 ? '#a8692f' : '#8c5426'; c.beginPath(); c.ellipse(x, y, 2.6, 1.8, a, 0, 7); c.fill(); }
+      } else {
+        c.fillStyle = '#4fb3f0'; c.fillRect(-r, nivel - 1, r * 2, 20);
+        c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(-4, nivel + 1, 5, 1.3, -0.1, 0, 7); c.fill();
+      }
+      c.restore();
     }
-    c.restore();
   }
-  // parede da frente da tigela (cobre a parte de baixo do focinho)
-  c.fillStyle = '#d94f45'; c.strokeStyle = borda; c.lineWidth = 1.5;
-  c.beginPath(); c.moveTo(-r, -10); c.lineTo(-r * 0.78, 0); c.quadraticCurveTo(0, 3, r * 0.78, 0); c.lineTo(r, -10); c.ellipse(0, -10, r, r * 0.36, 0, 0, Math.PI); c.closePath(); c.fill(); c.stroke();
-  c.strokeStyle = '#f28a80'; c.lineWidth = 1.2; c.beginPath(); c.ellipse(0, -10, r, r * 0.36, 0, 0.15, Math.PI - 0.15); c.stroke();
+  if (parte !== 'fundo') { // parede da frente: cobre a parte de baixo do focinho
+    c.fillStyle = '#d94f45'; c.strokeStyle = borda; c.lineWidth = 1.5;
+    c.beginPath(); c.moveTo(-r, cy); c.lineTo(-r * 0.78, 0); c.quadraticCurveTo(0, 3, r * 0.78, 0); c.lineTo(r, cy); c.ellipse(0, cy, r, r * 0.36, 0, 0, Math.PI); c.closePath(); c.fill(); c.stroke();
+    c.strokeStyle = '#f28a80'; c.lineWidth = 1.2; c.beginPath(); c.ellipse(0, cy, r, r * 0.36, 0, 0.15, Math.PI - 0.15); c.stroke();
+  }
   c.restore();
 }

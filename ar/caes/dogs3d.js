@@ -559,9 +559,10 @@ export function iniciarCachorros(op = {}) {
     if (gl) renderer.render(cena, camera);
     else {
       c2.setTransform(pr2, 0, 0, pr2, 0, 0); c2.clearRect(0, 0, W(), H());
+      for (const tb of tigelas) desenharTigela(c2, tb, 'fundo'); // fundo da vasilha antes do cachorro...
       ordem.sort(porY);
       for (const d of ordem) if (d.visivel) desenharCao(c2, d, d.lado);
-      for (const tb of tigelas) desenharTigela(c2, tb); // na frente: o focinho fica dentro da tigela
+      for (const tb of tigelas) desenharTigela(c2, tb, 'frente'); // ...e a parede da frente depois: o focinho entra na vasilha
     }
   }
   const porY = (a, b) => a.y - b.y;
