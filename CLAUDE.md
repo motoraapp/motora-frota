@@ -1,5 +1,10 @@
 # MOTORA — instruções para o Claude
 
+## REGRA DO DONO (17/11/2026): SEMPRE PROCURE UM SKILL ANTES DE AGIR
+- Antes de qualquer ação (ler código, mudar, publicar, consultar o banco, responder sobre como algo está), confira a lista de skills disponíveis e chame com a ferramenta `Skill` todos os que servem para o pedido. Só depois siga.
+- Skills do projeto (`.claude/skills/`): **`mudar-motora`** (mudar ou corrigir qualquer coisa, inclusive o app do ar e a placa), **`publicar-motora`** (colocar no ar: site, banco, funções, robô, placa), **`ver-motora`** (como está algo agora, com uma consulta). Agentes (`.claude/agents/`): `localizador`, `leitor-funcao`, `testador`.
+- Se nenhum skill servir, diga isso ao dono em uma linha antes de continuar.
+
 ## Como achar o código (economizar tokens) — LEIA ANTES DE MUDAR QUALQUER COISA
 - **`GUIA-CODIGO.md`**: índice por assunto (arquivo + nome das funções/telas). **`MAPA-LINHAS.md`**: linha de cada função (gerado por `node ferramentas/mapa.mjs`; rode de novo depois de mudar código).
 - Ache o nome no guia → `Grep` no mapa ou no arquivo → `Read` só o trecho (offset/limit). **Nunca leia o `index.html` inteiro.**
