@@ -115,13 +115,14 @@ const T1='Quando o quarto passar 1 °C da temperatura escolhida, a placa liga o 
  T1v19='No horário escolhido, se o quarto estiver <b>acima</b> da temperatura escolhida, a placa liga o ar no <b>Frio</b> e vai regulando conforme o quarto esfria: 3 °C ou mais acima, <b>16° com turbo e ventilação 3</b>; de 1,5 a 3 °C acima, 18° com ventilação 3; de 0,5 a 1,5 °C acima, 2° abaixo da escolhida com ventilação 2; perto dela, a escolhida com ventilação 1 (no máximo uma troca por minuto). Se o quarto estiver nessa temperatura ou abaixo, não liga. Se você mexer na temperatura, no modo, na ventilação ou no turbo, ela para de regular. ',
  T1v20='Se lá fora estiver 3 °C ou mais frio do que o quarto, ela <b>não liga</b> o ar e avisa no celular para abrir a janela. ',
  T2='Quando o quarto ficar 1 °C abaixo, ela <b>desliga</b>, mas só se foi o automático que ligou: se você ligou o ar, ele continua ligado. Tudo só dentro do horário escolhido. ',
- T3='Se você desligar o ar, ela só liga de novo depois que o quarto esfriar.';
+ T3='Se você desligar o ar, ela só liga de novo depois que o quarto esfriar.',
+ T3v22='Se você desligar o ar, ela só liga de novo depois que o quarto esfriar ou no próximo horário escolhido.';
 // Seta: compara com a última leitura diferente (guardada no aparelho). Vermelha ▲ = esquentando, verde ▼ = esfriando.
 let TQ=null;try{TQ=JSON.parse(localStorage.getItem('tq'))}catch(e){}
 const hh=d=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 function seta(t){if(!TQ||typeof TQ.t!=='number')TQ={t:t,d:0};else if(t!==TQ.t)TQ={t:t,d:t>TQ.t?1:-1,de:TQ.t,em:Date.now()};else return;try{localStorage.setItem('tq',JSON.stringify(TQ))}catch(e){}}
 window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)>=3,v19=(S.fw||0)>=19;
- $('atxt').innerHTML=(v19?T1v19:v3?T1v3:T1)+((S.fw||0)>=20?T1v20:'')+(novo?T2.replace('1 °C',(S.fw||0)>=7?'2 °C':'1 °C'):'')+T3;
+ $('atxt').innerHTML=(v19?T1v19:v3?T1v3:T1)+((S.fw||0)>=20?T1v20:'')+(novo?T2.replace('1 °C',(S.fw||0)>=7?'2 °C':'1 °C'):'')+((S.fw||0)>=22?T3v22:T3);
  if(q){const t=Number(q.t),em=new Date(typeof DEV!=='undefined'&&DEV&&DEV.last_seen?DEV.last_seen:Date.now());seta(t);
   const s=TQ.d?'<span title="'+(TQ.d>0?'Subiu':'Desceu')+' de '+f(TQ.de)+' °C às '+hh(new Date(TQ.em))+'" aria-label="'+(TQ.d>0?'subindo':'descendo')+'" style="color:'+(TQ.d>0?'#ff6961':'#30d158')+';font-weight:700">'+(TQ.d>0?' ▲':' ▼')+'</span>':'';
   sala.innerHTML='Quarto agora: '+f(t)+' °C'+s+' · umidade '+Number(q.u)+'%<br><small>Última leitura às '+hh(em)+'</small>'}

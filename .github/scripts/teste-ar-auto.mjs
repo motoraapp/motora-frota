@@ -45,6 +45,9 @@ caso('sem leitura do sensor não faz nada', rodar([[30, false, { leitura: false 
 caso('desligado pela pessoa: só liga de novo depois que o quarto esfriar',
   rodar([[26, true], [26, false, { manual: false }], [26, false], [24, false], [25, false]]),
   ['nada', 'nada', 'nada', 'nada', 'ligar']);
+caso('versão 22: desligado pela pessoa com o quarto sempre quente, liga de novo no próximo horário',
+  rodar([[25, true], [25, false, { manual: false }], [25, false], [25, false, { horario: false }], [25, false]]),
+  ['nada', 'nada', 'nada', 'nada', 'ligar']);
 
 // Desligar (novo)
 caso('desliga quando cai 2 °C abaixo (pedido do dono, 14/11/2026), se foi o automático que ligou',

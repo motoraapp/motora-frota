@@ -23,7 +23,9 @@ int regraAuto(AutoMem &e, bool ativo, bool temLeitura, float quarto, int alvo, b
   if (!temLeitura) return AUTO_NADA;
   if (e.espera && quarto <= alvo) e.espera = false;
   if (!arLigado) e.ligou = false;
-  if (!noHorario) return AUTO_NADA;
+  // Versão 22: a espera acaba quando o horário termina. Antes só acabava com o quarto na temperatura escolhida, e com
+  // uma escolhida que o quarto nunca alcança sozinho (ex.: 19 °C em Goiânia) o automático nunca mais ligava.
+  if (!noHorario) { e.espera = false; return AUTO_NADA; }
   if (!arLigado && !e.espera && quarto > alvo) { e.ligou = true; return AUTO_LIGAR; }  // acima da temperatura escolhida (versão 3)
   if (arLigado && e.ligou && quarto <= alvo - 2) { e.ligou = false; return AUTO_DESLIGAR; }  // versão 7: 2 °C abaixo (pedido do dono)
   return AUTO_NADA;

@@ -36,6 +36,36 @@ jobs:
             git show FETCH_HEAD:index.html | sed -E 's#https://[a-z0-9]+\.supabase\.co#https://teste.invalid#g' > _site/teste/index.html
           fi
           ls -la _site
+      # Placa do ar (desde a versão 22): se a versão do código (FW_VERSAO) ainda não tem gree-vN.bin no repositório,
+      # compila aqui e publica no site junto com o versao.json novo. Se a compilação falhar, o site sai com a versão anterior.
+      - name: Placa do ar - precisa compilar?
+        id: placa
+        run: |
+          V=$(sed -n 's/^#define FW_VERSAO \([0-9]*\).*/\1/p' ar/firmware/gree-esp32/gree-esp32.ino)
+          echo "v=$V" >> "$GITHUB_OUTPUT"
+          if [ -n "$V" ] && [ ! -f "ar/firmware/gree-v$V.bin" ]; then echo "precisa=1" >> "$GITHUB_OUTPUT"; else echo "precisa=0" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.placa.outputs.precisa == '1'
+        uses: actions/setup-python@v5
+        continue-on-error: true
+        with:
+          python-version: '3.12'
+      - if: steps.placa.outputs.precisa == '1'
+        uses: arduino/setup-arduino-cli@v2
+        continue-on-error: true
+      - name: Placa do ar - compilar a versão nova
+        if: steps.placa.outputs.precisa == '1'
+        continue-on-error: true
+        run: |
+          V=${{ steps.placa.outputs.v }}
+          pip install pyserial
+          U=https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index --additional-urls $U
+          arduino-cli core install esp32:esp32@2.0.17 --additional-urls $U
+          arduino-cli lib install "IRremoteESP8266@2.8.6" "DHT sensor library@1.4.6" "Adafruit Unified Sensor@1.1.15" "ArduinoJson@7.2.1"
+          arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs --output-dir build ar/firmware/gree-esp32
+          cp build/gree-esp32.ino.bin "_site/ar/firmware/gree-v$V.bin"
+          printf '{"versao":%s,"url":"https://motoraapp.github.io/motora-frota/ar/firmware/gree-v%s.bin"}\n' "$V" "$V" > _site/ar/firmware/versao.json
+          ls -la "_site/ar/firmware/gree-v$V.bin"; cat _site/ar/firmware/versao.json
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

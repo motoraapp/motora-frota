@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 21
+#define FW_VERSAO 22
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";

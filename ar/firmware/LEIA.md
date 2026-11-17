@@ -9,6 +9,7 @@ Código da placa em `gree-esp32/` (reescrito em 13/11/2026; o código da versão
 - `web.h`: páginas do app de casa. Os blocos de horários, automático, aparelho e atualização são iguais aos de `ar/index.html` (o `verificar.mjs` confere). Mudou um, mude o outro.
 - **Leitura do quarto (14/11/2026):** o bloco "Sensor do quarto" mostra "Última leitura às HH:MM" (app de fora: `DEV.last_seen`; app de casa: hora do aparelho) e uma seta comparando com a última leitura diferente, guardada no aparelho (`localStorage` `tq`): vermelha ▲ = esquentando, verde ▼ = esfriando. Só a tela mudou; no app de casa entra quando sair uma versão nova da placa.
 - **Segurar volume (14/11/2026):** no bloco "TV AOC", segurar Volume + ou − repete o botão (0,45 s, depois a cada 0,3 s, no máximo 40 por toque; `REP`, `pararRep`). No app de fora os comandos chegam em lotes a cada 3 s (a placa busca a cada 3 s) e valem os limites do `ar_send` (60 por minuto). Só a tela mudou.
+- **Versão 22 (17/11/2026):** a espera do automático (depois que a pessoa desliga o ar) acaba também quando o horário escolhido termina (`regraAuto` em `regras.h`, testada). Antes só acabava com o quarto na temperatura escolhida; com uma escolhida que o quarto não alcança sozinho (ex.: 19 °C), o automático nunca mais ligava. Compilada e publicada pelo `pages.yml` (passo "Placa do ar"), sem o PC.
 - **Versão 17 (14/11/2026):** barra de volume da TV: `{tvVol:N}` (a placa conta o volume em `tv_vol` e dá um toque a cada 200 ms; o 1º toque com o volume escondido só mostra, regra `volDepois`), `{tvVolZerar:true}`, `{tvVolDefinir:N}`; estado `tv.v`/`tv.va`.
 - **Versão 16 (14/11/2026):** o `HTTPClient` da busca é `static`: local, o destrutor fechava a conexão e cada busca abria uma conexão segura nova (~3,3 s). Agora a conexão fica aberta entre as buscas.
 - **Versão 15 (14/11/2026):** diário da busca no estado (`sy`: tempo da última e da maior, quantas reusaram a conexão e quantas abriram nova).
@@ -36,6 +37,8 @@ Núcleo **esp32 2.0.17** (o mesmo da versão 1), partições **min_spiffs**, bib
 O workflow `verificar.yml` (tarefa `placa-ar`) compila a cada push.
 
 ## Publicar uma versão nova
+
+**Sem o PC (desde a versão 22):** aumente `FW_VERSAO` no `.ino` e publique na `main`. Se não existir `gree-vN.bin` para esse número, o `pages.yml` compila a placa, publica `ar/firmware/gree-vN.bin` e troca o `versao.json` do site (o do repositório fica como está; se a compilação falhar, o site continua com a versão anterior). Depois mande `{"ota":"now"}` em `ar.cmd`. A imagem completa (placa nova) continua sendo gerada no PC.
 
 1. Aumente `FW_VERSAO` no `.ino` e compile.
 2. Copie `build/gree-esp32.ino.bin` para `gree-vN.bin` e gere a imagem completa (`esptool merge_bin`: bootloader 0x1000, partições 0x8000, boot_app0 0xe000, programa 0x10000).
