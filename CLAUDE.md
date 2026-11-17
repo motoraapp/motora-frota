@@ -1,5 +1,8 @@
 # MOTORA — instruções para o Claude
 
+## REGRA DO DONO (17/11/2026): RESPONDA SEMPRE EM PORTUGUÊS
+- Toda resposta ao dono é em português do Brasil, simples e sem termos técnicos, inclusive mensagens curtas, avisos de andamento e resumos. Nunca responder em inglês, nem parcialmente.
+
 ## REGRA DO DONO (17/11/2026): SEMPRE PROCURE UM SKILL ANTES DE AGIR
 - Antes de qualquer ação (ler código, mudar, publicar, consultar o banco, responder sobre como algo está), confira a lista de skills disponíveis e chame com a ferramenta `Skill` todos os que servem para o pedido. Só depois siga.
 - Skills do projeto (`.claude/skills/`): **`mudar-motora`** (mudar ou corrigir qualquer coisa, inclusive o app do ar e a placa), **`publicar-motora`** (colocar no ar: site, banco, funções, robô, placa), **`ver-motora`** (como está algo agora, com uma consulta). Agentes (`.claude/agents/`): `localizador`, `leitor-funcao`, `testador`.
