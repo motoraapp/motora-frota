@@ -4,7 +4,7 @@
 - Toda resposta ao dono é em português do Brasil, simples e sem termos técnicos, inclusive mensagens curtas, avisos de andamento e resumos. Nunca responder em inglês, nem parcialmente.
 
 ## Pasta deste projeto no computador
-- **PC Marola:** caminho da cópia do `motora-frota` **ainda não confirmado**. Quem rodar no PC: troque esta linha pelo caminho completo (ex.: `C:\Users\<usuário>\Desktop\Thiago\motora-frota`).
+- **PC Marola:** `C:\Users\User\Desktop\Thiago\motora-frota` (pasta criada em 17/11/2026; se não existir, baixe com `git clone https://github.com/motoraapp/motora-frota.git` dentro de `C:\Users\User\Desktop\Thiago`).
 - **GitHub:** `motoraapp/motora-frota`.
 
 ## REGRA DO DONO (17/11/2026): TODO PROJETO TEM O CAMINHO DA PASTA NO CLAUDE.md
@@ -12,12 +12,12 @@
 
 ## REGRA DO DONO (17/11/2026): ANOTE AQUI O CAMINHO DE TODA PASTA DO COMPUTADOR
 - Sempre que usar, criar ou descobrir uma pasta ou arquivo no PC do dono (computador **Marola**), escreva neste `CLAUDE.md`, na lista abaixo, o caminho completo (ex.: `C:\Users\<usuário>\Desktop\Thiago\...`) e para que serve. Se mudar de lugar, corrija. Assim ninguém precisa procurar de novo.
-- **Pastas conhecidas no PC** (caminho a partir da pasta do usuário; confirme o começo `C:\Users\<usuário>\` quando estiver no PC e complete aqui):
+- **Pastas conhecidas no PC** (a pasta do usuário é `C:\Users\User\`):
   - `Desktop\Thiago\MOTORA\Robo-MOTORA` — robô do WhatsApp que roda de verdade (`LIGAR-ROBO.bat`).
   - `Desktop\Thiago\MOTORA\Robo-BB\codigo-guardado` — robô do Banco do Brasil (pausado).
   - `Desktop\Thiago\animacao` — desenhos dos cachorros (sprites).
   - `Desktop\Thiago\cachorro` — origem da página "Cachorros articulados".
-  - Cópia deste repositório (`motora-frota`) no PC: **ainda não anotada**.
+  - `Desktop\Thiago\motora-frota` — cópia deste repositório.
   - Projeto da placa do ar: hoje fica neste repositório (`ar/firmware/gree-esp32`); o compilador fica em `%LOCALAPPDATA%\Programs\Arduino IDE`.
 
 ## REGRA DO DONO (17/11/2026): SEMPRE PROCURE UM SKILL ANTES DE AGIR
