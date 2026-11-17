@@ -3,6 +3,13 @@
 ## REGRA DO DONO (17/11/2026): RESPONDA SEMPRE EM PORTUGUÊS
 - Toda resposta ao dono é em português do Brasil, simples e sem termos técnicos, inclusive mensagens curtas, avisos de andamento e resumos. Nunca responder em inglês, nem parcialmente.
 
+## Pasta deste projeto no computador
+- **PC Marola:** caminho da cópia do `motora-frota` **ainda não confirmado**. Quem rodar no PC: troque esta linha pelo caminho completo (ex.: `C:\Users\<usuário>\Desktop\Thiago\motora-frota`).
+- **GitHub:** `motoraapp/motora-frota`.
+
+## REGRA DO DONO (17/11/2026): TODO PROJETO TEM O CAMINHO DA PASTA NO CLAUDE.md
+- Em todo projeto em que o dono trabalhar, o `CLAUDE.md` precisa ter, no começo, a seção **"Pasta deste projeto no computador"** com o caminho completo da pasta no PC e o repositório do GitHub. Se o projeto ainda não tem `CLAUDE.md`, crie um com essa seção. Se o caminho não for conhecido, escreva "ainda não confirmado" e complete assim que souber.
+
 ## REGRA DO DONO (17/11/2026): ANOTE AQUI O CAMINHO DE TODA PASTA DO COMPUTADOR
 - Sempre que usar, criar ou descobrir uma pasta ou arquivo no PC do dono (computador **Marola**), escreva neste `CLAUDE.md`, na lista abaixo, o caminho completo (ex.: `C:\Users\<usuário>\Desktop\Thiago\...`) e para que serve. Se mudar de lugar, corrija. Assim ninguém precisa procurar de novo.
 - **Pastas conhecidas no PC** (caminho a partir da pasta do usuário; confirme o começo `C:\Users\<usuário>\` quando estiver no PC e complete aqui):
