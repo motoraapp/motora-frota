@@ -3,6 +3,16 @@
 ## REGRA DO DONO (17/11/2026): RESPONDA SEMPRE EM PORTUGUÊS
 - Toda resposta ao dono é em português do Brasil, simples e sem termos técnicos, inclusive mensagens curtas, avisos de andamento e resumos. Nunca responder em inglês, nem parcialmente.
 
+## REGRA DO DONO (17/11/2026): ANOTE AQUI O CAMINHO DE TODA PASTA DO COMPUTADOR
+- Sempre que usar, criar ou descobrir uma pasta ou arquivo no PC do dono (computador **Marola**), escreva neste `CLAUDE.md`, na lista abaixo, o caminho completo (ex.: `C:\Users\<usuário>\Desktop\Thiago\...`) e para que serve. Se mudar de lugar, corrija. Assim ninguém precisa procurar de novo.
+- **Pastas conhecidas no PC** (caminho a partir da pasta do usuário; confirme o começo `C:\Users\<usuário>\` quando estiver no PC e complete aqui):
+  - `Desktop\Thiago\MOTORA\Robo-MOTORA` — robô do WhatsApp que roda de verdade (`LIGAR-ROBO.bat`).
+  - `Desktop\Thiago\MOTORA\Robo-BB\codigo-guardado` — robô do Banco do Brasil (pausado).
+  - `Desktop\Thiago\animacao` — desenhos dos cachorros (sprites).
+  - `Desktop\Thiago\cachorro` — origem da página "Cachorros articulados".
+  - Cópia deste repositório (`motora-frota`) no PC: **ainda não anotada**.
+  - Projeto da placa do ar: hoje fica neste repositório (`ar/firmware/gree-esp32`); o compilador fica em `%LOCALAPPDATA%\Programs\Arduino IDE`.
+
 ## REGRA DO DONO (17/11/2026): SEMPRE PROCURE UM SKILL ANTES DE AGIR
 - Antes de qualquer ação (ler código, mudar, publicar, consultar o banco, responder sobre como algo está), confira a lista de skills disponíveis e chame com a ferramenta `Skill` todos os que servem para o pedido. Só depois siga.
 - Skills do projeto (`.claude/skills/`): **`mudar-motora`** (mudar ou corrigir qualquer coisa, inclusive o app do ar e a placa), **`publicar-motora`** (colocar no ar: site, banco, funções, robô, placa), **`ver-motora`** (como está algo agora, com uma consulta). Agentes (`.claude/agents/`): `localizador`, `leitor-funcao`, `testador`.
