@@ -30,7 +30,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 22
+#define FW_VERSAO 23
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -170,6 +170,10 @@ void enviar(const Estado &e, int proto) {
   st.light = e.light; st.turbo = e.turbo; st.clean = e.xfan; st.sleep = e.sleep ? 0 : -1; st.beep = true;
   irrecv.disableIRIn();  // não ler o próprio sinal
   ac.sendAc(st, nullptr);
+  // Versão 23 (dono: "às vezes obedece, às vezes não"): no Gree o comando leva o estado inteiro (ligado, modo,
+  // temperatura), então mandar a mesma coisa 2 vezes não muda nada no ar e dá uma 2ª chance se a 1ª se perdeu.
+  // Só no Gree: em outras marcas um botão pode ser "liga/desliga" e 2 vezes desfaria o comando.
+  if (proto == (int)decode_type_t::GREE) { delay(150); ac.sendAc(st, nullptr); }
   irrecv.enableIRIn();
   Serial.printf("TX: %s %s %d\n", typeToString((decode_type_t)proto).c_str(), e.power ? "liga" : "desliga", e.temp);
 }
