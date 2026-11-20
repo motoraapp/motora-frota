@@ -136,7 +136,14 @@ async function send(p){
   const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
 }
 const MOMENTO=['tvVol','tvVolZerar','tvVolDefinir','mimi','tvDesligar','scan','ota','tecla','tvAprender','tvEsquecer','tvBusca','tvFam'];  // comandos de um toque: não aparecem no estado da placa
-function matches(st,p){ return Object.keys(p).every(k=>k==='mimi'?!!(st&&st.mimi&&st.power):MOMENTO.includes(k)||(st&&JSON.stringify(st[k])===JSON.stringify(p[k]))); }
+// Compara sem depender da ordem dos campos: o banco (jsonb) reordena e o texto nunca batia (horários e automático travavam 60 s).
+function igual(a,b){ if(a===b) return true; if(!a||!b||typeof a!=='object'||typeof b!=='object') return false; if(Array.isArray(a)!==Array.isArray(b)) return false;
+  const ka=Object.keys(a),kb=Object.keys(b); return ka.length===kb.length&&ka.every(k=>igual(a[k],b[k])); }
+function matches(st,p){ return Object.keys(p).every(k=>{
+  if(k==='mimi') return !!(st&&st.power&&st.mimi&&st.mimi.f===1&&(st.mimi.r||0)>7080);  // fase 1 que acabou de começar
+  if(MOMENTO.includes(k)) return true; if(!st) return false;
+  if(k==='auto') return !!st.auto&&['on','alvo','de','ate'].every(c=>igual(st.auto[c],p.auto[c]));  // ligou/fx/jan a placa muda sozinha
+  return igual(st[k],p[k]); }); }
 async function refresh(){
   const {data,error}=await sb.rpc('ar_status'); if(error){ msg(errTxt(error)); return; }
   if(!data||!data.length){ DEV=null; view('vPair'); return; }
@@ -163,7 +170,8 @@ $('bPair').onclick=async()=>{ const c=$('code').value.replace(/\D/g,''); if(c.le
 const sair=async()=>{ clearInterval(timer); await sb.auth.signOut(); DEV=null; view('vLogin'); msg(''); };
 $('bSair1').onclick=sair; $('bSair2').onclick=sair;
 $('bUnpair').onclick=async()=>{ if($('bUnpair').dataset.c!=='1'){ $('bUnpair').dataset.c='1'; $('bUnpair').textContent='Toque de novo para confirmar'; return; }
-  await sb.rpc('ar_unpair',{p_id:DEV.id}); $('bUnpair').dataset.c=''; $('bUnpair').textContent='Desligar a placa desta conta'; loop(); };
+  $('bUnpair').dataset.c=''; $('bUnpair').textContent='Desligar a placa desta conta'; if(!DEV) return;
+  const {error}=await sb.rpc('ar_unpair',{p_id:DEV.id}); if(error){ msg(errTxt(error)); return; } loop(); };
 $('p').onclick=()=>send({power:!S.power});
 // Siri: cria a chave (só o dono) e mostra o passo a passo do atalho.
 $('bSiri').onclick=async()=>{ const b=$('bSiri');
@@ -195,8 +203,10 @@ $('bAvisos').onclick=async()=>{ const b=$('bAvisos'); b.disabled=true;
     const r=await sb.functions.invoke('ar-aviso',{body:{teste:true}}); msg(r.data&&r.data.sent?'Pronto! Mandei um aviso de teste para este celular.':'Avisos ativados.');
   }catch(e){ msg(errTxt(e)); }
   b.disabled=false; avStatus(); };
-$('mimi').onclick=()=>{ Object.assign(S,{power:true,mode:1,temp:20,fan:3,turbo:true}); send({mimi:true}); S.mimi={f:1,r:7200}; ui(); };
-document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>send({temp:Math.min(30,Math.max(16,S.temp+ +b.dataset.d))}));
+$('mimi').onclick=()=>{ if(!DEV) return; Object.assign(S,{power:true,mode:1,temp:20,fan:3,turbo:true}); send({mimi:true}); S.mimi={f:1,r:7200}; ui(); };
+let tempEspera=null;
+document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{ if(!DEV) return; S.temp=Math.min(30,Math.max(16,S.temp+ +b.dataset.d)); pend={p:{temp:S.temp},at:Date.now()}; ui();
+  clearTimeout(tempEspera); tempEspera=setTimeout(()=>send({temp:S.temp}),700); });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&DEV) refresh(); });
 // Horários programados: mesma tela no app de casa (src/web.h) e no de fora (motora-frota/ar). Usa S, send() e ui() de cada app.
 (function(){
@@ -242,8 +252,9 @@ const gP2=n=>String(n).padStart(2,'0'),gIso=d=>d.getFullYear()+'-'+gP2(d.getMont
 const gMES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'],gSEM=['dom','seg','ter','qua','qui','sex','sáb'];
 const gHm=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),gH=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h'+(m%60?' '+gP2(m%60):'')};
 // ar_fora: {agora:{em,t,ceu}, horas:[{em,t}] (últimas 25 h), dias:[{dia,max,ceu}]} (máxima medida de cada dia; hoje = até agora).
-async function carregarFora(de,ate){ const k=gIso(de)+gIso(ate); if(FR&&FR.k===k&&Date.now()-wxUlt<300000) return;
-  try{ const {data,error}=await sb.rpc('ar_fora',{p_de:gIso(de),p_ate:gIso(ate)}); if(error||!data) return; wxUlt=Date.now(); FR=data; FR.k=k;
+let foraPedido='';
+async function carregarFora(de,ate){ const k=gIso(de)+gIso(ate); if(FR&&FR.k===k&&Date.now()-wxUlt<300000) return; foraPedido=k;
+  try{ const {data,error}=await sb.rpc('ar_fora',{p_de:gIso(de),p_ate:gIso(ate)}); if(error||!data||foraPedido!==k) return; wxUlt=Date.now(); FR=data; FR.k=k;
     WXd={}; (data.dias||[]).forEach(d=>{WXd[d.dia]={max:+d.max,c:d.ceu||''}}); mostrarFora(); }catch(e){} }
 function mostrarFora(){ const s=$('sala'),a=FR&&FR.agora; if(!s||!a) return; let e=$('fora'); if(!e){ e=document.createElement('div'); e.id='fora'; s.after(e); }
   e.textContent='Lá fora: '+gVg(+a.t)+' °C'+(a.ceu?', '+a.ceu:'')+' (aeroporto de Goiânia, às '+gHm(a.em)+')'; }
@@ -257,7 +268,7 @@ async function carregarGraf(){ gUlt=Date.now(); const pedido=gModo+gDesl+gMet;
   const [r1,r2]=await Promise.all([sb.rpc('ar_temp_periodo',a),sb.rpc('ar_uso_periodo',a),carregarFora(de,ate)]);
   if(pedido===gModo+gDesl+gMet){ if(!r1.error) GD=r1.data||[]; if(!r2.error) GU=r2.data||[]; desenharGraf(); } }
 function gItens(){const [de,ate]=gFaixa(),hoje=gIso(new Date()),it=[],uso=gMet==='uso';
-  const val=(r,u)=>uso?(u?u.seg/3600:null):(r?+r.max:null);
+  const val=(r,u)=>uso?(u&&u.seg?u.seg/3600:null):(r?+r.max:null);
   if(gModo==='ano'){for(let m=0;m<12;m++){const ds=GD.filter(x=>+x.dia.slice(5,7)===m+1),us=GU.filter(x=>+x.dia.slice(5,7)===m+1);let r=null;ds.forEach(x=>{if(!r||+x.max>+r.max)r=x});
     const mn=ds.length?Math.min(...ds.map(x=>+x.min)):null,nome=gMES[m]+'/'+de.getFullYear(),seg=us.reduce((a,x)=>a+x.seg,0);
     it.push({a:gMES[m],b:'',v:uso?(seg?seg/3600:null):(r?+r.max:null),h:!uso&&r?gHm(r.max_em):'',atual:m===new Date().getMonth()&&gDesl===0,quando:uso?nome:(r?r.dia.slice(8)+'/'+r.dia.slice(5,7):''),
