@@ -21,8 +21,8 @@ jobs:
         run: node .github/scripts/verificar.mjs
       - name: Teste de regressão da lentidão (recarga sem consultas em fila)
         run: node .github/scripts/teste-recarga.mjs
-      - name: Teste do modo automático do ar-condicionado (liga e desliga)
-        run: node .github/scripts/teste-ar-auto.mjs
+      - name: Teste das regras da placa do ar (A mimi, volume da TV; automático retirado)
+        run: node .github/scripts/teste-ar-regras.mjs
       - name: Teste da Siri do Nossa casinha (frase vira comando)
         run: node .github/scripts/teste-ar-siri.mjs
       - name: Teste do protocolo ADB da TV Box (pacotes, teclas, texto seguro)

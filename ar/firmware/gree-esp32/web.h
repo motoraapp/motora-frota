@@ -91,46 +91,20 @@ $('hadd').onclick=()=>{const l=lista();if(l.length>=8){$('hmsg').textContent='M�
 const u0=ui;ui=function(){u0();renderHor()};
 })();
 
-// Sensor do quarto + modo automático: mesma tela no app de casa e no de fora. Usa S, send() e ui() de cada app.
+// Sensor do quarto: mesma tela no app de casa e no de fora. Usa S e ui() de cada app. O modo automático saiu na placa versão 24 (pedido do dono, 20/11/2026).
 (function(){
 const big=document.querySelector('.t'),sala=document.createElement('div');sala.id='sala';sala.style.cssText='color:#a1a1a6;font-size:15px;margin:2px 0 14px;text-align:center;line-height:1.4';(big.closest('.clima')||big).after(sala);
-const box=document.createElement('details');box.id='aut';document.getElementById('hor').before(box);
-const st=document.createElement('style');st.textContent='#aut input{background:rgba(255,255,255,.1);color:#f5f5f7;border:0;border-radius:12px;padding:14px;font-size:16px;flex:1;min-width:0}'+
-'#atog{width:100%;font-size:17px}#atog.on{background:#30d158;color:#06140d}#aalvo{font-size:34px;font-weight:300;min-width:90px;text-align:center}#aut .r{align-items:center}';document.head.append(st);
-box.innerHTML='<summary>Modo automático (sensor do quarto)</summary>'+
-'<p id="atxt"></p>'+
-'<div class="r"><button id="atog">Automático: desligado</button></div>'+
-'<p><b>Temperatura que eu quero no quarto</b></p><div class="r"><button id="amenos" aria-label="Diminuir">−</button><span id="aalvo">24°</span><button id="amais" aria-label="Aumentar">+</button></div>'+
-'<p><b>Vale só neste horário</b></p><div class="r"><input id="ade" type="time" aria-label="Começa"><span>até</span><input id="aate" type="time" aria-label="Termina"></div>'+
-'<p id="ainfo"></p>';
-const $=i=>document.getElementById(i),p2=n=>String(n).padStart(2,'0'),hm=m=>p2(Math.floor(m/60))+':'+p2(m%60),mn=v=>{const[a,b]=(v||'').split(':').map(Number);return isNaN(a)||isNaN(b)?null:a*60+b};
-const A=()=>({on:false,alvo:24,de:480,ate:1200,...(S.auto||{})}),put=c=>send({auto:{...A(),...c}});
-$('atog').onclick=()=>put({on:!A().on});
-$('amenos').onclick=()=>put({alvo:Math.max(16,A().alvo-1)});$('amais').onclick=()=>put({alvo:Math.min(30,A().alvo+1)});
-$('ade').onchange=()=>{const m=mn($('ade').value);if(m!==null)put({de:m})};$('aate').onchange=()=>{const m=mn($('aate').value);if(m!==null)put({ate:m})};
 const f=n=>String(n).replace('.',',');
-// Placa versão 7 desliga 2 °C abaixo (antes 1 °C). Placa versão 2 em diante também desliga o ar (só o que o automático ligou); versão 3 liga logo acima da temperatura escolhida.
-const T1='Quando o quarto passar 1 °C da temperatura escolhida, a placa liga o ar no <b>Frio</b> nessa temperatura. ',
- T1v3='No horário escolhido, se o quarto estiver <b>acima</b> da temperatura escolhida, a placa liga o ar no <b>Frio</b> nessa temperatura. Se estiver nessa temperatura ou abaixo, não liga. ',
- T1v19='No horário escolhido, se o quarto estiver <b>acima</b> da temperatura escolhida, a placa liga o ar no <b>Frio</b> e vai regulando conforme o quarto esfria: 3 °C ou mais acima, <b>16° com turbo e ventilação 3</b>; de 1,5 a 3 °C acima, 18° com ventilação 3; de 0,5 a 1,5 °C acima, 2° abaixo da escolhida com ventilação 2; perto dela, a escolhida com ventilação 1 (no máximo uma troca por minuto). Se o quarto estiver nessa temperatura ou abaixo, não liga. Se você mexer na temperatura, no modo, na ventilação ou no turbo, ela para de regular. ',
- T1v20='Se lá fora estiver 3 °C ou mais frio do que o quarto, ela <b>não liga</b> o ar e avisa no celular para abrir a janela. ',
- T2='Quando o quarto ficar 1 °C abaixo, ela <b>desliga</b>, mas só se foi o automático que ligou: se você ligou o ar, ele continua ligado. Tudo só dentro do horário escolhido. ',
- T3='Se você desligar o ar, ela só liga de novo depois que o quarto esfriar.',
- T3v22='Se você desligar o ar, ela só liga de novo depois que o quarto esfriar ou no próximo horário escolhido.';
 // Seta: compara com a última leitura diferente (guardada no aparelho). Vermelha ▲ = esquentando, verde ▼ = esfriando.
 let TQ=null;try{TQ=JSON.parse(localStorage.getItem('tq'))}catch(e){}
 const hh=d=>d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 function seta(t){if(!TQ||typeof TQ.t!=='number')TQ={t:t,d:0};else if(t!==TQ.t)TQ={t:t,d:t>TQ.t?1:-1,de:TQ.t,em:Date.now()};else return;try{localStorage.setItem('tq',JSON.stringify(TQ))}catch(e){}}
-window.renderAuto=function(){const a=A(),q=S.sala,novo=(S.fw||0)>=2,v3=(S.fw||0)>=3,v19=(S.fw||0)>=19;
- $('atxt').innerHTML=(v19?T1v19:v3?T1v3:T1)+((S.fw||0)>=20?T1v20:'')+(novo?T2.replace('1 °C',(S.fw||0)>=7?'2 °C':'1 °C'):'')+((S.fw||0)>=22?T3v22:T3);
+window.renderSala=function(){const q=S.sala;
  if(q){const t=Number(q.t),em=new Date(typeof DEV!=='undefined'&&DEV&&DEV.last_seen?DEV.last_seen:Date.now());seta(t);
   const s=TQ.d?'<span title="'+(TQ.d>0?'Subiu':'Desceu')+' de '+f(TQ.de)+' °C às '+hh(new Date(TQ.em))+'" aria-label="'+(TQ.d>0?'subindo':'descendo')+'" style="color:'+(TQ.d>0?'#ff6961':'#30d158')+';font-weight:700">'+(TQ.d>0?' ▲':' ▼')+'</span>':'';
   sala.innerHTML='Quarto agora: '+f(t)+' °C'+s+' · umidade '+Number(q.u)+'%<br><small>Última leitura às '+hh(em)+'</small>'}
- else sala.textContent='Sensor do quarto: sem leitura';
- $('atog').textContent='Automático: '+(a.on?'LIGADO':'desligado');$('atog').className=a.on?'on':'';$('aalvo').textContent=a.alvo+'°';
- if(document.activeElement!==$('ade'))$('ade').value=hm(a.de);if(document.activeElement!==$('aate'))$('aate').value=hm(a.ate);
- $('ainfo').textContent=!q?'Sem leitura do sensor: o automático fica parado até o sensor voltar.':(a.on?(v3?'Liga quando o quarto passar de '+a.alvo+' °C':'Liga quando o quarto chegar a '+(a.alvo+1)+' °C')+(novo?' e desliga quando cair a '+(a.alvo-((S.fw||0)>=7?2:1))+' °C (só se o automático ligou)':'')+', entre '+hm(a.de)+' e '+hm(a.ate)+'.'+(a.jan?' Lá fora está mais frio'+(S.fora!=null?' ('+f(S.fora)+' °C)':'')+': o ar não foi ligado. Abra a janela.':'')+(novo&&a.ligou&&S.power?' Agora o ar está ligado pelo automático'+(a.fx?' (passo '+a.fx+' de 4: '+['16° com turbo','18°','2° abaixo da escolhida','a temperatura escolhida'][a.fx-1]+').':'.'):''):'')};
-const u0=ui;ui=function(){u0();renderAuto();if(window.mostrarFora)mostrarFora()};
+ else sala.textContent='Sensor do quarto: sem leitura'};
+const u0=ui;ui=function(){u0();renderSala();if(window.mostrarFora)mostrarFora()};
 })();
 
 // Aparelho (controle universal): escolher a marca, busca automática e sugestão pelo controle original. Mesmo código nos dois apps.
@@ -225,7 +199,7 @@ tv.innerHTML=b('power','tvp')+ic('pwr')+'</button>'+
 function aba(k){ar.hidden=k!=='ar';tv.hidden=k!=='tv';for(const x of abas.children){const s=x.id==='aba-'+k;x.setAttribute('aria-selected',s);x.tabIndex=s?0:-1}try{localStorage.setItem('aba',k)}catch(e){}}
 abas.onclick=e=>{const x=e.target.closest('[role=tab]');if(x)aba(x.id.slice(4))};
 abas.onkeydown=e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;const k=tv.hidden?'tv':'ar';aba(k);$('aba-'+k).focus()};
-let ini='ar';try{ini=localStorage.getItem('aba')||'ar'}catch(e){}aba(ini==='tv'?'tv':'ar');
+let ini='ar';try{ini=localStorage.getItem('aba')||'ar'}catch(e){}window.abaIni=ini;aba(ini==='tv'?'tv':'ar');
 let apr=false,ult='',ultm='',espera=0,limpa=0;
 const aviso=(t,s)=>{$('tvmsg').textContent=t;clearTimeout(limpa);if(s)limpa=setTimeout(()=>{$('tvmsg').textContent=''},s)};
 const modoApr=on=>{apr=on;tv.classList.toggle('apr',on);$('tvap').textContent=on?'Cancelar':'Aprender um botão';if(on)aviso('Toque no botão que você quer ensinar.')};
@@ -261,6 +235,64 @@ window.renderTv=function(){const v=S.tv||{},l=v.l||[],j=JSON.stringify(l);
  if(v.a)aviso('Esperando o botão '+(N[v.a]||v.a)+' do controle da TV…');
  else if(v.m&&v.mn!==ultm){ultm=v.mn;aviso(v.m,6000)}};
 const u0=ui;ui=function(){u0();renderTv()};
+})();
+// TV Box (placa versão 24): terceira aba "Box". A placa manda as teclas para a TV Box pela rede (ADB). Mesmo código nos dois apps (usa S, send, ui; precisa do bloco TV AOC antes).
+(function(){
+const $=i=>document.getElementById(i),abas=document.querySelector('.abas'),tv=$('pTv');if(!abas||!tv)return;
+const P={box:'M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8',up:'M6 15l6-6 6 6',down:'M6 9l6 6 6-6',left:'M15 6l-6 6 6 6',right:'M9 6l6 6-6 6',
+ mute:'M4 9h4l5-4v14l-5-4H4zM16 9l5 6M21 9l-5 6',play:'M7 5v14l11-7zM20 5v14',back:'M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3',home:'M4 11l8-7 8 7v9H4z'};
+const ic=k=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+P[k]+'"/></svg>';
+const N={up:'Seta para cima',down:'Seta para baixo',left:'Seta para a esquerda',right:'Seta para a direita',ok:'OK',back:'Voltar',home:'Início',menu:'Menu',
+ play:'Play ou pausa',mute:'Mudo',voldown:'Volume −',volup:'Volume +',zuxo:'Abrir o Zuxo'};
+const st=document.createElement('style');st.textContent=
+'#pBox{width:100%;max-width:420px;display:flex;flex-direction:column;align-items:center;gap:16px}#pBox svg,#aba-box svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}'+
+'#pBox .tk{position:relative;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#a1a1a6;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;transition:background .35s cubic-bezier(.16,1,.3,1)}'+
+'#pBox .tk svg{color:#f5f5f7}#pBox .tk.vai{background:#0a84ff;color:#fff;transition:none}#pBox .tvnav [data-k=ok]{background:rgba(255,255,255,.18);color:#f5f5f7;font-size:16px;font-weight:600}'+
+'#pBox .bxv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}#pBox .bxv .tk{height:60px}'+
+'#pBox .bxz{width:100%;height:56px;border-radius:16px;background:#30d158;color:#06140d;font-weight:600;font-size:16px}'+
+'#pBox .bxt{display:flex;gap:8px;width:100%}#pBox .bxt input{flex:1;min-width:0;min-height:48px}#pBox .bxt button{min-width:0;padding:0 16px}'+
+'#bxmsg{min-height:21px;margin:0;font-size:14px;color:#a1a1a6;text-align:center}#pBox button:focus-visible,#aba-box:focus-visible{outline:2px solid #0a84ff;outline-offset:2px}'+
+'#bxaj .r button{min-width:0;flex:1}#bxre{background:#ff453a;color:#fff}';
+document.head.append(st);
+const bt=document.createElement('button');bt.setAttribute('role','tab');bt.id='aba-box';bt.setAttribute('aria-controls','pBox');bt.innerHTML=ic('box')+'Box';bt.hidden=true;abas.append(bt);
+const bx=document.createElement('div');bx.id='pBox';bx.setAttribute('role','tabpanel');bx.setAttribute('aria-labelledby','aba-box');bx.hidden=true;tv.after(bx);
+const b=(k,c)=>'<button class="tk'+(c?' '+c:'')+'" data-k="'+k+'" aria-label="'+N[k]+'">';
+bx.innerHTML='<button class="bxz" data-z="1">'+N.zuxo+'</button>'+
+ '<div class="tvx tvnav"><i></i>'+b('up')+ic('up')+'</button><i></i>'+b('left')+ic('left')+'</button>'+b('ok')+'OK</button>'+b('right')+ic('right')+'</button><i></i>'+b('down')+ic('down')+'</button><i></i></div>'+
+ '<div class="tvr">'+b('back')+ic('back')+'Voltar</button>'+b('home')+ic('home')+'Início</button>'+b('menu')+'Menu</button>'+b('play')+ic('play')+'Play</button></div>'+
+ '<div class="bxv">'+b('voldown')+ic('left')+'Vol</button>'+b('mute')+ic('mute')+'Mudo</button>'+b('volup')+ic('right')+'Vol</button></div>'+
+ '<form class="bxt" id="bxf"><input id="bxtx" maxlength="60" autocomplete="off" placeholder="Digitar na busca" aria-label="Texto para digitar na TV Box"><button>Enviar</button></form>'+
+ '<p id="bxmsg" role="status" aria-live="polite"></p>'+
+ '<details id="bxaj"><summary>Ajustes da TV Box</summary>'+
+ '<p>A placa fala com a TV Box pela rede de casa. Endereço da box agora: <b id="bxipv"></b>. Se a box mudar de endereço, escreva o novo aqui (dica: reserve o endereço dela no roteador).</p>'+
+ '<form class="bxt" id="bxipf"><input id="bxip" inputmode="decimal" placeholder="192.168.1.87" aria-label="Endereço da TV Box"><button>Salvar</button></form>'+
+ '<p>Se a box travar, reinicie por aqui. Ela volta direto no Zuxo em mais ou menos 1 minuto.</p><div class="r"><button id="bxre">Reiniciar a TV Box</button></div></details>';
+let lim=0;const aviso=(t,s)=>{$('bxmsg').textContent=t;clearTimeout(lim);if(s)lim=setTimeout(()=>{$('bxmsg').textContent=''},s)};
+const pisca=t=>{t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),140);if(navigator.vibrate)navigator.vibrate(8)};
+function mostrar(on){bx.hidden=!on;if(on){$('pAr').hidden=true;tv.hidden=true;for(const x of abas.children){const s=x===bt;x.setAttribute('aria-selected',s);x.tabIndex=s?0:-1}try{localStorage.setItem('aba','box')}catch(e){}}}
+abas.addEventListener('click',e=>{const x=e.target.closest('[role=tab]');if(x)mostrar(x===bt)});
+abas.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft')bx.hidden=true});
+// Segurar setas e volume repete (começa em 0,45 s, depois 3 por segundo, no máximo 40 por toque), como o volume da TV.
+const REP=['up','down','left','right','volup','voldown'];let rep=0,repN=0,segurou=false;
+const pararRep=()=>{clearTimeout(rep);clearInterval(rep);rep=0};
+bx.addEventListener('pointerdown',e=>{const t=e.target.closest('.tk');segurou=false;pararRep();if(!t||!REP.includes(t.dataset.k))return;const k=t.dataset.k;repN=0;t.addEventListener('pointerleave',pararRep,{once:true});
+ const vai=()=>{if(++repN>40||(S.bx&&S.bx.m&&!S.bx.ok))return pararRep();pisca(t);send({box:{k}});aviso(N[k]+' (segurando)',2500)};
+ rep=setTimeout(()=>{segurou=true;vai();rep=setInterval(vai,300)},450)});
+['pointerup','pointercancel'].forEach(v=>bx.addEventListener(v,pararRep));
+bx.addEventListener('contextmenu',e=>{if(e.target.closest('.tk'))e.preventDefault()});
+bx.addEventListener('click',e=>{const z=e.target.closest('[data-z]');if(z){pisca(z);send({box:{abrir:'zuxo'}});aviso('Abrindo o Zuxo…',3000);return}
+ const t=e.target.closest('.tk');if(!t)return;if(segurou){segurou=false;return}const k=t.dataset.k;pisca(t);send({box:{k}});aviso('Enviado: '+N[k],2500)});
+$('bxf').onsubmit=e=>{e.preventDefault();const v=$('bxtx').value.trim();if(!v)return;send({box:{txt:v}});$('bxtx').value='';aviso('Texto enviado. Acento e símbolo não passam: só letras, números e . , - _ @ : !',5000)};
+$('bxipf').onsubmit=e=>{e.preventDefault();const v=$('bxip').value.trim();if(!/^\d{1,3}(\.\d{1,3}){3}$/.test(v)||v.split('.').some(n=>+n>255))return aviso('Endereço inválido. Exemplo: 192.168.1.87',4000);send({boxIp:v});$('bxip').value='';aviso('Endereço salvo: '+v,3000)};
+$('bxre').onclick=()=>{if(confirm('Reiniciar a TV Box agora?')){send({box:{reiniciar:true}});aviso('Reiniciando a TV Box. Ela volta no Zuxo em mais ou menos 1 minuto.',8000)}};
+let ultm='';
+window.renderBox=function(){const pode=(S.fw||0)>=24,v=S.bx||{};bt.hidden=!pode;
+ if(!pode&&!bx.hidden){bx.hidden=true;$('aba-ar').click()}
+ if(pode&&bx.hidden&&!renderBox.ini){renderBox.ini=1;if(window.abaIni==='box')mostrar(true)}
+ $('bxipv').textContent=v.ip||'192.168.1.87';
+ const m=v.m?(v.ok?'TV Box respondeu'+(v.ms>=0?' ('+v.ms+' ms)':''):v.m==='sem resposta'?'A placa não achou a TV Box em '+(v.ip||'?')+'. Ela está ligada?':(v.m==='recusou o comando'?'A TV Box recusou o comando.':'A TV Box '+v.m.replace(/^a box /,'')+'.')):'';
+ if(m&&m!==ultm){ultm=m;aviso(m,v.ok?3000:0)}};
+const u0=ui;ui=function(){u0();renderBox()};
 })();
 
 fetch('/api/state').then(r=>r.json()).then(j=>{S=j;ui()}).catch(ui);

@@ -45,11 +45,8 @@ export function entender(frase, estado) {
     return { cmds: [], resposta: 'Não entendi o que fazer na TV. Diga, por exemplo: ligue a TV, aumente o volume ou coloque no canal 13.' };
   }
 
-  // ----- Modo automático (sensor do quarto) -----
-  if (/automatic|sensor/.test(s)) {
-    if (desligar) return { cmds: [{ auto: { on: false } }], resposta: 'Pronto, desliguei o modo automático.' };
-    if (ligar || /ativ/.test(s)) return { cmds: [{ auto: { on: true } }], resposta: 'Pronto, liguei o modo automático.' };
-  }
+  // ----- Modo automático: saiu na placa versão 24 (pedido do dono, 20/11/2026); só avisa -----
+  if (/automatic/.test(s)) return { cmds: [], resposta: 'O modo automático foi retirado. Diga, por exemplo: ligue o ar no 22.' };
 
   // ----- Ar -----
   const temAr = /\bar\b|ar condicionado|temperatura|grau/.test(s) || nums.length > 0 || MODOS.some(([r]) => r.test(s));

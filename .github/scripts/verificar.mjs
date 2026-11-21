@@ -204,7 +204,7 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
   if (existsSync(casa) && existsSync(fora)) {
     const a = readFileSync(casa, 'utf8').replace(/\r\n/g, '\n'), b = readFileSync(fora, 'utf8').replace(/\r\n/g, '\n');
     const bloco = (t, m) => { const i = t.indexOf(m); return i < 0 ? null : t.slice(i, t.indexOf('})();', i)); };
-    for (const m of ['// Horários programados', '// Sensor do quarto', '// Aparelho (controle universal)', '// Atualização sem fio', '// TV AOC']) {
+    for (const m of ['// Horários programados', '// Sensor do quarto', '// Aparelho (controle universal)', '// Atualização sem fio', '// TV AOC', '// TV Box']) {
       const x = bloco(a, m), y = bloco(b, m);
       if (x && x === y) console.log(`ok   ar: bloco "${m.slice(3)}" igual no app de casa e no de fora`);
       else { erros++; console.log(`ERRO ar: bloco "${m.slice(3)}" diferente entre ar/firmware/gree-esp32/web.h e ar/index.html`); }

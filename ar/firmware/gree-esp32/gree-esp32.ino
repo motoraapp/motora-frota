@@ -1,7 +1,7 @@
 // Placa do ar-condicionado (projeto gree-esp32), versão 2.
 // ESP32 DevKit v1, núcleo Arduino-ESP32 2.0.17, partições "min_spiffs" (2 x 1,9 MB, para a atualização sem fio).
 // Pinos: emissor infravermelho D4, receptor infravermelho D27, sensor DHT22 do quarto D25.
-// Compilar: ver ar/firmware/LEIA.md. Regras do automático em regras.h (testadas por .github/scripts/teste-ar-auto.mjs).
+// Compilar: ver ar/firmware/LEIA.md. Regras do "A mimi?" e do volume da TV em regras.h (testadas por .github/scripts/teste-ar-regras.mjs).
 //
 // Reescrita em 13/11/2026 a partir do que a versão 1 fazia (o código da versão 1 se perdeu). Para a placa não
 // perder a ligação com a conta nem o Wi-Fi, ela procura os dados da versão 1 na memória (chave "ckey") e usa a
@@ -27,10 +27,11 @@
 #include "web.h"
 #include "certs.h"
 #include "tv_universal.h"
+#include "adb.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 23
+#define FW_VERSAO 24
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -93,24 +94,12 @@ void gravaTxt(const char *k, const String &v) {
 // ---------- Estado do ar ----------
 Estado S;
 Horario H[8]; int nH = 0;
-Automatico A;
-AutoMem AM = {false, false};
-// Versão 19: faixa em uso pelo automático (regraFaixa em regras.h; 0 = nenhuma) e quando mudou por último.
-int autoFaixa = 0; unsigned long autoFaixaEm = 0;
-// Versão 20: temperatura de lá fora mandada pelo servidor a cada 15 min ({fora: 21.3}); vale por 1 h.
-// janela = o automático queria ligar, mas lá fora está mais frio (foraMaisFrio): o servidor avisa para abrir a janela.
-float foraT = 0; unsigned long foraEm = 0; bool janela = false;
-bool temFora() { return foraEm && millis() - foraEm < 3600000UL; }
-void aplicarFaixa(int f) { autoFaixa = f; autoFaixaEm = millis(); S.mode = 1; S.temp = tempFaixa(f, A.alvo); S.fan = ventFaixa(f); S.turbo = f == 1; }
+// O modo automático (sensor do quarto, lá fora e janela) saiu na versão 24, pedido do dono (20/11/2026).
 
 void salvarEstado() {
   gravaNum("power", S.power); gravaNum("mode", S.mode); gravaNum("temp", S.temp); gravaNum("fan", S.fan);
   gravaNum("swing", S.swing); gravaNum("light", S.light); gravaNum("turbo", S.turbo); gravaNum("xfan", S.xfan);
   gravaNum("sleep", S.sleep); gravaNum("model", S.model); gravaNum("proto", S.proto);
-}
-void salvarAuto() {
-  gravaNum("a_on", A.on); gravaNum("a_alvo", A.alvo); gravaNum("a_de", A.de); gravaNum("a_ate", A.ate);
-  gravaNum("a_ligou", AM.ligou); gravaNum("a_esp", AM.espera);
 }
 void salvarHorarios() {
   JsonDocument d; JsonArray a = d.to<JsonArray>();
@@ -136,9 +125,6 @@ void carregar() {
   S.fan = faixa(lerNum("fan", 0), 0, 3); S.swing = lerNum("swing", 0); S.light = lerNum("light", 1); S.turbo = lerNum("turbo", 0);
   S.xfan = lerNum("xfan", 0); S.sleep = lerNum("sleep", 0); S.model = faixa(lerNum("model", 1), 1, 3); S.proto = lerNum("proto", 24);
   if (!IRac::isProtocolSupported((decode_type_t)S.proto)) S.proto = 24;
-  A.on = lerNum("a_on", 0); A.alvo = faixa(lerNum("a_alvo", 24), 16, 30);
-  A.de = faixa(lerNum("a_de", 480), 0, 1439); A.ate = faixa(lerNum("a_ate", 1200), 0, 1439);
-  AM.ligou = lerNum("a_ligou", 0); AM.espera = lerNum("a_esp", 0);
   JsonDocument d;
   if (!deserializeJson(d, lerTxt("sched")) && d.is<JsonArray>()) lerHorarios(d.as<JsonArray>());
 }
@@ -357,13 +343,12 @@ void lerControle() {
   Serial.printf("RX bytes: %s %s\n", LIDO.proto.c_str(), LIDO.hex.c_str());
   // Controle do mesmo aparelho em uso: a placa passa a saber o que o controle mandou.
   if (LIDO.ac && LIDO.pid == S.proto) {
-    bool antes = S.power;
+
     S.power = st.power;
     if (st.power) {
       S.mode = modoUi(st.mode); S.temp = faixa(lround(st.degrees), 16, 30); S.fan = ventUi(st.fanspeed);
       S.swing = st.swingv != stdAc::swingv_t::kOff; S.light = st.light; S.turbo = st.turbo; S.xfan = st.clean; S.sleep = st.sleep >= 0;
     }
-    if (antes != S.power) { autoManual(AM, S.power, A.on); salvarAuto(); }
     salvarEstado();
   }
   LIDO.paraNuvem = true;
@@ -390,7 +375,7 @@ void buscaCmd(const String &c) {
   else if (c == "again") { BU.sozinho = false; buscaTestar(); }
   else if (c == "ok") {
     S.proto = ORD[BU.i]; S.model = 1; S.power = true; S.mode = 1; S.temp = 24; S.fan = 0; BU.on = false;
-    autoManual(AM, true, A.on); salvarAuto(); salvarEstado();
+    salvarEstado();
   }
   else if (c == "stop") BU.on = false;
 }
@@ -415,6 +400,86 @@ int fwNova = 0; String fwUrl, fwMsg; int otaPedido = 0; unsigned long ultOta = 0
 WiFiClientSecure tlsNuvem, tlsGh;  // um para o Supabase e outro para o GitHub (não misturar conexões)
 
 // ---------- Estado em JSON (app de casa e nuvem) ----------
+// ===== TV Box pela rede (versão 24): ADB na porta 5555, sem senha (contas em adb.h) =====
+// Fila pequena: segurar seta/volume no app não estoura a memória (o que passar de 16 é descartado).
+#define BX_FILA 16
+#define BX_CONECTAR_MS 1500   // box desligada: desiste rápido para não travar o ar
+#define BX_TOTAL_MS 3000      // "input" na box (1 GB) leva até ~1 s para sair
+String bxFila[BX_FILA]; int bxN = 0;
+IPAddress bxIp(192, 168, 1, 87);
+#define BX_PAUSA_FALHA_MS 10000   // box fora: descarta comandos por 10 s (segurar seta não deixa o ar lento)
+bool bxOk = false; String bxMsg = ""; long bxMs = -1; unsigned long bxUlt = 0, bxFalhaEm = 0;
+
+void bxPor(const String &destino) {
+  if (bxFalhaEm && millis() - bxFalhaEm < BX_PAUSA_FALHA_MS) return;
+  if (bxN < BX_FILA) bxFila[bxN++] = destino;
+}
+
+// Texto para "input text": só caracteres seguros (adbCharPermitido), espaço vira %s, no máximo 60.
+String bxTexto(const String &t) {
+  String r = "";
+  for (unsigned i = 0; i < t.length() && r.length() < 60; i++) {
+    char c = t[i];
+    if (c == ' ') r += "%s"; else if (adbCharPermitido(c)) r += c;
+  }
+  return r;
+}
+
+bool bxPacote(WiFiClient &c, uint32_t cmd, uint32_t a0, uint32_t a1, const String *dados) {
+  uint8_t h[24]; int n = dados ? dados->length() + 1 : 0;   // + o \0 do fim
+  adbCabecalho(h, cmd, a0, a1, n, n ? adbSoma((const uint8_t *)dados->c_str(), n) : 0);
+  if (c.write(h, 24) != 24) return false;
+  return !n || c.write((const uint8_t *)dados->c_str(), n) == (size_t)n;
+}
+
+// Lê um pacote até o prazo (descarta os dados). Devolve o comando, ou 0 se não chegou nada.
+uint32_t bxLer(WiFiClient &c, unsigned long ate, uint32_t &a0) {
+  uint8_t h[24]; int got = 0;
+  while (got < 24) {
+    if ((long)(ate - millis()) <= 0) return 0;
+    if (c.available()) { int n = c.read(h + got, 24 - got); if (n <= 0) return 0; got += n; } else if (!c.connected()) return 0; else delay(2);
+  }
+  a0 = adbLe32(h + 4); uint32_t len = adbLe32(h + 12);
+  while (len && (long)(ate - millis()) > 0) { if (c.available()) { c.read(); len--; } else if (!c.connected()) break; else delay(2); }
+  return adbLe32(h);
+}
+
+// Uma conexão por comando: CNXN -> CNXN (ou AUTH) -> OPEN <destino> -> responde OKAY a cada WRTE até CLSE.
+void bxEnviar(const String &destino) {
+  unsigned long t0 = millis(), ate = t0 + BX_TOTAL_MS; uint32_t a0 = 0, r = 0;
+  WiFiClient c; bxOk = false;
+  if (!c.connect(bxIp, 5555, BX_CONECTAR_MS)) { bxMsg = "sem resposta"; bxMs = -1; bxFalhaEm = millis(); if (!bxFalhaEm) bxFalhaEm = 1; return; }
+  c.setTimeout(2);   // write/read nunca ficam parados mais de 2 s
+  String host = "host::";
+  if (bxPacote(c, ADB_CNXN, 0x01000000, 4096, &host)) r = bxLer(c, t0 + BX_CONECTAR_MS * 2 < ate ? t0 + BX_CONECTAR_MS * 2 : ate, a0);
+  if (r == ADB_AUTH) bxMsg = "a box pediu autorização";
+  else if (r != ADB_CNXN) bxMsg = "sem resposta";
+  else {
+    bxPacote(c, ADB_OPEN, 1, 0, &destino);
+    bool fechou = false;
+    while ((r = bxLer(c, ate, a0)) != 0) {
+      if (r == ADB_OKAY) bxOk = true;                                  // a box aceitou o comando
+      if (r == ADB_WRTE) bxPacote(c, ADB_OKAY, 1, a0, NULL);
+      if (r == ADB_CLSE) { fechou = true; break; }
+    }
+    bxMsg = bxOk ? "ok" : (fechou ? "recusou o comando" : "sem resposta");
+  }
+  if (!bxOk && bxMsg != "recusou o comando") { bxFalhaEm = millis(); if (!bxFalhaEm) bxFalhaEm = 1; } else if (bxOk) bxFalhaEm = 0;
+  bxMs = millis() - t0; c.stop();
+}
+
+void cuidarBox() {
+  if (!bxN || millis() - bxUlt < 150 || !WiFi.isConnected()) return;
+  const char *TEC = "shell:input keyevent ";
+  String dest = bxFila[0]; int usados = 1;
+  // teclas seguidas vão num comando só ("input keyevent 19 19 19"): segurar a seta não fica 1 s por toque
+  while (usados < bxN && dest.startsWith(TEC) && bxFila[usados].startsWith(TEC)) { dest += bxFila[usados].substring(strlen(TEC) - 1); usados++; }
+  for (int i = usados; i < bxN; i++) bxFila[i - usados] = bxFila[i];
+  bxN -= usados;
+  bxEnviar(dest); bxUlt = millis();
+  if (!bxOk) bxN = 0;   // box fora: não insiste com o resto da fila
+}
+
 void estadoJson(JsonObject d) {
   d["power"] = S.power; d["mode"] = S.mode; d["temp"] = S.temp; d["fan"] = S.fan; d["swing"] = S.swing; d["light"] = S.light;
   d["turbo"] = S.turbo; d["xfan"] = S.xfan; d["sleep"] = S.sleep; d["model"] = S.model; d["proto"] = S.proto;
@@ -424,19 +489,17 @@ void estadoJson(JsonObject d) {
     JsonObject o = l.add<JsonObject>();
     o["d"] = H[i].d; o["h"] = H[i].h; o["m"] = H[i].m; o["a"] = H[i].a; o["t"] = H[i].t; o["o"] = H[i].o; o["e"] = H[i].e;
   }
-  JsonObject a = d["auto"].to<JsonObject>();
-  a["on"] = A.on; a["alvo"] = A.alvo; a["de"] = A.de; a["ate"] = A.ate; a["ligou"] = AM.ligou; if (janela) a["jan"] = true; if (AM.ligou && autoFaixa) a["fx"] = autoFaixa;
   d["fw"] = FW_VERSAO;
   d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
   if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = tlsRt.connected(); x["m"] = rtUlt; x["t"] = rtTent; }
   d["hmax"] = (int)(ESP.getMaxAllocHeap() / 1024);
   { JsonObject y = d["sy"].to<JsonObject>(); y["ms"] = syMs; y["max"] = syMax; y["r"] = syReuso; y["n"] = syNova; }
   if (MI.on) { JsonObject mm = d["mimi"].to<JsonObject>(); mm["f"] = MI.fase; if (MI.fase == 1) mm["r"] = (long)(MIMI_FASE1 - (millis() - miEm)) / 1000; }
-  if (temFora()) d["fora"] = foraT;
   if (fwNova > FW_VERSAO) d["fwNova"] = fwNova;
   if (fwMsg.length()) d["fwMsg"] = fwMsg;
   if (BU.on) { JsonObject b = d["scan"].to<JsonObject>(); b["i"] = BU.i + 1; b["n"] = NORD; b["p"] = ORD[BU.i]; b["auto"] = BU.sozinho; }
   tvJson(d["tv"].to<JsonObject>());
+  { JsonObject x = d["bx"].to<JsonObject>(); x["ip"] = bxIp.toString(); if (bxMsg.length()) { x["ok"] = bxOk; x["m"] = bxMsg; x["ms"] = bxMs; } }
   if (temSala()) { JsonObject q = d["sala"].to<JsonObject>(); q["t"] = serialized(String(salaT, 1)); q["u"] = salaU; }
   struct tm tm;
   if (getLocalTime(&tm, 0)) { char h[6]; snprintf(h, 6, "%02d:%02d", tm.tm_hour, tm.tm_min); d["hora"] = h; }
@@ -444,7 +507,7 @@ void estadoJson(JsonObject d) {
 
 // Comando do app de casa ou de fora (mesmo formato).
 void aplicar(JsonObject p) {
-  bool mandar = false, antes = S.power;
+  bool mandar = false;
   // mexer no ar pelo app/Siri/horário tira do "A mimi?"
   if (p["power"].is<bool>() || p["mode"].is<int>() || p["temp"].is<int>() || p["fan"].is<int>() || p["turbo"].is<bool>()) MI.on = false;
   if (p["mimi"].is<bool>()) {
@@ -466,13 +529,6 @@ void aplicar(JsonObject p) {
     if (IRac::isProtocolSupported((decode_type_t)v)) { S.proto = v; mandar = true; }
   }
   if (p["sched"].is<JsonArray>()) { lerHorarios(p["sched"].as<JsonArray>()); salvarHorarios(); }
-  if (p["auto"].is<JsonObject>()) {
-    JsonObject a = p["auto"];
-    bool on = a["on"] | A.on;
-    A.alvo = faixa(a["alvo"] | A.alvo, 16, 30); A.de = faixa(a["de"] | A.de, 0, 1439); A.ate = faixa(a["ate"] | A.ate, 0, 1439);
-    if (!on) { AM.ligou = false; AM.espera = false; }
-    A.on = on; salvarAuto();
-  }
   if (p["scan"].is<const char *>()) buscaCmd(p["scan"].as<String>());
   if (p["tecla"].is<const char *>()) {
     String k = p["tecla"].as<String>();
@@ -489,18 +545,23 @@ void aplicar(JsonObject p) {
   if (p["tvEsquecer"].is<const char *>()) tvEsquecer(p["tvEsquecer"].as<String>());
   if (p["tvBusca"].is<const char *>()) tvBuscaCmd(p["tvBusca"].as<String>());
   if (p["tvFam"].is<int>()) { int f = p["tvFam"]; if (f >= 0 && f <= N_FAMILIAS_TV) { tvFam = f - 1; gravaNum("tv_fam", tvFam); } }
-  if (p["fora"].is<float>()) { foraT = p["fora"]; foraEm = millis(); if (!foraEm) foraEm = 1; }
+  // TV Box (versão 24): vai para a fila; o loop manda pela rede (cuidarBox)
+  if (p["box"].is<JsonObject>()) {
+    JsonObject b = p["box"];
+    if (b["k"].is<const char *>()) { int k = adbTecla(b["k"]); if (k >= 0) bxPor("shell:input keyevent " + String(k)); }
+    if (b["txt"].is<const char *>()) { String t = bxTexto(b["txt"].as<String>()); if (t.length()) bxPor("shell:input text " + t); }
+    if (b["abrir"].is<const char *>() && b["abrir"].as<String>() == "zuxo") bxPor("shell:am start -n com.zuxoplayer.app/.MainActivity");
+    if (b["reiniciar"].is<bool>() && b["reiniciar"].as<bool>()) bxPor("reboot:");
+  }
+  if (p["boxIp"].is<const char *>()) { IPAddress ip; if (ip.fromString(p["boxIp"].as<String>())) { bxIp = ip; gravaTxt("bx_ip", ip.toString()); } }
   if (p["ota"].is<const char *>()) { String o = p["ota"].as<String>(); otaPedido = o == "now" ? 2 : (o == "check" ? 1 : 0); }
   if (mandar) {
-    if (S.power != antes) { autoManual(AM, S.power, A.on); salvarAuto(); }
-    // Versão 19: mexer na temperatura, modo, ventilação ou turbo tira o ar do automático (ele para de regular e não desliga).
-    else if (AM.ligou && (p["mode"].is<int>() || p["temp"].is<int>() || p["fan"].is<int>() || p["turbo"].is<bool>() || p["mimi"].is<bool>())) { AM.ligou = false; autoFaixa = 0; salvarAuto(); }
     enviar(S, S.proto); salvarEstado();
   }
 }
 
 // ---------- Horários programados e automático ----------
-int ultMinuto = -1; unsigned long ultAuto = 0;
+int ultMinuto = -1;
 void checarHorarios() {
   struct tm tm;
   if (!getLocalTime(&tm, 0)) return;
@@ -511,36 +572,11 @@ void checarHorarios() {
     Horario &x = H[i];
     if (!x.e || !((x.d >> tm.tm_wday) & 1) || x.h != tm.tm_hour || x.m != tm.tm_min) continue;
     if (x.a) { S.power = true; S.temp = x.t; S.mode = x.o; } else S.power = false;
-    autoManual(AM, S.power, A.on); salvarAuto();
     enviar(S, S.proto); salvarEstado();
     Serial.println("horario programado");
   }
   // Atualização nova instala sozinha de madrugada (03:00 a 03:59), uma vez por dia.
   if (fwNova > FW_VERSAO && tm.tm_hour == 3 && otaDia != tm.tm_yday) { otaDia = tm.tm_yday; otaPedido = 2; }
-}
-void checarAuto() {
-  if (millis() - ultAuto < 60000) return;
-  ultAuto = millis();
-  struct tm tm;
-  bool horaOk = getLocalTime(&tm, 0);
-  bool noHorario = horaOk && dentroHorario(tm.tm_hour * 60 + tm.tm_min, A.de, A.ate);
-  AutoMem antes = AM;
-  int r = regraAuto(AM, A.on, temSala(), salaT, A.alvo, noHorario, S.power);
-  janela = false;
-  if (r == AUTO_LIGAR && foraMaisFrio(temFora(), foraT, salaT)) { AM.ligou = false; r = AUTO_NADA; janela = true; }
-  if (r == AUTO_LIGAR) {
-    S.power = true; aplicarFaixa(regraFaixa(0, salaT - A.alvo)); enviar(S, S.proto); salvarEstado();
-    Serial.println("automatico: quarto quente, ligando");
-  } else if (r == AUTO_DESLIGAR) {
-    S.power = false; enviar(S, S.proto); salvarEstado();
-    Serial.println("automatico: quarto frio, desligando");
-  } else if (AM.ligou && S.power && temSala() && millis() - autoFaixaEm >= 60000UL) {
-    // Versão 19 (desde a 21, pedido do dono: 1 min; antes 5): no máximo uma troca por minuto, conforme o quarto chega perto da temperatura escolhida.
-    int f = regraFaixa(autoFaixa, salaT - A.alvo);
-    if (f != autoFaixa) { aplicarFaixa(f); enviar(S, S.proto); salvarEstado(); Serial.printf("automatico: faixa %d\n", f); }
-  }
-  if (!AM.ligou) autoFaixa = 0;
-  if (AM.ligou != antes.ligou || AM.espera != antes.espera) salvarAuto();
 }
 
 // ---------- Nuvem (acesso de fora de casa) ----------
@@ -763,6 +799,7 @@ void setup() {
   tvLista = lerTxt("tv_lista");
   tvFam = lerNum("tv_fam", -1); if (tvFam >= N_FAMILIAS_TV) tvFam = -1;
   tvVol = faixa(lerNum("tv_vol", 0), 0, 100);
+  { IPAddress ip; if (ip.fromString(lerTxt("bx_ip"))) bxIp = ip; }
   irrecv.setUnknownThreshold(12);
   irrecv.enableIRIn();
   ssid = lerTxt("ssid"); senha = lerTxt("pass");
@@ -790,11 +827,11 @@ void loop() {
   lerControle();
   lerSensor();
   checarHorarios();
-  checarAuto();
   cuidarTv();
   cuidarTvDesligar();
   cuidarMimi();
   cuidarVolume();
+  cuidarBox();
   cuidarRealtime();
   if (BU.on && BU.sozinho && millis() - BU.em > 8000) { if (BU.i < NORD - 1) { BU.i++; buscaTestar(); } else BU.sozinho = false; }
   // busca a cada 3 s: além de reserva, mantém aberta a conexão segura com o servidor (tlsNuvem). Com 10 s (versões

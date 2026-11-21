@@ -51,5 +51,5 @@ bool adbCharPermitido(int c) {
   if (c >= 'a' && c <= 'z') return true;
   if (c >= 'A' && c <= 'Z') return true;
   if (c >= '0' && c <= '9') return true;
-  return c == '.' || c == ',' || c == '-' || c == '_' || c == '@' || c == ':' || c == '!' || c == '?';
+  return c == '.' || c == ',' || c == '-' || c == '_' || c == '@' || c == ':' || c == '!';   // sem ? (curinga do shell)
 }

@@ -51,9 +51,10 @@ if (ehPrincipal) {
   caso('tecla desconhecida = -1', A.adbTecla('xyz'), -1);
   caso('tecla vazia = -1', A.adbTecla(''), -1);
 
-  for (const c of 'aZ5.@,-_:!?') caso(`caractere permitido "${c}"`, A.adbCharPermitido(c.charCodeAt(0)), true);
+  for (const c of 'aZ5.@,-_:!') caso(`caractere permitido "${c}"`, A.adbCharPermitido(c.charCodeAt(0)), true);
   for (const c of `'";&|$\`\\()<> \n*#%~/{}[]=+^`) caso(`caractere bloqueado ${JSON.stringify(c)}`, A.adbCharPermitido(c.charCodeAt(0)), false);
   caso('acento bloqueado (ç)', A.adbCharPermitido('ç'.charCodeAt(0)), false);
+  caso('? bloqueado (curinga do shell, achado da revisão)', A.adbCharPermitido('?'.charCodeAt(0)), false);
 
   if (erros) { console.log(`\n${erros} erro(s)`); process.exit(1); }
   console.log('\nok   protocolo ADB da TV Box');

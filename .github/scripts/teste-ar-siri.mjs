@@ -28,8 +28,9 @@ caso('liga o ar no quente 26', [{ power: true, temp: 26, mode: 4 }]);
 caso('aumenta a temperatura do ar', [{ temp: 25 }], { ...EST, power: true });
 caso('abaixa a temperatura', [{ temp: 23 }], { ...EST, power: true });
 caso('ligue o ar no 40', []);
-caso('liga o automático', [{ auto: { on: true } }]);
-caso('desliga o modo automático do ar', [{ auto: { on: false } }]);
+// Modo automático saiu na placa versão 24 (pedido do dono): a Siri não manda mais nada, só avisa.
+caso('liga o automático', []);
+caso('desliga o modo automático do ar', []);
 
 // TV
 caso('ligue a TV', [{ tecla: 'power' }]);
