@@ -25,6 +25,8 @@ jobs:
         run: node .github/scripts/teste-ar-auto.mjs
       - name: Teste da Siri do Nossa casinha (frase vira comando)
         run: node .github/scripts/teste-ar-siri.mjs
+      - name: Teste do protocolo ADB da TV Box (pacotes, teclas, texto seguro)
+        run: node .github/scripts/teste-ar-adb.mjs
       - name: Teste dos avisos de fome e sede dos cachorros (Nossa casinha)
         run: node .github/scripts/teste-ar-caes.mjs
       - name: Teste dos cachorros por sprites (desenhos, quadros, só andar na horizontal)
