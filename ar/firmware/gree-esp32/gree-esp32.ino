@@ -31,7 +31,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 24
+#define FW_VERSAO 25
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -415,6 +415,19 @@ void bxPor(const String &destino) {
   if (bxN < BX_FILA) bxFila[bxN++] = destino;
 }
 
+// Versão 25: tecla escrita direto no controle remoto da box (/dev/input/event0, "110b0030.pwm"; o shell do ADB está no grupo
+// input). Apertar + soltar = 4 eventos de 16 bytes (adbEvento) em octal num printf. ~0,1 s na box, contra ~2,1 s do
+// "input keyevent" (abre uma máquina Java a cada tecla). Medido em 21/11/2026.
+String bxTeclaCmd(int codigo) {
+  const int seq[4][3] = {{1, codigo, 1}, {0, 0, 0}, {1, codigo, 0}, {0, 0, 0}};
+  String s = "printf '"; uint8_t e[16]; char o[5];
+  for (int k = 0; k < 4; k++) {
+    adbEvento(e, seq[k][0], seq[k][1], seq[k][2]);
+    for (int i = 0; i < 16; i++) { snprintf(o, sizeof o, "\\%03o", e[i]); s += o; }
+  }
+  return s + "' > /dev/input/event0";
+}
+
 // Texto para "input text": só caracteres seguros (adbCharPermitido), espaço vira %s, no máximo 60.
 String bxTexto(const String &t) {
   String r = "";
@@ -470,10 +483,11 @@ void bxEnviar(const String &destino) {
 
 void cuidarBox() {
   if (!bxN || millis() - bxUlt < 150 || !WiFi.isConnected()) return;
-  const char *TEC = "shell:input keyevent ";
+  const char *TEC = "shell:printf '";   // tecla (bxTeclaCmd)
   String dest = bxFila[0]; int usados = 1;
   // teclas seguidas vão num comando só ("input keyevent 19 19 19"): segurar a seta não fica 1 s por toque
-  while (usados < bxN && dest.startsWith(TEC) && bxFila[usados].startsWith(TEC)) { dest += bxFila[usados].substring(strlen(TEC) - 1); usados++; }
+  // teclas seguidas vão num comando só (até 8: cada uma tem ~290 caracteres e o pacote ADB é de 4 KB)
+  while (usados < bxN && usados < 8 && dest.startsWith(TEC) && bxFila[usados].startsWith(TEC)) { dest += ";" + bxFila[usados].substring(6); usados++; }
   for (int i = usados; i < bxN; i++) bxFila[i - usados] = bxFila[i];
   bxN -= usados;
   bxEnviar(dest); bxUlt = millis();
@@ -548,7 +562,7 @@ void aplicar(JsonObject p) {
   // TV Box (versão 24): vai para a fila; o loop manda pela rede (cuidarBox)
   if (p["box"].is<JsonObject>()) {
     JsonObject b = p["box"];
-    if (b["k"].is<const char *>()) { int k = adbTecla(b["k"]); if (k >= 0) bxPor("shell:input keyevent " + String(k)); }
+    if (b["k"].is<const char *>()) { int k = adbTecla(b["k"]); if (k >= 0) bxPor("shell:" + bxTeclaCmd(k)); }
     if (b["txt"].is<const char *>()) { String t = bxTexto(b["txt"].as<String>()); if (t.length()) bxPor("shell:input text " + t); }
     if (b["abrir"].is<const char *>() && b["abrir"].as<String>() == "zuxo") bxPor("shell:am start -n com.zuxoplayer.app/.MainActivity");
     if (b["reiniciar"].is<bool>() && b["reiniciar"].as<bool>()) bxPor("reboot:");

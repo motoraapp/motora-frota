@@ -15,7 +15,7 @@ export function carregarAdb(raiz = process.cwd()) {
     .replace(/'(\\.|[^'\\])'/g, (_, c) => String((c.length > 1 ? JSON.parse(`"${c}"`) : c).charCodeAt(0)))
     .replace(/\((?:uint8_t|uint32_t|int|char)\)/g, '')
     .replace(/\b(?:const\s+)?(?:unsigned\s+)?(?:uint8_t|uint32_t|int|bool|char)\s+(\w+)\s*=/g, 'let $1 =');
-  return new Function(`const strcmp = (a, b) => (a === b ? 0 : 1); ${js}; return { adbSoma, adbCabecalho, adbLe32, adbTecla, adbCharPermitido, ADB_CNXN, ADB_OPEN, ADB_OKAY, ADB_WRTE, ADB_CLSE, ADB_AUTH };`)();
+  return new Function(`const strcmp = (a, b) => (a === b ? 0 : 1); ${js}; return { adbSoma, adbCabecalho, adbLe32, adbTecla, adbEvento, adbCharPermitido, ADB_CNXN, ADB_OPEN, ADB_OKAY, ADB_WRTE, ADB_CLSE, ADB_AUTH };`)();
 }
 
 const ehPrincipal = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/').split('/').pop());
@@ -46,10 +46,22 @@ if (ehPrincipal) {
   caso('constantes: OPEN, OKAY, WRTE, CLSE, AUTH', [A.ADB_OPEN, A.ADB_OKAY, A.ADB_WRTE, A.ADB_CLSE, A.ADB_AUTH].map(v => (v >>> 0).toString(16)),
     ['4e45504f', '59414b4f', '45545257', '45534c43', '48545541']);
 
-  const teclas = { up: 19, down: 20, left: 21, right: 22, ok: 23, back: 4, home: 3, menu: 82, volup: 24, voldown: 25, mute: 164, play: 85 };
+  // Códigos do Linux do controle da box (/dev/input/event0, "110b0030.pwm", mapa 110b0030_pwm.kl). Versão 25: a placa
+  // escreve a tecla direto no controle (0,1 s) em vez de "input keyevent" (2,1 s na box de 1 GB).
+  const teclas = { up: 103, down: 108, left: 105, right: 106, ok: 232, back: 158, home: 102, menu: 139, volup: 115, voldown: 114, mute: 113, play: 164 };
   for (const [k, v] of Object.entries(teclas)) caso(`tecla ${k} = ${v}`, A.adbTecla(k), v);
   caso('tecla desconhecida = -1', A.adbTecla('xyz'), -1);
   caso('tecla vazia = -1', A.adbTecla(''), -1);
+
+  // Evento do Linux (struct input_event de 32 bits): 8 bytes de hora (zero), tipo, código e valor em little-endian.
+  const ev = new Array(16).fill(9);
+  A.adbEvento(ev, 1, 232, 1);
+  caso('evento: hora zerada', hex(ev.slice(0, 8)), '00 00 00 00 00 00 00 00');
+  caso('evento: tipo EV_KEY = 1', hex(ev.slice(8, 10)), '01 00');
+  caso('evento: código 232 (OK)', hex(ev.slice(10, 12)), 'e8 00');
+  caso('evento: valor 1 (apertou)', hex(ev.slice(12, 16)), '01 00 00 00');
+  A.adbEvento(ev, 1, 388, 0);
+  caso('evento: código acima de 255 e valor 0 (soltou)', hex(ev.slice(10, 16)), '84 01 00 00 00 00');
 
   for (const c of 'aZ5.@,-_:!') caso(`caractere permitido "${c}"`, A.adbCharPermitido(c.charCodeAt(0)), true);
   for (const c of `'";&|$\`\\()<> \n*#%~/{}[]=+^`) caso(`caractere bloqueado ${JSON.stringify(c)}`, A.adbCharPermitido(c.charCodeAt(0)), false);
