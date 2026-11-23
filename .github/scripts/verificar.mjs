@@ -207,8 +207,8 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
     const app = existsSync(join(raiz, 'ar/index.html')) ? readFileSync(join(raiz, 'ar/index.html'), 'utf8') : '';
     const mom = (app.match(/const MOMENTO=\[([^\]]*)\]/) || [])[1] || '';
     const ruim = [!/'box'/.test(mom) && "MOMENTO sem 'box'", !/'boxIp'/.test(mom) && "MOMENTO sem 'boxIp'",
-      !/<details id="hor" hidden>/.test(app) && 'Horários programados visível', !/<details id="aj" hidden>/.test(app) && 'Ajustes do controle visível'].filter(Boolean);
-    if (!ruim.length) console.log('ok   ar: comandos da TV Box não travam o app; Horários e Ajustes escondidos');
+      !/<details id="hor" hidden>/.test(app) && 'Horários programados visível', /<details id="aj" hidden>/.test(app) && 'Ajustes do controle escondido (o dono pediu de volta em 23/11/2026)'].filter(Boolean);
+    if (!ruim.length) console.log('ok   ar: comandos da TV Box não travam o app; Horários escondido e Ajustes visível');
     else { erros++; console.log('ERRO ar: ' + ruim.join('; ')); }
   }
   const casa = join(raiz, 'ar/firmware/gree-esp32/web.h'), fora = join(raiz, 'ar/index.html');
