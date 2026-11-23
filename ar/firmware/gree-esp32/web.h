@@ -219,10 +219,10 @@ tv.addEventListener('click',e=>{const t=e.target.closest('.tk');if(!t)return;con
  if(apr){modoApr(false);send({tvAprender:k});aviso('Agora aperte '+N[k]+' no controle da TV, apontado para a placa (30 segundos).');return}
  t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),160);if(navigator.vibrate)navigator.vibrate(8);send({tecla:k});aviso('Enviado: '+N[k],2500)});
 // Barra de volume (placa versão 17): manda o volume escolhido ({tvVol}); a placa conta e dá os toques. Arrastando, manda no máximo 1 por segundo.
-const vv=$('tvv'),vn=$('tvvn');let vArr=false,vEnv=0,vT=0;
-const vMandar=()=>{clearTimeout(vT);vEnv=Date.now();send({tvVol:+vv.value})};
+const vv=$('tvv'),vn=$('tvvn');let vArr=false,vEnv=0,vT=0,vUlt=null;
+const vMandar=()=>{clearTimeout(vT);vT=0;vEnv=Date.now();vUlt=+vv.value;send({tvVol:vUlt})};
 vv.addEventListener('input',()=>{vArr=true;vn.textContent=vv.value;clearTimeout(vT);if(Date.now()-vEnv>1000)vMandar();else vT=setTimeout(vMandar,1000)});
-vv.addEventListener('change',()=>{vMandar();setTimeout(()=>{vArr=false},2500)});
+vv.addEventListener('change',()=>{if(vT||+vv.value!==vUlt)vMandar();setTimeout(()=>{vArr=false},2500)});
 $('tvvz').onclick=()=>{send({tvVolZerar:true});aviso('Abaixando o volume até o 0 (uns 20 segundos).',6000)};
 window.renderTv=function(){const v=S.tv||{},l=v.l||[],j=JSON.stringify(l);
  if(!vArr&&v.v!==undefined){const alvo=v.va!==undefined?v.va:v.v;vv.value=alvo;vn.textContent=v.va!==undefined&&v.va!==v.v?v.v+' → '+v.va:v.v}

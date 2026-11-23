@@ -200,6 +200,17 @@ for (const f of ['manifest.json', 'apk-version.json', 'ar/firmware/versao.json',
     try { JSON.parse(readFileSync(join(raiz, 'ar/manifest.json'), 'utf8')); console.log('ok   ar/manifest.json'); }
     catch (e) { erros++; console.log(`ERRO ar/manifest.json: ${e.message}`); }
   }
+  // Bug de 23/11/2026: sem 'box'/'boxIp' em MOMENTO, toda tecla da TV Box deixava o app 60 s esperando um estado
+  // que nunca vem e depois dizia "A placa não respondeu" (mesmo funcionando). E o dono pediu para esconder
+  // "Horários programados" e "Ajustes do controle".
+  {
+    const app = existsSync(join(raiz, 'ar/index.html')) ? readFileSync(join(raiz, 'ar/index.html'), 'utf8') : '';
+    const mom = (app.match(/const MOMENTO=\[([^\]]*)\]/) || [])[1] || '';
+    const ruim = [!/'box'/.test(mom) && "MOMENTO sem 'box'", !/'boxIp'/.test(mom) && "MOMENTO sem 'boxIp'",
+      !/<details id="hor" hidden>/.test(app) && 'Horários programados visível', !/<details id="aj" hidden>/.test(app) && 'Ajustes do controle visível'].filter(Boolean);
+    if (!ruim.length) console.log('ok   ar: comandos da TV Box não travam o app; Horários e Ajustes escondidos');
+    else { erros++; console.log('ERRO ar: ' + ruim.join('; ')); }
+  }
   const casa = join(raiz, 'ar/firmware/gree-esp32/web.h'), fora = join(raiz, 'ar/index.html');
   if (existsSync(casa) && existsSync(fora)) {
     const a = readFileSync(casa, 'utf8').replace(/\r\n/g, '\n'), b = readFileSync(fora, 'utf8').replace(/\r\n/g, '\n');

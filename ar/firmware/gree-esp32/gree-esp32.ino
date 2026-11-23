@@ -31,7 +31,7 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 25
+#define FW_VERSAO 26
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
@@ -148,6 +148,7 @@ int ventUi(stdAc::fanspeed_t f) {
   switch (f) { case stdAc::fanspeed_t::kAuto: return 0; case stdAc::fanspeed_t::kMin: case stdAc::fanspeed_t::kLow: return 1;
     case stdAc::fanspeed_t::kMedium: return 2; default: return 3; }
 }
+unsigned long txN = 0;
 void enviar(const Estado &e, int proto) {
   stdAc::state_t st; IRac::initState(&st);
   st.protocol = (decode_type_t)proto; st.model = e.model; st.power = e.power; st.mode = modoStd(e.mode);
@@ -155,11 +156,11 @@ void enviar(const Estado &e, int proto) {
   st.swingv = e.swing ? stdAc::swingv_t::kAuto : stdAc::swingv_t::kOff; st.swingh = stdAc::swingh_t::kOff;
   st.light = e.light; st.turbo = e.turbo; st.clean = e.xfan; st.sleep = e.sleep ? 0 : -1; st.beep = true;
   irrecv.disableIRIn();  // não ler o próprio sinal
+  pinMode(PINO_TX, OUTPUT);
   ac.sendAc(st, nullptr);
-  // Versão 23 (dono: "às vezes obedece, às vezes não"): no Gree o comando leva o estado inteiro (ligado, modo,
-  // temperatura), então mandar a mesma coisa 2 vezes não muda nada no ar e dá uma 2ª chance se a 1ª se perdeu.
-  // Só no Gree: em outras marcas um botão pode ser "liga/desliga" e 2 vezes desfaria o comando.
-  if (proto == (int)decode_type_t::GREE) { delay(150); ac.sendAc(st, nullptr); }
+  // Versão 23/26: no Gree o comando leva o estado inteiro; intervalo de 250 ms garante que o receptor termine o 1º quadro.
+  if (proto == (int)decode_type_t::GREE) { delay(250); ac.sendAc(st, nullptr); }
+  txN++;
   irrecv.enableIRIn();
   Serial.printf("TX: %s %s %d\n", typeToString((decode_type_t)proto).c_str(), e.power ? "liga" : "desliga", e.temp);
 }
@@ -504,6 +505,7 @@ void estadoJson(JsonObject d) {
     o["d"] = H[i].d; o["h"] = H[i].h; o["m"] = H[i].m; o["a"] = H[i].a; o["t"] = H[i].t; o["o"] = H[i].o; o["e"] = H[i].e;
   }
   d["fw"] = FW_VERSAO;
+  d["tx"] = txN;
   d["rt"] = rtLigado; d["heap"] = (int)(ESP.getFreeHeap() / 1024);
   if (rtIniciado) { JsonObject x = d["rtd"].to<JsonObject>(); x["c"] = rtCon; x["q"] = rtCai; x["a"] = rtAcorda; x["ok"] = tlsRt.connected(); x["m"] = rtUlt; x["t"] = rtTent; }
   d["hmax"] = (int)(ESP.getMaxAllocHeap() / 1024);

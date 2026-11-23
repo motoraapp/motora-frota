@@ -76,8 +76,8 @@ details p{margin:6px 0 10px}#rx{background:rgba(0,0,0,.25);border-radius:12px;pa
  <div class="clima"><button data-d="-1" aria-label="Diminuir a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button><div class="t"><span id="t">24</span>°</div><button data-d="1" aria-label="Aumentar a temperatura"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button></div>
  <div class="grp"><p class="lbl">Modo</p><div class="r" id="m"></div><p class="lbl">Ventilação</p><div class="r" id="f"></div><p class="lbl">Funções</p><div class="r" id="x"></div></div>
  <details id="graf" open><summary>Histórico do quarto</summary><div class="gfil" role="group" aria-label="Período"><button data-g="24">24 h</button><button data-g="7" class="on">7 dias</button><button data-g="mes">Mês</button><button data-g="ano">Ano</button></div><div class="gfil gmet" id="gmet" role="group" aria-label="O que mostrar"><button data-m="temp" class="on">Temperatura</button><button data-m="uso">Ar ligado</button></div><div class="gnav" id="gnav" hidden><button id="gant" aria-label="Período anterior">‹</button><b id="gper"></b><button id="gprox" aria-label="Próximo período">›</button></div><div id="gsvg"></div><div class="gres"><div><span id="gql">Mais quente</span><b id="gq">—</b><small id="gqh"></small></div><div><span id="gml">Média das máximas</span><b id="gm">—</b></div></div><p id="gdet"></p></details>
- <details id="hor"></details>
- <details id="aj"><summary>Ajustes do controle</summary>
+ <details id="hor" hidden></details><!-- escondido a pedido do dono (23/11/2026): não usa -->
+ <details id="aj" hidden><!-- escondido a pedido do dono (23/11/2026): não usa --><summary>Ajustes do controle</summary>
   <p><b>Modelo do controle Gree.</b> Se o ar não obedecer, toque em outro modelo.</p><div class="r mb" id="mo"></div>
   <p><b>Último sinal do controle original</b> (lido pela placa em casa):</p><div id="rx">Nenhum sinal lido ainda.</div>
   <div id="avisos"><p><b>Avisos no celular.</b> <span id="avst">Verificando…</span></p><div class="r"><button id="bAvisos">Ativar avisos neste celular</button></div></div>
@@ -132,10 +132,12 @@ function ui(){
 }
 async function send(p){
   if(!DEV) return; Object.assign(S,p); if(p.temp!==undefined) S.temp=Math.min(30,Math.max(16,S.temp)); ui();
-  pend={p:{...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
+  const prev={...(pend?pend.p:{})};
+  if('power' in p||'mode' in p||'temp' in p||'fan' in p||'turbo' in p) delete prev.mimi;
+  pend={p:{...prev,...p},at:Date.now()}; msg(DEV.online?'Enviando…':'A placa está sem sinal; o comando vale por 1 minuto.');
   const {error}=await sb.rpc('ar_send',{p_id:DEV.id,p_payload:p}); if(error){ msg(errTxt(error)); pend=null; }
 }
-const MOMENTO=['tvVol','tvVolZerar','tvVolDefinir','mimi','tvDesligar','scan','ota','tecla','tvAprender','tvEsquecer','tvBusca','tvFam'];  // comandos de um toque: não aparecem no estado da placa
+const MOMENTO=['box','boxIp','tvVol','tvVolZerar','tvVolDefinir','mimi','tvDesligar','scan','ota','tecla','tvAprender','tvEsquecer','tvBusca','tvFam'];  // comandos de um toque: não aparecem no estado da placa
 // Compara sem depender da ordem dos campos: o banco (jsonb) reordena e o texto nunca batia (horários e automático travavam 60 s).
 function igual(a,b){ if(a===b) return true; if(!a||!b||typeof a!=='object'||typeof b!=='object') return false; if(Array.isArray(a)!==Array.isArray(b)) return false;
   const ka=Object.keys(a),kb=Object.keys(b); return ka.length===kb.length&&ka.every(k=>igual(a[k],b[k])); }
@@ -483,10 +485,10 @@ tv.addEventListener('click',e=>{const t=e.target.closest('.tk');if(!t)return;con
  if(apr){modoApr(false);send({tvAprender:k});aviso('Agora aperte '+N[k]+' no controle da TV, apontado para a placa (30 segundos).');return}
  t.classList.add('vai');setTimeout(()=>t.classList.remove('vai'),160);if(navigator.vibrate)navigator.vibrate(8);send({tecla:k});aviso('Enviado: '+N[k],2500)});
 // Barra de volume (placa versão 17): manda o volume escolhido ({tvVol}); a placa conta e dá os toques. Arrastando, manda no máximo 1 por segundo.
-const vv=$('tvv'),vn=$('tvvn');let vArr=false,vEnv=0,vT=0;
-const vMandar=()=>{clearTimeout(vT);vEnv=Date.now();send({tvVol:+vv.value})};
+const vv=$('tvv'),vn=$('tvvn');let vArr=false,vEnv=0,vT=0,vUlt=null;
+const vMandar=()=>{clearTimeout(vT);vT=0;vEnv=Date.now();vUlt=+vv.value;send({tvVol:vUlt})};
 vv.addEventListener('input',()=>{vArr=true;vn.textContent=vv.value;clearTimeout(vT);if(Date.now()-vEnv>1000)vMandar();else vT=setTimeout(vMandar,1000)});
-vv.addEventListener('change',()=>{vMandar();setTimeout(()=>{vArr=false},2500)});
+vv.addEventListener('change',()=>{if(vT||+vv.value!==vUlt)vMandar();setTimeout(()=>{vArr=false},2500)});
 $('tvvz').onclick=()=>{send({tvVolZerar:true});aviso('Abaixando o volume até o 0 (uns 20 segundos).',6000)};
 window.renderTv=function(){const v=S.tv||{},l=v.l||[],j=JSON.stringify(l);
  if(!vArr&&v.v!==undefined){const alvo=v.va!==undefined?v.va:v.v;vv.value=alvo;vn.textContent=v.va!==undefined&&v.va!==v.v?v.v+' → '+v.va:v.v}
