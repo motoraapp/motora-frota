@@ -31,8 +31,13 @@
 #include "mbedtls/sha256.h"
 #include "mbedtls/base64.h"
 
-#define FW_VERSAO 26
+#define FW_VERSAO 27
 const int PINO_TX = 4, PINO_RX = 27, PINO_DHT = 25;
+// Versão 27 (pedido do dono, 23/11/2026): LED azul da própria placa (D2) pisca a cada comando recebido, como dizia o guia
+// da versão 1. Assim o dono vê que o toque chegou na placa; se piscou e o ar não respondeu, o problema é o infravermelho.
+const int PINO_LED = 2; unsigned long ledAte = 0;
+void piscarLed() { digitalWrite(PINO_LED, HIGH); ledAte = millis() + 150; if (!ledAte) ledAte = 1; }
+void cuidarLed() { if (ledAte && (long)(millis() - ledAte) >= 0) { digitalWrite(PINO_LED, LOW); ledAte = 0; } }
 const char *URL_APP = "https://motoraapp.github.io/motora-frota/ar/";
 const char *URL_SYNC = "https://epswrtcwszhbapaxdpzz.supabase.co/rest/v1/rpc/ar_device_sync";
 const char *URL_VERSAO = "https://motoraapp.github.io/motora-frota/ar/firmware/versao.json";
@@ -523,6 +528,7 @@ void estadoJson(JsonObject d) {
 
 // Comando do app de casa ou de fora (mesmo formato).
 void aplicar(JsonObject p) {
+  if (!(p.size() == 1 && p["fora"].is<float>())) piscarLed();  // a temperatura de lá fora (a cada 15 min) não pisca
   bool mandar = false;
   // mexer no ar pelo app/Siri/horário tira do "A mimi?"
   if (p["power"].is<bool>() || p["mode"].is<int>() || p["temp"].is<int>() || p["fan"].is<int>() || p["turbo"].is<bool>()) MI.on = false;
@@ -812,6 +818,7 @@ void setup() {
   tlsNuvem.setCACert(CERTS); tlsGh.setCACert(CERTS);
   dht.begin();
   irsend.begin();
+  pinMode(PINO_LED, OUTPUT); digitalWrite(PINO_LED, LOW);
   tvLista = lerTxt("tv_lista");
   tvFam = lerNum("tv_fam", -1); if (tvFam >= N_FAMILIAS_TV) tvFam = -1;
   tvVol = faixa(lerNum("tv_vol", 0), 0, 100);
@@ -839,6 +846,7 @@ void cuidarMimi() {
 
 void loop() {
   srv.handleClient();
+  cuidarLed();
   cuidarWifi();
   lerControle();
   lerSensor();

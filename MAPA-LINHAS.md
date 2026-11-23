@@ -1,6 +1,6 @@
 # Mapa de linhas do código (gerado por ferramentas/mapa.mjs, não edite à mão)
 
-Gerado em 23/11/2026, 13:31:01. Procure aqui com Grep e leia só as linhas indicadas.
+Gerado em 23/11/2026, 14:03:20. Procure aqui com Grep e leia só as linhas indicadas.
 Formato: `linha: nome`. O guia por assunto está em GUIA-CODIGO.md.
 
 ## index.html (13639 linhas)
