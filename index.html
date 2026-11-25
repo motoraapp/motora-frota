@@ -2704,6 +2704,21 @@
                 DEMO.db.pix_history.forEach(h => { if (h.driver_id === p_driver && h.sent_at === d.pix_sent_at && !h.paid_at) Object.assign(h, { due_at: due, period_start: p_start, period_end: p_end }); });
                 Object.assign(d, { pix_due_at: due, pix_period_start: p_start, pix_period_end: p_end });
             },
+            master_tirar_encargos({ p_driver }) { // mesma regra do banco (supabase/2026-11-25-tirar-encargos.sql)
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) throw new Error('motorista não encontrado');
+                const hoje = todayISO(), due = new Date(hoje + 'T23:59:59-03:00').toISOString(), agora = new Date();
+                const venc = DEMO.db.pix_history.filter(h => h.driver_id === p_driver && !h.paid_at && Number(h.amount) > 0 && new Date(h.due_at) < agora);
+                if (!venc.length) return { tirado: false, motivo: 'nenhuma cobrança vencida em aberto' };
+                venc.forEach(h => {
+                    if (!DEMO.db.pix_history.some(x => String(x.description || '').includes('[atraso:' + h.id + ']')))
+                        DEMO.db.pix_history.push({ id: demoId(), driver_id: p_driver, sent_at: new Date(new Date(h.sent_at).getTime() + 5000).toISOString(), due_at: due, amount: 0, description: 'Multa e juros dispensados pela locadora [atraso:' + h.id + ']', receipt_id: null, paid_at: null, created_at: new Date().toISOString() });
+                    h.due_at = due;
+                });
+                if (d.pix_due_at && new Date(d.pix_due_at) < agora) d.pix_due_at = due;
+                const ex = { ...(d.pix_extra || {}) }; delete ex.atraso_qr; delete ex.parcial; d.pix_extra = ex;
+                d.payment_status = 'Em dia';
+                return { tirado: true, cobrancas: venc.length, valor: venc.reduce((t, h) => t + Number(h.amount), 0), vencimento: hoje, pix: d.pix_amount, status: d.payment_status, restaurado: false, sem_qr: false };
+            },
             master_whatsapp_api_info: () => ({ config: { ativo: false }, tem_token: false, tem_app_secret: false, verify_token: 'demonstracao', webhook_url: 'https://exemplo.supabase.co/functions/v1/motora-whatsapp' }),
             driver_avisar_devolucao({ p_data, p_motivo }) { // mesma regra do banco (supabase/2026-11-25-aviso-devolucao.sql)
                 const d = DEMO.db.profiles.find(p => p.role === 'driver' && p.id === DEMO.userId) || DEMO.db.profiles.find(p => p.role === 'driver' && p.vehicle_id);
@@ -4870,6 +4885,7 @@
                                     ${!contratoEnc && (temPix || atraso || pend) ? `<button onclick="openNewPix('${d.id}')" class="motItem"><i class="fa-brands fa-pix"></i> Novo Pix</button>` : ''}
                                     ${temPix ? `<button onclick="openEditPix('${d.id}')" class="motItem"><i class="fa-solid fa-pen"></i> Editar Pix enviado</button>` : ''}
                                     ${contratoEnc ? '' : `<button onclick="mudarDiaPagamento('${d.id}', this)" class="motItem"><i class="fa-solid fa-calendar-day"></i> Mudar dia do pagamento</button>`}
+                                    ${atraso ? `<button onclick="tirarEncargos('${d.id}', this)" class="motItem"><i class="fa-solid fa-hand-holding-dollar"></i> Tirar multa e juros</button>` : ''}
                                     <button onclick="marcarSituacao('${d.id}', '${atraso ? 'Em dia' : 'Em atraso'}', this)" class="motItem"><i class="fa-solid ${atraso ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${atraso ? 'Marcar como em dia' : 'Marcar em atraso'}</button>
                                     <button onclick="viewAsDriver('${d.id}')" class="motItem"><i class="fa-solid fa-right-to-bracket"></i> Entrar na conta dele</button>
                                     ${last && last !== pend ? `<button onclick="viewDocIdx(${docRef(last.file_path, `Comprovante - ${esc(d.name)} (${new Date(last.created_at).toLocaleDateString('pt-BR')})`)})" class="motItem"><i class="fa-solid fa-file-invoice"></i> Último comprovante (${recs.length})</button>` : ''}
@@ -5237,6 +5253,29 @@
             const dia = DIAS_SEMANA.findIndex(n => sem(n) === sem(r));
             if (dia < 0) { showToast('Escolha um dos dias da lista.', 'error'); return; }
             await aplicarDiaPagamento(d, dia, btn, false);
+        }
+        // TIRAR MULTA E JUROS (25/11/2026; banco master_tirar_encargos, SQL supabase/2026-11-25-tirar-encargos.sql):
+        // cobranças vencidas e em aberto passam a vencer hoje 23:59 sem multa (a multa delas não volta) e sem os juros até agora;
+        // o Pix da semana volta para o app (mesma parte comum do "Mudar dia do pagamento": pix_volta_qr_semana).
+        async function tirarEncargos(id, btn) {
+            const d = allDrv().find(x => x.id === id); if (!d) return;
+            const nome = d.name.split(' ')[0];
+            let atr = null; try { atr = calcAtrasoMotorista(id); } catch (e) {}
+            const det = atr && atr.encargos > 0.005 ? `Hoje: multa ${fmtMoney(atr.multa)} e juros ${fmtMoney(atr.juros)} sobre ${fmtMoney(atr.principal)}.\n\n` : '';
+            if (!await uiConfirm(`${det}A cobrança em atraso de ${nome} passa a vencer hoje, até 23:59, sem multa e sem os juros contados até agora. O Pix da semana volta para o app dele.\n\nSe não pagar até hoje, a multa não volta; só os juros voltam a contar a partir de amanhã.`,
+                { titulo: `Tirar multa e juros de ${nome}?`, sim: 'Tirar multa e juros' })) return;
+            await withBtn(btn, 'Salvando...', async () => {
+                try {
+                    const { data, error } = await sb.rpc('master_tirar_encargos', { p_driver: id });
+                    if (error) throw error;
+                    const r = data || {};
+                    await reload();
+                    if (!r.tirado) { showToast(`Nada para tirar: ${r.motivo || 'nenhuma cobrança vencida'}.`); return; }
+                    showToast(`Pronto: ${nome} paga ${fmtMoney(r.pix != null ? r.pix : r.valor)} até hoje, 23:59, sem multa e juros.`);
+                    if (r.sem_qr) showToast('O Pix com multa continua na tela dele. Troque o código em "Editar Pix enviado".', 'error');
+                    if (document.getElementById('modalPixArea') && !document.getElementById('modalPixArea').classList.contains('hidden')) renderPixArea();
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
         }
         // jaSalvo = o dia já foi gravado pela ficha; aqui só falta (se o dono quiser) levar a cobrança em aberto
         async function aplicarDiaPagamento(d, dia, btn, jaSalvo) {
@@ -8741,6 +8780,7 @@ p{margin:2px 0;overflow-wrap:anywhere} .dest{font-size:16px;font-weight:700;marg
                     <div class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Em atraso há ${atr.diasMax} dia${atr.diasMax > 1 ? 's' : ''} · Total atualizado: ${fmtMoney(atr.total)}</div>
                     <div>Principal: ${fmtMoney(atr.principal)} · Multa (${atr.cfg.multa_pct}%): ${fmtMoney(atr.multa)} · Juros (${atr.cfg.juros_mes_pct}% a.m.): ${fmtMoney(atr.juros)}</div>
                     ${d.asaas_auto_charge_enabled ? `<button onclick="atualizarPixAtraso('${d.id}', this)" class="mt-1.5 w-full py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg text-xs font-semibold"><i class="fa-solid fa-rotate mr-1"></i> Atualizar QR Pix no Asaas (com multa e juros)</button>` : ''}
+                    <button onclick="tirarEncargos('${d.id}', this)" class="mt-1.5 w-full py-2 rounded-lg text-xs font-semibold border border-blue-600 text-blue-700 dark:text-blue-300 bg-white dark:bg-gray-800"><i class="fa-solid fa-hand-holding-dollar mr-1"></i> Tirar multa e juros</button>
                 </div>`;
             }
             if (late) html += `<button onclick="cobrarAtraso('${d.id}', this)" class="w-full mt-2 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold"><i class="fa-brands fa-whatsapp mr-1"></i> Cobrar atraso pelo WhatsApp</button>`;

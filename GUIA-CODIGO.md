@@ -43,6 +43,7 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 | Abatimento dos pagamentos | `allocatePix` |
 | Recibo / Corrigir recibo / Meus recibos | seções "RECIBO DE PAGAMENTO", "CORRIGIR RECIBO", "MEUS RECIBOS"; `#modalRecibo`, `#modalCorrigirRecibo`, `#modalMeusRecibos`, `reciboTexto` |
 | Cobrar atraso | seção "COBRAR ATRASO" (`atrasoDados`, `cobrarAtraso`) |
+| Tirar multa e juros (dispensar encargos de atraso) | `tirarEncargos` (cartão "Mais ações" e Área do Pix); banco `master_tirar_encargos` + parte comum `pix_volta_qr_semana` |
 | Área IA (mensagens WhatsApp, robô, QR) | `#modalIA`, `openIA`, `renderIA`, `loadIA`, `toggleIA`, `loadRobo` |
 | WhatsApp oficial (API da Meta) | Configurações `#waApiBox`, `carregarWaApi`, `salvarWaApi`, `waApiAcao`, `ligarWaApi`; função `motora-whatsapp`; guia `docs/whatsapp-api.md` |
 | Perguntar à IA (assistente do dono) | seção "PERGUNTAR À IA" (`iaFerramenta`, `iaConfirmarCartao`) |
