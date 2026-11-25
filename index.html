@@ -280,6 +280,7 @@
             <!-- Perfil do motorista: caução (pago e quanto falta) e previsão da próxima semana (quando em dia) -->
             <div id="drvProfileExtras" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
             <button id="btnMeusRecibos" onclick="openMeusRecibos()" class="w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-receipt"></i> Meus recibos <span id="meusRecibosCount" class="px-2 py-0.5 rounded-full bg-white/25 text-xs"></span></button>
+            <button id="btnAvisoDev" onclick="abrirAvisoDev()" class="hidden w-full py-3 rounded-2xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-car-side"></i> Avisar devolução do carro</button>
             <button id="btnTrocarSenhaDrv" onclick="abrirSenha()" class="w-full py-3 rounded-2xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
 
             <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
@@ -879,6 +880,38 @@
                 <input id="iaCodToken" type="password" autocomplete="off" placeholder="Chave do GitHub" class="w-full mt-2 p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                 <button type="button" onclick="salvarIaCodigo(this)" class="w-full mt-2 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar</button></details>
             <button type="button" onclick="abrirSenha()" class="w-full py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
+            <!-- WhatsApp da locadora: para onde o motorista manda o aviso de devolução (app_settings whatsapp_locadora) -->
+            <div class="p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/15 space-y-2">
+                <h4 class="font-semibold text-sm"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i> WhatsApp da locadora</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Número que recebe as mensagens dos motoristas pelo app (ex.: aviso de devolução do carro). Com DDD.</p>
+                <input id="cfgWhatsLoc" type="tel" inputmode="tel" placeholder="(62) 99457-8963" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                <button type="button" onclick="salvarWhatsLocadora(this)" class="w-full py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar número</button>
+            </div>
+            <!-- WHATSAPP OFICIAL (API da Meta): função motora-whatsapp; SQL supabase/2026-11-25-whatsapp-api.sql; guia docs/whatsapp-api.md -->
+            <details id="waApiBox" class="rounded-xl border border-green-200 dark:border-green-800 p-3 text-sm">
+                <summary class="font-bold cursor-pointer"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i> WhatsApp oficial (API da Meta) <span id="waApiSit" class="ml-1 text-xs font-semibold text-gray-500"></span></summary>
+                <div class="mt-3 space-y-2">
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Manda sozinho para os motoristas (Pix, vence hoje, atraso, recibo e avisos), sem robô e sem computador ligado. Os dados ficam na página da Meta para desenvolvedores; o passo a passo está no guia.</p>
+                    <label class="block text-xs font-semibold">ID da conta do WhatsApp (WABA)<input id="waWaba" inputmode="numeric" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
+                    <label class="block text-xs font-semibold">ID do número de telefone<input id="waPhoneId" inputmode="numeric" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
+                    <label class="block text-xs font-semibold">ID do app<input id="waAppId" inputmode="numeric" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
+                    <label class="block text-xs font-semibold">Token permanente <span id="waTokSit" class="font-normal text-gray-500"></span><input id="waToken" type="password" autocomplete="off" placeholder="Deixe em branco para não trocar" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
+                    <label class="block text-xs font-semibold">Chave secreta do app <span id="waSecSit" class="font-normal text-gray-500"></span><input id="waSecret" type="password" autocomplete="off" placeholder="Deixe em branco para não trocar" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
+                    <button type="button" onclick="salvarWaApi(this)" class="w-full py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar dados</button>
+                    <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 text-xs space-y-1">
+                        <p class="font-semibold">Para colocar na Meta (Webhook):</p>
+                        <p>Endereço: <span id="waHookUrl" class="break-all font-mono"></span></p>
+                        <p>Token de verificação: <span id="waVerify" class="break-all font-mono"></span></p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="waApiAcao('modelos', this)" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700">Criar modelos na Meta</button>
+                        <button type="button" onclick="waApiAcao('situacao', this)" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700">Ver situação</button>
+                        <button type="button" onclick="waApiAcao('teste', this)" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700">Enviar teste para mim</button>
+                        <button type="button" id="waLigarBtn" onclick="ligarWaApi(this)" class="py-2.5 rounded-xl text-xs font-bold bg-green-600 hover:bg-green-700 text-white">Ligar envio</button>
+                    </div>
+                    <pre id="waApiRes" class="hidden text-xs whitespace-pre-wrap p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 font-sans"></pre>
+                </div>
+            </details>
             <div class="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 space-y-2">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-user-tie text-indigo-600 mr-1"></i> Perfil do proprietário / Locador (<span id="cfgOwnerName">Thiago</span>)</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">O carro vinculado ao seu perfil não cria login de motorista e é usado por padrão em <b>Ganhos aplicativo</b>.</p>
@@ -1355,6 +1388,33 @@
                 <div id="senhaErro" role="alert" class="hidden text-sm font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5"></div>
                 <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2"><i class="fa-solid fa-check"></i> Salvar nova senha</button>
             </form>
+        </div>
+    </div>
+
+    <!-- AVISO DE DEVOLUÇÃO (motorista): comunicado da Cláusula 13 para mandar pelo WhatsApp; banco: driver_avisar_devolucao -->
+    <div id="modalAvisoDev" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-solid fa-car-side text-blue-600 mr-1"></i> Avisar devolução do carro</h3>
+                <button onclick="fecharAvisoDev()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar space-y-3 flex-1">
+                <p class="text-xs p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200">Pelo contrato (Cláusula 13), o aviso precisa ser feito com pelo menos <b>15 dias corridos</b> de antecedência. O aluguel continua valendo até a entrega do carro.</p>
+                <label class="block text-sm font-semibold">Data prevista para devolver o carro
+                    <input id="avDevData" type="date" oninput="avisoDevTexto()" class="mt-1 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-base"></label>
+                <label class="block text-sm font-semibold">Motivo (opcional)
+                    <textarea id="avDevMotivo" rows="2" maxlength="300" oninput="avisoDevTexto()" class="mt-1 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-base"></textarea></label>
+                <label class="block text-sm font-semibold">Sua chave Pix (para devolver a caução)
+                    <input id="avDevPix" type="text" oninput="avisoDevTexto()" class="mt-1 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-base"></label>
+                <div>
+                    <p class="text-sm font-semibold mb-1">Comunicado que vai no WhatsApp</p>
+                    <pre id="avDevPrevia" class="text-xs whitespace-pre-wrap p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-sans"></pre>
+                </div>
+            </div>
+            <div class="p-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-2">
+                <button onclick="fecharAvisoDev()" class="py-3 rounded-xl text-sm font-bold bg-gray-100 dark:bg-gray-700">Cancelar</button>
+                <button id="avDevEnviar" onclick="enviarAvisoDev(this)" class="py-3 rounded-xl text-sm font-bold bg-green-600 hover:bg-green-700 text-white"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar pelo WhatsApp</button>
+            </div>
         </div>
     </div>
 
@@ -2644,6 +2704,14 @@
                 DEMO.db.pix_history.forEach(h => { if (h.driver_id === p_driver && h.sent_at === d.pix_sent_at && !h.paid_at) Object.assign(h, { due_at: due, period_start: p_start, period_end: p_end }); });
                 Object.assign(d, { pix_due_at: due, pix_period_start: p_start, pix_period_end: p_end });
             },
+            master_whatsapp_api_info: () => ({ config: { ativo: false }, tem_token: false, tem_app_secret: false, verify_token: 'demonstracao', webhook_url: 'https://exemplo.supabase.co/functions/v1/motora-whatsapp' }),
+            driver_avisar_devolucao({ p_data, p_motivo }) { // mesma regra do banco (supabase/2026-11-25-aviso-devolucao.sql)
+                const d = DEMO.db.profiles.find(p => p.role === 'driver' && p.id === DEMO.userId) || DEMO.db.profiles.find(p => p.role === 'driver' && p.vehicle_id);
+                if (!d || !d.vehicle_id) throw new Error('você não está com nenhum carro');
+                if (!p_data || p_data < dataMais(todayISO(), 15)) throw new Error('a devolução precisa ser pelo menos 15 dias depois do aviso');
+                d.pix_extra = { ...(d.pix_extra || {}), devolucao_pedido: { em: new Date().toISOString(), data: p_data, motivo: p_motivo || null } };
+                return { ok: true, whatsapp: null };
+            },
             master_mudar_dia({ p_driver, p_dia, p_mover }) { // mesma regra do banco (supabase/2026-11-25-mudar-dia-pagamento.sql)
                 const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) throw new Error('motorista não encontrado');
                 d.payment_day_of_week = p_dia;
@@ -3753,6 +3821,7 @@
             try { renderDriverExtras(); } catch (e) { console.error(e); }
             try { renderDriverProfileExtras(); } catch (e) { console.error(e); }
             try { const n = meusRecibosLista().length; document.getElementById('meusRecibosCount').textContent = n || ''; } catch (e) {}
+            try { const p = state.profile || {}, ex = p.pix_extra || {}; document.getElementById('btnAvisoDev').classList.toggle('hidden', !p.vehicle_id || !!ex.devolucao || !!ex.contrato_encerrado || !!ex.sem_cobranca); } catch (e) {}
             updateInstallApkButton();
             checkApkUpdate();
             const driver = state.profile;
@@ -4775,7 +4844,7 @@
                             <div class="motInfo">
                                 <div class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${vence}</div>
                                 ${c30 ? `<div class="mt-1.5 p-2.5 rounded-xl ${c30.pagoEm ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'} text-xs space-y-1"><div class="flex items-center justify-between gap-2 font-bold"><span><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</span><span>${fmtDate(c30.ateIso)}</span></div><p>${esc(c30.msg)}</p></div>` : ''}
-                                ${obsResumoHtml(d)}${contratoEnc ? '' : cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
+                                ${(() => { const pd = d.pix_extra && d.pix_extra.devolucao_pedido; return pd && !devOf(d) ? `<div class="mt-1.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs"><i class="fa-solid fa-car-side mr-1"></i><b>Pediu para devolver o carro em ${dataBR(String(pd.data), true)}</b> (aviso de ${fmtDate(pd.em)}). Confira e marque na ficha "Motorista informou a devolução".${pd.motivo ? `<br>Motivo: ${esc(pd.motivo)}` : ''}</div>` : ''; })()}${obsResumoHtml(d)}${contratoEnc ? '' : cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
                                 <div class="motSelos">${/aceito/i.test(termsBadgeMaster(d)) ? '' : termsBadgeMaster(d)}${cnhBadgeMaster(d)}</div>
                             </div>
                             ${pend ? `<div class="motComprovante">
@@ -5539,6 +5608,8 @@
             fillOwnerVehicleSelect('cfgOwnerVehicle');
             fillLocadorSettings();
             fillAtrasoCfg();
+            fillWhatsLocadora();
+            carregarWaApi();
             document.getElementById('cfgGemini').value = '';
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
@@ -5546,6 +5617,99 @@
             drawFeatureToggles();
             document.getElementById('modalSettings').classList.remove('hidden');
             Promise.all([loadConfigStatus().then(paintConfig), loadRobo().then(paintRobo)]).catch(() => {});
+        }
+        // WHATSAPP DA LOCADORA (25/11/2026): app_settings whatsapp_locadora = {numero: '55DDD...'}; o motorista lê (aviso de devolução)
+        async function fillWhatsLocadora() {
+            const el = document.getElementById('cfgWhatsLoc'); if (!el) return;
+            try {
+                const { data } = await sb.from('app_settings').select('value').eq('key', 'whatsapp_locadora').maybeSingle();
+                const n = String((data && data.value && data.value.numero) || '').replace(/^55/, '');
+                el.value = n ? maskPhone(n) : '';
+            } catch (e) {}
+        }
+        async function salvarWhatsLocadora(btn) {
+            let n = document.getElementById('cfgWhatsLoc').value.replace(/\D/g, '').replace(/^0+/, '');
+            if (n.length === 12 || n.length === 13) n = n.replace(/^55/, '');
+            if (n.length !== 10 && n.length !== 11) { showToast('Digite o número com DDD, ex.: (62) 99457-8963.', 'error'); return; }
+            await withBtn(btn, 'Salvando...', async () => {
+                const { error } = await sb.from('app_settings').upsert({ key: 'whatsapp_locadora', value: { numero: '55' + n }, updated_at: new Date().toISOString() });
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                document.getElementById('cfgWhatsLoc').value = maskPhone(n);
+                showToast('WhatsApp da locadora salvo!');
+            });
+        }
+        // WHATSAPP OFICIAL (API da Meta, 25/11/2026): dados em app_settings whatsapp_api, token e chave em app_secrets (set_app_config);
+        // envio pela função motora-whatsapp (cron motora-whatsapp-api). Ligar desliga o robô (master_whatsapp_api_salvar).
+        let waApiCfg = {};
+        async function carregarWaApi() {
+            try {
+                const { data, error } = await sb.rpc('master_whatsapp_api_info');
+                if (error || !data) return;
+                const c = waApiCfg = data.config || {};
+                document.getElementById('waWaba').value = c.waba_id || '';
+                document.getElementById('waPhoneId').value = c.phone_id || '';
+                document.getElementById('waAppId').value = c.app_id || '';
+                ['waToken', 'waSecret'].forEach(i => document.getElementById(i).value = '');
+                document.getElementById('waTokSit').textContent = data.tem_token ? '(já salvo ✓)' : '(falta colocar)';
+                document.getElementById('waSecSit').textContent = data.tem_app_secret ? '(já salva ✓)' : '(falta colocar)';
+                document.getElementById('waHookUrl').textContent = data.webhook_url || '';
+                document.getElementById('waVerify').textContent = data.verify_token || '';
+                document.getElementById('waApiSit').textContent = c.ativo ? '· LIGADO' : '· desligado';
+                const b = document.getElementById('waLigarBtn'); b.textContent = c.ativo ? 'Desligar envio' : 'Ligar envio';
+                b.className = 'py-2.5 rounded-xl text-xs font-bold text-white ' + (c.ativo ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700');
+            } catch (e) {}
+        }
+        async function salvarWaApi(btn) {
+            if (DEMO) { showToast('Na demonstração nada é salvo na Meta.'); return; }
+            await withBtn(btn, 'Salvando...', async () => {
+                try {
+                    const { error } = await sb.rpc('master_whatsapp_api_salvar', { p: { waba_id: document.getElementById('waWaba').value, phone_id: document.getElementById('waPhoneId').value, app_id: document.getElementById('waAppId').value } });
+                    if (error) throw error;
+                    for (const [k, id] of [['wa_token', 'waToken'], ['wa_app_secret', 'waSecret']]) {
+                        const v = document.getElementById(id).value.trim();
+                        if (v) { const r = await sb.rpc('set_app_config', { p_key: k, p_value: v }); if (r.error) throw r.error; }
+                    }
+                    showToast('Dados do WhatsApp oficial salvos!');
+                    await carregarWaApi();
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
+        }
+        function waApiTexto(acao, d) {
+            if (!d || d.ok === false) return 'Erro: ' + ((d && d.error) || 'sem resposta');
+            if (acao === 'modelos') return (d.modelos || []).map(m => `${m.modelo}: ${m.erro ? 'ERRO - ' + m.erro : m.situacao}`).join('\n');
+            if (acao === 'teste') return 'Mensagem de teste enviada. Confira o seu WhatsApp.';
+            const st = { APPROVED: 'aprovado ✓', PENDING: 'em análise', REJECTED: 'recusado', PAUSED: 'pausado', DISABLED: 'desativado' };
+            const L = [];
+            if (d.numero) L.push(`Número: ${d.numero.display_phone_number || '-'} (${d.numero.verified_name || '-'}) · qualidade ${d.numero.quality_rating || '-'}`);
+            if (d.numero_erro) L.push('Número: ' + d.numero_erro);
+            (d.modelos || []).forEach(m => L.push(`${m.name}: ${st[m.status] || m.status}${m.rejected_reason && m.rejected_reason !== 'NONE' ? ' (' + m.rejected_reason + ')' : ''}`));
+            (d.faltam || []).forEach(n => L.push(`${n}: ainda não criado`));
+            if (d.modelos_erro) L.push('Modelos: ' + d.modelos_erro);
+            return L.join('\n') || 'Coloque os dados e salve primeiro.';
+        }
+        async function waApiAcao(acao, btn) {
+            if (DEMO) { showToast('Na demonstração nada é enviado à Meta.'); return; }
+            const box = document.getElementById('waApiRes');
+            await withBtn(btn, 'Aguarde...', async () => {
+                try {
+                    const { data, error } = await sb.functions.invoke('motora-whatsapp', { body: { acao } });
+                    box.textContent = error ? 'Erro: ' + friendlyError(error) : waApiTexto(acao, data);
+                } catch (e) { box.textContent = 'Erro: ' + friendlyError(e); }
+                box.classList.remove('hidden');
+            });
+        }
+        async function ligarWaApi(btn) {
+            if (DEMO) { showToast('Na demonstração nada é enviado à Meta.'); return; }
+            const ligar = !waApiCfg.ativo;
+            if (!await uiConfirm(ligar
+                ? 'As mensagens dos motoristas passam a sair sozinhas pelo WhatsApp oficial. O robô do computador é desligado (os dois nunca juntos). Só ligue depois que os modelos estiverem aprovados.'
+                : 'As mensagens voltam a ficar na Área IA para você enviar.', { titulo: ligar ? 'Ligar o WhatsApp oficial?' : 'Desligar o WhatsApp oficial?', sim: ligar ? 'Ligar' : 'Desligar' })) return;
+            await withBtn(btn, 'Salvando...', async () => {
+                const { error } = await sb.rpc('master_whatsapp_api_salvar', { p: { ativo: ligar } });
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                showToast(ligar ? 'WhatsApp oficial ligado.' : 'WhatsApp oficial desligado.');
+                await carregarWaApi();
+            });
         }
         function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); markAreas(); }
         async function saveConfig(key, inputId) {
@@ -7606,6 +7770,43 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 + (list.length ? `<div class="space-y-2">${list.map(r => reciboRowHtml(r, 'openMeuReciboDireto')).join('')}</div>` : '<p class="text-sm text-gray-400 italic py-4">Nenhum recibo confirmado ainda.</p>');
         }
         function openMeuReciboDireto(id) { openMeusRecibos(); verMeuRecibo(id); }
+        // AVISO DE DEVOLUÇÃO (motorista, 25/11/2026): comunicado baseado nas Cláusulas 6, 12 e 13 do contrato.
+        // Guarda o pedido e avisa o dono (driver_avisar_devolucao) e abre o WhatsApp do locador com o texto pronto.
+        // O dono continua registrando a devolução na ficha ("Motorista informou a devolução").
+        function abrirAvisoDev() {
+            const min = dataMais(todayISO(), 15), el = document.getElementById('avDevData');
+            el.min = min; if (!el.value || el.value < min) el.value = min;
+            avisoDevTexto();
+            document.getElementById('modalAvisoDev').classList.remove('hidden');
+        }
+        function fecharAvisoDev() { document.getElementById('modalAvisoDev').classList.add('hidden'); }
+        function avisoDevTexto() {
+            const d = state.profile || {}, v = allVeh().find(x => x.id === d.vehicle_id) || {};
+            const data = document.getElementById('avDevData').value, motivo = document.getElementById('avDevMotivo').value.trim(), pix = document.getElementById('avDevPix').value.trim();
+            const t = `*AVISO DE DEVOLUÇÃO DO VEÍCULO*\n(Cláusula 13 do Contrato de Locação)\n\nEu, ${d.name || '[NOME]'}, CPF ${d.cpf || '[CPF]'}, locatário do veículo ${v.model || '[MODELO]'}, placa ${v.plate || '[PLACA]'}, comunico que desejo encerrar o contrato de locação e devolver o veículo.\n\n📅 Data deste aviso: ${dataBR(todayISO(), true)}\n🚗 Data prevista para a devolução: ${data ? dataBR(data, true) : '[DATA]'}\n\nEstou ciente de que, conforme o contrato:\n\n1. O aviso precisa ser feito com pelo menos 15 dias corridos de antecedência (Cláusula 13).\n2. Continuo responsável pelo aluguel e pelas demais obrigações até a entrega efetiva do veículo.\n3. Devo devolver o veículo no local e horário combinados, com todas as chaves (inclusive a reserva, se recebi), o documento, o estepe e os demais acessórios (Cláusula 12).\n4. Na devolução será feita a vistoria final, comparando o estado do carro com a vistoria de entrega, e serão anotados a quilometragem e o nível de combustível ou bateria, que deve ser o mesmo do recebimento (Cláusula 12).\n5. A caução pode ser usada para pagar aluguéis em aberto, multas de trânsito, franquias, avarias comprovadas ou outras pendências encontradas na devolução, com prestação de contas e comprovantes. O que sobrar será devolvido em até 30 dias corridos após o encerramento do contrato (Cláusula 6).${motivo ? `\n\nMotivo da devolução: ${motivo}` : ''}${pix ? `\n\nChave Pix para devolução da caução: ${pix}` : ''}\n\n${d.name || ''}`;
+            document.getElementById('avDevPrevia').textContent = t;
+            return t;
+        }
+        async function enviarAvisoDev(btn) {
+            const data = document.getElementById('avDevData').value, min = dataMais(todayISO(), 15);
+            if (!data || data < min) { showToast(`A devolução precisa ser a partir de ${dataBR(min, true)} (15 dias depois do aviso).`, 'error'); return; }
+            if (!await uiConfirm(`Enviar o aviso de devolução para ${dataBR(data, true)}? A locadora recebe o aviso no app e o WhatsApp abre com o comunicado pronto.`, { titulo: 'Avisar devolução?', sim: 'Enviar' })) return;
+            const texto = avisoDevTexto();
+            // abre a janela antes de esperar o banco (o iPhone bloqueia janela aberta depois de esperar)
+            const jan = window.open('', '_blank');
+            await withBtn(btn, 'Enviando...', async () => {
+                try {
+                    const { data: r, error } = await sb.rpc('driver_avisar_devolucao', { p_data: data, p_motivo: document.getElementById('avDevMotivo').value.trim() || null });
+                    if (error) throw error;
+                    const fone = r && r.whatsapp ? String(r.whatsapp).replace(/\D/g, '') : '';
+                    const url = (fone ? (waLink(fone) || 'https://wa.me/') : 'https://wa.me/') + '?text=' + encodeURIComponent(texto);
+                    if (jan) jan.location.href = url; else window.location.href = url;
+                    fecharAvisoDev();
+                    showToast('Aviso registrado. Toque em enviar no WhatsApp.');
+                    await reload();
+                } catch (e) { if (jan) jan.close(); showToast(friendlyError(e), 'error'); }
+            });
+        }
         function openMeusRecibos() {
             const list = meusRecibosLista(), box = document.getElementById('meusRecibosList');
             document.getElementById('meuReciboView').classList.add('hidden');
