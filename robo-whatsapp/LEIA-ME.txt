@@ -1,14 +1,29 @@
-ROBÔ DO WHATSAPP DO MOTORA (no Hostless)
-========================================
-- Roda no Hostless (hostless.cloud), sem precisar do seu computador ligado e sem navegador (biblioteca Baileys).
+ROBÔ DO WHATSAPP DO MOTORA (no Hostless ou em outro serviço na nuvem)
+=====================================================================
+- Roda na nuvem (Hostless, hostless.cloud), sem precisar do seu computador ligado e sem navegador (biblioteca Baileys).
 - Envia as mensagens do MOTORA (Pix, recibo, avisos, inclusive ao dono) e só lê comprovante de motorista cadastrado e resposta do dono com código.
 - Liga e desliga pelo botão "Envio automático" na Área IA do app.
 - O QR code e a opção de conectar pelo número aparecem na Área IA do app.
-- A conexão fica guardada no Supabase: se o Hostless reiniciar, não precisa conectar de novo.
-- Pausa de pelo menos 1 minuto entre mensagens e no máximo 30 por hora.
+- A conexão fica guardada no Supabase: se o serviço reiniciar, não precisa conectar de novo (não precisa de disco guardado).
+- Pausa de pelo menos 1 minuto entre mensagens e os limites contra bloqueio do CLAUDE.md.
 
-Configuração no Hostless (o Claude te guia):
-- Novo app a partir do GitHub, repositório motora-frota, pasta robo-whatsapp (usa o Dockerfile).
-- Variável CHAVE_ROBO = chave do robô (o Claude passa na publicação).
+Por que a 1ª tentativa no Hostless falhou (achado em 25/11/2026):
+- A página de situação do robô só respondia dentro da própria máquina. O serviço da nuvem confere essa página para saber se
+  o robô está vivo; sem resposta, achava que tinha travado e reiniciava sem parar. O Dockerfile agora liga HOST=0.0.0.0 e PORT=8080.
+  No PC nada muda (lá não existe essa variável).
+
+Passo a passo no Hostless:
+1. Desligue o robô do PC: feche a janela "Robo do MOTORA" e tire o LIGAR-ROBO.bat do início do Windows.
+   NUNCA deixe os dois ligados ao mesmo tempo: eles brigam pela mesma conexão do WhatsApp.
+2. No Hostless: novo app a partir do GitHub, repositório motoraapp/motora-frota, ramo main,
+   pasta (diretório raiz) robo-whatsapp. Tipo: Dockerfile (o arquivo já está na pasta).
+3. Variável de ambiente: CHAVE_ROBO = a mesma chave do robô do PC
+   (está no arquivo config.json da pasta Desktop\Thiago\MOTORA\Robo-MOTORA, campo "chave_robo"). Não cole a chave em conversa nenhuma.
+4. Porta: 8080 (se o Hostless pedir). Verificação de saúde (health check), se pedir: caminho "/".
+5. Só 1 cópia (1 instância). Plano que fique ligado 24 h (sem "dormir" por falta de acesso).
+6. Publicar. Nos registros (logs) deve aparecer que o robô ligou. Depois, no app: Área IA → ligar "Envio automático"
+   e conectar pelo QR code ou pelo número.
 
 Atenção: é automação não oficial do WhatsApp; use de preferência um número só da locadora.
+Rodar em servidor de nuvem (endereço de internet de empresa de hospedagem) pode aumentar a chance de o WhatsApp desconfiar.
+O número da locadora já foi restringido uma vez (04/11/2026) e o robô levou o freio automático em 10/11/2026 (desconectado, código 401).
