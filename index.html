@@ -280,6 +280,7 @@
             <!-- Perfil do motorista: caução (pago e quanto falta) e previsão da próxima semana (quando em dia) -->
             <div id="drvProfileExtras" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
             <button id="btnMeusRecibos" onclick="openMeusRecibos()" class="w-full py-3 rounded-2xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-receipt"></i> Meus recibos <span id="meusRecibosCount" class="px-2 py-0.5 rounded-full bg-white/25 text-xs"></span></button>
+            <button id="btnAvisoDev" onclick="abrirAvisoDev()" class="hidden w-full py-3 rounded-2xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-car-side"></i> Avisar devolução do carro</button>
             <button id="btnTrocarSenhaDrv" onclick="abrirSenha()" class="w-full py-3 rounded-2xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
 
             <!-- Botão "Instalar app" (só aparece em celular Android, fora do próprio app) -->
@@ -1355,6 +1356,33 @@
                 <div id="senhaErro" role="alert" class="hidden text-sm font-semibold text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl px-3 py-2.5"></div>
                 <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-2"><i class="fa-solid fa-check"></i> Salvar nova senha</button>
             </form>
+        </div>
+    </div>
+
+    <!-- AVISO DE DEVOLUÇÃO (motorista): comunicado da Cláusula 13 para mandar pelo WhatsApp; banco: driver_avisar_devolucao -->
+    <div id="modalAvisoDev" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center gap-3">
+                <h3 class="font-bold"><i class="fa-solid fa-car-side text-blue-600 mr-1"></i> Avisar devolução do carro</h3>
+                <button onclick="fecharAvisoDev()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-4 overflow-y-auto custom-scrollbar space-y-3 flex-1">
+                <p class="text-xs p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200">Pelo contrato (Cláusula 13), o aviso precisa ser feito com pelo menos <b>15 dias corridos</b> de antecedência. O aluguel continua valendo até a entrega do carro.</p>
+                <label class="block text-sm font-semibold">Data prevista para devolver o carro
+                    <input id="avDevData" type="date" oninput="avisoDevTexto()" class="mt-1 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-base"></label>
+                <label class="block text-sm font-semibold">Motivo (opcional)
+                    <textarea id="avDevMotivo" rows="2" maxlength="300" oninput="avisoDevTexto()" class="mt-1 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-base"></textarea></label>
+                <label class="block text-sm font-semibold">Sua chave Pix (para devolver a caução)
+                    <input id="avDevPix" type="text" oninput="avisoDevTexto()" class="mt-1 w-full p-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-base"></label>
+                <div>
+                    <p class="text-sm font-semibold mb-1">Comunicado que vai no WhatsApp</p>
+                    <pre id="avDevPrevia" class="text-xs whitespace-pre-wrap p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-sans"></pre>
+                </div>
+            </div>
+            <div class="p-3 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-2">
+                <button onclick="fecharAvisoDev()" class="py-3 rounded-xl text-sm font-bold bg-gray-100 dark:bg-gray-700">Cancelar</button>
+                <button id="avDevEnviar" onclick="enviarAvisoDev(this)" class="py-3 rounded-xl text-sm font-bold bg-green-600 hover:bg-green-700 text-white"><i class="fa-brands fa-whatsapp mr-1"></i> Enviar pelo WhatsApp</button>
+            </div>
         </div>
     </div>
 
@@ -2644,6 +2672,13 @@
                 DEMO.db.pix_history.forEach(h => { if (h.driver_id === p_driver && h.sent_at === d.pix_sent_at && !h.paid_at) Object.assign(h, { due_at: due, period_start: p_start, period_end: p_end }); });
                 Object.assign(d, { pix_due_at: due, pix_period_start: p_start, pix_period_end: p_end });
             },
+            driver_avisar_devolucao({ p_data, p_motivo }) { // mesma regra do banco (supabase/2026-11-25-aviso-devolucao.sql)
+                const d = DEMO.db.profiles.find(p => p.role === 'driver' && p.id === DEMO.userId) || DEMO.db.profiles.find(p => p.role === 'driver' && p.vehicle_id);
+                if (!d || !d.vehicle_id) throw new Error('você não está com nenhum carro');
+                if (!p_data || p_data < dataMais(todayISO(), 15)) throw new Error('a devolução precisa ser pelo menos 15 dias depois do aviso');
+                d.pix_extra = { ...(d.pix_extra || {}), devolucao_pedido: { em: new Date().toISOString(), data: p_data, motivo: p_motivo || null } };
+                return { ok: true, whatsapp: null };
+            },
             master_mudar_dia({ p_driver, p_dia, p_mover }) { // mesma regra do banco (supabase/2026-11-25-mudar-dia-pagamento.sql)
                 const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) throw new Error('motorista não encontrado');
                 d.payment_day_of_week = p_dia;
@@ -3753,6 +3788,7 @@
             try { renderDriverExtras(); } catch (e) { console.error(e); }
             try { renderDriverProfileExtras(); } catch (e) { console.error(e); }
             try { const n = meusRecibosLista().length; document.getElementById('meusRecibosCount').textContent = n || ''; } catch (e) {}
+            try { const p = state.profile || {}, ex = p.pix_extra || {}; document.getElementById('btnAvisoDev').classList.toggle('hidden', !p.vehicle_id || !!ex.devolucao || !!ex.contrato_encerrado || !!ex.sem_cobranca); } catch (e) {}
             updateInstallApkButton();
             checkApkUpdate();
             const driver = state.profile;
@@ -4775,7 +4811,7 @@
                             <div class="motInfo">
                                 <div class="text-xs text-gray-500 dark:text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${vence}</div>
                                 ${c30 ? `<div class="mt-1.5 p-2.5 rounded-xl ${c30.pagoEm ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200' : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200'} text-xs space-y-1"><div class="flex items-center justify-between gap-2 font-bold"><span><i class="fa-regular fa-hourglass-half mr-1"></i> ${esc(c30.contagem)}</span><span>${fmtDate(c30.ateIso)}</span></div><p>${esc(c30.msg)}</p></div>` : ''}
-                                ${obsResumoHtml(d)}${contratoEnc ? '' : cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
+                                ${(() => { const pd = d.pix_extra && d.pix_extra.devolucao_pedido; return pd && !devOf(d) ? `<div class="mt-1.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs"><i class="fa-solid fa-car-side mr-1"></i><b>Pediu para devolver o carro em ${dataBR(String(pd.data), true)}</b> (aviso de ${fmtDate(pd.em)}). Confira e marque na ficha "Motorista informou a devolução".${pd.motivo ? `<br>Motivo: ${esc(pd.motivo)}` : ''}</div>` : ''; })()}${obsResumoHtml(d)}${contratoEnc ? '' : cobResumoHtml(d)}${cauResumoHtml(d)}${multasResumoHtml(d)}
                                 <div class="motSelos">${/aceito/i.test(termsBadgeMaster(d)) ? '' : termsBadgeMaster(d)}${cnhBadgeMaster(d)}</div>
                             </div>
                             ${pend ? `<div class="motComprovante">
@@ -7606,6 +7642,43 @@ td{padding:5px 4px;border-bottom:1px solid #f3f4f6;vertical-align:top;word-wrap:
                 + (list.length ? `<div class="space-y-2">${list.map(r => reciboRowHtml(r, 'openMeuReciboDireto')).join('')}</div>` : '<p class="text-sm text-gray-400 italic py-4">Nenhum recibo confirmado ainda.</p>');
         }
         function openMeuReciboDireto(id) { openMeusRecibos(); verMeuRecibo(id); }
+        // AVISO DE DEVOLUÇÃO (motorista, 25/11/2026): comunicado baseado nas Cláusulas 6, 12 e 13 do contrato.
+        // Guarda o pedido e avisa o dono (driver_avisar_devolucao) e abre o WhatsApp do locador com o texto pronto.
+        // O dono continua registrando a devolução na ficha ("Motorista informou a devolução").
+        function abrirAvisoDev() {
+            const min = dataMais(todayISO(), 15), el = document.getElementById('avDevData');
+            el.min = min; if (!el.value || el.value < min) el.value = min;
+            avisoDevTexto();
+            document.getElementById('modalAvisoDev').classList.remove('hidden');
+        }
+        function fecharAvisoDev() { document.getElementById('modalAvisoDev').classList.add('hidden'); }
+        function avisoDevTexto() {
+            const d = state.profile || {}, v = allVeh().find(x => x.id === d.vehicle_id) || {};
+            const data = document.getElementById('avDevData').value, motivo = document.getElementById('avDevMotivo').value.trim(), pix = document.getElementById('avDevPix').value.trim();
+            const t = `*AVISO DE DEVOLUÇÃO DO VEÍCULO*\n(Cláusula 13 do Contrato de Locação)\n\nEu, ${d.name || '[NOME]'}, CPF ${d.cpf || '[CPF]'}, locatário do veículo ${v.model || '[MODELO]'}, placa ${v.plate || '[PLACA]'}, comunico que desejo encerrar o contrato de locação e devolver o veículo.\n\n📅 Data deste aviso: ${dataBR(todayISO(), true)}\n🚗 Data prevista para a devolução: ${data ? dataBR(data, true) : '[DATA]'}\n\nEstou ciente de que, conforme o contrato:\n\n1. O aviso precisa ser feito com pelo menos 15 dias corridos de antecedência (Cláusula 13).\n2. Continuo responsável pelo aluguel e pelas demais obrigações até a entrega efetiva do veículo.\n3. Devo devolver o veículo no local e horário combinados, com todas as chaves (inclusive a reserva, se recebi), o documento, o estepe e os demais acessórios (Cláusula 12).\n4. Na devolução será feita a vistoria final, comparando o estado do carro com a vistoria de entrega, e serão anotados a quilometragem e o nível de combustível ou bateria, que deve ser o mesmo do recebimento (Cláusula 12).\n5. A caução pode ser usada para pagar aluguéis em aberto, multas de trânsito, franquias, avarias comprovadas ou outras pendências encontradas na devolução, com prestação de contas e comprovantes. O que sobrar será devolvido em até 30 dias corridos após o encerramento do contrato (Cláusula 6).${motivo ? `\n\nMotivo da devolução: ${motivo}` : ''}${pix ? `\n\nChave Pix para devolução da caução: ${pix}` : ''}\n\n${d.name || ''}`;
+            document.getElementById('avDevPrevia').textContent = t;
+            return t;
+        }
+        async function enviarAvisoDev(btn) {
+            const data = document.getElementById('avDevData').value, min = dataMais(todayISO(), 15);
+            if (!data || data < min) { showToast(`A devolução precisa ser a partir de ${dataBR(min, true)} (15 dias depois do aviso).`, 'error'); return; }
+            if (!await uiConfirm(`Enviar o aviso de devolução para ${dataBR(data, true)}? A locadora recebe o aviso no app e o WhatsApp abre com o comunicado pronto.`, { titulo: 'Avisar devolução?', sim: 'Enviar' })) return;
+            const texto = avisoDevTexto();
+            // abre a janela antes de esperar o banco (o iPhone bloqueia janela aberta depois de esperar)
+            const jan = window.open('', '_blank');
+            await withBtn(btn, 'Enviando...', async () => {
+                try {
+                    const { data: r, error } = await sb.rpc('driver_avisar_devolucao', { p_data: data, p_motivo: document.getElementById('avDevMotivo').value.trim() || null });
+                    if (error) throw error;
+                    const fone = r && r.whatsapp ? String(r.whatsapp).replace(/\D/g, '') : '';
+                    const url = (fone ? (waLink(fone) || 'https://wa.me/') : 'https://wa.me/') + '?text=' + encodeURIComponent(texto);
+                    if (jan) jan.location.href = url; else window.location.href = url;
+                    fecharAvisoDev();
+                    showToast('Aviso registrado. Toque em enviar no WhatsApp.');
+                    await reload();
+                } catch (e) { if (jan) jan.close(); showToast(friendlyError(e), 'error'); }
+            });
+        }
         function openMeusRecibos() {
             const list = meusRecibosLista(), box = document.getElementById('meusRecibosList');
             document.getElementById('meuReciboView').classList.add('hidden');
