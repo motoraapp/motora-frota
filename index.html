@@ -2644,6 +2644,19 @@
                 DEMO.db.pix_history.forEach(h => { if (h.driver_id === p_driver && h.sent_at === d.pix_sent_at && !h.paid_at) Object.assign(h, { due_at: due, period_start: p_start, period_end: p_end }); });
                 Object.assign(d, { pix_due_at: due, pix_period_start: p_start, pix_period_end: p_end });
             },
+            master_mudar_dia({ p_driver, p_dia, p_mover }) { // mesma regra do banco (supabase/2026-11-25-mudar-dia-pagamento.sql)
+                const d = DEMO.db.profiles.find(p => p.id === p_driver); if (!d) throw new Error('motorista não encontrado');
+                d.payment_day_of_week = p_dia;
+                const h = p_mover && d.pix_sent_at ? DEMO.db.pix_history.find(x => x.driver_id === p_driver && x.sent_at === d.pix_sent_at && !x.paid_at) : null;
+                if (!h) return { movido: false, dia: p_dia };
+                const venc = proximoDiaISO(p_dia), due = new Date(venc + 'T23:59:59-03:00').toISOString();
+                const ex = { ...(d.pix_extra || {}) }; delete ex.atraso_qr; delete ex.parcial;
+                if (ex.asaas) ex.asaas = { ...ex.asaas, vencimento: venc };
+                Object.assign(h, { due_at: due });
+                Object.assign(d, { pix_due_at: due, pix_extra: ex, pix_amount: h.amount });
+                if (!DEMO.db.pix_history.some(x => x.driver_id === p_driver && !x.paid_at && new Date(x.due_at) < new Date())) d.payment_status = 'Em dia';
+                return { movido: true, dia: p_dia, vencimento: venc, valor: Number(h.amount), restaurado: true, sem_qr: false, status: d.payment_status };
+            },
             master_corrigir_recibo({ p_history, p_descricao, p_start, p_end }) {
                 const h = DEMO.db.pix_history.find(x => x.id === p_history); if (!h) throw new Error('cobrança não encontrada');
                 Object.assign(h, { recibo_descricao: p_descricao, period_start: p_start, period_end: p_end, corrigido_em: new Date().toISOString() });
@@ -4787,6 +4800,7 @@
                                     ${wa ? `<a href="${wa}" target="_blank" rel="noopener" class="motItem"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : `<button onclick="openDriverFile('${d.id}')" class="motItem"><i class="fa-brands fa-whatsapp"></i> Adicionar WhatsApp</button>`}
                                     ${!contratoEnc && (temPix || atraso || pend) ? `<button onclick="openNewPix('${d.id}')" class="motItem"><i class="fa-brands fa-pix"></i> Novo Pix</button>` : ''}
                                     ${temPix ? `<button onclick="openEditPix('${d.id}')" class="motItem"><i class="fa-solid fa-pen"></i> Editar Pix enviado</button>` : ''}
+                                    ${contratoEnc ? '' : `<button onclick="mudarDiaPagamento('${d.id}', this)" class="motItem"><i class="fa-solid fa-calendar-day"></i> Mudar dia do pagamento</button>`}
                                     <button onclick="marcarSituacao('${d.id}', '${atraso ? 'Em dia' : 'Em atraso'}', this)" class="motItem"><i class="fa-solid ${atraso ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${atraso ? 'Marcar como em dia' : 'Marcar em atraso'}</button>
                                     <button onclick="viewAsDriver('${d.id}')" class="motItem"><i class="fa-solid fa-right-to-bracket"></i> Entrar na conta dele</button>
                                     ${last && last !== pend ? `<button onclick="viewDocIdx(${docRef(last.file_path, `Comprovante - ${esc(d.name)} (${new Date(last.created_at).toLocaleDateString('pt-BR')})`)})" class="motItem"><i class="fa-solid fa-file-invoice"></i> Último comprovante (${recs.length})</button>` : ''}
@@ -5135,6 +5149,54 @@
             const d = allDrv().find(x => x.id === id);
             if (d) d.payment_status = newStatus;
             showToast(`Status de pagamento atualizado para "${newStatus}".`);
+        }
+
+        // MUDAR DIA DO PAGAMENTO ("Mais ações" e ficha). Com cobrança em aberto, pergunta se leva o vencimento para o novo dia:
+        // sem multa e juros, o QR da semana volta para o app (sai o de atraso), "Em dia" e aviso ao motorista.
+        // Banco: master_mudar_dia (supabase/2026-11-25-mudar-dia-pagamento.sql). Caso da Argelia, 25/11/2026.
+        function cobrancaAberta(d) {
+            if (!d || !d.pix_sent_at) return null;
+            return (state.pixHistory || []).find(h => h.driver_id === d.id && !h.paid_at && h.amount != null && Math.abs(new Date(h.sent_at) - new Date(d.pix_sent_at)) < 2000) || null;
+        }
+        function proximoDiaISO(dia) { const t = dataDe(todayISO()); t.setDate(t.getDate() + ((dia - t.getDay() + 7) % 7)); return dataISO(t); }
+        async function mudarDiaPagamento(id, btn) {
+            const d = allDrv().find(x => x.id === id); if (!d) return;
+            const nome = d.name.split(' ')[0], atual = DIAS_SEMANA[cobOf(d).dia];
+            const r = await uiPrompt(`Hoje ${nome} paga toda ${atual}. Toque no novo dia.`, atual, { titulo: `Dia do pagamento de ${nome}`, opcoes: DIAS_SEMANA, sim: 'Continuar' });
+            if (r == null) return;
+            const sem = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace('-feira', '').trim();
+            const dia = DIAS_SEMANA.findIndex(n => sem(n) === sem(r));
+            if (dia < 0) { showToast('Escolha um dos dias da lista.', 'error'); return; }
+            await aplicarDiaPagamento(d, dia, btn, false);
+        }
+        // jaSalvo = o dia já foi gravado pela ficha; aqui só falta (se o dono quiser) levar a cobrança em aberto
+        async function aplicarDiaPagamento(d, dia, btn, jaSalvo) {
+            const aberta = cobrancaAberta(d), nomeDia = DIAS_SEMANA[dia];
+            let mover = false;
+            if (aberta) {
+                const nova = proximoDiaISO(dia), velho = isoSP(aberta.due_at);
+                if (nova !== velho) {
+                    const venceu = new Date(aberta.due_at) < new Date();
+                    mover = await uiDialogo({
+                        titulo: `Levar a cobrança para ${nomeDia}?`,
+                        texto: `A cobrança em aberto de ${fmtMoney(aberta.amount)} ${venceu ? 'venceu' : 'vence'} em ${dataBR(velho)}. Ela pode passar a vencer ${nomeDia}, ${dataBR(nova)}, até 23:59:\n\n• sem multa e juros\n• o Pix da semana volta para o app dele\n• ele fica "Em dia" (se não tiver outra cobrança vencida)\n• ele recebe um aviso no app\n\nAs próximas cobranças já saem para ${nomeDia}.`,
+                        sim: 'Levar a cobrança', nao: jaSalvo ? 'Não, deixar como está' : 'Só mudar o dia',
+                    });
+                }
+            }
+            if (jaSalvo && !mover) return;
+            await withBtn(btn, 'Salvando...', async () => {
+                try {
+                    const { data, error } = await sb.rpc('master_mudar_dia', { p_driver: d.id, p_dia: dia, p_mover: mover });
+                    if (error) throw error;
+                    await reload();
+                    const res = data || {};
+                    if (res.movido) {
+                        showToast(`Pronto: ${fmtMoney(res.valor)} vence ${nomeDia}, ${dataBR(res.vencimento)}. ${d.name.split(' ')[0]} está "${res.status || 'Em dia'}" e foi avisado.`);
+                        if (res.sem_qr) showToast('O Pix com multa e juros continua na tela dele. Troque o código em "Editar Pix enviado".', 'error');
+                    } else showToast(`Dia do pagamento: toda ${nomeDia}.`);
+                } catch (e) { showToast(friendlyError(e), 'error'); }
+            });
         }
 
         var driverToDelete = null;
@@ -5761,6 +5823,7 @@
             if (!updates.name) { showToast("Informe o nome.", "error"); return; }
             updates.vehicle_id = document.getElementById('dfVehicle').value || null;
             const cobForma = dfCobRead();
+            const diaAntes = cobOf(curDrvRef).dia; // dia mudou e há cobrança em aberto: depois de salvar pergunta se leva o vencimento junto
             { const c = cobForma; updates.payment_day_of_week = c.dia; updates.asaas_auto_charge_enabled = c.auto === 'asaas'; }
             {   // caução: guardada junto com o acréscimo repetido, sem apagar o resto
                 const curDrv = allDrv().find(x => x.id === id) || {};
@@ -5802,6 +5865,7 @@
                 closeDriverFile();
                 await reload();
                 showToast("Ficha salva!");
+                if (cobForma.dia !== diaAntes) { const dNovo = allDrv().find(x => x.id === id); if (dNovo && !(dNovo.pix_extra && dNovo.pix_extra.contrato_encerrado)) await aplicarDiaPagamento(dNovo, cobForma.dia, null, true); }
                 if (newDocs && appConfig.gemini) { showToast("Lendo os documentos novos com IA..."); aiFillDriver(id, true).catch(() => {}); }
             } catch (err) { showToast(friendlyError(err), 'error'); }
             finally { setBusy(form, false); }
@@ -10643,7 +10707,7 @@ notify pgrst, 'reload schema';`;
         }
         function contractPdfFileName(c) {
             const snap = (c && c.snapshot_data) || {};
-            const slug = v => String(v || 'SEM_DADO').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'SEM_DADO';
+            const slug = v => String(v || 'SEM_DADO').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'SEM_DADO';
             const drv = slug((snap.locatario && snap.locatario.name) || 'MOTORISTA');
             const plate = slug((snap.veiculo && snap.veiculo.plate) || 'VEICULO');
             const dateStr = String((c && (c.signature_date || (snap.comercial && snap.comercial.data_assinatura) || c.start_date)) || todayISO()).replace(/[^0-9-]/g, '');
@@ -12455,7 +12519,7 @@ notify pgrst, 'reload schema';`;
         };
         function inspectionPdfFileName(ins) {
             const d = (ins.snapshot_data && ins.snapshot_data.locatario && ins.snapshot_data.locatario.name) || 'motorista';
-            const slug = String(d).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'vistoria';
+            const slug = String(d).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'vistoria';
             const pref = ins.inspection_type === 'devolucao' ? 'termo-devolucao' : 'vistoria-entrega';
             return `${pref}-${ins.inspection_number || 'rascunho'}-${slug}.pdf`;
         }
