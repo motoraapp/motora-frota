@@ -880,6 +880,13 @@
                 <input id="iaCodToken" type="password" autocomplete="off" placeholder="Chave do GitHub" class="w-full mt-2 p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                 <button type="button" onclick="salvarIaCodigo(this)" class="w-full mt-2 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar</button></details>
             <button type="button" onclick="abrirSenha()" class="w-full py-3 rounded-xl font-bold text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center gap-2"><i class="fa-solid fa-key"></i> Trocar minha senha</button>
+            <!-- WhatsApp da locadora: para onde o motorista manda o aviso de devolução (app_settings whatsapp_locadora) -->
+            <div class="p-3 rounded-xl border border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/15 space-y-2">
+                <h4 class="font-semibold text-sm"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i> WhatsApp da locadora</h4>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Número que recebe as mensagens dos motoristas pelo app (ex.: aviso de devolução do carro). Com DDD.</p>
+                <input id="cfgWhatsLoc" type="tel" inputmode="tel" placeholder="(62) 99457-8963" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
+                <button type="button" onclick="salvarWhatsLocadora(this)" class="w-full py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar número</button>
+            </div>
             <div class="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 space-y-2">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-user-tie text-indigo-600 mr-1"></i> Perfil do proprietário / Locador (<span id="cfgOwnerName">Thiago</span>)</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">O carro vinculado ao seu perfil não cria login de motorista e é usado por padrão em <b>Ganhos aplicativo</b>.</p>
@@ -5575,6 +5582,7 @@
             fillOwnerVehicleSelect('cfgOwnerVehicle');
             fillLocadorSettings();
             fillAtrasoCfg();
+            fillWhatsLocadora();
             document.getElementById('cfgGemini').value = '';
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
@@ -5582,6 +5590,26 @@
             drawFeatureToggles();
             document.getElementById('modalSettings').classList.remove('hidden');
             Promise.all([loadConfigStatus().then(paintConfig), loadRobo().then(paintRobo)]).catch(() => {});
+        }
+        // WHATSAPP DA LOCADORA (25/11/2026): app_settings whatsapp_locadora = {numero: '55DDD...'}; o motorista lê (aviso de devolução)
+        async function fillWhatsLocadora() {
+            const el = document.getElementById('cfgWhatsLoc'); if (!el) return;
+            try {
+                const { data } = await sb.from('app_settings').select('value').eq('key', 'whatsapp_locadora').maybeSingle();
+                const n = String((data && data.value && data.value.numero) || '').replace(/^55/, '');
+                el.value = n ? maskPhone(n) : '';
+            } catch (e) {}
+        }
+        async function salvarWhatsLocadora(btn) {
+            let n = document.getElementById('cfgWhatsLoc').value.replace(/\D/g, '').replace(/^0+/, '');
+            if (n.length === 12 || n.length === 13) n = n.replace(/^55/, '');
+            if (n.length !== 10 && n.length !== 11) { showToast('Digite o número com DDD, ex.: (62) 99457-8963.', 'error'); return; }
+            await withBtn(btn, 'Salvando...', async () => {
+                const { error } = await sb.from('app_settings').upsert({ key: 'whatsapp_locadora', value: { numero: '55' + n }, updated_at: new Date().toISOString() });
+                if (error) { showToast(friendlyError(error), 'error'); return; }
+                document.getElementById('cfgWhatsLoc').value = maskPhone(n);
+                showToast('WhatsApp da locadora salvo!');
+            });
         }
         function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); markAreas(); }
         async function saveConfig(key, inputId) {

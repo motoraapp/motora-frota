@@ -35,6 +35,7 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 | Ajustes da próxima cobrança | `ajustesOf`, `dfAjRender`, `previsaoProxima` |
 | Devolução do veículo | seção "DEVOLUÇÃO DO VEÍCULO" (`devOf`, `devPrevisao`, `dfDevRender`, `dfDevAvisar`, `dfDevReceber`) |
 | Aviso de devolução pelo motorista | `#btnAvisoDev`, `#modalAvisoDev`, `abrirAvisoDev`, `avisoDevTexto`, `enviarAvisoDev`; banco `driver_avisar_devolucao` |
+| WhatsApp da locadora (número que recebe os avisos dos motoristas) | Configurações, `#cfgWhatsLoc`, `fillWhatsLocadora`, `salvarWhatsLocadora`; `app_settings` `whatsapp_locadora` |
 | Novo Pix / Editar / Excluir Pix | `#modalNewPix`, `openNewPix`, `fillNewPixValues`, `newPixParts`, `calcNewPix`, `saveNewPix`, `openEditPix`, `deletePix`; datas: seção "PERÍODO E VENCIMENTO" |
 | Pix copia e cola gerado no app (BR Code) | seção "PIX COPIA E COLA GERADO NO APARELHO" (`pixGerarCodigo`, `gerarPixAuto`, `pixRecebedorCarregar/Guardar`), `crc16`, `pixValid`, `renderPixQr`, `previewNewPixQr` |
 | Chave Pix (tipos, formato) | seção "CHAVE PIX" (`parsePixKey`, `normalizePixKey`, `pixKeyLooksOk`) |
