@@ -887,31 +887,6 @@
                 <input id="cfgWhatsLoc" type="tel" inputmode="tel" placeholder="(62) 99457-8963" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none">
                 <button type="button" onclick="salvarWhatsLocadora(this)" class="w-full py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar número</button>
             </div>
-            <!-- WHATSAPP OFICIAL (API da Meta): função motora-whatsapp; SQL supabase/2026-11-25-whatsapp-api.sql; guia docs/whatsapp-api.md -->
-            <details id="waApiBox" class="rounded-xl border border-green-200 dark:border-green-800 p-3 text-sm">
-                <summary class="font-bold cursor-pointer"><i class="fa-brands fa-whatsapp text-green-600 mr-1"></i> WhatsApp oficial (API da Meta) <span id="waApiSit" class="ml-1 text-xs font-semibold text-gray-500"></span></summary>
-                <div class="mt-3 space-y-2">
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Manda sozinho para os motoristas (Pix, vence hoje, atraso, recibo e avisos), sem robô e sem computador ligado. Os dados ficam na página da Meta para desenvolvedores; o passo a passo está no guia.</p>
-                    <label class="block text-xs font-semibold">ID da conta do WhatsApp (WABA)<input id="waWaba" inputmode="numeric" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
-                    <label class="block text-xs font-semibold">ID do número de telefone<input id="waPhoneId" inputmode="numeric" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
-                    <label class="block text-xs font-semibold">ID do app<input id="waAppId" inputmode="numeric" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
-                    <label class="block text-xs font-semibold">Token permanente <span id="waTokSit" class="font-normal text-gray-500"></span><input id="waToken" type="password" autocomplete="off" placeholder="Deixe em branco para não trocar" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
-                    <label class="block text-xs font-semibold">Chave secreta do app <span id="waSecSit" class="font-normal text-gray-500"></span><input id="waSecret" type="password" autocomplete="off" placeholder="Deixe em branco para não trocar" class="w-full p-2.5 text-base rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none mt-1"></label>
-                    <button type="button" onclick="salvarWaApi(this)" class="w-full py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Salvar dados</button>
-                    <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 text-xs space-y-1">
-                        <p class="font-semibold">Para colocar na Meta (Webhook):</p>
-                        <p>Endereço: <span id="waHookUrl" class="break-all font-mono"></span></p>
-                        <p>Token de verificação: <span id="waVerify" class="break-all font-mono"></span></p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" onclick="waApiAcao('modelos', this)" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700">Criar modelos na Meta</button>
-                        <button type="button" onclick="waApiAcao('situacao', this)" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700">Ver situação</button>
-                        <button type="button" onclick="waApiAcao('teste', this)" class="py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-700">Enviar teste para mim</button>
-                        <button type="button" id="waLigarBtn" onclick="ligarWaApi(this)" class="py-2.5 rounded-xl text-xs font-bold bg-green-600 hover:bg-green-700 text-white">Ligar envio</button>
-                    </div>
-                    <pre id="waApiRes" class="hidden text-xs whitespace-pre-wrap p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900 font-sans"></pre>
-                </div>
-            </details>
             <div class="p-3 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/15 space-y-2">
                 <h4 class="font-semibold text-sm"><i class="fa-solid fa-user-tie text-indigo-600 mr-1"></i> Perfil do proprietário / Locador (<span id="cfgOwnerName">Thiago</span>)</h4>
                 <p class="text-xs text-gray-500 dark:text-gray-400">O carro vinculado ao seu perfil não cria login de motorista e é usado por padrão em <b>Ganhos aplicativo</b>.</p>
@@ -2719,7 +2694,6 @@
                 d.payment_status = 'Em dia';
                 return { tirado: true, cobrancas: venc.length, valor: venc.reduce((t, h) => t + Number(h.amount), 0), vencimento: hoje, pix: d.pix_amount, status: d.payment_status, restaurado: false, sem_qr: false };
             },
-            master_whatsapp_api_info: () => ({ config: { ativo: false }, tem_token: false, tem_app_secret: false, verify_token: 'demonstracao', webhook_url: 'https://exemplo.supabase.co/functions/v1/motora-whatsapp' }),
             driver_avisar_devolucao({ p_data, p_motivo }) { // mesma regra do banco (supabase/2026-11-25-aviso-devolucao.sql)
                 const d = DEMO.db.profiles.find(p => p.role === 'driver' && p.id === DEMO.userId) || DEMO.db.profiles.find(p => p.role === 'driver' && p.vehicle_id);
                 if (!d || !d.vehicle_id) throw new Error('você não está com nenhum carro');
@@ -5648,7 +5622,6 @@
             fillLocadorSettings();
             fillAtrasoCfg();
             fillWhatsLocadora();
-            carregarWaApi();
             document.getElementById('cfgGemini').value = '';
             document.getElementById('cfgDrive').value = '';
             document.getElementById('cfgDriveResult').innerHTML = '';
@@ -5675,79 +5648,6 @@
                 if (error) { showToast(friendlyError(error), 'error'); return; }
                 document.getElementById('cfgWhatsLoc').value = maskPhone(n);
                 showToast('WhatsApp da locadora salvo!');
-            });
-        }
-        // WHATSAPP OFICIAL (API da Meta, 25/11/2026): dados em app_settings whatsapp_api, token e chave em app_secrets (set_app_config);
-        // envio pela função motora-whatsapp (cron motora-whatsapp-api). Ligar desliga o robô (master_whatsapp_api_salvar).
-        let waApiCfg = {};
-        async function carregarWaApi() {
-            try {
-                const { data, error } = await sb.rpc('master_whatsapp_api_info');
-                if (error || !data) return;
-                const c = waApiCfg = data.config || {};
-                document.getElementById('waWaba').value = c.waba_id || '';
-                document.getElementById('waPhoneId').value = c.phone_id || '';
-                document.getElementById('waAppId').value = c.app_id || '';
-                ['waToken', 'waSecret'].forEach(i => document.getElementById(i).value = '');
-                document.getElementById('waTokSit').textContent = data.tem_token ? '(já salvo ✓)' : '(falta colocar)';
-                document.getElementById('waSecSit').textContent = data.tem_app_secret ? '(já salva ✓)' : '(falta colocar)';
-                document.getElementById('waHookUrl').textContent = data.webhook_url || '';
-                document.getElementById('waVerify').textContent = data.verify_token || '';
-                document.getElementById('waApiSit').textContent = c.ativo ? '· LIGADO' : '· desligado';
-                const b = document.getElementById('waLigarBtn'); b.textContent = c.ativo ? 'Desligar envio' : 'Ligar envio';
-                b.className = 'py-2.5 rounded-xl text-xs font-bold text-white ' + (c.ativo ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700');
-            } catch (e) {}
-        }
-        async function salvarWaApi(btn) {
-            if (DEMO) { showToast('Na demonstração nada é salvo na Meta.'); return; }
-            await withBtn(btn, 'Salvando...', async () => {
-                try {
-                    const { error } = await sb.rpc('master_whatsapp_api_salvar', { p: { waba_id: document.getElementById('waWaba').value, phone_id: document.getElementById('waPhoneId').value, app_id: document.getElementById('waAppId').value } });
-                    if (error) throw error;
-                    for (const [k, id] of [['wa_token', 'waToken'], ['wa_app_secret', 'waSecret']]) {
-                        const v = document.getElementById(id).value.trim();
-                        if (v) { const r = await sb.rpc('set_app_config', { p_key: k, p_value: v }); if (r.error) throw r.error; }
-                    }
-                    showToast('Dados do WhatsApp oficial salvos!');
-                    await carregarWaApi();
-                } catch (e) { showToast(friendlyError(e), 'error'); }
-            });
-        }
-        function waApiTexto(acao, d) {
-            if (!d || d.ok === false) return 'Erro: ' + ((d && d.error) || 'sem resposta');
-            if (acao === 'modelos') return (d.modelos || []).map(m => `${m.modelo}: ${m.erro ? 'ERRO - ' + m.erro : m.situacao}`).join('\n');
-            if (acao === 'teste') return 'Mensagem de teste enviada. Confira o seu WhatsApp.';
-            const st = { APPROVED: 'aprovado ✓', PENDING: 'em análise', REJECTED: 'recusado', PAUSED: 'pausado', DISABLED: 'desativado' };
-            const L = [];
-            if (d.numero) L.push(`Número: ${d.numero.display_phone_number || '-'} (${d.numero.verified_name || '-'}) · qualidade ${d.numero.quality_rating || '-'}`);
-            if (d.numero_erro) L.push('Número: ' + d.numero_erro);
-            (d.modelos || []).forEach(m => L.push(`${m.name}: ${st[m.status] || m.status}${m.rejected_reason && m.rejected_reason !== 'NONE' ? ' (' + m.rejected_reason + ')' : ''}`));
-            (d.faltam || []).forEach(n => L.push(`${n}: ainda não criado`));
-            if (d.modelos_erro) L.push('Modelos: ' + d.modelos_erro);
-            return L.join('\n') || 'Coloque os dados e salve primeiro.';
-        }
-        async function waApiAcao(acao, btn) {
-            if (DEMO) { showToast('Na demonstração nada é enviado à Meta.'); return; }
-            const box = document.getElementById('waApiRes');
-            await withBtn(btn, 'Aguarde...', async () => {
-                try {
-                    const { data, error } = await sb.functions.invoke('motora-whatsapp', { body: { acao } });
-                    box.textContent = error ? 'Erro: ' + friendlyError(error) : waApiTexto(acao, data);
-                } catch (e) { box.textContent = 'Erro: ' + friendlyError(e); }
-                box.classList.remove('hidden');
-            });
-        }
-        async function ligarWaApi(btn) {
-            if (DEMO) { showToast('Na demonstração nada é enviado à Meta.'); return; }
-            const ligar = !waApiCfg.ativo;
-            if (!await uiConfirm(ligar
-                ? 'As mensagens dos motoristas passam a sair sozinhas pelo WhatsApp oficial. O robô do computador é desligado (os dois nunca juntos). Só ligue depois que os modelos estiverem aprovados.'
-                : 'As mensagens voltam a ficar na Área IA para você enviar.', { titulo: ligar ? 'Ligar o WhatsApp oficial?' : 'Desligar o WhatsApp oficial?', sim: ligar ? 'Ligar' : 'Desligar' })) return;
-            await withBtn(btn, 'Salvando...', async () => {
-                const { error } = await sb.rpc('master_whatsapp_api_salvar', { p: { ativo: ligar } });
-                if (error) { showToast(friendlyError(error), 'error'); return; }
-                showToast(ligar ? 'WhatsApp oficial ligado.' : 'WhatsApp oficial desligado.');
-                await carregarWaApi();
             });
         }
         function closeSettings() { document.getElementById('modalSettings').classList.add('hidden'); markAreas(); }

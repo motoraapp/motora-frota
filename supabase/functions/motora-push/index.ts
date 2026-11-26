@@ -101,9 +101,8 @@ async function setting(key: string) {
   return (data?.value ?? null) as Record<string, unknown> | null;
 }
 async function iaAtiva() { return (await setting("ia_whatsapp"))?.ativo !== false; } // sem registro = ligada
-// robô ligado e dando sinal de vida nos últimos 5 minutos, ou WhatsApp oficial (API da Meta) ligado: a mensagem sai sozinha
+// robô ligado e dando sinal de vida nos últimos 5 minutos: a mensagem sai sozinha
 async function roboFuncionando() {
-  if ((await setting("whatsapp_api"))?.ativo === true) return true;
   const r = await setting("whatsapp_robo");
   return !!r?.ativo && r?.conectado !== false && !!r?.visto_em && Date.now() - new Date(String(r.visto_em)).getTime() < 5 * 60000;
 }

@@ -45,7 +45,6 @@ Funções do Supabase: o código fica em `supabase/functions/<nome>/`. Para publ
 | Cobrar atraso | seção "COBRAR ATRASO" (`atrasoDados`, `cobrarAtraso`) |
 | Tirar multa e juros (dispensar encargos de atraso) | `tirarEncargos` (cartão "Mais ações" e Área do Pix); banco `master_tirar_encargos` + parte comum `pix_volta_qr_semana` |
 | Área IA (mensagens WhatsApp, robô, QR) | `#modalIA`, `openIA`, `renderIA`, `loadIA`, `toggleIA`, `loadRobo` |
-| WhatsApp oficial (API da Meta) | Configurações `#waApiBox`, `carregarWaApi`, `salvarWaApi`, `waApiAcao`, `ligarWaApi`; função `motora-whatsapp`; guia `docs/whatsapp-api.md` |
 | Perguntar à IA (assistente do dono) | seção "PERGUNTAR À IA" (`iaFerramenta`, `iaConfirmarCartao`) |
 | Financeiro / relatório / despesas do carro | `#modalFinance`, `openFinance`, `renderFinance`, `switchFinTab`; `#modalReport`; seção "DESPESAS DO VEÍCULO", `#modalExpenses` |
 | Ganhos e despesas de aplicativo | seções "GANHOS APLICATIVO" e "DESPESAS DO APLICATIVO" |
@@ -81,7 +80,6 @@ Código: `robo-whatsapp/nucleo.js` (lógica) + `robo.js` (liga). No PC roda a c�
 
 | Função | Para que serve / onde mexer |
 |---|---|
-| `motora-whatsapp` | WhatsApp oficial (API da Meta): fila → modelos aprovados, criar modelos, situação, teste, aviso de entrega (`enviarFila`, `montar`, `criarModelos`) |
 | `motora-push` | notificações e mensagens de WhatsApp (`sendToDriver`, `textoNovoPix`, recibo PDF `gerarPdfRecibo`, `type` "new_pix", "driver_alert", "master_alert", "cobranca", "boas_vindas", "todos_*") |
 | `motora-lembretes` | lembretes (dono 8h30, motorista 12h e 19h, atraso 9h) e **Pix automático do MOTORA** 10h (`pixAutomatico`, `codigoPix`) |
 | `motora-asaas` | cobrança automática, confirmação pelo banco e Pix parcial/autorização (`cobrarMotorista`, `pagamentoRecebido`, `pixParcialMotorista`, `autorizarParcial`) |
